@@ -562,14 +562,8 @@ class TestDealer(unittest.TestCase):
         invocation_msg = callee_messages[-1]
         self.assertIsInstance(invocation_msg, message.Invocation)
 
-        error = message.Error(
-                message.Call.MESSAGE_TYPE,
-                invocation_msg.request,
-                u"wamp.error.foo",
-            )
-        dealer.processInvocationError(
-            session, error
-        )
+        error = message.Error(message.Call.MESSAGE_TYPE, invocation_msg.request, u"wamp.error.foo")
+        dealer.processInvocationError(session, error)
 
         self.assertEqual(1, len(caller_messages))
         self.assertEqual(
@@ -591,13 +585,8 @@ class TestDealer(unittest.TestCase):
 
         self.assertEqual(1, len(caller_messages), "got an extra unexpected message")
 
-        yield_msg = message.Yield(
-                invocation_msg.request,
-                args=['a result'],
-            )
-        dealer.processYield(
-            session, yield_msg
-        )
+        yield_msg = message.Yield(invocation_msg.request, args=['a result'])
+        dealer.processYield(session, yield_msg)
 
         result_msg = caller_messages[-1]
         self.assertIsInstance(result_msg, message.Result)

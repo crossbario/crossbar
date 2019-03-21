@@ -260,9 +260,12 @@ class Dealer(object):
 
                     def _publish(registration):
                         service_session = self._router._realm.session
+
+                        # FIXME: what about exclude_authid as colleced from forward_for? like we do elsewhere in this file!
                         options = types.PublishOptions(
                             correlation_id=None
                         )
+
                         if was_registered:
                             service_session.publish(
                                 u'wamp.registration.on_unregister',
@@ -270,6 +273,7 @@ class Dealer(object):
                                 registration.id,
                                 options=options,
                             )
+
                         if was_last_callee:
                             service_session.publish(
                                 u'wamp.registration.on_delete',
@@ -459,14 +463,19 @@ class Dealer(object):
 
                     reply.correlation_is_last = False
 
+                    exclude_authid = None
+                    if register.forward_for:
+                        exclude_authid = [ff['authid'] for ff in register.forward_for]
+
                     def _publish():
                         service_session = self._router._realm.session
 
-                        if self._router.is_traced:
+                        if exclude_authid or self._router.is_traced:
                             options = types.PublishOptions(
                                 correlation_id=register.correlation_id,
                                 correlation_is_anchor=False,
                                 correlation_is_last=False,
+                                exclude_authid=exclude_authid,
                             )
                         else:
                             options = None
@@ -606,14 +615,19 @@ class Dealer(object):
 
             has_follow_up_messages = True
 
+            exclude_authid = None
+            if unregister and unregister.forward_for:
+                exclude_authid = [ff['authid'] for ff in unregister.forward_for]
+
             def _publish():
                 service_session = self._router._realm.session
 
-                if unregister and self._router.is_traced:
+                if unregister and (exclude_authid and self._router.is_traced):
                     options = types.PublishOptions(
                         correlation_id=unregister.correlation_id,
                         correlation_is_anchor=False,
-                        correlation_is_last=False
+                        correlation_is_last=False,
+                        exclude_authid=exclude_authid,
                     )
                 else:
                     options = None
