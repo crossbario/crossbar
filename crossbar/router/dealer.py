@@ -1099,11 +1099,11 @@ class Dealer(object):
             # FIXME
             disclose = True
             if disclose:
-                if invocation_request.forward_for:
-                    callee = invocation_request.forward_for[0]['session']
-                    callee_authid = invocation_request.forward_for[0]['authid']
-                    callee_authrole = invocation_request.forward_for[0]['authrole']
-                    forward_for = invocation_request.forward_for + [
+                if yield_.forward_for:
+                    callee = yield_.forward_for[0]['session']
+                    callee_authid = yield_.forward_for[0]['authid']
+                    callee_authrole = yield_.forward_for[0]['authrole']
+                    forward_for = yield_.forward_for + [
                         {
                             'session': session._session_id,
                             'authid': session._authid,
