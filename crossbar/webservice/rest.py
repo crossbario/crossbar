@@ -89,8 +89,7 @@ class RouterWebServiceRestCaller(RouterWebService):
         #
         resource = CallerResource(
             config.get('options', {}),
-            caller_session,
-            auth_config=config.get('auth', {})
+            caller_session)
         )
 
         return RouterWebServiceRestCaller(transport, path, config, resource)
