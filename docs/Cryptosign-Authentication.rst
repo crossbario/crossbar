@@ -52,9 +52,8 @@ maps usernames to details:
 | authorized_keys | a list of strings of valid public-keys for this user (each key encoded in ASCII hex)                                  |
 +-----------------+-----------------------------------------------------------------------------------------------------------------------+
 
-Here is an example configuration using static credentials taken from `this fully-worked example <https://github.com/crossbario/crossbar-examples/tree/master/authentication/cryptosign/>`_:
+Here is an example configuration using static credentials taken from `this fully-worked example <https://github.com/crossbario/crossbar-examples/tree/master/authentication/cryptosign/>`_::
 
-```
     ...
     "auth": {
         "cryptosign": {
@@ -79,4 +78,3 @@ Here is an example configuration using static credentials taken from `this fully
         }
     }
     ...
-```
