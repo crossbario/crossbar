@@ -763,9 +763,13 @@ def _run_command_start(options, reactor, personality):
 
     # represents the running Crossbar.io node
     #
+    enable_vmprof = False
+    if _HAS_VMPROF:
+        enable_vmprof = options.vmprof
+
     node_options = personality.NodeOptions(debug_lifecycle=options.debug_lifecycle,
                                            debug_programflow=options.debug_programflow,
-                                           enable_vmprof=options.vmprof)
+                                           enable_vmprof=enable_vmprof)
 
     node = personality.Node(personality,
                             options.cbdir,
