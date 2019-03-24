@@ -33,7 +33,7 @@ twisted>=18.9.0
 txaio>=18.8.1
 txtorcon>=0.19.3
 u-msgpack-python>=2.4.1
-vmprof>=0.4.12
+vmprof>=0.4.12; platform_machine=='x86_64' or platform_machine=='i386' or platform_machine=='arm'
 watchdog>=0.8.3
 zlmdb>=19.3.2
 zope.interface>=4.4.2

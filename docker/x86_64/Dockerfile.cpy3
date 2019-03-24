@@ -31,6 +31,9 @@ RUN    apt-get update \
                build-essential \
                libssl-dev \
                libffi-dev \
+               libunwind-dev \
+               libsnappy-dev \
+               libbz2-dev \
     # install Crossbar.io from PyPI
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir crossbar>=${CROSSBAR_VERSION} \

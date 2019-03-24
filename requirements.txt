@@ -325,9 +325,9 @@ pyOpenSSL==19.0.0 \
 PyQRCode==1.2.1 \
     --hash=sha256:1b2812775fa6ff5c527977c4cd2ccb07051ca7d0bc0aecf937a43864abe5eff6 \
     --hash=sha256:fdbf7634733e56b72e27f9bce46e4550b75a3a2c420414035cae9d9d26b234d5
-python-snappy==0.5.3 \
-    --hash=sha256:59c79d83350f931ad5cf8f06ccb1c9bd1087a77c3ca7e00806884cda654a6faf \
-    --hash=sha256:8a7f803f06083d4106d55387d2daa32c12b5e376c3616b0e2da8b8a87a27d74a
+python-snappy==0.5.4 \
+    --hash=sha256:9c0ba725755b749ef9b03f6ed7582cefb957c0d9f6f064a7c4314148a9dbdb61 \
+    --hash=sha256:d9c26532cfa510f45e8d135cde140e8a5603d3fb254cfec273ebc0ecf9f668e2
 PyTrie==0.3.1 \
     --hash=sha256:3bb7d122a549d8006c9cba2feecac20bceda9f8c0e2a3fa99a5584cfe0dec523
 pytz==2018.9 \

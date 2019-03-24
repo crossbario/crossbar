@@ -40,8 +40,6 @@ import signal
 import sys
 import pkg_resources
 
-import vmprof
-
 import txaio
 txaio.use_twisted()  # noqa
 
@@ -67,6 +65,12 @@ from autobahn.websocket.xormasker import XorMaskerNull
 from crossbar.node.template import Templates
 from crossbar.common.checkconfig import color_json, InvalidConfigException
 from crossbar.worker import main as worker_main
+
+try:
+    import vmprof
+    _HAS_VMPROF = True
+except ImportError:
+    _HAS_VMPROF = False
 
 try:
     import psutil
@@ -800,11 +804,12 @@ def _run_command_start(options, reactor, personality):
 
     # if vmprof global profiling is enabled via command line option, this will carry
     # the file where vmprof writes its profile data
-    _vm_prof = {
-        # need to put this into a dict, since FDs are ints, and python closures can't
-        # write to this otherwise
-        'outfd': None
-    }
+    if _HAS_VMPROF:
+        _vm_prof = {
+            # need to put this into a dict, since FDs are ints, and python closures can't
+            # write to this otherwise
+            'outfd': None
+        }
 
     # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
     # Each "system event" in Twisted, such as 'startup', 'shutdown', and 'persist', has 3 phases:
@@ -817,7 +822,7 @@ def _run_command_start(options, reactor, personality):
     def after_reactor_started():
         term_print('CROSSBAR:REACTOR_STARTED')
 
-        if options.vmprof:
+        if _HAS_VMPROF and options.vmprof:
             outfn = os.path.join(options.cbdir, '.vmprof-controller-{}.dat'.format(os.getpid()))
             _vm_prof['outfd'] = os.open(outfn, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
             vmprof.enable(_vm_prof['outfd'], period=0.01)
@@ -826,7 +831,7 @@ def _run_command_start(options, reactor, personality):
     def before_reactor_stopped():
         term_print('CROSSBAR:REACTOR_STOPPING')
 
-        if options.vmprof and _vm_prof['outfd']:
+        if _HAS_VMPROF and options.vmprof and _vm_prof['outfd']:
             vmprof.disable()
             term_print('CROSSBAR:VMPROF_DISABLED')
 
@@ -1073,9 +1078,10 @@ def main(prog, args, reactor, personality):
                               default=None,
                               help='Automatically shutdown node after this many seconds.')
 
-    parser_start.add_argument('--vmprof',
-                              action='store_true',
-                              help='Profile node controller and native worker using vmprof.')
+    if _HAS_VMPROF:
+        parser_start.add_argument('--vmprof',
+                                  action='store_true',
+                                  help='Profile node controller and native worker using vmprof.')
 
     parser_start.set_defaults(func=_run_command_start)
 
