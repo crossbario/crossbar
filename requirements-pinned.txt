@@ -2,7 +2,7 @@ argh==0.26.2
 argon2-cffi==19.1.0
 asn1crypto==0.24.0
 attrs==19.1.0
-autobahn==19.3.2
+autobahn==19.3.3
 Automat==0.7.0
 bitstring==3.1.5
 cbor==1.0.0
