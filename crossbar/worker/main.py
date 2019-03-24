@@ -39,7 +39,7 @@ from crossbar._util import hl, hltype, _add_debug_options, term_print
 
 try:
     import vmprof
-    _HAS_VMPROF = False
+    _HAS_VMPROF = True
 except ImportError:
     _HAS_VMPROF = False
 
