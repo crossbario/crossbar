@@ -1003,7 +1003,7 @@ def _run_command_keygen(options, reactor, personality):
         print("You should install 'autobahn[encryption]'")
         sys.exit(1)
 
-    priv, pub = KeyRing().generate_key()
+    priv, pub = KeyRing().generate_key_hex()
     print('  private: {}'.format(priv))
     print('   public: {}'.format(pub))
 
