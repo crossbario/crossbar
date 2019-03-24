@@ -30,3 +30,53 @@ libraries <https://nacl.cr.yp.to/>`__.
 
 We provide examples of using Cryptosign for `static
 configuration <https://github.com/crossbario/crossbar-examples/tree/master/authentication/cryptosign/>`__.
+
+
+Cryptosign Configuration
+------------------------
+
+Inside of a transport's `"auth"` key a dict contains options for
+Cryptosign configuration. You must specify `"type"` as either
+`"static"` or `"dynamic"`.
+
+Using `"static"` configuration, you add a `"principals"` dict that
+maps usernames to details:
+
++-----------------+-----------------------------------------------------------------------------------------------------------------------+
+| Option          | Description                                                                                                           |
++=================+=======================================================================================================================+
+| realm           | the realm to assign this user (required)                                                                              |
++-----------------+-----------------------------------------------------------------------------------------------------------------------+
+| role            | the role to assign this user (required)                                                                               |
++-----------------+-----------------------------------------------------------------------------------------------------------------------+
+| authorized_keys | a list of strings of valid public-keys for this user (each key encoded in ASCII hex)                                  |
++-----------------+-----------------------------------------------------------------------------------------------------------------------+
+
+Here is an example configuration using static credentials taken from `this fully-worked example <https://github.com/crossbario/crossbar-examples/tree/master/authentication/cryptosign/>`_:
+
+```
+    ...
+    "auth": {
+        "cryptosign": {
+            "type": "static",
+            "principals": {
+               "client01@example.com": {
+                  "realm": "devices",
+                  "role": "device",
+                  "authorized_keys": [
+                     "545efb0a2192db8d43f118e9bf9aee081466e1ef36c708b96ee6f62dddad9122"
+                  ]
+               },
+               "client02@example.com": {
+                  "realm": "devices",
+                  "role": "device",
+                  "authorized_keys": [
+                     "9c194391af3bf566fc11a619e8df200ba02efb35b91bdd98b424f20f4163875e",
+                     "585df51991780ee8dce4766324058a04ecae429dffd786ee80839c9467468c28"
+                  ]
+               }
+            }
+        }
+    }
+    ...
+```
