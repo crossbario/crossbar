@@ -45,7 +45,9 @@ RUN    apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # install manually, as environment markers don't work when installing crossbar from pypi
-RUN pip install --no-cache-dir "wsaccel>=0.6.2" "vmprof>=0.4.12"
+# vmprof is not yet supported on ARM64 https://github.com/vmprof/vmprof-python/issues/192
+# RUN pip install --no-cache-dir "wsaccel>=0.6.2" "vmprof>=0.4.12"
+RUN pip install --no-cache-dir "wsaccel>=0.6.2"
 
 # test if everything installed properly
 RUN crossbar version
