@@ -40,8 +40,6 @@ import signal
 import sys
 import pkg_resources
 
-import vmprof
-
 import txaio
 txaio.use_twisted()  # noqa
 
@@ -67,6 +65,12 @@ from autobahn.websocket.xormasker import XorMaskerNull
 from crossbar.node.template import Templates
 from crossbar.common.checkconfig import color_json, InvalidConfigException
 from crossbar.worker import main as worker_main
+
+try:
+    import vmprof
+    _HAS_VMPROF = True
+except ImportError:
+    _HAS_VMPROF = False
 
 try:
     import psutil
@@ -104,7 +108,7 @@ def _get_version(name_or_module):
     try:
         return name_or_module.__version__
     except AttributeError:
-        return ''
+        return pkg_resources.get_distribution(name_or_module.__name__).version
 
 
 def _check_pid_exists(pid):
@@ -250,6 +254,7 @@ class Versions(object):
         self.msgpack_ver = ''
         self.cbor_ver = ''
         self.ubjson_ver = ''
+        self.flatbuffers_ver = ''
         self.lmdb_ver = ''
         self.crossbar_ver = ''
         self.crossbarfx_ver = ''
@@ -281,6 +286,7 @@ class Versions(object):
         obj['msgpack_ver'] = self.msgpack_ver
         obj['cbor_ver'] = self.cbor_ver
         obj['ubjson_ver'] = self.ubjson_ver
+        obj['flatbuffers_ver'] = self.ubjson_ver
         obj['lmdb_ver'] = self.lmdb_ver
         obj['crossbar_ver'] = self.crossbar_ver
         obj['crossbarfx_ver'] = self.crossbarfx_ver
@@ -358,25 +364,37 @@ def _get_versions(reactor):
 
     # MsgPack Serializer
     try:
-        import umsgpack  # noqa
-        v.msgpack_ver = '%s' % _get_version(umsgpack)
+        from autobahn.wamp.serializer import MsgPackObjectSerializer
+        msgpack = MsgPackObjectSerializer.MSGPACK_MODULE
+        v.msgpack_ver = '{}-{}'.format(msgpack.__name__, _get_version(msgpack))
         supported_serializers.append('MessagePack')
     except ImportError:
         pass
 
     # CBOR Serializer
     try:
-        import cbor  # noqa
-        v.cbor_ver = '%s' % _get_version(cbor)
+        from autobahn.wamp.serializer import CBORObjectSerializer
+        cbor = CBORObjectSerializer.CBOR_MODULE
+        v.cbor_ver = '{}-{}'.format(cbor.__name__, _get_version(cbor))
         supported_serializers.append('CBOR')
     except ImportError:
         pass
 
     # UBJSON Serializer
     try:
-        import ubjson  # noqa
-        v.ubjson_ver = '%s' % _get_version(ubjson)
+        from autobahn.wamp.serializer import UBJSONObjectSerializer
+        ubjson = UBJSONObjectSerializer.UBJSON_MODULE
+        v.ubjson_ver = '{}-{}'.format(ubjson.__name__, _get_version(ubjson))
         supported_serializers.append('UBJSON')
+    except ImportError:
+        pass
+
+    # Flatbuffers Serializer
+    try:
+        from autobahn.wamp.serializer import FlatBuffersObjectSerializer
+        flatbuffers = FlatBuffersObjectSerializer.FLATBUFFERS_MODULE
+        v.flatbuffers_ver = '{}-{}'.format(flatbuffers.__name__, _get_version(flatbuffers))
+        supported_serializers.append('Flatbuffers')
     except ImportError:
         pass
 
@@ -440,29 +458,24 @@ def _run_command_version(options, reactor, personality):
     def decorate(text, fg='white', bg=None, bold=True):
         return click.style(text, fg=fg, bg=bg, bold=bold)
 
-    pad = " " * 22
     for line in personality.BANNER.splitlines():
         log.info(hl(line, color='yellow', bold=True))
     log.info("")
     log.info(" Crossbar.io        : {ver}", ver=decorate(v.crossbar_ver))
     log.info("   txaio            : {ver}", ver=decorate(v.txaio_ver))
     log.info("   Autobahn         : {ver}", ver=decorate(v.ab_ver))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.ab_loc))
-    log.debug("     UTF8 Validator : {ver}", ver=decorate(v.utf8_ver))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.utf8_loc))
-    log.debug("     XOR Masker     : {ver}", ver=decorate(v.xor_ver))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.xor_loc))
-    log.debug("     JSON Codec     : {ver}", ver=decorate(v.json_ver))
-    log.debug("     MsgPack Codec  : {ver}", ver=decorate(v.msgpack_ver))
-    log.debug("     CBOR Codec     : {ver}", ver=decorate(v.cbor_ver))
-    log.debug("     UBJSON Codec   : {ver}", ver=decorate(v.ubjson_ver))
+    log.info("     UTF8 Validator : {ver}", ver=decorate(v.utf8_ver))
+    log.info("     XOR Masker     : {ver}", ver=decorate(v.xor_ver))
+    log.info("     JSON Codec     : {ver}", ver=decorate(v.json_ver))
+    log.info("     MsgPack Codec  : {ver}", ver=decorate(v.msgpack_ver))
+    log.info("     CBOR Codec     : {ver}", ver=decorate(v.cbor_ver))
+    log.info("     UBJSON Codec   : {ver}", ver=decorate(v.ubjson_ver))
+    log.info("     FlatBuffers    : {ver}", ver=decorate(v.flatbuffers_ver))
     log.info("   Twisted          : {ver}", ver=decorate(v.tx_ver))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.tx_loc))
     log.info("   LMDB             : {ver}", ver=decorate(v.lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(v.py_ver), impl=decorate(v.py_ver_detail))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.py_ver_string))
     if personality.NAME in (u'edge', u'master'):
-        log.info(" Crossbar.io FX     : {ver}", ver=decorate(v.crossbarfx_ver))
+        log.info(" CrossbarFX         : {ver}", ver=decorate(v.crossbarfx_ver))
         log.info("   NumPy            : {ver}", ver=decorate(v.numpy_ver))
         log.info("   zLMDB            : {ver}", ver=decorate(v.zlmdb_ver))
         log.info("   XBR              : {ver}", ver=decorate(v.xbr_ver))
@@ -759,9 +772,13 @@ def _run_command_start(options, reactor, personality):
 
     # represents the running Crossbar.io node
     #
+    enable_vmprof = False
+    if _HAS_VMPROF:
+        enable_vmprof = options.vmprof
+
     node_options = personality.NodeOptions(debug_lifecycle=options.debug_lifecycle,
                                            debug_programflow=options.debug_programflow,
-                                           enable_vmprof=options.vmprof)
+                                           enable_vmprof=enable_vmprof)
 
     node = personality.Node(personality,
                             options.cbdir,
@@ -800,11 +817,12 @@ def _run_command_start(options, reactor, personality):
 
     # if vmprof global profiling is enabled via command line option, this will carry
     # the file where vmprof writes its profile data
-    _vm_prof = {
-        # need to put this into a dict, since FDs are ints, and python closures can't
-        # write to this otherwise
-        'outfd': None
-    }
+    if _HAS_VMPROF:
+        _vm_prof = {
+            # need to put this into a dict, since FDs are ints, and python closures can't
+            # write to this otherwise
+            'outfd': None
+        }
 
     # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
     # Each "system event" in Twisted, such as 'startup', 'shutdown', and 'persist', has 3 phases:
@@ -817,7 +835,7 @@ def _run_command_start(options, reactor, personality):
     def after_reactor_started():
         term_print('CROSSBAR:REACTOR_STARTED')
 
-        if options.vmprof:
+        if _HAS_VMPROF and options.vmprof:
             outfn = os.path.join(options.cbdir, '.vmprof-controller-{}.dat'.format(os.getpid()))
             _vm_prof['outfd'] = os.open(outfn, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
             vmprof.enable(_vm_prof['outfd'], period=0.01)
@@ -826,7 +844,7 @@ def _run_command_start(options, reactor, personality):
     def before_reactor_stopped():
         term_print('CROSSBAR:REACTOR_STOPPING')
 
-        if options.vmprof and _vm_prof['outfd']:
+        if _HAS_VMPROF and options.vmprof and _vm_prof['outfd']:
             vmprof.disable()
             term_print('CROSSBAR:VMPROF_DISABLED')
 
@@ -1003,7 +1021,7 @@ def _run_command_keygen(options, reactor, personality):
         print("You should install 'autobahn[encryption]'")
         sys.exit(1)
 
-    priv, pub = KeyRing().generate_key()
+    priv, pub = KeyRing().generate_key_hex()
     print('  private: {}'.format(priv))
     print('   public: {}'.format(pub))
 
@@ -1073,9 +1091,10 @@ def main(prog, args, reactor, personality):
                               default=None,
                               help='Automatically shutdown node after this many seconds.')
 
-    parser_start.add_argument('--vmprof',
-                              action='store_true',
-                              help='Profile node controller and native worker using vmprof.')
+    if _HAS_VMPROF:
+        parser_start.add_argument('--vmprof',
+                                  action='store_true',
+                                  help='Profile node controller and native worker using vmprof.')
 
     parser_start.set_defaults(func=_run_command_start)
 

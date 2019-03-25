@@ -63,11 +63,7 @@ with open(reqs) as f:
         if not line.startswith('#'):
             parts = line.strip().split(';')
             if len(parts) > 1:
-                parts[0] = parts[0].strip()
-                parts[1] = ':{}'.format(parts[1].strip())
-                if parts[1] not in extras_require:
-                    extras_require[parts[1]] = []
-                extras_require[parts[1]].append(parts[0])
+                print('Warning: requirements line "{}" ignored, as it uses env markers, which are not supported in setuptools'.format(line))
             else:
                 install_requires.append(parts)
 

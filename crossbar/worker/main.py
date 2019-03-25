@@ -33,11 +33,15 @@ from __future__ import absolute_import, print_function
 import argparse
 import importlib
 
-import vmprof
-
 from twisted.internet.error import ReactorNotRunning
 
 from crossbar._util import hl, hltype, _add_debug_options, term_print
+
+try:
+    import vmprof
+    _HAS_VMPROF = True
+except ImportError:
+    _HAS_VMPROF = False
 
 __all__ = ('_run_command_exec_worker',)
 
@@ -114,9 +118,10 @@ def get_argument_parser(parser=None):
                         default=None,
                         help='Shutdown method')
 
-    parser.add_argument('--vmprof',
-                        action='store_true',
-                        help='Profile node controller and native worker using vmprof.')
+    if _HAS_VMPROF:
+        parser.add_argument('--vmprof',
+                            action='store_true',
+                            help='Profile node controller and native worker using vmprof.')
 
     return parser
 
@@ -295,11 +300,12 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
 
     # if vmprof global profiling is enabled via command line option, this will carry
     # the file where vmprof writes its profile data
-    _vm_prof = {
-        # need to put this into a dict, since FDs are ints, and python closures can't
-        # write to this otherwise
-        'outfd': None
-    }
+    if _HAS_VMPROF:
+        _vm_prof = {
+            # need to put this into a dict, since FDs are ints, and python closures can't
+            # write to this otherwise
+            'outfd': None
+        }
 
     # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
     # Each "system event" in Twisted, such as 'startup', 'shutdown', and 'persist', has 3 phases:
@@ -312,7 +318,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     def after_reactor_started():
         term_print('CROSSBAR[{}]:REACTOR_STARTED'.format(options.worker))
 
-        if options.vmprof:
+        if _HAS_VMPROF and options.vmprof:
             outfn = os.path.join(options.cbdir, '.vmprof-worker-{}-{}.dat'.format(options.worker, os.getpid()))
             _vm_prof['outfd'] = os.open(outfn, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
             vmprof.enable(_vm_prof['outfd'], period=0.01)
@@ -321,7 +327,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     def before_reactor_stopped():
         term_print('CROSSBAR[{}]:REACTOR_STOPPING'.format(options.worker))
 
-        if options.vmprof and _vm_prof['outfd']:
+        if _HAS_VMPROF and options.vmprof and _vm_prof['outfd']:
             vmprof.disable()
             term_print('CROSSBAR[{}]:VMPROF_DISABLED'.format(options.worker))
 
