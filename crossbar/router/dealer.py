@@ -463,9 +463,14 @@ class Dealer(object):
 
                     reply.correlation_is_last = False
 
+                    # when this message was forwarded from other nodes, exclude all such nodes
+                    # from receiving the meta event we'll publish below by authid (of the r2r link
+                    # from the forwarding node connected to this router node)
                     exclude_authid = None
                     if register.forward_for:
                         exclude_authid = [ff['authid'] for ff in register.forward_for]
+                        self.log.info('WAMP meta event will be published excluding these authids (from forward_for): {exclude_authid}',
+                                      exclude_authid=exclude_authid)
 
                     def _publish():
                         service_session = self._router._realm.session
@@ -615,9 +620,15 @@ class Dealer(object):
 
             has_follow_up_messages = True
 
+            # when this message was forwarded from other nodes, exclude all such nodes
+            # from receiving the meta event we'll publish below by authid (of the r2r link
+            # from the forwarding node connected to this router node)
             exclude_authid = None
-            if unregister and unregister.forward_for:
+            if unregister.forward_for:
                 exclude_authid = [ff['authid'] for ff in unregister.forward_for]
+                self.log.info(
+                    'WAMP meta event will be published excluding these authids (from forward_for): {exclude_authid}',
+                    exclude_authid=exclude_authid)
 
             def _publish():
                 service_session = self._router._realm.session
@@ -898,12 +909,17 @@ class Dealer(object):
         else:
             disclose = False
 
+        # set the disclosed caller and forward_for
+        #
         forward_for = None
         if disclose:
             if call.forward_for:
+                # forwarded call: ultimate caller is the first in forward_for
                 caller = call.forward_for[0]['session']
                 caller_authid = call.forward_for[0]['authid']
                 caller_authrole = call.forward_for[0]['authrole']
+
+                # append this session (a r2r link) to forward_for
                 forward_for = call.forward_for + [
                     {
                         'session': session._session_id,
@@ -912,10 +928,12 @@ class Dealer(object):
                     }
                 ]
             else:
+                # non-forwarded call: ultimate caller is this session
                 caller = session._session_id
                 caller_authid = session._authid
                 caller_authrole = session._authrole
         else:
+            # caller session isn't disclosed to the callee
             caller = None
             caller_authid = None
             caller_authrole = None
@@ -1054,8 +1072,25 @@ class Dealer(object):
             # (XXX need test for ^ case)
 
             if cancellation_mode != message.Cancel.SKIP:
+
+                # FIXME
+                disclose = True
+                forward_for = None
+                if disclose:
+                    if cancel.forward_for:
+                        # append this calling session (a r2r link) to forward_for
+                        forward_for = cancel.forward_for + [
+                            {
+                                'session': session._session_id,
+                                'authid': session._authid,
+                                'authrole': session._authrole,
+                            }
+                        ]
+
                 interrupt_mode = cancellation_mode  # "kill" or "killnowait"
-                interrupt = message.Interrupt(invocation_request.id, interrupt_mode, forward_for=cancel.forward_for)
+                interrupt = message.Interrupt(invocation_request.id,
+                                              interrupt_mode,
+                                              forward_for=forward_for)
 
                 if self._router.is_traced:
                     interrupt.correlation_id = invocation_request.call.correlation_id
@@ -1108,15 +1143,20 @@ class Dealer(object):
 
             reply = None
 
-            forward_for = None
-
             # FIXME
             disclose = True
+
+            # set the disclosed callee and forward_for
+            #
+            forward_for = None
             if disclose:
                 if yield_.forward_for:
+                    # forwarded call result: ultimate callee is the first in forward_for
                     callee = yield_.forward_for[0]['session']
                     callee_authid = yield_.forward_for[0]['authid']
                     callee_authrole = yield_.forward_for[0]['authrole']
+
+                    # append this session (a r2r link) to forward_for
                     forward_for = yield_.forward_for + [
                         {
                             'session': session._session_id,
@@ -1125,10 +1165,12 @@ class Dealer(object):
                         }
                     ]
                 else:
+                    # non-forwarded call result: ultimate callee is this session
                     callee = session._session_id
                     callee_authid = session._authid
                     callee_authrole = session._authrole
             else:
+                # callee session isn't disclosed to the caller
                 callee = None
                 callee_authid = None
                 callee_authrole = None
@@ -1263,16 +1305,21 @@ class Dealer(object):
 
             reply = None
 
-            forward_for = None
-
             # FIXME
             disclose = False
+
+            # set the disclosed callee and forward_for
+            #
+            forward_for = None
             if disclose:
-                if invocation_request.forward_for:
+                if error.forward_for:
+                    # forwarded call: ultimate caller is the first in forward_for
                     callee = invocation_request.forward_for[0]['session']
                     callee_authid = invocation_request.forward_for[0]['authid']
                     callee_authrole = invocation_request.forward_for[0]['authrole']
-                    forward_for = invocation_request.forward_for + [
+
+                    # append this session (a r2r link) to forward_for
+                    forward_for = error.forward_for + [
                         {
                             'session': session._session_id,
                             'authid': session._authid,
@@ -1280,10 +1327,12 @@ class Dealer(object):
                         }
                     ]
                 else:
+                    # non-forwarded call result: ultimate callee is this session
                     callee = session._session_id
                     callee_authid = session._authid
                     callee_authrole = session._authrole
             else:
+                # callee session isn't disclosed to the caller
                 callee = None
                 callee_authid = None
                 callee_authrole = None
@@ -1332,17 +1381,15 @@ class Dealer(object):
                                           callee_authrole=callee_authrole,
                                           forward_for=forward_for)
 
-            if reply:
+            # the calling session might have been lost in the meantime ..
+            #
+            if invocation_request.caller._transport and reply:
                 if self._router.is_traced:
                     reply.correlation_id = invocation_request.call.correlation_id
                     reply.correlation_uri = invocation_request.call.correlation_uri
                     reply.correlation_is_anchor = False
                     reply.correlation_is_last = True
-
-                # the calling session might have been lost in the meantime ..
-                #
-                if invocation_request.caller._transport:
-                    self._router.send(invocation_request.caller, reply)
+                self._router.send(invocation_request.caller, reply)
 
             # the call is done
             #
