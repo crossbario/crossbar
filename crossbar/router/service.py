@@ -194,6 +194,9 @@ class RouterServiceAgent(ApplicationSession):
         :returns: List of WAMP session IDs (order undefined).
         :rtype: list
         """
+        self.log.info('wamp.session.list(filter_authroles={filter_authroles}, details={details})',
+                      filter_authroles=filter_authroles, details=details)
+
         assert(filter_authroles is None or isinstance(filter_authroles, list))
 
         session_ids = []
@@ -234,7 +237,9 @@ class RouterServiceAgent(ApplicationSession):
         :returns: WAMP session details.
         :rtype: dict or None
         """
-        self.log.debug('wamp.session.get(session_id={session_id})', session_id=session_id)
+        self.log.debug('wamp.session.get(session_id={session_id}, details={details})',
+                       session_id=session_id, details=details)
+
         if session_id in self._router._session_id_to_session:
             session = self._router._session_id_to_session[session_id]
             if not is_restricted_session(session):

@@ -286,7 +286,7 @@ class Versions(object):
         obj['msgpack_ver'] = self.msgpack_ver
         obj['cbor_ver'] = self.cbor_ver
         obj['ubjson_ver'] = self.ubjson_ver
-        obj['flatbuffers_ver'] = self.ubjson_ver
+        obj['flatbuffers_ver'] = self.flatbuffers_ver
         obj['lmdb_ver'] = self.lmdb_ver
         obj['crossbar_ver'] = self.crossbar_ver
         obj['crossbarfx_ver'] = self.crossbarfx_ver
