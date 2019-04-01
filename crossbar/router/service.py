@@ -234,13 +234,16 @@ class RouterServiceAgent(ApplicationSession):
         :returns: WAMP session details.
         :rtype: dict or None
         """
-        self.log.debug('wamp.session.get("{session_id}")', session_id=session_id)
+        self.log.debug('wamp.session.get(session_id={session_id})', session_id=session_id)
         if session_id in self._router._session_id_to_session:
             session = self._router._session_id_to_session[session_id]
             if not is_restricted_session(session):
                 session_info = session._session_details.marshal()
                 session_info[u'transport'] = None if session._transport is None else session._transport._transport_info
                 return session_info
+            else:
+                self.log.warn('wamp.session.get: denied returning restricted session {session_id}', session_id=session_id)
+        self.log.warn('wamp.session.get: session {session_id} not found', session_id=session_id)
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
             u'no session with ID {} exists on this router'.format(session_id),

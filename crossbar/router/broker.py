@@ -169,11 +169,14 @@ class Broker(object):
 
                     def _publish(subscription):
                         service_session = self._router._realm.session
+
+                        # FIXME: what about exclude_authid as colleced from forward_for? like we do elsewhere in this file!
                         options = types.PublishOptions(
                             correlation_id=None,
                             correlation_is_anchor=True,
                             correlation_is_last=False
                         )
+
                         if was_subscribed:
                             service_session.publish(
                                 u'wamp.subscription.on_unsubscribe',
@@ -181,6 +184,7 @@ class Broker(object):
                                 subscription.id,
                                 options=options,
                             )
+
                         if was_deleted:
                             options.correlation_is_last = True
                             service_session.publish(
@@ -782,13 +786,23 @@ class Broker(object):
 
                     has_follow_up_messages = True
 
+                    exclude_authid = None
+                    if subscribe.forward_for:
+                        exclude_authid = [ff['authid'] for ff in subscribe.forward_for]
+
                     def _publish():
                         service_session = self._router._realm.session
-                        options = types.PublishOptions(
-                            correlation_id=subscribe.correlation_id,
-                            correlation_is_anchor=False,
-                            correlation_is_last=False,
-                        )
+
+                        if exclude_authid or self._router.is_traced:
+                            options = types.PublishOptions(
+                                correlation_id=subscribe.correlation_id,
+                                correlation_is_anchor=False,
+                                correlation_is_last=False,
+                                exclude_authid=exclude_authid,
+                            )
+                        else:
+                            options = None
+
                         if is_first_subscriber:
                             subscription_details = {
                                 u'id': subscription.id,
@@ -802,8 +816,11 @@ class Broker(object):
                                 subscription_details,
                                 options=options,
                             )
+
                         if not was_already_subscribed:
-                            options.correlation_is_last = True
+                            if options:
+                                options.correlation_is_last = True
+
                             service_session.publish(
                                 u'wamp.subscription.on_subscribe',
                                 session._session_id,
@@ -980,14 +997,19 @@ class Broker(object):
 
             has_follow_up_messages = True
 
+            exclude_authid = None
+            if unsubscribe and unsubscribe.forward_for:
+                exclude_authid = [ff['authid'] for ff in unsubscribe.forward_for]
+
             def _publish():
                 service_session = self._router._realm.session
 
-                if unsubscribe and self._router.is_traced:
+                if unsubscribe and (exclude_authid or self._router.is_traced):
                     options = types.PublishOptions(
                         correlation_id=unsubscribe.correlation_id,
                         correlation_is_anchor=False,
-                        correlation_is_last=False
+                        correlation_is_last=False,
+                        exclude_authid=exclude_authid,
                     )
                 else:
                     options = None
