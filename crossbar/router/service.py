@@ -237,8 +237,8 @@ class RouterServiceAgent(ApplicationSession):
         :returns: WAMP session details.
         :rtype: dict or None
         """
-        self.log.info('wamp.session.get(session_id={session_id}, details={details})',
-                      session_id=session_id, details=details)
+        self.log.debug('wamp.session.get(session_id={session_id}, details={details})',
+                       session_id=session_id, details=details)
 
         if session_id in self._router._session_id_to_session:
             session = self._router._session_id_to_session[session_id]
