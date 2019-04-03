@@ -58,7 +58,7 @@ aws s3 cp --recursive ./dist s3://crossbarbuilder/wheels
 # get 'wamp' command, always with latest autobahn master
 pip install https://github.com/crossbario/autobahn-python/archive/master.zip#egg=autobahn[twisted,serialization,encryption]
 # use 'wamp' to notify crossbar-builder
-wamp --max-failures 3 --authid wheel_pusher --url ws://office2dmz.crossbario.com:8008/ --realm webhook call builder.wheel_pushed --keyword name autobahn-python --keyword publish true
+wamp --max-failures 3 --authid wheel_pusher --url ws://office2dmz.crossbario.com:8008/ --realm webhook call builder.wheel_pushed --keyword name crossbar --keyword publish true
 
 
 # build and deploy latest docs: for now, this is hosted under
