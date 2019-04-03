@@ -29,6 +29,7 @@
 #####################################################################################
 
 import datetime
+import sys
 import psutil
 
 from twisted.internet.threads import deferToThread
@@ -151,6 +152,12 @@ class ProcessMonitor(Monitor):
         Monitor.__init__(self, config)
         self._p = psutil.Process()
         self._worker_type = worker_type
+
+        # psutil does not support io_counters() on MacOS. For details, see:
+        # https://psutil.readthedocs.io/en/release-3.4.2/#psutil.Process.io_counters
+        if sys.platform.startswith('darwin'):
+            self._has_io_counters = False
+            return
 
         try:
             self._p.io_counters()
