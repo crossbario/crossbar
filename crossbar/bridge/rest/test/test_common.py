@@ -258,7 +258,7 @@ class RequestBodyTestCase(TestCase):
             request = self.successResultOf(renderResource(
                 resource, b"/", method=b"POST",
                 headers={b"Content-Type": [b"application/json"],
-                         b"Content-Length": [1]},
+                         b"Content-Length": [b"1"]},
                 body=publishBody))
 
         self.assertEqual(request.code, 400)
