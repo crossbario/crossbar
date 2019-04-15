@@ -19,6 +19,10 @@ addons:
       # needed for vmprof
       - libunwind-dev
 
+  homebrew:
+    packages:
+      - snappy
+
 before_install:
   - export PATH=$PATH:$HOME/.local/bin
 
