@@ -73,7 +73,8 @@ matrix:
 
     # osx/cli
     - os: osx
-      language: generic
+      osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
+      language: shell         # 'language: python' is an error on Travis CI macOS
       env: TOX_ENV=py37-cli
 
     # linux/examples
@@ -85,7 +86,8 @@ matrix:
 
     # osx/examples
     - os: osx
-      language: generic
+      osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
+      language: shell         # 'language: python' is an error on Travis CI macOS
       env: TOX_ENV=py37-examples
 
     # linux/trial/python3
@@ -111,15 +113,18 @@ matrix:
     # osx/trial/python3
     # https://docs.travis-ci.com/user/multi-os/#Python-example-(unsupported-languages)
     - os: osx
-      language: generic
+      osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
+      language: shell         # 'language: python' is an error on Travis CI macOS
       env: TOX_ENV=py37-unpinned-trial
 
     - os: osx
-      language: generic
+      osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
+      language: shell         # 'language: python' is an error on Travis CI macOS
       env: TOX_ENV=py37-pinned-trial
 
     - os: osx
-      language: generic
+      osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
+      language: shell         # 'language: python' is an error on Travis CI macOS
       env: TOX_ENV=py37-abtrunk-trial
 
     # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
