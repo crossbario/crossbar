@@ -22,7 +22,7 @@ Prepare
 -------
 
 Debian/Ubuntu
-~~~~~~
+~~~~~~~~~~~~~
 
 After a fresh install of Ubuntu 16.04 LTS 64-bit Server, first make sure
 your system packages are fully up to date:
@@ -37,8 +37,8 @@ Then install the prerequisites:
 ::
 
     sudo apt-get -y install build-essential libssl-dev libffi-dev \
-       libreadline-dev libbz2-dev libsqlite3-dev libncurses5-dev \
-       libsnappy-dev libunwind-dev
+        libreadline-dev libbz2-dev libsqlite3-dev libncurses5-dev \
+        libsnappy-dev libunwind-dev
 
 Snap
 ~~~~
@@ -63,7 +63,8 @@ Then install the prerequisites:
 
 ::
 
-    yum install gcc gcc-c++ make openssl-devel libffi-devel
+    yum install gcc gcc-c++ make openssl-devel libffi-devel \
+        libsnappy-devel libunwind-devel
 
 Now continue to build for:
 
