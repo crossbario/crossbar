@@ -21,7 +21,7 @@ directory) and does not depend on system Python packages.
 Prepare
 -------
 
-Debian
+Debian/Ubuntu
 ~~~~~~
 
 After a fresh install of Ubuntu 16.04 LTS 64-bit Server, first make sure
@@ -37,14 +37,15 @@ Then install the prerequisites:
 ::
 
     sudo apt-get -y install build-essential libssl-dev libffi-dev \
-       libreadline-dev libbz2-dev libsqlite3-dev libncurses5-dev
+       libreadline-dev libbz2-dev libsqlite3-dev libncurses5-dev \
+       libsnappy-dev libunwind-dev
 
 Snap
 ~~~~
 To install crossbar from snap use below command
 ::
 
-    $snap install crossbar
+    snap install crossbar
 
 .. note:: Snaps are strictly confined to their environment, so is it not possible to access arbitrary binaries on your system. Because of it some functionalities of Crossbar may not work.
 
