@@ -47,6 +47,7 @@ To install crossbar from snap use below command
 
     snap install crossbar
 
+.. note:: For our PyPy variant, install crossbar-pypy instead.
 .. note:: Snaps are strictly confined to their environment, so is it not possible to access arbitrary binaries on your system. Because of it some functionalities of Crossbar may not work.
 
 CentOS 7
