@@ -273,7 +273,7 @@ class RouterController(WorkerController):
         }
         cfg = ComponentConfig(realm_name, extra)
         rlm.session = RouterServiceAgent(cfg, router)
-        self._router_session_factory.add(rlm.session, authrole=u'trusted')
+        self._router_session_factory.add(rlm.session, router, authrole=u'trusted')
 
         yield extra['onready']
         self.log.info('RouterServiceAgent started on realm "{realm_name}"', realm_name=realm_name)
@@ -598,7 +598,8 @@ class RouterController(WorkerController):
         session.on('join', publish_started)
 
         self.components[id] = RouterComponent(id, config, session)
-        self._router_session_factory.add(session, authrole=config.get('role', u'anonymous'))
+        router = self._router_factory.get(realm)
+        self._router_session_factory.add(session, router, authrole=config.get('role', u'anonymous'))
         self.log.debug(
             "Added component {id} (type '{name}')",
             id=id,

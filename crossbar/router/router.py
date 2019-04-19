@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 
 import txaio
 import uuid
@@ -123,16 +123,19 @@ class Router(object):
     def new_correlation_id(self):
         return str(uuid.uuid4())
 
+    def is_attached(self, session):
+        return session._session_id in self._session_id_to_session
+
     def attach(self, session):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.attach`
         """
+        self.log.info('{klass}.attach(session={session})',
+                      klass=self.__class__.__name__,
+                      session=session._session_id if session else None)
+
         if session._session_id not in self._session_id_to_session:
-            if _is_client_session(session):
-                self._session_id_to_session[session._session_id] = session
-            else:
-                self.log.debug("attaching non-client session {session}",
-                               session=session)
+            self._session_id_to_session[session._session_id] = session
         else:
             raise Exception("session with ID {} already attached".format(session._session_id))
 
@@ -140,6 +143,11 @@ class Router(object):
         self._dealer.attach(session)
 
         self._attached += 1
+
+        self.log.info('{klass}.attach(session={session}): attached session {session} to router realm "{realm}"',
+                      klass=self.__class__.__name__,
+                      session=session._session_id if session else None,
+                      realm=self.realm)
 
         return {u'broker': self._broker._role_features, u'dealer': self._dealer._role_features}
 
@@ -191,6 +199,10 @@ class Router(object):
             self.log.trace('{details}', details=session_details)
 
     def detach(self, session=None):
+        self.log.info('{klass}.detach(session={session})',
+                      klass=self.__class__.__name__,
+                      session=session._session_id if session else None)
+
         detached_session_ids = []
         if session is None:
             # detach all sessions from router
@@ -201,6 +213,13 @@ class Router(object):
             # detach single session from router
             self._detach(session)
             detached_session_ids.append(session._session_id)
+
+        self.log.info('{klass}.detach(session={session}): detached sessions {detached_session_ids} from router realm "{realm}"',
+                      klass=self.__class__.__name__,
+                      session=session._session_id if session else None,
+                      detached_session_ids=detached_session_ids,
+                      realm=self.realm)
+
         return detached_session_ids
 
     def _detach(self, session):
@@ -213,12 +232,11 @@ class Router(object):
         if session._session_id in self._session_id_to_session:
             del self._session_id_to_session[session._session_id]
         else:
-            if _is_client_session(session):
-                raise Exception("session with ID {} not attached".format(session._session_id))
+            raise Exception("session with ID {} not attached".format(session._session_id))
 
         self._attached -= 1
         if not self._attached:
-            self._factory.onLastDetach(self)
+            self._factory.on_last_detach(self)
 
         return session._session_id
 
@@ -263,6 +281,7 @@ class Router(object):
                 self._broker.processUnsubscribe(session, msg)
 
             elif isinstance(msg, message.EventReceived):
+                # FIXME
                 self._broker.processEventReceived(session, msg)
 
             # Dealer
@@ -455,11 +474,17 @@ class RouterFactory(object):
     def __contains__(self, realm):
         return realm in self._routers
 
-    def onLastDetach(self, router):
-        assert(router.realm in self._routers)
-        del self._routers[router.realm]
-        self.log.debug("Router destroyed for realm '{realm}'",
-                       realm=router.realm)
+    def on_last_detach(self, router):
+        if router.realm in self._routers:
+            del self._routers[router.realm]
+            self.log.debug('{klass}.on_last_detach: router removed for realm "{realm}"',
+                           klass=self.__class__.__name__,
+                           realm=router.realm)
+        else:
+            self.log.warn('{klass}.on_last_detach: realm "{realm}" not in router realms (skipped removal) - current realms: {realms}',
+                          klass=self.__class__.__name__,
+                          realm=router.realm,
+                          realms=sorted(self._routers.keys()))
 
     def start_realm(self, realm):
         """
@@ -501,13 +526,16 @@ class RouterFactory(object):
         router = Router(self, realm, options, store=store)
 
         self._routers[uri] = router
-        self.log.debug("Router created for realm '{uri}'", uri=uri)
+        self.log.info('{klass}.start_realm: router created for realm "{uri}"',
+                      klass=self.__class__.__name__,
+                      uri=uri)
 
         return router
 
     def stop_realm(self, realm):
-        self.log.debug('CrossbarRouterFactory.stop_realm(realm="{realm}")',
-                       realm=realm)
+        self.log.info('{klass}.stop_realm(realm="{realm}")',
+                      klass=self.__class__.__name__,
+                      realm=realm)
 
         assert(type(realm) == str)
 
@@ -515,8 +543,10 @@ class RouterFactory(object):
             raise Exception('no router started for realm "{}"'.format(realm))
 
         router = self._routers[realm]
-        del self._routers[realm]
         detached_sessions = router.detach()
+
+        if realm in self._routers:
+            del self._routers[realm]
 
         return detached_sessions
 

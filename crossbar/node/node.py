@@ -356,10 +356,10 @@ class Node(object):
         # always add a realm service session
         cfg = ComponentConfig(self._realm)
         rlm.session = (self.ROUTER_SERVICE)(cfg, router)
-        self._router_session_factory.add(rlm.session, authrole=u'trusted')
+        self._router_session_factory.add(rlm.session, router, authrole=u'trusted')
         self.log.debug('Router service session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
 
-        self._router_session_factory.add(self._controller, authrole=u'trusted')
+        self._router_session_factory.add(self._controller, router, authrole=u'trusted')
         self.log.debug('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
 
         # add extra node controller components
