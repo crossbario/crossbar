@@ -181,7 +181,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         session = TestSession(types.ComponentConfig(u'realm1'))
 
-        self.session_factory.add(session)
+        self.session_factory.add(session, self.router)
 
         return d
 
@@ -205,7 +205,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         # in this test, we are just looking for onUserError to get
         # called so we don't need to patch the logger. this should
         # call onJoin, triggering our error
-        self.session_factory.add(session)
+        self.session_factory.add(session, self.router)
 
         # check we got the right log.failure() call
         self.assertTrue(len(errors) > 0, "expected onUserError call")
@@ -301,6 +301,6 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         session = TestSession(types.ComponentConfig(u'realm1'))
 
-        self.session_factory.add(session)
+        self.session_factory.add(session, self.router)
 
         return d

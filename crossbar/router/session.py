@@ -43,7 +43,7 @@ from autobahn import wamp
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.protocol import BaseSession
+from autobahn.wamp.protocol import BaseSession, ApplicationSession
 from autobahn.wamp.exception import ProtocolError, SessionNotReady
 from autobahn.wamp.types import SessionDetails
 from autobahn.wamp.interfaces import ITransportHandler
@@ -51,6 +51,7 @@ from autobahn.wamp.interfaces import ITransportHandler
 from crossbar.common.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
+from crossbar.router.router import Router, RouterFactory
 
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
@@ -87,7 +88,8 @@ class RouterApplicationSession(object):
         :param authrole: The fixed/trusted authentication role under which the session will run.
         :type authrole: str
         """
-
+        assert isinstance(session, ApplicationSession), 'session must be of class ApplicationSession, not {}'.format(session.__class__.__name__ if session else type(session))
+        assert isinstance(router, Router), 'router must be of class Router, not {}'.format(router.__class__.__name__ if router else type(router))
         assert(authid is None or isinstance(authid, str))
         assert(authrole is None or isinstance(authrole, str))
 
@@ -881,33 +883,56 @@ class RouterSessionFactory(object):
         :param routerFactory: The router factory this session factory is working for.
         :type routerFactory: Instance of :class:`autobahn.wamp.router.RouterFactory`.
         """
+        assert isinstance(routerFactory, RouterFactory)
+
         self._routerFactory = routerFactory
         self._app_sessions = {}
 
-    def add(self, session, router=None, authid=None, authrole=None):
+    def add(self, session, router, authid=None, authrole=None):
         """
         Adds a WAMP application session to run directly in this router.
 
         :param: session: A WAMP application session.
-        :type session: A instance of a class that derives of :class:`autobahn.wamp.protocol.WampAppSession`
+        :type session: instance of :class:`autobahn.wamp.protocol.ApplicationSession`
         """
-        router_session = RouterApplicationSession(session, router, authid, authrole)
-        self._app_sessions[session] = router_session
+        assert isinstance(session, ApplicationSession)
+        assert isinstance(router, Router)
+        assert authid is None or type(authid) == str
+        assert authrole is None or type(authrole) == str
+
+        if session not in self._app_sessions:
+            router_session = RouterApplicationSession(session, router, authid, authrole)
+            self._app_sessions[session] = router_session
+        else:
+            self.log.warn('{klass}.add: session {session} already running embedded in router {router} (skipping addition of session)',
+                          klass=self.__class__.__name__,
+                          session=session,
+                          router=router)
+            router_session = self._app_sessions[session]
+        return router_session
 
     def remove(self, session):
         """
         Removes a WAMP application session running directly in this router.
+
+        :param: session: A WAMP application session currently embedded in a router created from this factory.
+        :type session: instance of :class:`autobahn.wamp.protocol.ApplicationSession`
         """
+        assert isinstance(session, ApplicationSession)
+
         if session in self._app_sessions:
             self._app_sessions[session]._session.disconnect()
             del self._app_sessions[session]
+        else:
+            self.log.warn('{klass}.remove: session {session} not running embedded in any router of this router factory (skipping removal of session)',
+                          klass=self.__class__.__name__,
+                          session=session)
 
     def __call__(self):
         """
         Creates a new WAMP router session.
 
-        :returns: -- An instance of the WAMP router session class as
-                     given by `self.session`.
+        :return: An instance of the WAMP router session class as given by `self.session`.
         """
         session = self.session(self._routerFactory)
         session.factory = self
