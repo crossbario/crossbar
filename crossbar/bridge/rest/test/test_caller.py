@@ -148,10 +148,10 @@ class CallerTestCase(TestCase):
         arg, no kwargs, and no authorisation.
         """
         session = TestSession(types.ComponentConfig(u'realm1'))
-        self.session_factory.add(session, authrole=u"test_role")
+        self.session_factory.add(session, self.router, authrole=u"test_role")
 
         session2 = ApplicationSession(types.ComponentConfig(u'realm1'))
-        self.session_factory.add(session2, authrole=u"test_role")
+        self.session_factory.add(session2, self.router, authrole=u"test_role")
         resource = CallerResource({}, session2)
 
         with LogCapturer() as l:
@@ -175,10 +175,10 @@ class CallerTestCase(TestCase):
         A failed call returns the error to the client.
         """
         session = TestSession(types.ComponentConfig(u'realm1'))
-        self.session_factory.add(session, authrole=u"test_role")
+        self.session_factory.add(session, self.router, authrole=u"test_role")
 
         session2 = ApplicationSession(types.ComponentConfig(u'realm1'))
-        self.session_factory.add(session2, authrole=u"test_role")
+        self.session_factory.add(session2, self.router, authrole=u"test_role")
         resource = CallerResource({}, session2)
 
         tests = [

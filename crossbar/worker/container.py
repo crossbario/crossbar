@@ -64,11 +64,14 @@ class ContainerComponent(object):
 
         :param component_id: The ID of the component within the container.
         :type component_id: int
+
         :param config: The component configuration the component was created from.
         :type config: dict
+
         :param proto: The transport protocol instance the component runs for talking
                       to the application router.
         :type proto: instance of CrossbarWampWebSocketClientProtocol or CrossbarWampRawSocketClientProtocol
+
         :param session: The application session of this component.
         :type session: Instance derived of ApplicationSession.
         """
@@ -470,6 +473,7 @@ class ContainerController(WorkerController):
 
         try:
             component.proto.close()
+            # yield component.session.leave()
         except:
             self.log.failure("failed to close protocol on component '{component_id}': {log_failure}", component_id=component_id)
             raise

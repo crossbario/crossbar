@@ -169,7 +169,10 @@ class PendingAuth:
     def _marshal_dynamic_authenticator_error(self, err):
         if isinstance(err.value, ApplicationError):
             # forward the inner error URI and message (or coerce the first args item to str)
-            return types.Deny(err.value.error, u'{}'.format(err.value.args[0]))
+            msg = None
+            if err.value.args:
+                msg = u'{}'.format(err.value.args[0])
+            return types.Deny(err.value.error, msg)
         else:
             # wrap the error
             error = ApplicationError.AUTHENTICATION_FAILED

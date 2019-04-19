@@ -153,7 +153,7 @@ def build_mqtt_server():
 
     config = ComponentConfig(u"default", {})
     authsession = AuthenticatorSession(config)
-    session_factory.add(authsession, authrole=u"trusted")
+    session_factory.add(authsession, router, authrole=u"trusted")
 
     options = {
         u"options": {

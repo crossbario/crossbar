@@ -95,7 +95,7 @@ def add_realm_to_router(router_factory, session_factory, realm_name=u'default',
     router = router_factory.get(realm_name)
     router.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=default_permissions))
 
-    session_factory.add(realm.session, authrole=u'trusted')
+    session_factory.add(realm.session, router, authrole=u'trusted')
 
     return router
 

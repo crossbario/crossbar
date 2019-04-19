@@ -65,7 +65,6 @@ class RouterServiceAgent(ApplicationSession):
 
     def __init__(self, config, router, schemas=None):
         """
-        Ctor.
 
         :param config: WAMP application component configuration.
         :type config: Instance of :class:`autobahn.wamp.types.ComponentConfig`.
@@ -142,8 +141,9 @@ class RouterServiceAgent(ApplicationSession):
 
     @inlineCallbacks
     def onJoin(self, details):
-        self.log.debug(
-            'Router service session attached: {details}',
+        self.log.info(
+            '{klass}: realm service session attached (details={details})',
+            klass=self.__class__.__name__,
             details=details,
         )
 
@@ -170,9 +170,18 @@ class RouterServiceAgent(ApplicationSession):
                 on_ready.errback(e)
             self.leave()
         else:
-            self.log.info('RouterServiceAgent ready (realm_name="{realm}", on_ready={on_ready})', realm=self._realm, on_ready=on_ready)
+            self.log.info('{klass}: realm service session ready (realm_name="{realm}", on_ready={on_ready})',
+                          klass=self.__class__.__name__,
+                          realm=self._realm,
+                          on_ready=on_ready)
             if on_ready:
                 on_ready.callback(self)
+
+    def onLeave(self, details):
+        self.log.info('{klass}: realm service session left (realm_name="{realm}", details={details})',
+                      klass=self.__class__.__name__,
+                      realm=self._realm,
+                      details=details)
 
     def onUserError(self, failure, msg):
         # ApplicationError's are raised explicitly and by purpose to signal

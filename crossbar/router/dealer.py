@@ -224,6 +224,7 @@ class Dealer(object):
                 )
 
         if session in self._session_to_registrations:
+
             # send out Errors for any in-flight calls we have
             outstanding = self._callee_to_invocations.get(session, [])
             for invoke in outstanding:
@@ -261,7 +262,7 @@ class Dealer(object):
                     def _publish(registration):
                         service_session = self._router._realm.session
 
-                        # FIXME: what about exclude_authid as colleced from forward_for? like we do elsewhere in this file!
+                        # FIXME: what about exclude_authid as collected from forward_for? like we do elsewhere in this file!
                         options = types.PublishOptions(
                             correlation_id=None
                         )

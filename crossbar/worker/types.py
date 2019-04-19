@@ -80,7 +80,9 @@ class RouterRealm(object):
 
     def __init__(self, controller, id, config, session=None):
         """
-        Ctor.
+
+        :param controller: The controller this router is running under.
+        :type controller: object
 
         :param id: The realm ID within the router.
         :type id: str

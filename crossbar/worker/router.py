@@ -229,7 +229,7 @@ class RouterController(WorkerController):
             raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
 
         # URI of the realm to start
-        realm = realm_config['name']
+        realm_name = realm_config['name']
 
         # router/realm wide options
         options = realm_config.get('options', {})
@@ -247,7 +247,7 @@ class RouterController(WorkerController):
         # track realm
         rlm = self.router_realm_class(self, realm_id, realm_config)
         self.realms[realm_id] = rlm
-        self.realm_to_id[realm] = realm_id
+        self.realm_to_id[realm_name] = realm_id
 
         # create a new router for the realm
         router = self._router_factory.start_realm(rlm)
@@ -271,17 +271,19 @@ class RouterController(WorkerController):
             # the WAMP meta API is exposed to additionally, when the bridge_meta_api option is set
             'management_session': self,
         }
-        cfg = ComponentConfig(realm, extra)
+        cfg = ComponentConfig(realm_name, extra)
         rlm.session = RouterServiceAgent(cfg, router)
-        self._router_session_factory.add(rlm.session, authrole=u'trusted')
+        self._router_session_factory.add(rlm.session, router, authrole=u'trusted')
 
         yield extra['onready']
+        self.log.info('RouterServiceAgent started on realm "{realm_name}"', realm_name=realm_name)
 
         self.log.info('Realm "{realm_id}" (name="{realm_name}") started', realm_id=realm_id, realm_name=rlm.session._realm)
 
         self.publish(u'{}.on_realm_started'.format(self._uri_prefix), realm_id)
 
     @wamp.register(None)
+    @inlineCallbacks
     def stop_router_realm(self, realm_id, details=None):
         """
         Stop a realm currently running on this router worker.
@@ -303,6 +305,11 @@ class RouterController(WorkerController):
         rlm = self.realms[realm_id]
         realm_name = rlm.config['name']
 
+        # stop the RouterServiceAgent living on the realm
+        yield rlm.session.leave()
+        self._router_session_factory.remove(rlm.session)
+        self.log.info('RouterServiceAgent stopped on realm "{realm_name}"', realm_name=realm_name)
+
         detached_sessions = self._router_factory.stop_realm(realm_name)
 
         del self.realms[realm_id]
@@ -315,7 +322,7 @@ class RouterController(WorkerController):
         }
 
         self.publish(u'{}.on_realm_stopped'.format(self._uri_prefix), realm_id)
-        return realm_stopped
+        returnValue(realm_stopped)
 
     @wamp.register(None)
     def get_router_realm_roles(self, id, details=None):
@@ -591,7 +598,8 @@ class RouterController(WorkerController):
         session.on('join', publish_started)
 
         self.components[id] = RouterComponent(id, config, session)
-        self._router_session_factory.add(session, authrole=config.get('role', u'anonymous'))
+        router = self._router_factory.get(realm)
+        self._router_session_factory.add(session, router, authrole=config.get('role', u'anonymous'))
         self.log.debug(
             "Added component {id} (type '{name}')",
             id=id,
