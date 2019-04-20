@@ -78,17 +78,20 @@ class RouterRealm(object):
     A realm running in a router worker.
     """
 
-    def __init__(self, controller, id, config, session=None):
+    def __init__(self, controller, id, config, router=None, session=None):
         """
 
         :param controller: The controller this router is running under.
         :type controller: object
 
-        :param id: The realm ID within the router.
+        :param id: The realm ID within the router worker, identifying the router.
         :type id: str
 
         :param config: The realm configuration.
         :type config: dict
+
+        :param router: The router (within the router worker) serving the realm.
+        :type router: :class:`crossbar.router.router.Router`
 
         :param session: The realm service session.
         :type session: :class:`crossbar.router.service.RouterServiceAgent`
@@ -96,7 +99,13 @@ class RouterRealm(object):
         self.controller = controller
         self.id = id
         self.config = config
+
+        # this is filled later (after construction) when the router has been started
+        self.router = router
+
+        # this is filled later (after construction) when the router service agent session has been started
         self.session = session
+
         self.created = datetime.utcnow()
         self.roles = {}
 
@@ -106,6 +115,8 @@ class RouterRealm(object):
             u'config': self.config,
             u'created': self.created,
             u'roles': self.roles,
+            u'has_router': self.router is not None,
+            u'has_service_session': self.session is not None,
         }
 
 

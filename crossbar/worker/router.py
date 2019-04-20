@@ -250,10 +250,10 @@ class RouterController(WorkerController):
         self.realm_to_id[realm_name] = realm_id
 
         # create a new router for the realm
-        router = self._router_factory.start_realm(rlm)
+        rlm.router = self._router_factory.start_realm(rlm)
 
-        if router._store and hasattr(router._store, 'start'):
-            yield router._store.start()
+        if rlm.router._store and hasattr(rlm.router._store, 'start'):
+            yield rlm.router._store.start()
 
         # add a router/realm service session
         extra = {
@@ -272,8 +272,8 @@ class RouterController(WorkerController):
             'management_session': self,
         }
         cfg = ComponentConfig(realm_name, extra)
-        rlm.session = RouterServiceAgent(cfg, router)
-        self._router_session_factory.add(rlm.session, router, authrole=u'trusted')
+        rlm.session = RouterServiceAgent(cfg, rlm.router)
+        self._router_session_factory.add(rlm.session, rlm.router, authrole=u'trusted')
 
         yield extra['onready']
         self.log.info('RouterServiceAgent started on realm "{realm_name}"', realm_name=realm_name)
