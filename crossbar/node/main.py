@@ -110,7 +110,11 @@ def _get_version(name_or_module):
     elif hasattr(name_or_module, 'version'):
         v = name_or_module.version
     else:
-        v = pkg_resources.get_distribution(name_or_module.__name__).version
+        try:
+            v = pkg_resources.get_distribution(name_or_module.__name__).version
+        except:
+            # eg flatbuffers when run from single file EXE (pyinstaller): https://github.com/google/flatbuffers/issues/5299
+            v = '?.?.?'
 
     if type(v) in (tuple, list):
         return '.'.join(str(x) for x in v)
