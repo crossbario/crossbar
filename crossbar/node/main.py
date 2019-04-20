@@ -105,10 +105,19 @@ def _get_version(name_or_module):
     if isinstance(name_or_module, str):
         name_or_module = importlib.import_module(name_or_module)
 
-    try:
-        return name_or_module.__version__
-    except AttributeError:
-        return pkg_resources.get_distribution(name_or_module.__name__).version
+    if hasattr(name_or_module, '__version__'):
+        v = name_or_module.__version__
+    elif hasattr(name_or_module, 'version'):
+        v = name_or_module.version
+    else:
+        v = pkg_resources.get_distribution(name_or_module.__name__).version
+
+    if type(v) in (tuple, list):
+        return '.'.join(str(x) for x in v)
+    elif type(v) == str:
+        return v
+    else:
+        raise RuntimeError('unexpected type {} for version in module "{}"'.format(type(v), name_or_module))
 
 
 def _check_pid_exists(pid):
