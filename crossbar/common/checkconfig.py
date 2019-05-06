@@ -1158,6 +1158,46 @@ def check_websocket_options(options):
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket options".format(k))
 
+    check_dict_args(
+        {
+            'allowed_origins': (False, [Sequence]),
+            'allow_null_origin': (False, [bool]),
+            'external_port': (False, [int]),
+            'enable_hybi10': (False, [bool]),
+            'enable_rfc6455': (False, [bool]),
+            'open_handshake_timeout': (False, [int]),
+            'close_handshake_timeout': (False, [int]),
+            'enable_webstatus': (False, [bool]),
+            'validate_utf8': (False, [bool]),
+            'mask_server_frames': (False, [bool]),
+            'require_masked_client_frames': (False, [bool]),
+            'apply_mask': (False, [bool]),
+            'max_frame_size': (False, [int]),
+            'max_message_size': (False, [int]),
+            'auto_fragment_size': (False, [int]),
+            'fail_by_drop': (False, [bool]),
+            'echo_close_codereason': (False, [bool]),
+            'tcp_nodelay': (False, [bool]),
+            'auto_ping_interval': (False, [int]),
+            'auto_ping_timeout': (False, [int]),
+            'auto_ping_size': (False, [int]),
+            'enable_flash_policy': (False, [bool]),
+            'flash_policy': (False, []),  # FIXME not in docs
+            'compression': (False, [Mapping]),
+            'require_websocket_subprotocol': (False, [bool]),
+            'show_server_version': (False, [bool]),
+        },
+        options,
+        "WebSocket options",
+    )
+
+    if 'auto_ping_size' in options:
+        aps = int(options['auto_ping_size'])
+        if aps < 4 or aps > 125:
+            raise InvalidConfigException(
+                "WebSocket option 'auto_ping_size' must be between 4 and 125"
+            )
+
     millisecond_intervals = [
         'open_handshake_timeout',
         'close_handshake_timeout',
