@@ -211,7 +211,7 @@ class RouterServiceAgent(ApplicationSession):
         session_ids = []
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                if filter_authroles is None or session._session_details[u'authrole'] in filter_authroles:
+                if filter_authroles is None or session._session_details.authrole in filter_authroles:
                     session_ids.append(session._session_id)
         return session_ids
 
@@ -231,7 +231,7 @@ class RouterServiceAgent(ApplicationSession):
         session_count = 0
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                if filter_authroles is None or session._session_details[u'authrole'] in filter_authroles:
+                if filter_authroles is None or session._session_details.authrole in filter_authroles:
                     session_count += 1
         return session_count
 
