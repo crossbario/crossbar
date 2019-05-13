@@ -37,6 +37,7 @@ Create a systemd service file ``/etc/systemd/system/crossbar.service``
     StandardError=journal
     Environment="MYVAR1=foobar"
     ExecStart=/opt/crossbar/bin/crossbar start --cbdir=/home/ubuntu/mynode1/.crossbar
+    ExecStop=/opt/crossbar/bin/crossbar stop --cbdir=/home/ubuntu/mynode1/.crossbar
     Restart=on-abort
 
     [Install]
