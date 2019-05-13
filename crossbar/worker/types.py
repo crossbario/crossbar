@@ -113,7 +113,7 @@ class RouterRealm(object):
         return {
             u'id': self.id,
             u'config': self.config,
-            u'created': self.created,
+            u'created': utcstr(self.created),
             u'roles': self.roles,
             u'has_router': self.router is not None,
             u'has_service_session': self.session is not None,
