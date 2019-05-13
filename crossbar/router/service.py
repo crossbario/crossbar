@@ -252,7 +252,7 @@ class RouterServiceAgent(ApplicationSession):
         if session_id in self._router._session_id_to_session:
             session = self._router._session_id_to_session[session_id]
             if not is_restricted_session(session):
-                session_info = session._session_details.marshal()
+                session_info = session._session_details.marshal() if session._session_details else dict()
                 session_info[u'transport'] = None if session._transport is None else session._transport._transport_info
                 return session_info
             else:
