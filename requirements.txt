@@ -405,9 +405,9 @@ u-msgpack-python==2.5.1 \
     --hash=sha256:ba1195f656ecc28b1be2e1f152f862d7acee92209117b3c0ef5d00b19d1a185f
 ujson==1.35 \
     --hash=sha256:f66073e5506e91d204ab0c614a148d5aa938bdbf104751be66f8ad7a222f5f86
-urllib3==1.25.2 \
-    --hash=sha256:a53063d8b9210a7bdec15e7b272776b9d42b2fd6816401a0d43006ad2f9902db \
-    --hash=sha256:d363e3607d8de0c220d31950a8f38b18d5ba7c0830facd71a1c6b1036b7ce06c
+urllib3==1.24.3 \
+    --hash=sha256:2393a695cd12afedd0dcb26fe5d50d0cf248e5a66f75dbd89a3d4eb333a61af4 \
+    --hash=sha256:a637e5fae88995b256e3409dc4d52c2e2e0ba32c42a6365fee8bbd2238de3cfb
 vmprof==0.4.12 \
     --hash=sha256:1df5c7705480debd5eadbebde944dfe4cf7e359f08e65d350b7abda6cc8fa25f \
     --hash=sha256:3e9828fa395746b526e9dc4b748d2183d0ffcac1beec6fe5d5073dfd82ee4843 \

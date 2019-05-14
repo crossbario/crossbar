@@ -193,6 +193,9 @@ class Personality(object):
     BANNER = _BANNER.format(title=_TITLE, version=crossbar.__version__, year=time.strftime('%Y'))
 
     LEGAL = ('crossbar', 'LEGAL')
+    LICENSE = ('crossbar', 'LICENSE')
+    LICENSE_FOR_API = ('crossbar', 'LICENSE-FOR-API')
+    LICENSES_OSS = ('crossbar', 'LICENSES-OSS')
 
     # a list of directories to serach Jinja2 templates for
     # rendering various web resources. this must be a list
