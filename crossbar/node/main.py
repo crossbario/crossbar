@@ -233,16 +233,27 @@ def _check_is_running(cbdir):
     return None
 
 
-def _run_command_legal(options, reactor, personality):
+def _run_command_legal(options, reactor, personality, verbose=True):
     """
     Subcommand "crossbar legal".
     """
-    package, resource_name = personality.LEGAL
-    filename = pkg_resources.resource_filename(package, resource_name)
-    filepath = os.path.abspath(filename)
-    with open(filepath) as f:
-        legal = f.read()
-        print(legal)
+    if verbose:
+        docs = [personality.LEGAL,
+                personality.LICENSE,
+                personality.LICENSE_OSS,
+                personality.LICENSE_FOR_API,]
+    else:
+        docs = [personality.LEGAL]
+
+    print(hl('*' * 120, bold=True, color='yellow'))
+    for package, resource_name in docs:
+        filename = pkg_resources.resource_filename(package, resource_name)
+        filepath = os.path.abspath(filename)
+        print(hl('   ' + filepath + ' :\n', bold=False, color='yellow'))
+        with open(filepath) as f:
+            legal = f.read()
+            print(hl(legal, bold=True, color='white'))
+        print(hl('*' * 120, bold=True, color='yellow'))
 
 
 class Versions(object):

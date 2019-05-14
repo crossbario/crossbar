@@ -1,12 +1,12 @@
-include COPYRIGHT
-include LICENSE
-include LICENSE-FOR-API
+include crossbar/LEGAL
+include crossbar/LICENSE
+include crossbar/LICENSE-FOR-API
+include crossbar/LICENSES-OSS
 include requirements.txt
 include requirements-min.txt
 include requirements-latest.txt
 include requirements-pinned.txt
 include requirements-dev.txt
-include crossbar/LEGAL
 recursive-include crossbar/common/keys *
 recursive-include crossbar/node/templates *
 recursive-include crossbar/webservice/templates *

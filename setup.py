@@ -100,7 +100,7 @@ setup(
     },
     packages=find_packages(),
     include_package_data=True,
-    data_files=[('.', ['COPYRIGHT', 'LICENSE', 'LICENSE-FOR-API'])],
+    data_files=[('.', ['crossbar/LEGAL', 'crossbar/LICENSE', 'crossbar/LICENSE-FOR-API', 'crossbar/LICENSES-OSS'])],
     zip_safe=False,
 
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
