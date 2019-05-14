@@ -195,7 +195,7 @@ class Personality(object):
     LEGAL = ('crossbar', 'LEGAL')
     LICENSE = ('crossbar', 'LICENSE')
     LICENSE_FOR_API = ('crossbar', 'LICENSE-FOR-API')
-    LICENSE_OSS = ('crossbar', 'LICENSES-OSS')
+    LICENSES_OSS = ('crossbar', 'LICENSES-OSS')
 
     # a list of directories to serach Jinja2 templates for
     # rendering various web resources. this must be a list

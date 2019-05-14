@@ -240,8 +240,8 @@ def _run_command_legal(options, reactor, personality, verbose=True):
     if verbose:
         docs = [personality.LEGAL,
                 personality.LICENSE,
-                personality.LICENSE_OSS,
-                personality.LICENSE_FOR_API,]
+                personality.LICENSE_FOR_API,
+                personality.LICENSES_OSS]
     else:
         docs = [personality.LEGAL]
 
