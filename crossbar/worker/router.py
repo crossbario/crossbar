@@ -278,9 +278,15 @@ class RouterController(WorkerController):
         yield extra['onready']
         self.log.info('RouterServiceAgent started on realm "{realm_name}"', realm_name=realm_name)
 
-        self.log.info('Realm "{realm_id}" (name="{realm_name}") started', realm_id=realm_id, realm_name=rlm.session._realm)
-
         self.publish(u'{}.on_realm_started'.format(self._uri_prefix), realm_id)
+
+        topic = u'{}.on_realm_started'.format(self._uri_prefix)
+        event = rlm.marshal()
+        caller = details.caller if details else None
+        self.publish(topic, event, options=PublishOptions(exclude=caller))
+
+        self.log.info('Realm "{realm_id}" (name="{realm_name}") started', realm_id=realm_id, realm_name=rlm.session._realm)
+        return event
 
     @wamp.register(None)
     @inlineCallbacks
@@ -325,12 +331,12 @@ class RouterController(WorkerController):
         returnValue(realm_stopped)
 
     @wamp.register(None)
-    def get_router_realm_roles(self, id, details=None):
+    def get_router_realm_roles(self, realm_id, details=None):
         """
         Get roles currently running on a realm running on this router worker.
 
-        :param id: The ID of the realm to list roles for.
-        :type id: str
+        :param realm_id: The ID of the realm to list roles for.
+        :type realm_id: str
 
         :param details: Call details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
@@ -338,12 +344,40 @@ class RouterController(WorkerController):
         :returns: A list of roles.
         :rtype: list[dict]
         """
-        self.log.debug("{name}.get_router_realm_roles({id})", name=self.__class__.__name__, id=id)
+        self.log.debug("{name}.get_router_realm_roles({realm_id})", name=self.__class__.__name__, realm_id=realm_id)
 
-        if id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
-        return self.realms[id].roles.values()
+        return self.realms[realm_id].roles.values()
+
+    @wamp.register(None)
+    def get_router_realm_role(self, realm_id, role_id, details=None):
+        """
+        Return role detail information.
+
+        :param realm_id: The ID of the realm to get a role for.
+        :type realm_id: str
+
+        :param role_id: The ID of the role to get.
+        :type role_id: str
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: role information object
+        :rtype: dict
+        """
+        self.log.debug("{name}.get_router_realm_role(realm_id={realm_id}, role_id={role_id})",
+                       name=self.__class__.__name__, realm_id=realm_id, role_id=role_id)
+
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        if role_id not in self.realms[realm_id].roles:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' on realm '{}'".format(role_id, realm_id))
+
+        return self.realms[realm_id].roles[role_id].marshal()
 
     @wamp.register(None)
     def start_router_realm_role(self, realm_id, role_id, role_config, details=None):
@@ -377,21 +411,20 @@ class RouterController(WorkerController):
         self._router_factory.add_role(realm, role_config)
 
         topic = u'{}.on_router_realm_role_started'.format(self._uri_prefix)
-        event = {
-            u'id': role_id
-        }
+        event = self.realms[realm_id].roles[role_id].marshal()
         caller = details.caller if details else None
         self.publish(topic, event, options=PublishOptions(exclude=caller))
 
         self.log.info('role {role_id} on realm {realm_id} started', realm_id=realm_id, role_id=role_id, role_config=role_config)
+        return event
 
     @wamp.register(None)
-    def stop_router_realm_role(self, id, role_id, details=None):
+    def stop_router_realm_role(self, realm_id, role_id, details=None):
         """
         Stop a role currently running on a realm running on this router worker.
 
-        :param id: The ID of the realm of the role to be stopped.
-        :type id: str
+        :param realm_id: The ID of the realm of the role to be stopped.
+        :type realm_id: str
 
         :param role_id: The ID of the role to be stopped.
         :type role_id: str
@@ -401,20 +434,21 @@ class RouterController(WorkerController):
         """
         self.log.debug("{name}.stop_router_realm_role", name=self.__class__.__name__)
 
-        if id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
-        if role_id not in self.realms[id].roles:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, id))
+        if role_id not in self.realms[realm_id].roles:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, realm_id))
 
-        del self.realms[id].roles[role_id]
+        role = self.realms[realm_id].roles.pop(role_id)
 
         topic = u'{}.on_router_realm_role_stopped'.format(self._uri_prefix)
-        event = {
-            u'id': role_id
-        }
+        event = role.marshal()
         caller = details.caller if details else None
         self.publish(topic, event, options=PublishOptions(exclude=caller))
+
+        self.log.info('role {role_id} on realm {realm_id} stopped', realm_id=realm_id, role_id=role_id)
+        return event
 
     @wamp.register(None)
     def get_router_components(self, details=None):
@@ -646,11 +680,7 @@ class RouterController(WorkerController):
 
         res = []
         for transport in sorted(self.transports.values(), key=lambda c: c.created):
-            res.append({
-                u'id': transport.id,
-                u'created': utcstr(transport.created),
-                u'config': transport.config,
-            })
+            res.append(transport.marshal())
         return res
 
     @wamp.register(None)
@@ -668,11 +698,7 @@ class RouterController(WorkerController):
 
         if transport_id in self.transports:
             transport = self.transports[transport_id]
-            obj = {
-                u'id': transport.id,
-                u'created': utcstr(transport.created),
-                u'config': transport.config,
-            }
+            obj = transport.marshal()
             return obj
         else:
             raise ApplicationError(u"crossbar.error.no_such_object", "No transport {}".format(transport_id))
@@ -724,6 +750,8 @@ class RouterController(WorkerController):
             topic = u'{}.on_router_transport_started'.format(self._uri_prefix)
             self.publish(topic, event, options=PublishOptions(exclude=caller))
 
+            return router_transport.marshal()
+
         def fail(err):
             _emsg = "Cannot listen on transport endpoint: {log_failure}"
             self.log.error(_emsg, log_failure=err)
@@ -759,9 +787,7 @@ class RouterController(WorkerController):
         self.log.debug("Stopping transport with ID '{transport_id}'", transport_id=transport_id)
 
         caller = details.caller if details else None
-        event = {
-            u'id': transport_id
-        }
+        event = router_transport.marshal()
         topic = u'{}.on_router_transport_stopping'.format(self._uri_prefix)
         self.publish(topic, event, options=PublishOptions(exclude=caller))
 
@@ -774,9 +800,12 @@ class RouterController(WorkerController):
             topic = u'{}.on_router_transport_stopped'.format(self._uri_prefix)
             self.publish(topic, event, options=PublishOptions(exclude=caller))
 
+            return event
+
         def fail(err):
             emsg = "Cannot stop listening on transport endpoint: {log_failure}"
             self.log.error(emsg, log_failure=err)
+
             raise ApplicationError(u"crossbar.error.cannot_stop", emsg)
 
         d.addCallbacks(ok, fail)

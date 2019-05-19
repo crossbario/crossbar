@@ -38,6 +38,7 @@ from txaio import make_logger
 import twisted
 from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
 
+from autobahn.util import utcstr
 from autobahn.wamp import ApplicationError
 
 import crossbar
@@ -114,6 +115,16 @@ class RouterTransport(object):
 
         # twisted.internet.interfaces.IListeningPort
         self._port = None
+
+    def marshal(self):
+        return {
+            u'id': self._transport_id,
+            u'type': self._type,
+            u'config': self._config,
+            u'created_at': utcstr(self._created_at),
+            u'listening_since': utcstr(self._listening_since) if self._listening_since else None,
+            u'state': self._state,
+        }
 
     @property
     def root(self):
