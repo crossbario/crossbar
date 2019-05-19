@@ -325,12 +325,12 @@ class RouterController(WorkerController):
         returnValue(realm_stopped)
 
     @wamp.register(None)
-    def get_router_realm_roles(self, id, details=None):
+    def get_router_realm_roles(self, realm_id, details=None):
         """
         Get roles currently running on a realm running on this router worker.
 
-        :param id: The ID of the realm to list roles for.
-        :type id: str
+        :param realm_id: The ID of the realm to list roles for.
+        :type realm_id: str
 
         :param details: Call details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
@@ -338,12 +338,40 @@ class RouterController(WorkerController):
         :returns: A list of roles.
         :rtype: list[dict]
         """
-        self.log.debug("{name}.get_router_realm_roles({id})", name=self.__class__.__name__, id=id)
+        self.log.debug("{name}.get_router_realm_roles({realm_id})", name=self.__class__.__name__, realm_id=realm_id)
 
-        if id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
-        return self.realms[id].roles.values()
+        return self.realms[realm_id].roles.values()
+
+    @wamp.register(None)
+    def get_router_realm_role(self, realm_id, role_id, details=None):
+        """
+        Return role detail information.
+
+        :param realm_id: The ID of the realm to get a role for.
+        :type realm_id: str
+
+        :param role_id: The ID of the role to get.
+        :type role_id: str
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: role information object
+        :rtype: dict
+        """
+        self.log.debug("{name}.get_router_realm_role(realm_id={realm_id}, role_id={role_id})",
+                       name=self.__class__.__name__, realm_id=realm_id, role_id=role_id)
+
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        if role_id not in self.realms[realm_id].roles:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' on realm '{}'".format(role_id, realm_id))
+
+        return self.realms[realm_id].roles[role_id].marshal()
 
     @wamp.register(None)
     def start_router_realm_role(self, realm_id, role_id, role_config, details=None):

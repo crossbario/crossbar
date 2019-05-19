@@ -43,12 +43,13 @@ class RouterComponent(object):
 
     def __init__(self, id, config, session):
         """
-        Ctor.
 
         :param id: The component ID within the router instance.
         :type id: str
+
         :param config: The component's configuration.
         :type config: dict
+
         :param session: The component application session.
         :type session: obj (instance of ApplicationSession)
         """
@@ -114,7 +115,7 @@ class RouterRealm(object):
             u'id': self.id,
             u'config': self.config,
             u'created': utcstr(self.created),
-            u'roles': self.roles,
+            u'roles': [self.roles[role].marshal() for role in self.roles if self.roles],
             u'has_router': self.router is not None,
             u'has_service_session': self.session is not None,
         }
@@ -128,12 +129,18 @@ class RouterRealmRole(object):
 
     def __init__(self, id, config):
         """
-        Ctor.
 
         :param id: The role ID within the realm.
         :type id: str
+
         :param config: The role configuration.
         :type config: dict
         """
         self.id = id
         self.config = config
+
+    def marshal(self):
+        return {
+            u'id': self.id,
+            u'config': self.config,
+        }
