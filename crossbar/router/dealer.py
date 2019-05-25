@@ -1277,7 +1277,9 @@ class Dealer(object):
                             self._call_store.pop_queued_call(invocation_request.registration)
 
         else:
-            raise ProtocolError(u"Dealer.onYield(): YIELD received for non-pending request ID {0}".format(yield_.request))
+            self.log.debug(
+                "Dealer.onYield(): YIELD received for non-pending request ID {request_id}",
+                request_id=yield_.request)
 
     def processInvocationError(self, session, error):
         """
@@ -1398,4 +1400,8 @@ class Dealer(object):
             self._remove_invoke_request(invoke)
 
         else:
-            raise ProtocolError(u"Dealer.onInvocationError(): ERROR received for non-pending request_type {0} and request ID {1}".format(error.request_type, error.request))
+            self.log.debug(
+                "Dealer.onInvocationError(): ERROR received for non-pending request_type {request_type}"
+                " and request ID {request_id}",
+                request_type=error.request_type,
+                request_id=error.request)
