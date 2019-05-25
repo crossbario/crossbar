@@ -1,0 +1,5 @@
+{
+    "python.linting.pylintEnabled": true,
+    "restructuredtext.confPath": "${workspaceFolder}/docs",
+    "python.pythonPath": "/usr/bin/python3"
+}
