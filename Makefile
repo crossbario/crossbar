@@ -9,6 +9,7 @@ all:
 	@echo "   install          Local install"
 	@echo "   publish          Clean build and publish to PyPI"
 	@echo "   docs             Build and test docs"
+	@echo "   prepareUbuntu    Prepare running tests on Ubuntu"
 	@echo ""
 
 clean:
@@ -223,3 +224,8 @@ gource:
 	-threads 0 \
 	-bf 0 \
 	crossbar.mp4
+
+# Some prerequisites needed on ubuntu to run the tests.
+prepareUbuntu:
+	sudo apt install libsnappy-dev
+	sudo apt install python-tox

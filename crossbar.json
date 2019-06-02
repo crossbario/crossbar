@@ -41,7 +41,7 @@
                 4, 6
             ],
             "default": 4
-        },       
+        },
         "check_ip_host": {
             "description": "The hostname to use for this connection",
             "type":"string"
@@ -162,19 +162,7 @@
                 "max_frame_size": {
                     "description": "Maximum size in bytes of incoming WebSocket frames accepted or 0 to allow any size. (default: 0)",
                     "type": "integer",
-                    "minimum": 0
-                },
-                "require_masked_client_frames": {
-                    "description": "Require all WebSocket frames received to be masked. (default: true)",
-                    "type": "boolean"
-                },
-                "apply_mask": {
-                    "description": "Actually apply WebSocket masking (both in- and outgoing). (default: true)",
-                    "type": "boolean"
-                },
-                "max_frame_size": {
-                    "description": "Maximum size in bytes of incoming WebSocket frames accepted or 0 to allow any size. (default: 0)",
-                    "type": "integer",
+                    "minimum": 0,
                     "examples": [
                         0
                     ]
@@ -213,7 +201,7 @@
                 },
                 "flash_policy": {
                     "description": "This is new - fixme!",
-                    "type": "string"                    
+                    "type": "string"
                 },
                 "compression": { "$ref": "#/definitions/check_compression" },
                 "require_websocket_subprotocol": {
@@ -237,7 +225,7 @@
                 },
                 "endpoint": { "$ref": "#/definitions/listening_endpoint" },
                 "serializers": { "$ref": "#/definitions/check_listening_serializers" },
-                "url": { "$ref": "#/definitions/url" },                        
+                "url": { "$ref": "#/definitions/url" },
                 "options": { "$ref": "#/definitions/check_websocket_options" }
             }
         },
@@ -431,7 +419,7 @@
                 "tls": {
                     "description": "Options associated with a TLS endpoint",
                     "type": "object",
-                    "properties": {       
+                    "properties": {
                         "key": {
                             "description": "TLS Key file",
                             "type": "string"
@@ -448,7 +436,7 @@
                             "description": "Valid CIPHERS",
                             "type": "string",
                             "default": "ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA"
-                        },                       
+                        },
                         "chain_certificates": {
                             "description": "Certificate chain",
                             "type": "array",
@@ -465,7 +453,7 @@
                         }
                     }
                 }
-            }               
+            }
         },
         "roles": {
             "type":"array",
@@ -506,7 +494,7 @@
                                         "publish":{
                                             "description": "",
                                             "type":"boolean"
-                                        },    
+                                        },
                                         "subscribe": {
                                             "description": "",
                                             "type":"boolean"
@@ -534,7 +522,7 @@
                             }
                         }
                     }
-                }       
+                }
             }
         },
         "check_listening_transport_web": {
@@ -614,10 +602,10 @@
         "check_listening_transport_universal": {
             "type": "object",
             "properties": {
-                "id": { "$ref": "#/definitions/id" },                 
+                "id": { "$ref": "#/definitions/id" },
                 "type": { "enum": [ "universal" ]},
-                "endpoint": { "$ref": "#/definitions/listening_endpoint" }, 
-                "rawsocket": { 
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" },
+                "rawsocket": {
                     "type": "object",
                     "oneOf": [
                         { "$ref": "#/definitions/check_listening_transport_rawsocket" }
@@ -627,19 +615,19 @@
                     "type": "object",
                     "oneOf": [
                         { "$ref": "#/definitions/check_listening_transport_websocket" }
-                    ]                   
+                    ]
                 },
                 "mqtt": {
                     "type": "object",
                     "oneOf": [
                         { "$ref": "#/definitions/check_listening_transport_mqtt" }
-                    ]                                       
+                    ]
                 },
                 "web": {
                     "type": "object",
                     "oneOf": [
                         { "$ref": "#/definitions/check_listening_transport_web" }
-                    ]                                       
+                    ]
                 }
             }
         },
@@ -667,7 +655,7 @@
         "transport_mqtt_payload_dynamic": {
             "type": "object",
             "properties": {
-                "type": { "enum": [ "dynamic" ]},            
+                "type": { "enum": [ "dynamic" ]},
                 "encoder": {
                     "description": "",
                     "type": "object",
@@ -685,7 +673,7 @@
             "properties": {
                 "id": { "$ref": "#/definitions/id" },
                 "type": { "enum": [ "mqtt" ]},
-                "endpoint": { "$ref": "#/definitions/listening_endpoint" },                
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" },
                 "options": {
                     "type": "object",
                     "properties": {
@@ -765,7 +753,7 @@
                 "endpoint": { "$ref": "#/definitions/listening_endpoint" },
                 "debug": { "$ref": "#/definitions/debug" }
             }
-        },       
+        },
         "check_milliseconds": {
             "description": "",
             "type": "integer",
@@ -824,7 +812,7 @@
                             { "$ref": "#/definitions/check_listening_transport_mqtt" },
                             { "$ref": "#/definitions/transport_flashpolicy" },
                             { "$ref": "#/definitions/transport_websocket_testee" },
-                            { "$ref": "#/definitions/transport_stream_testee" }                   
+                            { "$ref": "#/definitions/transport_stream_testee" }
                         ]
                     }
                 }
@@ -836,7 +824,7 @@
             "items": [
                 { "$ref": "#/definitions/check_container_component" }
             ]
-        },       
+        },
         "check_container_component": {
             "description": "",
             "type": "object",
@@ -864,7 +852,7 @@
             "description": "",
             "type": "object",
             "properties":{
-                "id": { "$ref": "#/definitions/id" },                
+                "id": { "$ref": "#/definitions/id" },
                 "type": { "enum": [ "guest" ] },
                 "executable": {
                     "description": "",
@@ -983,18 +971,18 @@
                 "principals": {
                     "type": "object",
                     "properties": {
-                        
+
                     }
                 }
             }
-        },       
+        },
         "check_transport_auth_cookie_static": {
             "type": "object",
             "properties":{
                 "type": { "enum": [ "static" ] }
 
             }
-        },       
+        },
         "check_transport_auth_cryptosign_static": {
             "type": "object",
             "properties":{
@@ -1006,7 +994,7 @@
                             "description": "",
                             "type": "array",
                             "items": {
-                                
+
                             }
                         },
                         "role": {
@@ -1018,9 +1006,9 @@
                             "type": "string"
                         }
                     }
-                }               
+                }
             }
-        },       
+        },
         "check_transport_auth_scram_static": {
             "type": "object",
             "properties":{
@@ -1058,9 +1046,9 @@
                         }
 
                     }
-                }               
+                }
             }
-        },       
+        },
         "check_transport_auth_anonymous": {
             "type": "object",
             "properties":{
@@ -1079,7 +1067,7 @@
             "oneOf": [
                 { "$ref": "#/definitions/check_transport_auth_ticket_static" },
                 { "$ref": "#/definitions/check_transport_auth_dynamic" }
-            ]           
+            ]
         },
         "check_transport_auth_wampcra": {
             "type": "object",
@@ -1089,7 +1077,7 @@
             "oneOf": [
                 { "$ref": "#/definitions/check_transport_auth_wampcra_static" },
                 { "$ref": "#/definitions/check_transport_auth_dynamic" }
-            ]                      
+            ]
         },
         "check_transport_auth_tls": {
             "type": "object",
@@ -1099,7 +1087,7 @@
             "oneOf": [
                 { "$ref": "#/definitions/check_transport_auth_tls_static" },
                 { "$ref": "#/definitions/check_transport_auth_dynamic" }
-            ]                                  
+            ]
         },
         "check_transport_auth_cookie": {
             "type": "object",
@@ -1133,7 +1121,7 @@
         "check_transport_auth": {
             "type": "object",
             "properties":{
-                "auth": { "enum": [ 
+                "auth": { "enum": [
                     "anonymous",
                     "ticket",
                     "wampcra",
@@ -1187,7 +1175,7 @@
                     }
                 }
             }
-        },       
+        },
         "worker_testee": {
             "type": "object",
             "properties":{
@@ -1240,7 +1228,7 @@
             "properties": {
                 "options": {
                     "type": "object",
-                    "properties": {               
+                    "properties": {
                         "title": {
                             "description": "Controller title",
                             "type": "string"
@@ -1255,8 +1243,8 @@
                                     "shutdown_on_worker_exit",
                                     "shutdown_on_worker_exit_with_error",
                                     "shutdown_on_last_worker_exit"
-                                ]                        
-                            }   
+                                ]
+                            }
                         }
                     }
                 }
@@ -1265,7 +1253,7 @@
         "check_manhole": {
             "description": "",
             "type": "object",
-            "properties": {               
+            "properties": {
                 "manhole": {
                     "description": "",
                     "type": "object",
@@ -1278,7 +1266,7 @@
         },
         "connection_postgres": {
             "type": "object",
-            "properties": {               
+            "properties": {
                 "type": { "enum": [ "postgres" ] },
                 "id": { "$ref": "#/definitions/id" },
                 "host": {
@@ -1313,15 +1301,15 @@
                     }
                 }
             }
-        },       
+        },
         "check_connections": {
             "description": "",
             "type": "object",
             "properties": {
-                "connections": { 
+                "connections": {
                     "type": "array",
                     "items": {
-                        "type": "object",                       
+                        "type": "object",
                         "oneOf": [
                             { "$ref": "#/definitions/connection_postgres" }
                         ]
@@ -1357,7 +1345,7 @@
                     { "$ref": "#/definitions/worker_router" },
                     { "$ref": "#/definitions/worker_container" },
                     { "$ref": "#/definitions/worker_guest" },
-                    { "$ref": "#/definitions/worker_testee"}                   
+                    { "$ref": "#/definitions/worker_testee"}
                 ]
             }
         }

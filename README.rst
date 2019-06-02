@@ -32,7 +32,7 @@ use of this by adding the following to your VSCode settings; (File -> Preference
             ],
             "url": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json"
         }
-    ],      
+    ],
 
 Alternatively, the generic approach is to insert a "$schema" line at the top of your file;
 
