@@ -16,6 +16,13 @@ Resources
 -  Ask a question on `StackOverflow <http://stackoverflow.com/questions/ask?tags=crossbar,wamp>`__
 -  Read our `Legal Notes <https://github.com/crossbario/crossbar/blob/master/legal/README.md>`__
 
+Docker images
+-------------
+
+* `amd64 <https://hub.docker.com/r/crossbario/crossbar>`_
+* `armv7 <https://hub.docker.com/r/crossbario/crossbar-armhf>`_
+* `armv8 <https://hub.docker.com/r/crossbario/crossbar-aarch64>`_
+
 JSON Schema for Crossbar.io Configuration File Format
 -----------------------------------------------------
 
@@ -59,7 +66,7 @@ all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate Intell
    :target: http://crossbar.io/docs/
 
 .. |Docker| image:: https://img.shields.io/badge/docker-ready-blue.svg?style=flat
-   :target: https://github.com/crossbario/crossbar-docker#crossbar
+   :target: https://hub.docker.com/r/crossbario/crossbar
 
 .. |Snap Status| image:: https://build.snapcraft.io/badge/crossbario/crossbar.svg
    :target: https://build.snapcraft.io/user/crossbario/crossbar
