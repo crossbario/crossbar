@@ -55,7 +55,9 @@ class RouterWebServiceRestPublisher(RouterWebService):
 
         # add the publisher session to the router
         #
+        router = transport._worker._router_session_factory._routerFactory._routers[config['realm']]
         transport._worker._router_session_factory.add(publisher_session,
+                                                      router,
                                                       authrole=config.get('role', 'anonymous'))
 
         # now create the publisher Twisted Web resource
@@ -82,7 +84,9 @@ class RouterWebServiceRestCaller(RouterWebService):
 
         # add the calling session to the router
         #
+        router = transport._worker._router_session_factory._routerFactory._routers[config['realm']]
         transport._worker._router_session_factory.add(caller_session,
+                                                      router,
                                                       authrole=config.get('role', 'anonymous'))
 
         # now create the caller Twisted Web resource
@@ -112,7 +116,9 @@ class RouterWebServiceWebhook(RouterWebService):
 
         # add the webhook session to the router
         #
+        router = transport._worker._router_session_factory._routerFactory._routers[config['realm']]
         transport._worker._router_session_factory.add(webhook_session,
+                                                      router,
                                                       authrole=config.get('role', 'anonymous'))
 
         # now create the webhook Twisted Web resource
