@@ -421,7 +421,7 @@ class RouterServiceAgent(ApplicationSession):
 
         if authrole in self._router._authrole_to_sessions:
             killed = []
-            for session in self._router._authid_to_sessions[authrole]:
+            for session in self._router._authrole_to_sessions[authrole]:
                 if not is_restricted_session(session):
                     killed.append(session._session_id)
                     session.leave(reason=reason, message=message)
