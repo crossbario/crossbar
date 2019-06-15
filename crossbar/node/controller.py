@@ -60,6 +60,8 @@ from crossbar.common.process import NativeProcess
 from crossbar.common.monitor import SystemMonitor
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
 
+from zlmdb import time_ns
+
 import txaio
 from txaio import make_logger, get_global_log_level
 txaio.use_twisted()
@@ -216,8 +218,19 @@ class NodeController(NativeProcess):
         :return: Current system statistics for this node.
         :rtype: dict
         """
-        self.log.debug("{cls}.get_stats", cls=self.__class__.__name__)
-        return self._smonitor.poll()
+        started = time_ns()
+        res = self._smonitor.poll()
+        us = int(round((time_ns() - started) / 1000.))
+
+        if us > 5000:
+            self.log.warn("{cls}.get_system_stats()->{mcls} excessive run-time of {duration}us!",
+                          cls=self.__class__.__name__, mcls=self._smonitor.__class__.__name__,
+                          duration=us)
+        else:
+            self.log.debug("{cls}.get_system_stats()->{mcls} ran in {duration}us",
+                           cls=self.__class__.__name__, mcls=self._smonitor.__class__.__name__,
+                           duration=us)
+        return res
 
     @wamp.register(None)
     @inlineCallbacks

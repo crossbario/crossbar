@@ -55,8 +55,7 @@ class PendingAuthAnonymous(PendingAuth):
         # remember the realm the client requested to join (if any)
         self._realm = realm
 
-        # remember the authid the client wants to identify as (if any)
-        self._authid = details.authid or util.generate_serial_number()
+        self._authid = self._config.get(u'authid', util.generate_serial_number())
 
         self._session_details[u'authmethod'] = u'anonymous'
         self._session_details[u'authextra'] = details.authextra
@@ -71,7 +70,7 @@ class PendingAuthAnonymous(PendingAuth):
 
             principal = {
                 u'authid': self._authid,
-                u'role': details.authrole or self._config.get(u'role', u'anonymous'),
+                u'role': self._config.get(u'role', u'anonymous'),
                 u'extra': details.authextra
             }
 
