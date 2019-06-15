@@ -558,6 +558,7 @@ def check_transport_auth_anonymous(config):
         check_dict_args({
             'type': (True, [str]),
             'role': (False, [str]),
+            'authid': (False, [str]),
         }, config, "WAMP-Anonymous configuration")
 
     elif config['type'] == 'dynamic':
