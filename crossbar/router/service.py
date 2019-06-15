@@ -37,7 +37,7 @@ from autobahn import wamp, util
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
-from autobahn.wamp.types import RegisterOptions
+from autobahn.wamp.types import RegisterOptions, CallDetails
 from autobahn.wamp.request import Registration
 
 from crossbar.router.observation import is_protected_uri
@@ -68,8 +68,10 @@ class RouterServiceAgent(ApplicationSession):
 
         :param config: WAMP application component configuration.
         :type config: Instance of :class:`autobahn.wamp.types.ComponentConfig`.
+
         :param router: The router this service session is running for.
         :type: router: instance of :class:`crossbar.router.session.CrossbarRouter`
+
         :param schemas: An (optional) initial schema dictionary to load.
         :type schemas: dict
         """
@@ -339,17 +341,97 @@ class RouterServiceAgent(ApplicationSession):
 
         :param session_id: The WAMP session ID of the session to kill.
         :type session_id: int
+
         :param reason: A reason URI provided to the killed session.
         :type reason: str or None
+
+        :param message: A message provided to the killed session.
+        :type message: str or None
         """
+        assert type(session_id) == int
+        assert reason is None or type(reason) == str
+        assert message is None or type(message) == str
+        assert details is None or isinstance(details, CallDetails)
+
         if session_id in self._router._session_id_to_session:
             session = self._router._session_id_to_session[session_id]
             if not is_restricted_session(session):
                 session.leave(reason=reason, message=message)
                 return
+            else:
+                self.log.warn('wamp.session.session_kill(session_id={session_id}): skip killing of restricted session {session_id}',
+                              session_id=session_id)
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
             u'no session with ID {} exists on this router'.format(session_id),
+        )
+
+    @wamp.register(u'wamp.session.kill_by_authid')
+    def session_kill_by_authid(self, authid, reason=None, message=None, details=None):
+        """
+        Forcefully kill all sessions with given authid.
+
+        :param authid: The WAMP authid of the sessions to kill.
+        :type authid: str
+
+        :param reason: A reason URI provided to the killed session(s).
+        :type reason: str or None
+
+        :param message: A message provided to the killed session(s).
+        :type message: str or None
+        """
+        assert type(authid) == str
+        assert reason is None or type(reason) == str
+        assert message is None or type(message) == str
+        assert details is None or isinstance(details, CallDetails)
+
+        if authid in self._router._authid_to_sessions:
+            killed = []
+            for session in self._router._authid_to_sessions[authid]:
+                if not is_restricted_session(session):
+                    killed.append(session._session_id)
+                    session.leave(reason=reason, message=message)
+                else:
+                    self.log.warn('wamp.session.session_kill_by_authid(authid="{authid}"): skip killing of restricted session {session_id}',
+                                  authid=authid, session_id=session._session_id)
+            return killed
+        raise ApplicationError(
+            ApplicationError.NO_SUCH_SESSION,
+            u'no session with authid "{}" exists on this router'.format(authid),
+        )
+
+    @wamp.register(u'wamp.session.kill_by_authrole')
+    def session_kill_by_authrole(self, authrole, reason=None, message=None, details=None):
+        """
+        Forcefully kill all sessions with given authrole.
+
+        :param authrole: The WAMP authrole of the sessions to kill.
+        :type authrole: str
+
+        :param reason: A reason URI provided to the killed session(s).
+        :type reason: str or None
+
+        :param message: A message provided to the killed session(s).
+        :type message: str or None
+        """
+        assert type(authrole) == str
+        assert reason is None or type(reason) == str
+        assert message is None or type(message) == str
+        assert details is None or isinstance(details, CallDetails)
+
+        if authrole in self._router._authrole_to_sessions:
+            killed = []
+            for session in self._router._authid_to_sessions[authrole]:
+                if not is_restricted_session(session):
+                    killed.append(session._session_id)
+                    session.leave(reason=reason, message=message)
+                else:
+                    self.log.warn('wamp.session.session_kill_by_authrole(authrole="{authrole}"): skip killing of restricted session {session_id}',
+                                  authrole=authrole, session_id=session._session_id)
+            return killed
+        raise ApplicationError(
+            ApplicationError.NO_SUCH_SESSION,
+            u'no session with authrole "{}" exists on this router'.format(authrole),
         )
 
     @wamp.register(u'wamp.registration.remove_callee')

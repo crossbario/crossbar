@@ -53,7 +53,7 @@ from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingA
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 from crossbar.router.router import Router, RouterFactory
 
-from twisted.internet.defer import inlineCallbacks, DeferredList
+from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
 try:
@@ -887,48 +887,6 @@ class RouterSessionFactory(object):
 
         self._routerFactory = routerFactory
         self._app_sessions = {}
-        self._app_sessions_by_authid = {}
-        self._app_sessions_by_authrole = {}
-
-    def close_by_authid(self, authid, reason, message=None):
-        """
-        Forcefully close all sessions with the given authid.
-
-        :param authid: WAMP authid of the sessions to close.
-        :param reason: WAMP close reason URI.
-        :param message: Closing message.
-        """
-        assert type(authid) == str
-        assert type(reason) == str
-        assert message is None or type(message) == str
-
-        dl = []
-        if authid in self._app_sessions_by_authid:
-            for session in self._app_sessions_by_authid[authid]:
-                d = session.leave(reason, message)
-                dl.append(d)
-
-        return DeferredList(dl)
-
-    def close_by_authrole(self, authrole, reason, message=None):
-        """
-        Forcefully close all sessions with the given authid.
-
-        :param authrole: WAMP authrole of the sessions to close.
-        :param reason: WAMP close reason URI.
-        :param message: Closing message.
-        """
-        assert type(authrole) == str
-        assert type(reason) == str
-        assert message is None or type(message) == str
-
-        dl = []
-        if authrole in self._app_sessions_by_authrole:
-            for session in self._app_sessions_by_authrole[authrole]:
-                d = session.leave(reason, message)
-                dl.append(d)
-
-        return DeferredList(dl)
 
     def add(self, session, router, authid=None, authrole=None):
         """
@@ -946,14 +904,6 @@ class RouterSessionFactory(object):
             router_session = RouterApplicationSession(session, router, authid, authrole)
 
             self._app_sessions[session] = router_session
-
-            if authid not in self._app_sessions_by_authid:
-                self._app_sessions_by_authid[authid] = set()
-            self._app_sessions_by_authid[authid].add(router_session)
-
-            if authrole not in self._app_sessions_by_authrole:
-                self._app_sessions_by_authrole[authrole] = set()
-            self._app_sessions_by_authrole[authrole].add(router_session)
 
         else:
             self.log.warn('{klass}.add: session {session} already running embedded in router {router} (skipping addition of session)',
@@ -976,16 +926,6 @@ class RouterSessionFactory(object):
             self._app_sessions[session]._session.disconnect()
 
             del self._app_sessions[session]
-
-            if session.authid in self._app_sessions_by_authid:
-                self._app_sessions_by_authid[session.authid].discard(session)
-                if not self._app_sessions_by_authid[session.authid]:
-                    del self._app_sessions_by_authid[session.authid]
-
-            if session.authrole in self._app_sessions_by_authrole:
-                self._app_sessions_by_authrole[session.authrole].discard(session)
-                if not self._app_sessions_by_authrole[session.authrole]:
-                    del self._app_sessions_by_authrole[session.authrole]
 
         else:
             self.log.warn('{klass}.remove: session {session} not running embedded in any router of this router factory (skipping removal of session)',
