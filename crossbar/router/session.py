@@ -866,7 +866,7 @@ ITransportHandler.register(RouterSession)
 
 class RouterSessionFactory(object):
     """
-    Factory creating the router side of (non-embedded) Crossbar.io WAMP sessions.
+    Factory creating the router side of Crossbar.io WAMP sessions.
     This is the session factory that will be given to router transports.
     """
 
@@ -902,7 +902,9 @@ class RouterSessionFactory(object):
 
         if session not in self._app_sessions:
             router_session = RouterApplicationSession(session, router, authid, authrole)
+
             self._app_sessions[session] = router_session
+
         else:
             self.log.warn('{klass}.add: session {session} already running embedded in router {router} (skipping addition of session)',
                           klass=self.__class__.__name__,
@@ -922,7 +924,9 @@ class RouterSessionFactory(object):
 
         if session in self._app_sessions:
             self._app_sessions[session]._session.disconnect()
+
             del self._app_sessions[session]
+
         else:
             self.log.warn('{klass}.remove: session {session} not running embedded in any router of this router factory (skipping removal of session)',
                           klass=self.__class__.__name__,

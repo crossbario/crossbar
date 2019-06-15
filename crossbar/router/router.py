@@ -442,7 +442,6 @@ class RouterFactory(object):
         self._worker = worker
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
-        self._auto_create_realms = False
         # XXX this should get passed in from .. somewhere
         from twisted.internet import reactor
         self._reactor = reactor
@@ -459,14 +458,7 @@ class RouterFactory(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
         """
-        if self._auto_create_realms:
-            if realm not in self._routers:
-                self._routers[realm] = self.router(self, realm, self._options)
-                self.log.debug("Router created for realm '{realm}'",
-                               realm=realm)
-            return self._routers[realm]
-        else:
-            return self._routers[realm]
+        return self._routers.get(realm, None)
 
     def __getitem__(self, realm):
         return self._routers[realm]
