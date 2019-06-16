@@ -55,3 +55,9 @@ class RouterOptions(object):
                 self.event_dispatching_chunk_size,
             )
         )
+
+
+class NotAttached(RuntimeError):
+    """
+    Internal error: session not attached to router.
+    """

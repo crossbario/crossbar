@@ -44,7 +44,7 @@ from autobahn.wamp.message import \
     _URI_PAT_STRICT_LAST_EMPTY, _URI_PAT_LOOSE_LAST_EMPTY
 
 from crossbar.router.observation import UriObservationMap
-from crossbar.router import RouterOptions
+from crossbar.router import RouterOptions, NotAttached
 
 from txaio import make_logger
 
@@ -199,7 +199,7 @@ class Broker(object):
             del self._session_to_subscriptions[session]
 
         else:
-            raise Exception("session with ID {} not attached".format(session._session_id))
+            raise NotAttached("session with ID {} not attached".format(session._session_id))
 
     def _filter_publish_receivers(self, receivers, publish):
         """

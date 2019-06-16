@@ -202,12 +202,13 @@ class NativeProcess(ApplicationSession):
             options=RegisterOptions(details_arg='details'),
         )
 
-        self.log.info("Registered {len_reg} procedures", len_reg=len(regs))
+        self.log.info('Registered {len_reg} management procedures on realm "{realm}"',
+                      len_reg=len(regs), realm=self.realm)
         for reg in regs:
             if isinstance(reg, Failure):
                 self.log.error("Failed to register: {f}", f=reg, log_failure=reg)
             else:
-                self.log.debug('  {proc}', proc=reg.procedure)
+                self.log.info('  {proc}', proc=reg.procedure)
         returnValue(regs)
 
     @wamp.register(None)

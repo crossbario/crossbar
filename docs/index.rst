@@ -33,6 +33,7 @@ If you are new to Crossbar.io development in general you should start here at :r
     Documentation-License
     Contributing-FAQ
     FAQ
+    changelog
 
 .. toctree::
     :caption: IMPRESSUM:

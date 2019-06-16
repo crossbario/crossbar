@@ -46,7 +46,7 @@ from autobahn.wamp.message import \
     _URI_PAT_LOOSE_EMPTY
 
 from crossbar.router.observation import UriObservationMap
-from crossbar.router import RouterOptions
+from crossbar.router import RouterOptions, NotAttached
 
 from txaio import make_logger
 
@@ -288,7 +288,7 @@ class Dealer(object):
             del self._session_to_registrations[session]
 
         else:
-            raise Exception(u"session with ID {} not attached".format(session._session_id))
+            raise NotAttached(u"session with ID {} not attached".format(session._session_id))
 
     def processRegister(self, session, register):
         """

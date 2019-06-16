@@ -967,3 +967,15 @@ class RouterController(WorkerController):
             'config': transport.config,
         }
         return obj
+
+    @wamp.register(None)
+    def kill_by_authid(self, realm_id, authid, reason, message=None, details=None):
+        self.log.info('Killing sessions by authid="{authid}" ..',
+                      realm_id=hlid(realm_id), authid=hlid(authid),
+                      method=hltype(RouterController.start_router_realm))
+
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        # forward call directly to service agent
+        return self.realms[realm_id].session.session_kill_by_authid(authid, reason, message=message, details=details)
