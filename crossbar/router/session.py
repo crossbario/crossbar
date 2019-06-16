@@ -156,7 +156,7 @@ class RouterApplicationSession(object):
                     try:
                         self._router.detach(sess)
                     except NotAttached:
-                        self.log.warn(str(NotAttached))
+                        self.log.warn('cannot detach session "{}": session not currently attached'.format(self._session._session_id))
                     except Exception:
                         self.log.failure()
                 reactor.callLater(0, detach, self._session)
