@@ -52,6 +52,7 @@ from crossbar.common.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 from crossbar.router.router import Router, RouterFactory
+from crossbar.router import NotAttached
 
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
@@ -154,6 +155,8 @@ class RouterApplicationSession(object):
                 def detach(sess):
                     try:
                         self._router.detach(sess)
+                    except NotAttached:
+                        self.log.warn(str(NotAttached))
                     except Exception:
                         self.log.failure()
                 reactor.callLater(0, detach, self._session)

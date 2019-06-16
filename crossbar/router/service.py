@@ -385,8 +385,8 @@ class RouterServiceAgent(ApplicationSession):
         assert message is None or type(message) == str
         assert details is None or isinstance(details, CallDetails)
 
+        killed = []
         if authid in self._router._authid_to_sessions:
-            killed = []
             for session in self._router._authid_to_sessions[authid]:
                 if not is_restricted_session(session):
                     killed.append(session._session_id)
@@ -394,13 +394,7 @@ class RouterServiceAgent(ApplicationSession):
                 else:
                     self.log.warn('wamp.session.session_kill_by_authid(authid="{authid}"): skip killing of restricted session {session_id}',
                                   authid=authid, session_id=session._session_id)
-            return killed
-        self.log.warn('Session authid="{authid}" on realm="{realm}" not in existing ones: authids={authids}',
-                      authid=authid, realm=self.realm, authids=sorted(self._router._authid_to_sessions))
-        raise ApplicationError(
-            ApplicationError.NO_SUCH_SESSION,
-            u'no session with authid "{}" exists on this router'.format(authid),
-        )
+        return killed
 
     @wamp.register(u'wamp.session.kill_by_authrole')
     def session_kill_by_authrole(self, authrole, reason=None, message=None, details=None):
@@ -421,8 +415,8 @@ class RouterServiceAgent(ApplicationSession):
         assert message is None or type(message) == str
         assert details is None or isinstance(details, CallDetails)
 
+        killed = []
         if authrole in self._router._authrole_to_sessions:
-            killed = []
             for session in self._router._authrole_to_sessions[authrole]:
                 if not is_restricted_session(session):
                     killed.append(session._session_id)
@@ -430,11 +424,7 @@ class RouterServiceAgent(ApplicationSession):
                 else:
                     self.log.warn('wamp.session.session_kill_by_authrole(authrole="{authrole}"): skip killing of restricted session {session_id}',
                                   authrole=authrole, session_id=session._session_id)
-            return killed
-        raise ApplicationError(
-            ApplicationError.NO_SUCH_SESSION,
-            u'no session with authrole "{}" exists on this router'.format(authrole),
-        )
+        return killed
 
     @wamp.register(u'wamp.registration.remove_callee')
     def registration_remove_callee(self, registration_id, callee_id, reason=None, details=None):

@@ -977,4 +977,5 @@ class RouterController(WorkerController):
         if realm_id not in self.realms:
             raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
+        # forward call directly to service agent
         return self.realms[realm_id].session.session_kill_by_authid(authid, reason, message=message, details=details)
