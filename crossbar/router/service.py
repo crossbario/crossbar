@@ -395,6 +395,8 @@ class RouterServiceAgent(ApplicationSession):
                     self.log.warn('wamp.session.session_kill_by_authid(authid="{authid}"): skip killing of restricted session {session_id}',
                                   authid=authid, session_id=session._session_id)
             return killed
+        self.log.warn('Session authid="{authid}" on realm="{realm}" not in existing ones: authids={authids}',
+                      authid=authid, realm=self.realm, authids=sorted(self._router._authid_to_sessions))
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
             u'no session with authid "{}" exists on this router'.format(authid),
