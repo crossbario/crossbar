@@ -116,6 +116,24 @@ class Router(object):
         # self._factory._worker._maybe_trace_tx_msg / _maybe_trace_rx_msg
         self._is_traced = False
 
+        self.reset_stats()
+
+    def stats(self):
+        stats = {
+            'broker': {},
+            'dealer': {},
+            'sessions': self._attached,
+            'roles': len(self._roles),
+            'messages': self._message_stats
+        }
+        return stats
+
+    def reset_stats(self):
+        self._message_stats = {
+            'sent': {},
+            'received': {},
+        }
+
     @property
     def is_traced(self):
         return self._is_traced
@@ -261,6 +279,11 @@ class Router(object):
         else:
             self.log.debug('skip sending msg - transport already closed')
 
+        msg_type = msg.__class__.__name__.lower()
+        if msg_type not in self._message_stats['sent']:
+            self._message_stats['sent'][msg_type] = 0
+        self._message_stats['sent'][msg_type] += 1
+
     def process(self, session, msg):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.process`
@@ -311,6 +334,11 @@ class Router(object):
         except:
             self.log.error('INTERNAL ERROR in router incoming message processing')
             self.log.failure()
+
+        msg_type = msg.__class__.__name__.lower()
+        if msg_type not in self._message_stats['received']:
+            self._message_stats['received'][msg_type] = 0
+        self._message_stats['received'][msg_type] += 1
 
     def has_role(self, uri):
         """
