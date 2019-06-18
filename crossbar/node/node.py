@@ -272,7 +272,7 @@ class Node(object):
     def _extend_worker_args(self, args, options):
         pass
 
-    def _add_extra_controller_components(self, controller_options):
+    def _add_extra_controller_components(self, controller_config):
         pass
 
     def _set_shutdown_triggers(self, controller_options):
@@ -363,7 +363,7 @@ class Node(object):
         self.log.debug('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
 
         # add extra node controller components
-        self._add_extra_controller_components(controller_options)
+        self._add_extra_controller_components(controller_config)
 
         # setup Node shutdown triggers
         self._set_shutdown_triggers(controller_options)

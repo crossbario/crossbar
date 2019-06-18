@@ -195,6 +195,34 @@ class RouterController(WorkerController):
         return self.realms[realm_id].marshal()
 
     @wamp.register(None)
+    def get_router_realm_stats(self, realm_id=None, details=None):
+        """
+        Return realm messaging statistics.
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: realm statistics object
+        :rtype: dict
+        """
+        self.log.debug("{name}.get_router_realm_stats(realm_id={realm_id})", name=self.__class__.__name__, realm_id=realm_id)
+
+        if realm_id is not None and realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        if realm_id:
+            realm_ids = [realm_id]
+        else:
+            realm_ids = self.realms.keys()
+
+        res = {}
+        for realm_id in realm_ids:
+            realm = self.realms[realm_id]
+            res[realm_id] = realm.router.stats()
+
+        return res
+
+    @wamp.register(None)
     @inlineCallbacks
     def start_router_realm(self, realm_id, realm_config, details=None):
         """

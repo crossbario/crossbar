@@ -116,6 +116,44 @@ class Router(object):
         # self._factory._worker._maybe_trace_tx_msg / _maybe_trace_rx_msg
         self._is_traced = False
 
+        self.reset_stats()
+
+    def stats(self, reset=False):
+        """
+        Get WAMP message routing statistics.
+
+        :param reset: Automatically reset statistics before returning.
+        :type reset: bool
+
+        :return: Dict with number of WAMP messages processed in total by the
+            router, indexed by sent/received and by WAMP message type.
+        """
+        stats = {
+            # number of WAMP authentication roles defined on this realm
+            'roles': len(self._roles),
+
+            # number of WAMP sessions currently joined on this realm
+            'sessions': self._attached,
+
+            # WAMP message routing statistics
+            'messages': self._message_stats
+        }
+        if reset:
+            self.reset_stats()
+        return stats
+
+    def reset_stats(self):
+        """
+        Reset WAMP message routing statistics.
+        """
+        self._message_stats = {
+            # number of WAMP messages (by type) sent on total by the router
+            'sent': {},
+
+            # number of WAMP messages (by type) received in total by the router
+            'received': {},
+        }
+
     @property
     def is_traced(self):
         return self._is_traced
@@ -261,6 +299,12 @@ class Router(object):
         else:
             self.log.debug('skip sending msg - transport already closed')
 
+        # update WAMP message routing statistics
+        msg_type = msg.__class__.__name__.lower()
+        if msg_type not in self._message_stats['sent']:
+            self._message_stats['sent'][msg_type] = 0
+        self._message_stats['sent'][msg_type] += 1
+
     def process(self, session, msg):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.process`
@@ -311,6 +355,12 @@ class Router(object):
         except:
             self.log.error('INTERNAL ERROR in router incoming message processing')
             self.log.failure()
+
+        # update WAMP message routing statistics
+        msg_type = msg.__class__.__name__.lower()
+        if msg_type not in self._message_stats['received']:
+            self._message_stats['received'][msg_type] = 0
+        self._message_stats['received'][msg_type] += 1
 
     def has_role(self, uri):
         """
