@@ -151,7 +151,9 @@ intersphinx_mapping = {
     'https://docs.python.org/': None,
     'py2': ('https://docs.python.org/2', None),
     'py3': ('https://docs.python.org/3', None),
-    'six': ('https://pythonhosted.org/six/', None),
+
+    # 404 Client Error: Not Found for url: https://pythonhosted.org/six/objects.inv
+    # 'six': ('https://pythonhosted.org/six/', None),
 }
 
 rst_epilog = """

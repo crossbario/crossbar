@@ -218,12 +218,7 @@ class RouterController(WorkerController):
         res = {}
         for realm_id in realm_ids:
             realm = self.realms[realm_id]
-            cnt_roles = len(realm.roles)
-            # FIXME: realm.router
-
-            res[realm_id] = {
-                'roles': cnt_roles
-            }
+            res[realm_id] = realm.router.stats()
 
         return res
 
