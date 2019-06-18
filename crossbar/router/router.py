@@ -118,19 +118,39 @@ class Router(object):
 
         self.reset_stats()
 
-    def stats(self):
+    def stats(self, reset=False):
+        """
+        Get WAMP message routing statistics.
+
+        :param reset: Automatically reset statistics before returning.
+        :type reset: bool
+
+        :return: Dict with number of WAMP messages processed in total by the
+            router, indexed by sent/received and by WAMP message type.
+        """
         stats = {
-            'broker': {},
-            'dealer': {},
-            'sessions': self._attached,
+            # number of WAMP authentication roles defined on this realm
             'roles': len(self._roles),
+
+            # number of WAMP sessions currently joined on this realm
+            'sessions': self._attached,
+
+            # WAMP message routing statistics
             'messages': self._message_stats
         }
+        if reset:
+            self.reset_stats()
         return stats
 
     def reset_stats(self):
+        """
+        Reset WAMP message routing statistics.
+        """
         self._message_stats = {
+            # number of WAMP messages (by type) sent on total by the router
             'sent': {},
+
+            # number of WAMP messages (by type) received in total by the router
             'received': {},
         }
 
@@ -279,6 +299,7 @@ class Router(object):
         else:
             self.log.debug('skip sending msg - transport already closed')
 
+        # update WAMP message routing statistics
         msg_type = msg.__class__.__name__.lower()
         if msg_type not in self._message_stats['sent']:
             self._message_stats['sent'][msg_type] = 0
@@ -335,6 +356,7 @@ class Router(object):
             self.log.error('INTERNAL ERROR in router incoming message processing')
             self.log.failure()
 
+        # update WAMP message routing statistics
         msg_type = msg.__class__.__name__.lower()
         if msg_type not in self._message_stats['received']:
             self._message_stats['received'][msg_type] = 0
