@@ -2794,7 +2794,7 @@ def check_native_worker_options(personality, options, ignore=[]):
 
     for k in options:
         if k not in ['title', 'python', 'pythonpath', 'cpu_affinity',
-                     'env', 'expose_controller', 'expose_shared'] + ignore:
+                     'env', 'expose_controller', 'expose_shared', 'disabled'] + ignore:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in 'options' in worker"
                 " configuration".format(k)
@@ -2840,6 +2840,11 @@ def check_native_worker_options(personality, options, ignore=[]):
         expose_shared = options['expose_shared']
         if not isinstance(expose_shared, bool):
             raise InvalidConfigException("'expose_shared' in 'options' in worker configuration must be a boolean ({} encountered)".format(type(expose_shared)))
+
+    if 'disabled' in options:
+        disabled = options['disabled']
+        if not isinstance(disabled, bool) and not isinstance(p, str):
+            raise InvalidConfigException("'disabled' in 'options' in worker configuration must be a boolean or string ({} encountered)".format(type(disabled)))
 
 
 def check_websocket_testee(personality, worker):

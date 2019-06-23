@@ -98,7 +98,10 @@ class NodeController(NativeProcess):
         self._pid = os.getpid()
 
         # map of worker processes: worker_id -> NativeWorkerProcess
-        self._workers = {}
+        self._workers = {
+            # add worker tracking instance to the worker map for the controller itself (!) ..
+            # 'controller': self
+        }
 
         # shutdown of node is requested, and further requests to shutdown (or start)
         # are denied
@@ -127,7 +130,7 @@ class NodeController(NativeProcess):
 
         from autobahn.wamp.types import SubscribeOptions
 
-        self.log.debug("Joined realm '{realm}' on node management router", realm=details.realm)
+        self.log.info("Joined realm '{realm}' on node management router", realm=details.realm)
 
         # When a (native) worker process has connected back to the router of
         # the node controller, the worker will publish this event
