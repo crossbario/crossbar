@@ -45,7 +45,8 @@ from txaio import make_logger
 from crossbar._logging import cb_logging_aware, escape_formatting, record_separator
 from crossbar.common.processinfo import ProcessInfo
 
-__all__ = ('RouterWorkerProcess',
+__all__ = ('ControllerWorkerProcess',
+           'RouterWorkerProcess',
            'ContainerWorkerProcess',
            'GuestWorkerProcess',
            'WebSocketTesteeWorkerProcess')
@@ -58,16 +59,18 @@ class WorkerProcess(object):
     TYPE = u'worker'
     LOGNAME = u'Worker'
 
-    def __init__(self, controller, id, who, keeplog=None):
+    def __init__(self, controller, id, who=None, keeplog=None):
         """
-        Ctor.
 
         :param controller: The node controller this worker was created by.
         :type controller: instance of NodeController
+
         :param id: The ID of the worker.
         :type id: str
+
         :param who: Who triggered creation of this worker.
-        :type who: str
+        :type who: str or None
+
         :param keeplog: If not `None`, buffer log message received to be later
                         retrieved via getlog(). If `0`, keep infinite log internally.
                         If `> 0`, keep at most such many log entries in buffer.
@@ -281,14 +284,15 @@ class NativeWorkerProcess(WorkerProcess):
     TYPE = u'native'
     LOGNAME = u'Native'
 
-    def __init__(self, controller, id, who, keeplog=None):
+    def __init__(self, controller, id, who=None, keeplog=None):
         """
-        Ctor.
 
         :param controller: The node controller this worker was created by.
         :type controller: instance of NodeController
+
         :param id: The ID of the worker.
         :type id: str
+
         :param who: Who triggered creation of this worker.
         :type who: str
         """
@@ -296,6 +300,15 @@ class NativeWorkerProcess(WorkerProcess):
 
         self.factory = None
         self.proto = None
+
+
+class ControllerWorkerProcess(NativeWorkerProcess):
+    """
+    Internal run-time representation of a controller process.
+    """
+
+    TYPE = u'controller'
+    LOGNAME = u'Controller'
 
 
 class RouterWorkerProcess(NativeWorkerProcess):
@@ -335,12 +348,13 @@ class GuestWorkerProcess(WorkerProcess):
 
     def __init__(self, controller, id, who, keeplog=None):
         """
-        Ctor.
 
         :param controller: The node controller this worker was created by.
         :type controller: instance of NodeController
+
         :param id: The ID of the worker.
         :type id: str
+
         :param who: Who triggered creation of this worker.
         :type who: str
         """

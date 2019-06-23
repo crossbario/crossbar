@@ -444,41 +444,57 @@ class Node(object):
                 # any worker specific options
                 worker_options = worker.get('options', {})
 
-                # start the (native) worker
-                self.log.info(
-                    "Order node to start {worker_logname}",
-                    worker_logname=worker_logname,
-                )
+                _disabled = worker_options.get('disabled', False)
+                if type(_disabled) == str:
+                    disabled = _disabled in os.environ
+                    disabled_from = 'envvar {}'.format(_disabled)
+                elif type(_disabled) == bool and _disabled:
+                    disabled = _disabled
+                    disabled_from = 'config parameter'
+                else:
+                    disabled = False
 
-                d = self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=CallOptions())
-
-                @inlineCallbacks
-                def configure_worker(res, worker_logname, worker_type, worker_id, worker):
+                if disabled:
+                    self.log.warn(
+                        "Skip start of worker {worker_logname} (disabled from {disabled_from})",
+                        worker_logname=worker_logname, disabled_from=disabled_from
+                    )
+                else:
+                    # start the (native) worker
                     self.log.info(
-                        "Ok, node has started {worker_logname}",
+                        "Order node to start {worker_logname}",
                         worker_logname=worker_logname,
                     )
 
-                    # now configure the worker
-                    self.log.info(
-                        "Configuring {worker_logname} ..",
-                        worker_logname=worker_logname,
-                    )
-                    method_name = '_configure_native_worker_{}'.format(worker_type.replace('-', '_'))
-                    try:
-                        config_fn = getattr(self, method_name)
-                    except AttributeError:
-                        raise ValueError(
-                            "A native worker of type '{}' is configured but "
-                            "there is no method '{}' on {}".format(worker_type, method_name, type(self))
+                    d = self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=CallOptions())
+
+                    @inlineCallbacks
+                    def configure_worker(res, worker_logname, worker_type, worker_id, worker):
+                        self.log.info(
+                            "Ok, node has started {worker_logname}",
+                            worker_logname=worker_logname,
                         )
-                    yield config_fn(worker_logname, worker_id, worker)
-                    self.log.info(
-                        "Ok, {worker_logname} configured",
-                        worker_logname=worker_logname,
-                    )
 
-                d.addCallback(configure_worker, worker_logname, worker_type, worker_id, worker)
+                        # now configure the worker
+                        self.log.info(
+                            "Configuring {worker_logname} ..",
+                            worker_logname=worker_logname,
+                        )
+                        method_name = '_configure_native_worker_{}'.format(worker_type.replace('-', '_'))
+                        try:
+                            config_fn = getattr(self, method_name)
+                        except AttributeError:
+                            raise ValueError(
+                                "A native worker of type '{}' is configured but "
+                                "there is no method '{}' on {}".format(worker_type, method_name, type(self))
+                            )
+                        yield config_fn(worker_logname, worker_id, worker)
+                        self.log.info(
+                            "Ok, {worker_logname} configured",
+                            worker_logname=worker_logname,
+                        )
+
+                    d.addCallback(configure_worker, worker_logname, worker_type, worker_id, worker)
 
             # guest worker processes setup
             elif worker_type == u'guest':
