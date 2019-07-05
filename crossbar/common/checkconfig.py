@@ -1114,6 +1114,34 @@ def _check_milliseconds(name, value):
     return True
 
 
+def check_rawsocket_options(options):
+    """
+    Check RawSocket / WAMP-WebSocket protocol options.
+
+    :param options: The options to check.
+    :type options: dict
+    """
+    if not isinstance(options, Mapping):
+        raise InvalidConfigException("RawSocket options must be a dictionary ({} encountered)".format(type(options)))
+
+    for k in options:
+        if k not in [
+            'max_message_size',
+        ]:
+            raise InvalidConfigException("encountered unknown attribute '{}' in RawSocket options".format(k))
+
+    check_dict_args(
+        {
+            'max_message_size': (False, [int]),
+        },
+        options,
+        "RawSocket options",
+    )
+
+    if 'max_message_size' in options:
+        check_transport_max_message_size(options['max_message_size'])
+
+
 def check_websocket_options(options):
     """
     Check WebSocket / WAMP-WebSocket protocol options.
@@ -1211,6 +1239,9 @@ def check_websocket_options(options):
 
     if 'compression' in options:
         check_websocket_compression(options['compression'])
+
+    if 'max_message_size' in options:
+        check_transport_max_message_size(options['max_message_size'])
 
 
 def check_websocket_compression(options):
@@ -1978,13 +2009,13 @@ def check_listening_transport_websocket(personality, transport, with_endpoint=Tr
         if 'endpoint' in transport:
             raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport WebSocket transport subitem\n\n{}".format(pformat(transport)))
 
-    if 'options' in transport:
-        check_websocket_options(transport['options'])
-
     if 'serializers' in transport:
         serializers = transport['serializers']
         if not isinstance(serializers, Sequence):
             raise InvalidConfigException("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
+
+    if 'options' in transport:
+        check_websocket_options(transport['options'])
 
     if 'debug' in transport:
         debug = transport['debug']
@@ -2141,8 +2172,8 @@ def check_listening_transport_rawsocket(personality, transport, with_endpoint=Tr
             'type',
             'endpoint',
             'serializers',
-            'max_message_size',
             'debug',
+            'options',
             'auth',
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
@@ -2166,8 +2197,8 @@ def check_listening_transport_rawsocket(personality, transport, with_endpoint=Tr
             if serializer not in [u'json', u'msgpack', u'cbor', u'ubjson']:
                 raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor', 'ubjson']".format(serializer))
 
-    if 'max_message_size' in transport:
-        check_transport_max_message_size(transport['max_message_size'])
+    if 'options' in transport:
+        check_rawsocket_options(transport['options'])
 
     if 'debug' in transport:
         debug = transport['debug']
@@ -2188,7 +2219,7 @@ def check_connecting_transport_websocket(personality, transport):
     :type transport: dict
     """
     for k in transport:
-        if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'max_message_size', 'options']:
+        if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'options']:
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
     if 'id' in transport:
@@ -2206,9 +2237,6 @@ def check_connecting_transport_websocket(personality, transport):
         serializers = transport['serializers']
         if not isinstance(serializers, Sequence):
             raise InvalidConfigException("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
-
-    if 'max_message_size' in transport:
-        check_transport_max_message_size(transport['max_message_size'])
 
     if 'url' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'url' in WebSocket transport item\n\n{}".format(pformat(transport)))
@@ -2232,7 +2260,7 @@ def check_connecting_transport_rawsocket(personality, transport):
     :type transport: dict
     """
     for k in transport:
-        if k not in ['id', 'type', 'endpoint', 'serializer', 'url', 'debug']:
+        if k not in ['id', 'type', 'endpoint', 'serializer', 'options', 'url', 'debug']:
             raise InvalidConfigException("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
     if 'id' in transport:
@@ -2252,6 +2280,9 @@ def check_connecting_transport_rawsocket(personality, transport):
 
     if serializer not in ['json', 'msgpack', 'cbor', 'ubjson']:
         raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor', 'ubjson']".format(serializer))
+
+    if 'options' in transport:
+        check_rawsocket_options(transport['options'])
 
     url = transport.get('url', None)
     if url:

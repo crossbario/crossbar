@@ -495,6 +495,20 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         set_websocket_options(self, options)
 
 
+def set_rawsocket_options(factory, options):
+    """
+    Set RawSocket options on a RawSocket or WAMP-RawSocket (server or client )factory.
+
+    :param factory: The RawSocket or WAMP-RawSocket factory to set options on.
+    :type factory:  Instance of :class:`autobahn.twisted.rawsocket.WampRawSocketServerFactory`
+                    or :class:`autobahn.twisted.rawsocket.WampRawSocketClientFactory`.
+    :param options: RawSocket transport options item from Crossbar.io transport configuration.
+    :type options: dict
+    """
+    c = options
+    factory.setProtocolOptions(maxMessagePayloadSize=c.get("max_message_size", None))
+
+
 class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
 
     """
@@ -610,20 +624,13 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
         else:
             serializers = None
 
-        # Maximum message size
-        #
-        self._max_message_size = config.get('max_message_size', 128 * 1024)  # default is 128kB
-
         rawsocket.WampRawSocketServerFactory.__init__(self, factory, serializers)
+
+        if 'options' in config:
+            set_rawsocket_options(self, config['options'])
 
         self.log.debug("RawSocket transport factory created using {serializers} serializers, max. message size {maxsize}",
                        serializers=serializers, maxsize=self._max_message_size)
-
-    def buildProtocol(self, addr):
-        p = self.protocol()
-        p.factory = self
-        p.MAX_LENGTH = self._max_message_size
-        return p
 
 
 class WampWebSocketClientProtocol(websocket.WampWebSocketClientProtocol):

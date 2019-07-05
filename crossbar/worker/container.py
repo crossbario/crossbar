@@ -45,7 +45,7 @@ from autobahn import wamp
 from crossbar.worker import _appsession_loader
 from crossbar.worker.controller import WorkerController
 from crossbar.router.protocol import WampWebSocketClientFactory, WampRawSocketClientFactory
-from crossbar.router.protocol import set_websocket_options
+from crossbar.router.protocol import set_websocket_options, set_rawsocket_options
 
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
@@ -348,6 +348,9 @@ class ContainerController(WorkerController):
             transport_factory = WampRawSocketClientFactory(create_session,
                                                            transport_config)
             transport_factory.noisy = False
+
+            if 'options' in transport_config:
+                set_rawsocket_options(transport_factory, transport_config['options'])
 
         else:
             # should not arrive here, since we did check the config before
