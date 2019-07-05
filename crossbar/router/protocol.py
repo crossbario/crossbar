@@ -388,11 +388,17 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
 
         options = config.get('options', {})
 
+        # announce Crossbar.io server version
+        #
         self.showServerVersion = options.get('show_server_version', self.showServerVersion)
         if self.showServerVersion:
             server = "Crossbar/{}".format(crossbar.__version__)
         else:
+            # do not disclose crossbar version
             server = "Crossbar"
+
+        # external (public) listening port (eg when running behind a reverse proxy)
+        #
         externalPort = options.get('external_port', None)
 
         # explicit list of WAMP serializers
@@ -400,6 +406,17 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         if 'serializers' in config:
             serializers = []
             sers = set(config['serializers'])
+
+            if u'flatbuffers' in sers:
+                # try FlatBuffers WAMP serializer
+                try:
+                    from autobahn.wamp.serializer import FlatBuffersSerializer
+                    serializers.append(FlatBuffersSerializer(batched=True))
+                    serializers.append(FlatBuffersSerializer())
+                except ImportError:
+                    self.log.warn("Warning: could not load WAMP-FlatBuffers serializer")
+                else:
+                    sers.discard(u'flatbuffers')
 
             if u'cbor' in sers:
                 # try CBOR WAMP serializer
@@ -545,11 +562,6 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         self._transport_info[u'protocol'] = u'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
         return rawsocket.WampRawSocketServerProtocol._on_handshake_complete(self)
 
-    def lengthLimitExceeded(self, length):
-        self.log.error("failing RawSocket connection - message length exceeded: message was {len} bytes, but current maximum is {maxlen} bytes",
-                       len=length, maxlen=self.MAX_LENGTH)
-        self.transport.loseConnection()
-
 
 class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
 
@@ -571,6 +583,16 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
         if u'serializers' in config:
             serializers = []
             sers = set(config['serializers'])
+
+            if u'flatbuffers' in sers:
+                # try FlatBuffers WAMP serializer
+                try:
+                    from autobahn.wamp.serializer import FlatBuffersSerializer
+                    serializers.append(FlatBuffersSerializer())
+                except ImportError:
+                    self.log.warn("Warning: could not load WAMP-FlatBuffers serializer")
+                else:
+                    sers.discard(u'flatbuffers')
 
             if u'cbor' in sers:
                 # try CBOR WAMP serializer
