@@ -725,9 +725,9 @@ def check_endpoint_timeout(timeout):
 
 def check_transport_max_message_size(max_message_size):
     """
-    Check maxmimum message size parameter in RawSocket and WebSocket transports.
+    Check maximum message size parameter in RawSocket and WebSocket transports.
 
-    :param max_message_size: The maxmimum message size parameter to check.
+    :param max_message_size: The maximum message size parameter to check.
     :type max_message_size: int
     """
     if not isinstance(max_message_size, int):
@@ -2188,7 +2188,7 @@ def check_connecting_transport_websocket(personality, transport):
     :type transport: dict
     """
     for k in transport:
-        if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'options']:
+        if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'max_message_size', 'options']:
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
     if 'id' in transport:
@@ -2206,6 +2206,9 @@ def check_connecting_transport_websocket(personality, transport):
         serializers = transport['serializers']
         if not isinstance(serializers, Sequence):
             raise InvalidConfigException("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
+
+    if 'max_message_size' in transport:
+        check_transport_max_message_size(transport['max_message_size'])
 
     if 'url' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'url' in WebSocket transport item\n\n{}".format(pformat(transport)))
@@ -2679,13 +2682,21 @@ def check_router_options(personality, options):
 
 
 def check_container_options(personality, options):
-    check_native_worker_options(personality, options, ignore=['shutdown'])
-    valid_modes = [u'shutdown-manual', u'shutdown-on-last-component-stopped']
+    check_native_worker_options(personality, options, ignore=['shutdown', 'restart'])
     if 'shutdown' in options:
-        if options['shutdown'] not in valid_modes:
+        valid_shutdown_modes = [u'shutdown-manual', u'shutdown-on-last-component-stopped']
+        if options['shutdown'] not in valid_shutdown_modes:
             raise InvalidConfigException(
                 "'shutdown' must be one of: {}".format(
-                    ', '.join(valid_modes)
+                    ', '.join(valid_shutdown_modes)
+                )
+            )
+    if 'restart' in options:
+        valid_restart_modes = [u'restart-always', u'restart-on-failed']
+        if options['restart'] not in valid_restart_modes:
+            raise InvalidConfigException(
+                "'restart' must be one of: {}".format(
+                    ', '.join(valid_restart_modes)
                 )
             )
 
