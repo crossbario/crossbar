@@ -36,6 +36,7 @@ import txaio
 from autobahn import util
 from autobahn.wamp import role, message, types
 from autobahn.wamp.exception import ProtocolError, ApplicationError
+from autobahn.exception import PayloadExceededError
 
 from autobahn.wamp.message import \
     _URI_PAT_STRICT_LAST_EMPTY, \
@@ -1248,7 +1249,29 @@ class Dealer(object):
                     reply.correlation_uri = invocation_request.call.correlation_uri
                     reply.correlation_is_anchor = False
                     reply.correlation_is_last = call_complete
-                self._router.send(invocation_request.caller, reply)
+                try:
+                    self._router.send(invocation_request.caller, reply)
+                except PayloadExceededError as e:
+                    # cannot send result to original caller as the result size surpasses the
+                    # transport limit (the maximum message size the original calling client is
+                    # willing to receive)
+                    call_complete = True
+                    reply = message.Error(message.Call.MESSAGE_TYPE,
+                                          invocation_request.call.request,
+                                          ApplicationError.INVALID_ARGUMENT,
+                                          [
+                                              u"call result from procedure '{0}' with invalid application payload: {1}".format(
+                                                  invocation_request.call.procedure, e)],
+                                          callee=callee,
+                                          callee_authid=callee_authid,
+                                          callee_authrole=callee_authrole,
+                                          forward_for=forward_for)
+                    reply.correlation_id = invocation_request.call.correlation_id
+                    reply.correlation_uri = invocation_request.call.correlation_uri
+                    reply.correlation_is_anchor = False
+                    reply.correlation_is_last = call_complete
+
+                    self._router.send(invocation_request.caller, reply)
 
             if call_complete:
                 # reduce current concurrency on callee
