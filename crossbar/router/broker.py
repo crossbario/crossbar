@@ -37,6 +37,7 @@ import txaio
 from autobahn import util
 from autobahn.wamp import role, message, types
 from autobahn.wamp.exception import ApplicationError
+from autobahn.exception import PayloadExceededError
 
 from autobahn.wamp.message import \
     _URI_PAT_STRICT_NON_EMPTY, _URI_PAT_LOOSE_NON_EMPTY, \
@@ -649,23 +650,44 @@ class Broker(object):
                                     for receiver in receivers_this_chunk:
 
                                         # send out WAMP msg to peer
-                                        self._router.send(receiver, msg)
+                                        try:
+                                            self._router.send(receiver, msg)
+                                        except PayloadExceededError as e:
+                                            self.log.warn('could not dispatch event to receiver {receiver} (subscription_id={subscription_id}, publication_id={publication_id}): {err}',
+                                                          receiver=receiver._session_id,
+                                                          subscription_id=subscription.id,
+                                                          publication_id=publication,
+                                                          err=str(e))
                                         if self._event_store or storing_event:
                                             self._event_store.store_event_history(publication, subscription.id, receiver)
                                 else:
                                     # last chunk, so last receiver gets the different message
                                     for receiver in receivers_this_chunk[:-1]:
-                                        self._router.send(receiver, msg)
+                                        try:
+                                            self._router.send(receiver, msg)
+                                        except PayloadExceededError as e:
+                                            self.log.warn('could not dispatch event to receiver {receiver} (subscription_id={subscription_id}, publication_id={publication_id}): {err}',
+                                                          receiver=receiver._session_id,
+                                                          subscription_id=subscription.id,
+                                                          publication_id=publication,
+                                                          err=str(e))
                                         if self._event_store or storing_event:
                                             self._event_store.store_event_history(publication, subscription.id, receiver)
 
-                                    # FIXME: I don't get the following comment and code path. when, how? and what to
-                                    # do about event store? => storing_event
-                                    #
-                                    # we might have zero valid receivers
+                                    # send last receiver a different message (and guard: we might have zero valid receivers in the last chunk!)
                                     if receivers_this_chunk:
-                                        self._router.send(receivers_this_chunk[-1], last_msg)
-                                        # FIXME: => storing_event
+                                        receiver = receivers_this_chunk[-1]
+                                        try:
+                                            self._router.send(receiver, last_msg)
+                                        except PayloadExceededError as e:
+                                            self.log.warn('could not dispatch event to receiver {receiver} (subscription_id={subscription_id}, publication_id={publication_id}): {err}',
+                                                          receiver=receiver._session_id,
+                                                          subscription_id=subscription.id,
+                                                          publication_id=publication,
+                                                          err=str(e))
+                                        if self._event_store or storing_event:
+                                            self._event_store.store_event_history(publication, subscription.id,
+                                                                                  receiver)
 
                                 if receivers:
                                     # still more to do ..
