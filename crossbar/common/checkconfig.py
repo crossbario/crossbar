@@ -249,21 +249,38 @@ def _readenv(var, msg):
         raise InvalidConfigException("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
 
 
-def maybe_from_env(config_item, value):
-    log.debug("checkconfig: maybe_from_env('{value}')", value=value)
+def maybe_from_env(config_item, value, hide_value=True):
+    """
+    Maybe set a configuration item value from an environment variable, eg:
+
+    ..
+    :param config_item:
+    :param value:
+    :param hide_value:
+    :return:
+    """
+    log.debug('checkconfig.maybe_from_env(config_item={config_item}, value="{value}")',
+              config_item=config_item, value=value)
     if isinstance(value, str):
         match = _ENVPAT.match(value)
         if match and match.groups():
             var = match.groups()[0]
             if var in os.environ:
                 new_value = os.environ[var]
-                # for security reasons, we log only a starred version of the value read!
-                log.info("Configuration '{config_item}' set from environment variable ${var}", config_item=config_item, var=var)
+                if hide_value:
+                    # for security reasons, we log only a starred version of the value read!
+                    log_new_value = '*' * len(new_value)
+                else:
+                    log_new_value = new_value
+                log.info('Configuration "{config_item}" set to "{log_new_value}" from environment variable "${var}"',
+                         config_item=config_item, log_new_value=log_new_value, var=var)
                 return new_value
             else:
-                log.warn("Environment variable ${var} not set - needed in configuration '{config_item}'", config_item=config_item, var=var)
-    log.debug("literal value from config")
-    return value
+                log.warn('Environment variable "${var}" not set - needed in configuration "{config_item}"',
+                         config_item=config_item, var=var)
+                return None
+    else:
+        return value
 
 
 def get_config_value(config, item, default=None):
@@ -390,7 +407,7 @@ def check_transport_auth_ticket(config):
             }, principal, "WAMP-Ticket - principal '{}' configuration".format(authid))
 
             # allow to set value from environment variable
-            principal['ticket'] = maybe_from_env('auth.ticket.principals["{}"].ticket'.format(authid), principal['ticket'])
+            principal['ticket'] = maybe_from_env('auth.ticket.principals["{}"].ticket'.format(authid), principal['ticket'], hide_value=True)
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
@@ -428,7 +445,7 @@ def check_transport_auth_wampcra(config):
             }, user, "WAMP-CRA - user '{}' configuration".format(authid))
 
             # allow to set value from environment variable
-            user['secret'] = maybe_from_env('auth.wampcra.users["{}"].secret'.format(authid), user['secret'])
+            user['secret'] = maybe_from_env('auth.wampcra.users["{}"].secret'.format(authid), user['secret'], hide_value=True)
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
