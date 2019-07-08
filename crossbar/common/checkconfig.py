@@ -249,21 +249,46 @@ def _readenv(var, msg):
         raise InvalidConfigException("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
 
 
-def maybe_from_env(config_item, value):
-    log.debug("checkconfig: maybe_from_env('{value}')", value=value)
+def maybe_from_env(config_item, value, hide_value=True):
+    """
+    Maybe set a configuration item value from an environment variable, eg:
+
+    :param config_item: Configuration item key.
+    :type config_item: str
+
+    :param value: Configuration item literal value OR an environment variable (eg ````)
+    :type value: object
+
+    :param hide_value: If ``True``, do NOT log the actual value read from the environment variable,
+        eg if it is a secret. The value logged is replaced with a ``*``-starred string.
+    :type hide_value: bool
+
+    :return:
+    """
+    log.debug('checkconfig.maybe_from_env(config_item={config_item}, value="{value}")',
+              config_item=config_item, value=value)
     if isinstance(value, str):
         match = _ENVPAT.match(value)
         if match and match.groups():
             var = match.groups()[0]
             if var in os.environ:
                 new_value = os.environ[var]
-                # for security reasons, we log only a starred version of the value read!
-                log.info("Configuration '{config_item}' set from environment variable ${var}", config_item=config_item, var=var)
+                if hide_value:
+                    # for security reasons, we log only a starred version of the value read!
+                    log_new_value = '*' * len(new_value)
+                else:
+                    log_new_value = new_value
+                log.info('Configuration "{config_item}" set to "{log_new_value}" from environment variable "${var}"',
+                         config_item=config_item, log_new_value=log_new_value, var=var)
                 return new_value
             else:
-                log.warn("Environment variable ${var} not set - needed in configuration '{config_item}'", config_item=config_item, var=var)
-    log.debug("literal value from config")
-    return value
+                log.warn('Environment variable "${var}" not set - needed in configuration "{config_item}"',
+                         config_item=config_item, var=var)
+                return None
+        else:
+            return value
+    else:
+        return value
 
 
 def get_config_value(config, item, default=None):
@@ -390,7 +415,7 @@ def check_transport_auth_ticket(config):
             }, principal, "WAMP-Ticket - principal '{}' configuration".format(authid))
 
             # allow to set value from environment variable
-            principal['ticket'] = maybe_from_env('auth.ticket.principals["{}"].ticket'.format(authid), principal['ticket'])
+            principal['ticket'] = maybe_from_env('auth.ticket.principals["{}"].ticket'.format(authid), principal['ticket'], hide_value=True)
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
@@ -428,7 +453,7 @@ def check_transport_auth_wampcra(config):
             }, user, "WAMP-CRA - user '{}' configuration".format(authid))
 
             # allow to set value from environment variable
-            user['secret'] = maybe_from_env('auth.wampcra.users["{}"].secret'.format(authid), user['secret'])
+            user['secret'] = maybe_from_env('auth.wampcra.users["{}"].secret'.format(authid), user['secret'], hide_value=True)
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
@@ -725,9 +750,9 @@ def check_endpoint_timeout(timeout):
 
 def check_transport_max_message_size(max_message_size):
     """
-    Check maxmimum message size parameter in RawSocket and WebSocket transports.
+    Check maximum message size parameter in RawSocket and WebSocket transports.
 
-    :param max_message_size: The maxmimum message size parameter to check.
+    :param max_message_size: The maximum message size parameter to check.
     :type max_message_size: int
     """
     if not isinstance(max_message_size, int):
@@ -1114,6 +1139,34 @@ def _check_milliseconds(name, value):
     return True
 
 
+def check_rawsocket_options(options):
+    """
+    Check RawSocket / WAMP-WebSocket protocol options.
+
+    :param options: The options to check.
+    :type options: dict
+    """
+    if not isinstance(options, Mapping):
+        raise InvalidConfigException("RawSocket options must be a dictionary ({} encountered)".format(type(options)))
+
+    for k in options:
+        if k not in [
+            'max_message_size',
+        ]:
+            raise InvalidConfigException("encountered unknown attribute '{}' in RawSocket options".format(k))
+
+    check_dict_args(
+        {
+            'max_message_size': (False, [int]),
+        },
+        options,
+        "RawSocket options",
+    )
+
+    if 'max_message_size' in options:
+        check_transport_max_message_size(options['max_message_size'])
+
+
 def check_websocket_options(options):
     """
     Check WebSocket / WAMP-WebSocket protocol options.
@@ -1211,6 +1264,9 @@ def check_websocket_options(options):
 
     if 'compression' in options:
         check_websocket_compression(options['compression'])
+
+    if 'max_message_size' in options:
+        check_transport_max_message_size(options['max_message_size'])
 
 
 def check_websocket_compression(options):
@@ -1978,13 +2034,13 @@ def check_listening_transport_websocket(personality, transport, with_endpoint=Tr
         if 'endpoint' in transport:
             raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport WebSocket transport subitem\n\n{}".format(pformat(transport)))
 
-    if 'options' in transport:
-        check_websocket_options(transport['options'])
-
     if 'serializers' in transport:
         serializers = transport['serializers']
         if not isinstance(serializers, Sequence):
             raise InvalidConfigException("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
+
+    if 'options' in transport:
+        check_websocket_options(transport['options'])
 
     if 'debug' in transport:
         debug = transport['debug']
@@ -2141,8 +2197,8 @@ def check_listening_transport_rawsocket(personality, transport, with_endpoint=Tr
             'type',
             'endpoint',
             'serializers',
-            'max_message_size',
             'debug',
+            'options',
             'auth',
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
@@ -2166,8 +2222,8 @@ def check_listening_transport_rawsocket(personality, transport, with_endpoint=Tr
             if serializer not in [u'json', u'msgpack', u'cbor', u'ubjson']:
                 raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor', 'ubjson']".format(serializer))
 
-    if 'max_message_size' in transport:
-        check_transport_max_message_size(transport['max_message_size'])
+    if 'options' in transport:
+        check_rawsocket_options(transport['options'])
 
     if 'debug' in transport:
         debug = transport['debug']
@@ -2229,7 +2285,7 @@ def check_connecting_transport_rawsocket(personality, transport):
     :type transport: dict
     """
     for k in transport:
-        if k not in ['id', 'type', 'endpoint', 'serializer', 'url', 'debug']:
+        if k not in ['id', 'type', 'endpoint', 'serializer', 'options', 'url', 'debug']:
             raise InvalidConfigException("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
     if 'id' in transport:
@@ -2249,6 +2305,9 @@ def check_connecting_transport_rawsocket(personality, transport):
 
     if serializer not in ['json', 'msgpack', 'cbor', 'ubjson']:
         raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor', 'ubjson']".format(serializer))
+
+    if 'options' in transport:
+        check_rawsocket_options(transport['options'])
 
     url = transport.get('url', None)
     if url:
@@ -2679,13 +2738,21 @@ def check_router_options(personality, options):
 
 
 def check_container_options(personality, options):
-    check_native_worker_options(personality, options, ignore=['shutdown'])
-    valid_modes = [u'shutdown-manual', u'shutdown-on-last-component-stopped']
+    check_native_worker_options(personality, options, ignore=['shutdown', 'restart'])
     if 'shutdown' in options:
-        if options['shutdown'] not in valid_modes:
+        valid_shutdown_modes = [u'shutdown-manual', u'shutdown-on-last-component-stopped']
+        if options['shutdown'] not in valid_shutdown_modes:
             raise InvalidConfigException(
                 "'shutdown' must be one of: {}".format(
-                    ', '.join(valid_modes)
+                    ', '.join(valid_shutdown_modes)
+                )
+            )
+    if 'restart' in options:
+        valid_restart_modes = [u'restart-always', u'restart-on-failed']
+        if options['restart'] not in valid_restart_modes:
+            raise InvalidConfigException(
+                "'restart' must be one of: {}".format(
+                    ', '.join(valid_restart_modes)
                 )
             )
 

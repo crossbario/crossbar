@@ -5,6 +5,14 @@
 Changelog
 =========
 
+19.7.1
+------
+
+* new: `max_message_size` for both listening and connecting transports
+* fix: improve reading config values from env vars
+* new: worker option `disabled` to skip starting of worker
+* new: router statistics tracking and management API (`get_router_realm_stats`)
+
 19.6.2
 ------
 

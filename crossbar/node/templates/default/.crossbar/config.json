@@ -41,7 +41,9 @@
                         "port": 8081,
                         "backlog": 1024
                     },
-                    "max_message_size": 1048576,
+                    "options": {
+                        "max_message_size": 1048576
+                    },
                     "serializers": ["cbor", "msgpack", "json"]
                 },
                 {
