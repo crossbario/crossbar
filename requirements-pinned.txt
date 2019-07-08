@@ -3,13 +3,13 @@ argh==0.26.2
 argon2-cffi==19.1.0
 asn1crypto==0.24.0
 attrs==19.1.0
-autobahn==19.6.2
+autobahn==19.7.1
 Automat==0.7.0
-bcrypt==3.1.6
+bcrypt==3.1.7
 bitstring==3.1.5
 cbor==1.0.0
 cbor2==4.1.2
-certifi==2019.3.9
+certifi==2019.6.16
 cffi==1.12.3
 chardet==3.0.4
 Click==7.0
@@ -35,7 +35,7 @@ passlib==1.7.1
 pathtools==0.1.2
 priority==1.3.0
 psutil==5.6.3
-py-ubjson==0.13.0
+py-ubjson==0.14.0
 pyasn1==0.4.5
 pyasn1-modules==0.2.5
 pycparser==2.19
@@ -65,5 +65,5 @@ urllib3==1.24.3
 vmprof==0.4.15
 watchdog==0.9.0
 wsaccel==0.6.2
-zlmdb==19.6.1
+zlmdb==19.6.2
 zope.interface==4.6.0
