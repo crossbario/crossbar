@@ -150,7 +150,9 @@
                         "port": 9002
                     },
                     "serializers": ["cbor", "msgpack"],
-                    "max_message_size": 1000000,
+                    "options": {
+                        "max_message_size": 1000000
+                    },
                     "auth": {
                         "anonymous": {
                             "type": "static",
