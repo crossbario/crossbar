@@ -253,10 +253,16 @@ def maybe_from_env(config_item, value, hide_value=True):
     """
     Maybe set a configuration item value from an environment variable, eg:
 
-    ..
-    :param config_item:
-    :param value:
-    :param hide_value:
+    :param config_item: Configuration item key.
+    :type config_item: str
+
+    :param value: Configuration item literal value OR an environment variable (eg ````)
+    :type value: object
+
+    :param hide_value: If ``True``, do NOT log the actual value read from the environment variable,
+        eg if it is a secret. The value logged is replaced with a ``*``-starred string.
+    :type hide_value: bool
+
     :return:
     """
     log.debug('checkconfig.maybe_from_env(config_item={config_item}, value="{value}")',
@@ -279,6 +285,8 @@ def maybe_from_env(config_item, value, hide_value=True):
                 log.warn('Environment variable "${var}" not set - needed in configuration "{config_item}"',
                          config_item=config_item, var=var)
                 return None
+        else:
+            return value
     else:
         return value
 
