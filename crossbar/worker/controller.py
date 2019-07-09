@@ -36,12 +36,15 @@ import pkg_resources
 import jinja2
 import signal
 
+import nacl
+
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn.util import utcnow
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions
+from autobahn.wamp import cryptosign
 from autobahn import wamp
 
 from txaio import make_logger
@@ -49,6 +52,7 @@ from txaio import make_logger
 from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcess
 from crossbar.common.profiler import PROFILERS
+from crossbar.common.key import _read_node_key, _read_release_key
 
 __all__ = ('WorkerController',)
 
@@ -68,6 +72,16 @@ class WorkerController(NativeProcess):
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
         NativeProcess.__init__(self, config=config, reactor=reactor, personality=personality)
+
+        # Release (public) key
+        self._release_pubkey = _read_release_key()
+
+        # Node (private) key (as a string, in hex)
+        node_key_hex = _read_node_key(self.config.extra.cbdir, private=True)['hex']
+        privkey = nacl.signing.SigningKey(node_key_hex, encoder=nacl.encoding.HexEncoder)
+
+        # WAMP-cryptosign signing key
+        self._node_key = cryptosign.SigningKey(privkey)
 
     def onConnect(self):
         """

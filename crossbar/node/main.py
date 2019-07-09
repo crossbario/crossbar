@@ -54,7 +54,7 @@ from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
-from crossbar.common.key import _maybe_generate_key
+from crossbar.common.key import _maybe_generate_key, _read_node_key, _read_release_key
 
 import crossbar
 
@@ -505,9 +505,6 @@ def _run_command_keys(options, reactor, personality):
     Subcommand "crossbar keys".
     """
     log = make_logger()
-
-    from crossbar.common.key import _read_node_key
-    from crossbar.common.key import _read_release_key
 
     # Generate a new node key pair (2 files), load and check
     _maybe_generate_key(options.cbdir)
