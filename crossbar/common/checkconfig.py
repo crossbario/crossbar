@@ -2914,7 +2914,12 @@ def check_native_worker_options(personality, options, ignore=[]):
 
         if isinstance(disabled, str):
             # allow to set value from environment variable
-            options['disabled'] = maybe_from_env('worker.options.disabled', options['disabled'], hide_value=False)
+            disabled = maybe_from_env('worker.options.disabled', options['disabled'], hide_value=False)
+            if disabled in [None, '']:
+                options['disabled'] = False
+            else:
+                # _any_ value set in env var is considered true'ish!
+                options['disabled'] = True
 
 
 def check_websocket_testee(personality, worker):

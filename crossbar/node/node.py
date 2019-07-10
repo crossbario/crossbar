@@ -448,13 +448,13 @@ class Node(object):
 
                 if worker_disabled:
                     self.log.warn(
-                        "Skip start of worker {worker_logname} (disabled from config)",
+                        'SKIP STARTING OF WORKER ! ("{worker_logname}" disabled from config)',
                         worker_logname=worker_logname,
                     )
                 else:
                     # start the (native) worker
                     self.log.info(
-                        "Order node to start {worker_logname}",
+                        'Order node to start "{worker_logname}" ..',
                         worker_logname=worker_logname,
                     )
 
