@@ -2855,7 +2855,6 @@ def check_native_worker_options(personality, options, ignore=[]):
     :param options: The native worker options to check.
     :type options: dict
     """
-
     if not isinstance(options, Mapping):
         raise InvalidConfigException("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
@@ -2910,8 +2909,12 @@ def check_native_worker_options(personality, options, ignore=[]):
 
     if 'disabled' in options:
         disabled = options['disabled']
-        if not isinstance(disabled, bool) and not isinstance(p, str):
+        if not isinstance(disabled, bool) and not isinstance(disabled, str):
             raise InvalidConfigException("'disabled' in 'options' in worker configuration must be a boolean or string ({} encountered)".format(type(disabled)))
+
+        if isinstance(disabled, str):
+            # allow to set value from environment variable
+            options['disabled'] = maybe_from_env('worker.options.disabled', options['disabled'], hide_value=False)
 
 
 def check_websocket_testee(personality, worker):

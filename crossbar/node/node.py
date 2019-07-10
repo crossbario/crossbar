@@ -444,20 +444,12 @@ class Node(object):
                 # any worker specific options
                 worker_options = worker.get('options', {})
 
-                _disabled = worker_options.get('disabled', False)
-                if type(_disabled) == str:
-                    disabled = _disabled in os.environ
-                    disabled_from = 'envvar {}'.format(_disabled)
-                elif type(_disabled) == bool and _disabled:
-                    disabled = _disabled
-                    disabled_from = 'config parameter'
-                else:
-                    disabled = False
+                worker_disabled = worker_options.get('disabled', False)
 
-                if disabled:
+                if worker_disabled:
                     self.log.warn(
-                        "Skip start of worker {worker_logname} (disabled from {disabled_from})",
-                        worker_logname=worker_logname, disabled_from=disabled_from
+                        "Skip start of worker {worker_logname} (disabled from config)",
+                        worker_logname=worker_logname,
                     )
                 else:
                     # start the (native) worker
