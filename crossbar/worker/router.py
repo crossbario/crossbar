@@ -543,6 +543,8 @@ class RouterController(WorkerController):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.already_running', emsg)
 
+        started_d = Deferred()
+
         # check configuration
         #
         try:
@@ -642,9 +644,34 @@ class RouterController(WorkerController):
             event = {u'id': id}
             caller = details.caller if details else None
             self.publish(topic, event, options=PublishOptions(exclude=caller))
+            if not started_d.called:
+                started_d.errback(Exception("Session left before being ready"))
+            return event
+
+        def publish_ready(session):
+            """
+            when our component is ready, we publish .on_component_ready
+            """
+            self.log.info(
+                "component ready: {session} id={session_id}",
+                session=class_name(session),
+                session_id=session._session_id,
+            )
+            topic = self._uri_prefix + '.on_component_ready'
+            event = {u'id': id}
+            self.publish(topic, event)
+            started_d.callback(event)
             return event
 
         def publish_started(session, start_details):
+            """
+            when our component starts, we publish .on_component_start
+            """
+
+            # hook up handlers for "session is ready"
+            session.on('ready', publish_ready)
+
+            # publish .on_component_start
             self.log.info(
                 "started component: {session} id={session_id}",
                 session=class_name(session),
@@ -667,6 +694,7 @@ class RouterController(WorkerController):
             id=id,
             name=class_name(session),
         )
+        return started_d
 
     @wamp.register(None)
     def stop_router_component(self, id, details=None):
