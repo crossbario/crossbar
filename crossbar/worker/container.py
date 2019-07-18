@@ -302,6 +302,8 @@ class ContainerController(WorkerController):
                     component_count=len(self.components),
                 )
 
+        joined_d = Deferred()
+
         # WAMP application session factory
         #
         def create_session():
@@ -323,6 +325,19 @@ class ContainerController(WorkerController):
                 # are no "proper events" from websocket/rawsocket
                 # implementations).
                 session.on('disconnect', _closed)
+
+                # note, "ready" here means: onJoin and any on('join',
+                # ..) handlers have all completed successfully. This
+                # is necessary for container-components (as opposed to
+                # router-components) to work as expected
+                def _ready(s):
+                    joined_d.callback(None)
+                session.on('ready', _ready)
+
+                def _left(s, details):
+                    if not joined_d.called:
+                        joined_d.errback(details.reason)
+                session.on('leave', _left)
 
                 return session
 
@@ -395,7 +410,15 @@ class ContainerController(WorkerController):
                 # should be subclasses of ConnectError)
                 raise err
 
+        def await_join(arg):
+            """
+            We don't want to consider this component working until its on_join
+            has completed (see create_session() above where this is hooked up)
+            """
+            return joined_d
+
         d.addCallbacks(on_connect_success, on_connect_error)
+        d.addCallback(await_join)
 
         return d
 
