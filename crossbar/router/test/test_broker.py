@@ -47,7 +47,10 @@ from crossbar.router.broker import Broker
 from crossbar.router.role import RouterRoleStaticAuth
 
 from twisted.internet import defer, reactor
-from twisted.test.proto_helpers import Clock
+try:
+    from twisted.test.proto_helpers import Clock
+except ImportError:
+    from twisted.internet.task import Clock
 
 from txaio.testutil import replace_loop
 

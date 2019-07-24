@@ -15,9 +15,9 @@
  argon2-cffi       19.1.0     MIT License                                          Hynek Schlawack                               
  asn1crypto        0.24.0     MIT License                                          wbond                                         
  attrs             19.1.0     MIT License                                          Hynek Schlawack                               
- autobahn          19.7.1     MIT License                                          Crossbar.io Technologies GmbH                 
+ autobahn          19.7.2     MIT License                                          Crossbar.io Technologies GmbH                 
  bcrypt            3.1.7      Apache Software License                              The Python Cryptographic Authority developers 
- bitstring         3.1.5      MIT License                                          Scott Griffiths                               
+ bitstring         3.1.6      MIT License                                          Scott Griffiths                               
  cbor              1.0.0      Apache Software License                              Brian Olson                                   
  cbor2             4.1.2      MIT License                                          Alex Grönholm                                 
  certifi           2019.6.16  Mozilla Public License 2.0 (MPL 2.0)                 Kenneth Reitz                                 
@@ -33,7 +33,7 @@
  hyperlink         19.0.0     UNKNOWN                                              Mahmoud Hashemi and Glyph Lefkowitz           
  idna              2.5        BSD License                                          Kim Davies                                    
  incremental       17.5.0     MIT License                                          Amber Brown                                   
- lmdb              0.95       UNKNOWN                                              David Wilson                                  
+ lmdb              0.96       UNKNOWN                                              David Wilson                                  
  lz4               2.1.10     BSD License                                          Jonathan Underwood                            
  mistune           0.8.4      BSD License                                          Hsiaoming Yang                                
  msgpack           0.6.1      Apache Software License                              INADA Naoki                                   
@@ -65,5 +65,5 @@
  vmprof            0.4.15     MIT License                                          vmprof team                                   
  watchdog          0.9.0      Apache Software License                              Yesudeep Mangalapilly                         
  wsaccel           0.6.2      UNKNOWN                                              UNKNOWN                                       
- zlmdb             19.6.2     MIT License                                          Crossbar.io Technologies GmbH                 
+ zlmdb             19.7.1     MIT License                                          Crossbar.io Technologies GmbH                 
  zope.interface    4.6.0      Zope Public License                                  Zope Foundation and Contributors              

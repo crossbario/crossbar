@@ -35,7 +35,11 @@ import json
 from crossbar.router.test.helpers import make_router, connect_application_session, add_realm_to_router
 
 from twisted.trial.unittest import TestCase
-from twisted.internet.task import Clock, LoopingCall
+try:
+    from twisted.test.proto_helpers import Clock
+except ImportError:
+    from twisted.internet.task import Clock
+from twisted.internet.task import LoopingCall
 from twisted.test.proto_helpers import AccumulatingProtocol
 from twisted.test.iosim import connect, FakeTransport
 from twisted.internet.defer import inlineCallbacks

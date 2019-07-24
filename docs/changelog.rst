@@ -8,6 +8,9 @@ Changelog
 19.7.1
 ------
 
+* fix: wait for onJoin to run in start_router_component (#1613)
+* fix: worker disabling from env var (#1612)
+* new: load node cryptosign key on all native workers
 * new: `max_message_size` for both listening and connecting transports
 * fix: improve reading config values from env vars
 * new: worker option `disabled` to skip starting of worker

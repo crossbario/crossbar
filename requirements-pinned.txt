@@ -3,10 +3,10 @@ argh==0.26.2
 argon2-cffi==19.1.0
 asn1crypto==0.24.0
 attrs==19.1.0
-autobahn==19.7.1
+autobahn==19.7.2
 Automat==0.7.0
 bcrypt==3.1.7
-bitstring==3.1.5
+bitstring==3.1.6
 cbor==1.0.0
 cbor2==4.1.2
 certifi==2019.6.16
@@ -24,7 +24,7 @@ hyperlink==19.0.0
 idna==2.5
 incremental==17.5.0
 Jinja2==2.10.1
-lmdb==0.95
+lmdb==0.96
 lz4==2.1.10
 MarkupSafe==1.1.1
 mistune==0.8.4
@@ -65,5 +65,5 @@ urllib3==1.24.3
 vmprof==0.4.15
 watchdog==0.9.0
 wsaccel==0.6.2
-zlmdb==19.6.2
+zlmdb==19.7.1
 zope.interface==4.6.0
