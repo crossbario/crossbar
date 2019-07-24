@@ -47,7 +47,11 @@ from crossbar.bridge.mqtt._events import (
 from crossbar.bridge.mqtt._utils import iterbytes
 from crossbar._logging import LogCapturer, LogLevel
 
-from twisted.test.proto_helpers import Clock, StringTransport
+try:
+    from twisted.test.proto_helpers import Clock
+except ImportError:
+    from twisted.internet.task import Clock
+from twisted.test.proto_helpers import StringTransport
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import Deferred, succeed, inlineCallbacks
 
