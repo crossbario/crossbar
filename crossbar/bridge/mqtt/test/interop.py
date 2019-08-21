@@ -66,8 +66,8 @@ class Result(object):
 
 
 @click.command()
-@click.option("--host")
-@click.option("--port")
+@click.option("--host", help='Host address to test.')
+@click.option("--port", type=int, help='Post of the host to test.')
 def run(host, port):
 
     port = int(port)
