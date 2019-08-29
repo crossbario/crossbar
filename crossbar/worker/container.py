@@ -109,6 +109,8 @@ class ContainerController(WorkerController):
 
     SHUTDOWN_MANUAL = u'shutdown-manual'
     SHUTDOWN_ON_LAST_COMPONENT_STOPPED = u'shutdown-on-last-component-stopped'
+    SHUTDOWN_ON_ANY_COMPONENT_STOPPED = u'shutdown-on-any-component-stopped'
+    SHUTDOWN_ON_ANY_COMPONENT_FAILED = u'shutdown-on-any-component-failed'
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor

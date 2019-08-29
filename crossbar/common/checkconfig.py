@@ -2740,7 +2740,12 @@ def check_router_options(personality, options):
 def check_container_options(personality, options):
     check_native_worker_options(personality, options, ignore=['shutdown', 'restart'])
     if 'shutdown' in options:
-        valid_shutdown_modes = [u'shutdown-manual', u'shutdown-on-last-component-stopped']
+        valid_shutdown_modes = [
+            u'shutdown-manual',
+            u'shutdown-on-last-component-stopped',
+            u'shutdown-on-any-component-failed',
+            u'shutdown-on-any-component-stopped',
+        ]
         if options['shutdown'] not in valid_shutdown_modes:
             raise InvalidConfigException(
                 "'shutdown' must be one of: {}".format(
