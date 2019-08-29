@@ -336,7 +336,12 @@ class ContainerController(WorkerController):
 
                 def _left(s, details):
                     if not joined_d.called:
-                        joined_d.errback(details.reason)
+                        joined_d.errback(
+                            ApplicationError(
+                                details.reason,
+                                details.message,
+                            )
+                        )
                 session.on('leave', _left)
 
                 return session
