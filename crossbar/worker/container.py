@@ -285,6 +285,20 @@ class ContainerController(WorkerController):
             del component
 
             # figure out if we need to shut down the container itself or not
+            if not was_clean and self._exit_mode == self.SHUTDOWN_ON_ANY_COMPONENT_FAILED:
+                self.log.info(
+                    "A component has failed: stopping container in exit mode <{exit_mode}> ...",
+                        exit_mode=self._exit_mode,
+                )
+                self.shutdown()
+
+            if self._exit_mode == self.SHUTDOWN_ON_ANY_COMPONENT_STOPPED:
+                self.log.info(
+                    "A component has stopped: stopping container in exit mode <{exit_mode}> ...",
+                        exit_mode=self._exit_mode,
+                )
+                self.shutdown()
+
             if not self.components:
                 if self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
                     self.log.info(
