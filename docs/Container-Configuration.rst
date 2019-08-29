@@ -56,8 +56,9 @@ The worker itself has the options
 ``options`` are those :doc:`shared by Native
 Workers <Native-Worker-Options>` as well as:
 
-1. ``shutdown``: ``shutdown-manual`` (the default) or
-   ``shutdown-on-last-worker-exit``
+1. ``shutdown``: ``shutdown-on-last-worker-exit`` (the default),
+   ``shutdown-manual``, ``shutdown-on-any-component-stopped``,
+   or ``shutdown-on-any-component-failed``. These should be self-explanatory.
 
 For a ``component``, the ``type`` is *required* and should be ``class``.
 
