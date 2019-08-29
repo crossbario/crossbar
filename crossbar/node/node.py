@@ -694,6 +694,9 @@ class Node(object):
         topic = u'crossbar.worker.{}.container.on_component_stop'.format(worker_id)
         component_stop_sub = yield self._controller.subscribe(component_exited, topic)
 
+        # after 2 seconds, consider all the application components running
+        self._reactor.callLater(2, component_stop_sub.unsubscribe)
+
         # start components to run embedded in the container
         #
         for component in worker.get('components', []):
@@ -708,9 +711,6 @@ class Node(object):
             yield self._controller.call(u'crossbar.worker.{}.start_component'.format(worker_id), component_id, component, options=CallOptions())
             self.log.info("{worker}: component '{component_id}' started",
                           worker=worker_logname, component_id=component_id)
-
-        # after 2 seconds, consider all the application components running
-        self._reactor.callLater(2, component_stop_sub.unsubscribe)
 
     @inlineCallbacks
     def _configure_native_worker_websocket_testee(self, worker_logname, worker_id, worker):
