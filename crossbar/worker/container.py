@@ -288,14 +288,14 @@ class ContainerController(WorkerController):
             if not was_clean and self._exit_mode == self.SHUTDOWN_ON_ANY_COMPONENT_FAILED:
                 self.log.info(
                     "A component has failed: stopping container in exit mode <{exit_mode}> ...",
-                        exit_mode=self._exit_mode,
+                    exit_mode=self._exit_mode,
                 )
                 self.shutdown()
 
             if self._exit_mode == self.SHUTDOWN_ON_ANY_COMPONENT_STOPPED:
                 self.log.info(
                     "A component has stopped: stopping container in exit mode <{exit_mode}> ...",
-                        exit_mode=self._exit_mode,
+                    exit_mode=self._exit_mode,
                 )
                 self.shutdown()
 
