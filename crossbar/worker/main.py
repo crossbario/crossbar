@@ -118,6 +118,11 @@ def get_argument_parser(parser=None):
                         default=None,
                         help='Shutdown method')
 
+    parser.add_argument('--restart',
+                        type=str,
+                        default=None,
+                        help='Restart method')
+
     if _HAS_VMPROF:
         parser.add_argument('--vmprof',
                             action='store_true',

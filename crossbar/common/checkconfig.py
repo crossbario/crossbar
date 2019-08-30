@@ -2753,13 +2753,26 @@ def check_container_options(personality, options):
                 )
             )
     if 'restart' in options:
-        valid_restart_modes = [u'restart-always', u'restart-on-failed']
+        valid_restart_modes = [u'restart-always', u'restart-on-failed', u'restart-never']
         if options['restart'] not in valid_restart_modes:
             raise InvalidConfigException(
                 "'restart' must be one of: {}".format(
                     ', '.join(valid_restart_modes)
                 )
             )
+        # if a 'shutdown' is also specified, make sure it doesn't hit
+        # any of the nonsense cases
+        if 'shutdown' in options:
+            impossible = [
+                (u'restart-always', u'shutdown-on-any-component-stopped'),
+                (u'restart-always', u'shutdown-on-any-component-failed'),
+                (u'restart-always', u'shutdown-on-last-component-stopped'),
+                (u'restart-on-failed', u'shutdown-on-any-component-failed'),
+            ]
+            if (options['restart'], options['shutdown']) in impossible:
+                raise InvalidConfigException(
+                    "'{restart}' won't work with '{shutdown}]".format(**options)
+                )
 
 
 def check_websocket_testee_options(personality, options):

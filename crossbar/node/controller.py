@@ -510,6 +510,8 @@ class NodeController(NativeProcess):
             args.append("--vmprof")
         if "shutdown" in options:
             args.extend(["--shutdown", options["shutdown"]])
+        if "restart" in options:
+            args.extend(["--restart", options["restart"]])
 
         # Node-level callback to inject worker arguments
         #

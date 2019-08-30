@@ -112,6 +112,10 @@ class ContainerController(WorkerController):
     SHUTDOWN_ON_ANY_COMPONENT_STOPPED = u'shutdown-on-any-component-stopped'
     SHUTDOWN_ON_ANY_COMPONENT_FAILED = u'shutdown-on-any-component-failed'
 
+    RESTART_NEVER = u'restart-never'
+    RESTART_ALWAYS = u'restart-always'
+    RESTART_FAILED = u'restart-failed'
+
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
         WorkerController.__init__(self, config=config, reactor=reactor, personality=personality)
@@ -121,6 +125,9 @@ class ContainerController(WorkerController):
 
         # when shall we exit?
         self._exit_mode = (config.extra.shutdown or self.SHUTDOWN_MANUAL)
+
+        # should we restart components?
+        self._restart_mode = (config.extra.restart or self.RESTART_NEVER)
 
         # "global" shared between all components
         self.components_shared = {
@@ -246,7 +253,7 @@ class ContainerController(WorkerController):
         if reload_modules:
             self._module_tracker.reload()
 
-        # prepare some cleanup code this connection goes away
+        # prepare some cleanup code in case this connection goes away
         def _closed(session, was_clean):
             """
             This is moderate hack around the fact that we don't have any way
@@ -291,6 +298,7 @@ class ContainerController(WorkerController):
                     exit_mode=self._exit_mode,
                 )
                 self.shutdown()
+                return
 
             if self._exit_mode == self.SHUTDOWN_ON_ANY_COMPONENT_STOPPED:
                 self.log.info(
@@ -298,6 +306,7 @@ class ContainerController(WorkerController):
                     exit_mode=self._exit_mode,
                 )
                 self.shutdown()
+                return
 
             if not self.components:
                 if self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
@@ -306,6 +315,7 @@ class ContainerController(WorkerController):
                         exit_mode=self._exit_mode,
                     )
                     self.shutdown()
+                    return
                 else:
                     self.log.info(
                         "Container is hosting no more components: continue running in exit mode <{exit_mode}>",
@@ -317,6 +327,35 @@ class ContainerController(WorkerController):
                     exit_mode=self._exit_mode,
                     component_count=len(self.components),
                 )
+
+            # determine if we should re-start the component. Note that
+            # we can only arrive here if we *didn't* decide to
+            # shutdown above .. so if we have a shutdown mode of
+            # SHUTDOWN_ON_ANY_COMPONENT_STOPPED will mean we never try
+            # to re-start anything.
+            if self._restart_mode and self._restart_mode != self.RESTART_NEVER:
+
+                def restart_component():
+                    # Think: if this below start_component() fails,
+                    # we'll still schedule *exactly one* new re-start
+                    # attempt for it, right?
+                    self.log.info(
+                        "Restarting component '{component_id}'",
+                        component_id=component_id,
+                    )
+                    return self.start_component(
+                        component_id, config,
+                        reload_modules=reload_modules,
+                        details=details,
+                    )
+                # note we must yield to the reactor with
+                # callLater(0, ..) to avoid infinite recurision if
+                # we're stuck in a restart loop
+                from twisted.internet import reactor
+                if self._restart_mode == self.RESTART_ALWAYS:
+                    reactor.callLater(0, restart_component)
+                elif self._restart_mode == self.RESTART_FAILED and not was_clean:
+                    reactor.callLater(0, restart_component)
 
         joined_d = Deferred()
 
