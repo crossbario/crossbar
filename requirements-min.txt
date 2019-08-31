@@ -1,5 +1,5 @@
 attrs>=17.2.0
-autobahn[asyncio,twisted,encryption,compress,serialization,scram]>=19.7.2
+autobahn[asyncio,twisted,encryption,compress,serialization,scram]>=19.9.2
 bitstring>=3.1.5
 bcrypt>=3.1.6
 cbor>=1.0.0
@@ -30,9 +30,9 @@ service_identity>=17.0.0
 setproctitle>=1.1.10
 setuptools>=36.2.7
 treq>=17.3.1
-twisted[tls,conch,http2]>=19.2.1; sys_platform != 'darwin' and sys_platform != 'win32'
-twisted[tls,conch,http2,osx_platform]>=19.2.1; sys_platform == 'darwin'
-twisted[tls,conch,http2,windows_platform]>=19.2.1; sys_platform == 'win32'
+twisted[tls,conch,http2]>=19.7.0; sys_platform != 'darwin' and sys_platform != 'win32'
+twisted[tls,conch,http2,osx_platform]>=19.7.0; sys_platform == 'darwin'
+twisted[tls,conch,http2,windows_platform]>=19.7.0; sys_platform == 'win32'
 txaio>=18.8.1
 txtorcon>=0.19.3
 u-msgpack-python>=2.4.1
@@ -42,5 +42,5 @@ urllib3<1.25,>=1.21.1
 vmprof>=0.4.12; platform_machine=='x86_64' or platform_machine=='i386' or platform_machine=='arm'
 watchdog>=0.8.3
 wsaccel>=0.6.2; platform_python_implementation=='CPython'
-zlmdb>=19.6.1
+zlmdb>=19.9.2
 zope.interface>=4.4.2
