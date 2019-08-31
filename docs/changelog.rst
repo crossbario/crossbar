@@ -5,6 +5,12 @@
 Changelog
 =========
 
+19.9.1
+------
+
+* new: #1607 component restart behaviors (#1623)
+* fix: bump Twisted to v19.7.0 because of CVE-2019-12855
+
 19.7.1
 ------
 
