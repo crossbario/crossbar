@@ -678,25 +678,6 @@ class Node(object):
     def _configure_native_worker_container(self, worker_logname, worker_id, worker):
         yield self._configure_native_worker_common(worker_logname, worker_id, worker)
 
-        # if components exit "very soon after" we try to start them,
-        # we consider that a failure and shut our node down. We remove
-        # this subscription 2 seconds after we're done starting
-        # everything (see below). This is necessary as start_component
-        # returns as soon as we've established a connection to the
-        # component
-        def component_exited(info):
-            component_id = info.get("id")
-            self.log.critical("Component '{component_id}' failed to start; shutting down node.", component_id=component_id)
-            try:
-                self._reactor.stop()
-            except twisted.internet.error.ReactorNotRunning:
-                pass
-        topic = u'crossbar.worker.{}.container.on_component_stop'.format(worker_id)
-        component_stop_sub = yield self._controller.subscribe(component_exited, topic)
-
-        # after 2 seconds, consider all the application components running
-        self._reactor.callLater(2, component_stop_sub.unsubscribe)
-
         # start components to run embedded in the container
         #
         for component in worker.get('components', []):
