@@ -437,6 +437,14 @@ class RouterSession(BaseSession):
 
                 def success(res):
                     msg = None
+                    # it is possible this session has disconnected
+                    # while onHello was taking place
+                    if self._transport is None:
+                        self.log.info(
+                            "Client session disconnected during authentication",
+                        )
+                        return
+
                     if isinstance(res, types.Accept):
                         custom = {
                             u'x_cb_node_id': self._router_factory._node_id
@@ -463,6 +471,14 @@ class RouterSession(BaseSession):
 
                 def success(res):
                     msg = None
+                    # it is possible this session has disconnected
+                    # while authentication was taking place
+                    if self._transport is None:
+                        self.log.info(
+                            "Client session disconnected during authentication",
+                        )
+                        return
+
                     if isinstance(res, types.Accept):
                         custom = {
                             u'x_cb_node_id': self._router_factory._node_id
