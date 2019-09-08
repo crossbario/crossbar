@@ -373,6 +373,23 @@ class Dealer(object):
             #
             registration = self._registration_map.get_observation(register.procedure, register.match)
 
+            # if the session disconencted while the authorization was
+            # being checked, stop
+            if session not in self._session_to_registrations:
+                # if the session *really* disconnected, it won't have
+                # a _session_id any longer, so we double-check
+                if session._session_id is not None:
+                    self.log.error(
+                        "Session '{session_id}' still appears valid, but isn't in registration map",
+                        session_id = session._session_id,
+                    )
+                self.log.info(
+                    "Session vanished while registering '{procedure}'",
+                    procedure=register.procedure,
+                )
+                assert registration is None
+                return
+
             # if force_reregister was enabled, we only do any actual
             # kicking of existing registrations *after* authorization
             if registration and not register.force_reregister:
