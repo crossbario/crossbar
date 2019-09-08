@@ -381,7 +381,7 @@ class Dealer(object):
                 if session._session_id is not None:
                     self.log.error(
                         "Session '{session_id}' still appears valid, but isn't in registration map",
-                        session_id = session._session_id,
+                        session_id=session._session_id,
                     )
                 self.log.info(
                     "Session vanished while registering '{procedure}'",
@@ -758,6 +758,10 @@ class Dealer(object):
                 # get registrations active on the procedure called
                 #
                 registration = self._registration_map.best_matching_observation(call.procedure)
+
+                # if the session disconencted while the authorization
+                # was being checked, 'registration' will be None and
+                # we'll (correctly) fire an error.
 
                 if registration:
 
