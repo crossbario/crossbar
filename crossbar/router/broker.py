@@ -791,6 +791,22 @@ class Broker(object):
                 replies[0].correlation_is_last = True
 
             else:
+                # if the session disconencted while the authorization was
+                # being checked, stop
+                if session not in self._session_to_subscriptions:
+                    # if the session *really* disconnected, it won't have
+                    # a _session_id any longer, so we double-check
+                    if session._session_id is not None:
+                        self.log.error(
+                            "Session '{session_id}' still appears valid, but isn't in subscription map",
+                            session_id=session._session_id,
+                        )
+                    self.log.info(
+                        "Session vanished while subscribing to '{topic}'",
+                        topic=subscribe.topic,
+                    )
+                    return
+
                 # ok, session authorized to subscribe. now get the subscription
                 #
                 subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_observer(session, subscribe.topic, subscribe.match, extra=SubscriptionExtra())
