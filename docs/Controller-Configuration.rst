@@ -44,7 +44,8 @@ The available ``options`` are:
 | title    | The controller process title (default: "crossbar-controller")    |
 +----------+------------------------------------------------------------------+
 | shutdown | Controls how and when crossbar shuts down.                       |
-|          | Permitted values are: shutdown_on_shutdown_requested             |
-|          | (default for "managed" mode), shutdown_on_worker_exit (default), |
-|          | shutdown_on_worker_exit_with_error, shutdown_on_last_worker_exit.|
+|          | Permitted values are: `shutdown_on_shutdown_requested`           |
+|          | (default for "managed" mode), `shutdown_on_worker_exit`          |
+|          | (default), `shutdown_on_worker_exit_with_error`, and             |
+|          | `shutdown_on_last_worker_exit`.                                  |
 +----------+------------------------------------------------------------------+
