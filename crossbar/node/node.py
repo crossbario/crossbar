@@ -33,7 +33,6 @@ from __future__ import absolute_import
 import os
 import socket
 
-import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue, gatherResults
 from twisted.python.reflect import qual
 
