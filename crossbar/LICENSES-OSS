@@ -15,7 +15,7 @@
  argon2-cffi       19.1.0     MIT License                                          Hynek Schlawack                               
  asn1crypto        0.24.0     MIT License                                          wbond                                         
  attrs             19.1.0     MIT License                                          Hynek Schlawack                               
- autobahn          19.9.2     MIT License                                          Crossbar.io Technologies GmbH                 
+ autobahn          19.9.3     MIT License                                          Crossbar.io Technologies GmbH                 
  bcrypt            3.1.7      Apache Software License                              The Python Cryptographic Authority developers 
  bitstring         3.1.6      MIT License                                          Scott Griffiths                               
  cbor              1.0.0      Apache Software License                              Brian Olson                                   
@@ -45,7 +45,7 @@
  psutil            5.6.3      BSD License                                          Giampaolo Rodola                              
  py-ubjson         0.14.0     Apache Software License                              Iotic Labs Ltd                                
  pyOpenSSL         19.0.0     Apache Software License                              The pyOpenSSL developers                      
- pyasn1            0.4.6      BSD License                                          Ilya Etingof                                  
+ pyasn1            0.4.7      BSD License                                          Ilya Etingof                                  
  pyasn1-modules    0.2.6      BSD License                                          Ilya Etingof                                  
  pycparser         2.19       BSD License                                          Eli Bendersky                                 
  python-snappy     0.5.4      BSD License                                          Andres Moreira                                
