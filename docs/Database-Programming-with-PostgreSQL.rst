@@ -379,91 +379,89 @@ based client "index.htm" from above but change "...for (var i = 1; i < 4; ++i) {
        runner = ApplicationRunner(url = "ws://127.0.0.1:8080/ws", realm = "realm1")
        runner.run(MyDatabaseComponent)
 
-Test config.json (assumes your local copy of autobahn.min.js resides in "/srv/_shared-web-resources/autobahn":
+Test config.json assumes your local copy of autobahn.min.js resides in "/srv/_shared-web-resources/autobahn":
 
 .. code:: javascript
 
 
-{
-    "version": 2,
-    "controller": {},
-    "workers": [
-        {
-            "type": "router",
-            "realms": [
+    {
+       "version": 2,
+       "controller": {
+       },
+       "workers": [
+          {
+             "type": "router",
+             "realms": [
                 {
-                    "name": "realm1",
-                    "roles": [
-                        {
-                            "name": "anonymous",
-                            "permissions": [
-                                {
-                                    "uri": "com.",
-                                    "match": "prefix",
-                                    "allow": {
-                                        "call": true,
-                                        "register": true,
-                                        "publish": true,
-                                        "subscribe": true
-                                    },
-                                    "disclose": {
-                                        "caller": false,
-                                        "publisher": false
-                                    },
-                                    "cache": true
-                                }
-                            ]
-                        }
-                    ]
+                   "name": "realm1",
+                   "roles": [
+                      {
+                         "name": "anonymous",
+                         "permissions": [
+                            {
+                               "uri": "com.",
+                               "match":"prefix",
+                               "allow": {
+                                  "call": true,
+                                  "register": true,
+                                  "publish": true,
+                                  "subscribe": true
+                               },
+                               "disclose": {
+                                  "caller": false,
+                                  "publisher": false
+                               },
+                               "cache": true
+                            }
+                         ]
+                      }
+                   ]
                 }
-            ],
-            "transports": [
+             ],
+             "transports": [
                 {
-                    "type": "web",
-                    "endpoint": {
-                        "type": "tcp",
-                        "port": 8080
-                    },
-                    "paths": {
-                        "/": {
-                            "type": "static",
-                            "directory": "../web"
-                        },
-                        "shared": {
-                            "type": "static",
-                            "directory": "/srv/_shared-web-resources/autobahn"
-                        },
-                        "ws": {
-                            "type": "websocket",
-                            "debug": true
-                        }
-                    }
+                   "type": "web",
+                   "endpoint": {
+                      "type": "tcp",
+                      "port": 8080
+                   },
+                   "paths": {
+                      "/": {
+                         "type": "static",
+                         "directory": "../web"
+                      },
+                      "shared": {
+                         "type": "static",
+                         "directory": "/srv/_shared-web-resources/autobahn"
+                      "ws": {
+                         "type": "websocket",
+                         "debug": true
+                      }
+                   }
                 }
-            ]
-        },
-        {
-            "type": "container",
-            "options": {
-                "pythonpath": [
-                    ".."
-                ]
-            },
-            "components": [
+             ]
+          },
+          {
+             "type": "container",
+             "options": {
+                "pythonpath": [".."]
+             },
+             "components": [
                 {
-                    "type": "class",
-                    "classname": "hello.MyDatabaseComponent",
-              		"realm": "realm1",
-               		"transport": {
-                  		"type": "websocket",
-                  		"endpoint": {
-                     		"type": "tcp",
-                     		"host": "127.0.0.1",
-                     		"port": 8080
-                  		},
-                  		"url": "ws://127.0.0.1:8080/ws"
-                  	}
-               }
-            ]
-        }
-    ]
-}
+                   "type": "class",
+                   "classname": "hello.MyDatabaseComponent",
+                   "realm": "realm1",
+                   "transport": {
+                      "type": "websocket",
+                      "endpoint": {
+                         "type": "tcp",
+                         "host": "127.0.0.1",
+                         "port": 8080
+                      },
+                      "url": "ws://127.0.0.1:8080/ws"
+                   }
+                }
+             ]
+          }
+       ]
+    }
