@@ -289,7 +289,6 @@ class Personality(object):
         u"proxy": PendingAuthProxy,
     }
 
-
     REALM_STORES = {
         'memory': MemoryRealmStore
     }
