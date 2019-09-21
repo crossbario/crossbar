@@ -38,7 +38,7 @@ from twisted.python.failure import Failure
 from autobahn import wamp
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, ComponentConfig
+from autobahn.wamp.types import PublishOptions, ComponentConfig, CallDetails, SessionIdent
 
 from crossbar._util import class_name, hltype, hlid
 
@@ -48,6 +48,7 @@ from crossbar.router.router import RouterFactory
 
 from crossbar.worker import _appsession_loader
 from crossbar.worker.controller import WorkerController
+from crossbar.worker.rlink import RLinkConfig
 
 
 __all__ = ('RouterController',)
@@ -1035,3 +1036,181 @@ class RouterController(WorkerController):
 
         # forward call directly to service agent
         return self.realms[realm_id].session.session_kill_by_authid(authid, reason, message=message, details=details)
+
+    @wamp.register(None)
+    def get_router_realm_links(self, realm_id, details=None):
+        """
+        Returns the currently running routing links to remote router realms.
+
+        :param realm_id: The ID of the (local) realm to get links for.
+        :type realm_id: str
+
+        :returns: List of router link IDs.
+        :rtype: list[str]
+        """
+        assert type(realm_id) == str
+        assert isinstance(details, CallDetails)
+
+        self.log.info(
+            'Getting router links for realm {realm_id} {method}',
+            realm_id=hlid(realm_id),
+            method=hltype(RouterController.get_router_realm_links))
+
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        rlink_manager = self.realms[realm_id].rlink_manager
+
+        return rlink_manager.keys()
+
+    @wamp.register(None)
+    def get_router_realm_link(self, realm_id, link_id, details=None):
+        """
+        Get router link detail information.
+
+        :param realm_id: The ID of the (local) realm of the link.
+        :type realm_id: str
+
+        :param link_id: The ID of the router link to return.
+        :type link_id: str
+
+        :returns: Router link detail information.
+        :rtype: dict
+        """
+        assert type(realm_id) == str
+        assert type(link_id) == str
+        assert isinstance(details, CallDetails)
+
+        self.log.info(
+            'Get router link {link_id} on realm {realm_id} {method}',
+            link_id=hlid(link_id),
+            realm_id=hlid(realm_id),
+            method=hltype(RouterController.get_router_realm_links))
+
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        rlink_manager = self.realms[realm_id].rlink_manager
+
+        if link_id not in rlink_manager:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No link with ID '{}'".format(link_id))
+
+        rlink = rlink_manager[link_id]
+
+        return rlink.marshal()
+
+    @wamp.register(None)
+    @inlineCallbacks
+    def start_router_realm_link(self, realm_id, link_id, link_config, details=None):
+        """
+        Start a new router link to a remote router on a (local) realm.
+
+        The link configuration (``link_config``) must include the transport definition
+        to the remote router. Here is an example:
+
+        .. code-block:: json
+
+            {
+                "realm": "realm1",
+                "transport": {
+                    "type": "websocket",
+                    "endpoint": {
+                        "type": "tcp",
+                        "host": "localhost",
+                        "port": 8002
+                    },
+                    "url": "ws://localhost:8002/ws"
+                }
+            }
+
+        :param realm_id: The ID of the (local) realm on which to start the link.
+        :type realm_id: str
+
+        :param link_id: The ID of the router link to start.
+        :type link_id: str
+
+        :param link_config: The router link configuration.
+        :type link_config: dict
+
+        :returns: The new link detail information.
+        :rtype: dict
+        """
+        assert type(realm_id) == str
+        assert type(link_id) == str
+        assert type(link_config) == dict
+        assert isinstance(details, CallDetails)
+
+        self.log.info(
+            'Router link {link_id} starting on realm {realm_id} {method}',
+            link_id=hlid(link_id),
+            realm_id=hlid(realm_id),
+            method=hltype(RouterController.start_router_realm_link))
+
+        if realm_id not in self.realms:
+            raise ApplicationError('crossbar.error.no_such_object', 'no realm with ID {}'.format(realm_id))
+
+        rlink_manager = self.realms[realm_id].rlink_manager
+
+        if link_id in rlink_manager:
+            raise ApplicationError('crossbar.error.already_running',
+                                   'router link {} already running'.format(link_id))
+
+        link_config = RLinkConfig.parse(self.personality, link_config, id=link_id)
+
+        caller = SessionIdent.from_calldetails(details)
+
+        rlink = yield rlink_manager.start_link(link_id, link_config, caller)
+
+        started = rlink.marshal()
+
+        self.publish(u'{}.on_router_realm_link_started'.format(self._uri_prefix), started)
+
+        self.log.info('Router link {link_id} started', link_id=hlid(link_id))
+
+        returnValue(started)
+
+    @wamp.register(None)
+    @inlineCallbacks
+    def stop_router_realm_link(self, realm_id, link_id, details=None):
+        """
+        Stop a currently running router link.
+
+        :param realm_id: The ID of the (local) realm on which the link is running that is to be stopped.
+        :type realm_id: str
+
+        :param link_id: The ID of the router link to stop.
+        :type link_id: str
+
+        :returns: The stopped link detail information.
+        :rtype: dict
+        """
+        assert type(realm_id) == str
+        assert type(link_id) == str
+        assert isinstance(details, CallDetails)
+
+        self.log.info(
+            'Router link {link_id} stopping on realm {realm_id} {method}',
+            link_id=hlid(link_id),
+            realm_id=hlid(realm_id),
+            method=hltype(RouterController.stop_router_realm_link))
+
+        if realm_id not in self.realms:
+            raise ApplicationError('crossbar.error.no_such_object', 'no realm with ID {}'.format(realm_id))
+
+        rlink_manager = self.realms[realm_id].rlink_manager
+
+        if link_id not in self.rlink_manager:
+            raise ApplicationError('crossbar.error.no_such_object',
+                                   'no router link with ID {}'.format(link_id))
+
+        caller = SessionIdent.from_calldetails(details)
+
+        rlink = yield rlink_manager.stop_link(link_id, caller)
+
+        stopped = rlink.marshal()
+
+        self.publish(u'{}.on_router_realm_link_stopped'.format(self._uri_prefix), stopped)
+
+        self.log.info('Router link {link_id} stopped', link_id=hlid(link_id))
+
+        returnValue(stopped)

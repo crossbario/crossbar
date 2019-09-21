@@ -673,6 +673,36 @@ class Node(object):
                                 path=hluserid(path),
                             )
 
+        # start rlinks for realms
+        dl = []
+        for realm in worker.get('realms', []):
+            realm_id = realm['id']
+            for i, rlink in enumerate(realm.get('rlinks', [])):
+                if 'id' in rlink:
+                    rlink_id = rlink['id']
+                else:
+                    rlink_id = 'rlink{:03d}'.format(i)
+                    rlink['id'] = rlink_id
+
+                self.log.info(
+                    'Starting router-to-router "{rlink_id}" on realm "{realm_id}" ..',
+                    realm_id=hlid(realm_id),
+                    rlink_id=hlid(rlink_id),
+                )
+
+                d = self._controller.call(u'crossbar.worker.{}.start_router_realm_link'.format(worker_id), realm_id, rlink_id, rlink, options=CallOptions())
+
+                def done(_):
+                    self.log.info(
+                        'Ok, router-to-router {rlink_id} started on realm "{realm_id}".',
+                        realm_id=hlid(realm_id),
+                        rlink_id=hlid(rlink_id),
+                    )
+                d.addCallback(done)
+                dl.append(d)
+
+        yield gatherResults(dl)
+
     @inlineCallbacks
     def _configure_native_worker_container(self, worker_logname, worker_id, worker):
         yield self._configure_native_worker_common(worker_logname, worker_id, worker)
