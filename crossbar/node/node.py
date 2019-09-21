@@ -747,3 +747,56 @@ class Node(object):
             logname=worker_logname,
             tid=transport_id,
         )
+
+    @inlineCallbacks
+    def _configure_native_worker_proxy(self, worker_logname, worker_id, worker):
+        yield self._configure_native_worker_common(worker_logname, worker_id, worker)
+
+        # start transports on proxy
+        for i, transport in enumerate(worker.get('transports', [])):
+
+            if 'id' in transport:
+                transport_id = transport['id']
+            else:
+                transport_id = 'transport{:03d}'.format(i)
+                transport['id'] = transport_id
+
+            self.log.info(
+                "Order {worker_logname} to start Transport {transport_id}",
+                worker_logname=worker_logname,
+                transport_id=hlid(transport_id),
+            )
+
+            yield self._controller.call(u'crossbar.worker.{}.start_proxy_transport'.format(worker_id),
+                                        transport_id,
+                                        transport,
+                                        options=CallOptions())
+            self.log.info(
+                "Ok, {worker_logname} has started Transport {transport_id}",
+                worker_logname=worker_logname,
+                transport_id=hlid(transport_id),
+            )
+
+        for i, backend in enumerate(worker.get('backends', [])):
+
+            if 'id' in backend:
+                backend_id = backend['id']
+            else:
+                backend_id = 'backend{:03d}'.format(i)
+                backend['id'] = backend_id
+
+            self.log.info(
+                "Order {worker_logname} to start BackendTransport {backend_id}",
+                worker_logname=worker_logname,
+                backend_id=hlid(backend_id),
+            )
+
+            yield self._controller.call(u'crossbar.worker.{}.start_proxy_backend'.format(worker_id),
+                                        backend_id,
+                                        backend,
+                                        options=CallOptions())
+            self.log.info(
+                "Ok, {worker_logname} has started BackendTransport {backend_id}",
+                worker_logname=worker_logname,
+                transport_id=hlid(backend_id),
+            )
