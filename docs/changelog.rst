@@ -5,6 +5,12 @@
 Changelog
 =========
 
+19.9.2
+------
+
+* new: archive webservice
+* new: WAMP application page (WAP) webservice
+
 19.9.1
 ------
 

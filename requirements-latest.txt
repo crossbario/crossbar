@@ -40,6 +40,7 @@ u-msgpack-python>=2.4.1
 urllib3<1.25,>=1.21.1
 vmprof>=0.4.12; platform_machine=='x86_64' or platform_machine=='i386' or platform_machine=='arm'
 watchdog>=0.8.3
+werkzeug>=0.14.1
 wsaccel>=0.6.2; platform_python_implementation=='CPython'
 git+https://github.com/crossbario/zlmdb.git@master#egg=zlmdb
 zope.interface>=4.4.2
