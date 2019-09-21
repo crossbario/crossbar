@@ -97,7 +97,7 @@ class WapResource(resource.Resource):
         #
         templates_dir = os.path.abspath(
             os.path.join(self._worker.config.extra.cbdir, config.get("templates")))
-        env = Environment(loader=FileSystemLoader(templates_dir))
+        env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
         self.log.info(
             'WapResource is using templates directory "{templates_dir}"', templates_dir=templates_dir)
 
