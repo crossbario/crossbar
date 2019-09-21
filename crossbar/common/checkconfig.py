@@ -612,6 +612,10 @@ def check_transport_auth(personality, auth, ignore=[], checks=None):
         'cookie': check_transport_auth_cookie,
         'cryptosign': check_transport_auth_cryptosign,
         'scram': check_transport_auth_scram,
+
+        # FIXME
+        'proxy-cryptosign': lambda _: None,
+        'proxy': lambda _: None,
     }
     for k in auth:
         if k in CHECKS:
