@@ -33,6 +33,7 @@ from __future__ import absolute_import
 from datetime import datetime
 
 from autobahn.util import utcstr
+from crossbar.worker.rlink import RLinkManager
 
 
 class RouterComponent(object):
@@ -107,11 +108,14 @@ class RouterRealm(object):
         # this is filled later (after construction) when the router service agent session has been started
         self.session = session
 
+        # router-realm links ("router-to-router connections")
+        self.rlink_manager = RLinkManager(self, controller)
+
         self.created = datetime.utcnow()
         self.roles = {}
 
     def marshal(self):
-        return {
+        marshalled = {
             u'id': self.id,
             u'config': self.config,
             u'created': utcstr(self.created),
@@ -119,6 +123,14 @@ class RouterRealm(object):
             u'has_router': self.router is not None,
             u'has_service_session': self.session is not None,
         }
+
+        rlinks = []
+        for link_id in self.rlink_manager.keys():
+            rlinks.append(self.rlink_manager[link_id].marshal())
+
+        marshalled['rlinks'] = rlinks
+
+        return marshalled
 
 
 class RouterRealmRole(object):
