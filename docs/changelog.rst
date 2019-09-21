@@ -5,9 +5,11 @@
 Changelog
 =========
 
-19.9.2
+19.10.1
 ------
 
+* new: router-to-router links (aka "rlinks", aka "r2r links") - enables WAMP router clustering and HA
+* new: WAMP proxy workers -  enables WAMP clustering and HA
 * new: archive webservice
 * new: WAMP application page (WAP) webservice
 
