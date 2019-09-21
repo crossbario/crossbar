@@ -1,6 +1,5 @@
 name: crossbar
-version: latest
-version-script: git describe --always | sed -e 's/-/+git/;y/-/./' | tail -c +2
+adopt-info: crossbar
 summary: Crossbar.io - Polyglot application router.
 description: |
   Crossbar.io is a networking platform for distributed and microservice
@@ -44,6 +43,10 @@ parts:
       - libbz2-dev
       - libsnappy-dev
       - libunwind-dev
+      - git
+    override-pull: |
+      snapcraftctl pull
+      snapcraftctl set-version $(git describe --always | sed -e 's/-/+git/;y/-/./' | tail -c +2)
     override-prime: |
       snapcraftctl prime
       echo "Compiling pyc files..."
