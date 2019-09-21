@@ -117,7 +117,7 @@ Use this to run a series of SQL statements in one SQL transaction.  Any modifica
 A adbapi based database component
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This example is using Twisted adbapi.
+This example uses Twisted adbapi. Name it hello.py remembering that whatever you name it, both the filename and the derived class within must match exactly the value of "classname" dict, a required option of "components" under the "container" section of config.json.
 
 .. code:: python
 
@@ -213,8 +213,8 @@ This example is using Twisted adbapi.
        runner = ApplicationRunner(url = "ws://127.0.0.1:8080/ws", realm = "realm1")
        runner.run(MyDatabaseComponent)
 
-For testing the database component, you can use the following AutobahnJS
-based WAMP client which will call all procedures of component. When
+For testing the database component, use the following AutobahnJS
+based WAMP client and name it "index.htm". Make sure to place "index.htm" in a folder named "web" alongside your ".crossbar" folder. The example config.json will then find and serve index.htm and call all procedures of component. When
 running, you should see the current database time printed to the
 JavaScript console three times.
 
@@ -222,9 +222,13 @@ JavaScript console three times.
 
     <!DOCTYPE html>
     <html>
+    <head>
+      <meta charset="utf-8" />
+    </head>
        <body>
-          <!-- library can be found at https://github.com/crossbario/autobahn-js-built -->
-          <script src="autobahn.min.jgz">
+       <h1>Hello, my fair database</h1
+          <!-- library can be found at https://github.com/crossbario/autobahn-js-browser -->
+          <script src="shared/autobahn.min.js">
           </script>
           <script>
              var connection = new autobahn.Connection({
@@ -266,8 +270,7 @@ A txpostgres based database component
 
 This example is using txpostgres, but provides the same functionality as
 the Twisted adbapi example component. You can use the same AutobahnJS
-based client from above for testing (adjusting the loop upper bound to
-call all procedures).
+based client "index.htm" from above but change "...for (var i = 1; i < 4; ++i) {..." to "...for (var i = 1; i < 5; ++i) {..." as it has a bonus procedure! Name it hello.py so config.json can find it (detailed reasons discussed in the adbabi example above).
 
 .. code:: python
 
@@ -376,20 +379,18 @@ call all procedures).
        runner = ApplicationRunner(url = "ws://127.0.0.1:8080/ws", realm = "realm1")
        runner.run(MyDatabaseComponent)
 
-Test config:
+Test config.json assumes your local copy of autobahn.min.js resides in "/srv/_shared-web-resources/autobahn":
 
 .. code:: javascript
 
 
     {
+       "version": 2,
        "controller": {
        },
        "workers": [
           {
              "type": "router",
-             "options": {
-                "pythonpath": [".."]
-             },
              "realms": [
                 {
                    "name": "realm1",
@@ -398,13 +399,19 @@ Test config:
                          "name": "anonymous",
                          "permissions": [
                             {
-                               "uri": "*",
+                               "uri": "com.",
+                               "match":"prefix",
                                "allow": {
-                                  "publish": true,
-                                  "subscribe": true,
                                   "call": true,
-                                  "register": true
-                               }
+                                  "register": true,
+                                  "publish": true,
+                                  "subscribe": true
+                               },
+                               "disclose": {
+                                  "caller": false,
+                                  "publisher": false
+                               },
+                               "cache": true
                             }
                          ]
                       }
@@ -421,8 +428,11 @@ Test config:
                    "paths": {
                       "/": {
                          "type": "static",
-                         "directory": "../hello/web"
+                         "directory": "../web"
                       },
+                      "shared": {
+                         "type": "static",
+                         "directory": "/srv/_shared-web-resources/autobahn"
                       "ws": {
                          "type": "websocket",
                          "debug": true
@@ -439,7 +449,7 @@ Test config:
              "components": [
                 {
                    "type": "class",
-                   "classname": "hello.hello.AppSession",
+                   "classname": "hello.MyDatabaseComponent",
                    "realm": "realm1",
                    "transport": {
                       "type": "websocket",
