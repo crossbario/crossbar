@@ -45,7 +45,7 @@ from crossbar.worker import transport
 from crossbar.worker.container import ContainerController
 from crossbar.worker.testee import WebSocketTesteeController
 from crossbar.webservice import base
-from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static
+from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static, archive
 from crossbar.router.realmstore import MemoryRealmStore
 
 
@@ -226,6 +226,8 @@ class Personality(object):
         'caller': checkconfig.check_web_path_service_caller,
         'publisher': checkconfig.check_web_path_service_publisher,
         'webhook': checkconfig.check_web_path_service_webhook,
+
+        'archive': archive.RouterWebServiceArchive.check,
     }
 
     WEB_SERVICE_FACTORIES = {
@@ -253,6 +255,8 @@ class Personality(object):
         'caller': rest.RouterWebServiceRestCaller,
         'publisher': rest.RouterWebServiceRestPublisher,
         'webhook': rest.RouterWebServiceWebhook,
+
+        'archive': archive.RouterWebServiceArchive,
     }
 
     EXTRA_AUTH_METHODS = dict()
