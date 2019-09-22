@@ -60,3 +60,4 @@ slots:
     content: executables
     read:
       - $SNAP/lib/python3.6/site-packages
+      - $SNAP/bin
