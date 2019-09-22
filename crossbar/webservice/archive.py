@@ -118,7 +118,8 @@ class ZipArchiveResource(resource.Resource):
 
     contentTypes = loadMimeTypes()
 
-    contentEncodings = {'.gz': 'gzip', '.bz2': 'bzip2'}
+    # FIXME: https://github.com/crossbario/crossbar/issues/633
+    contentEncodings = {'.gz': 'gzip', '.bz2': 'bzip2', '.jgz': 'gzip'}
 
     def __init__(self, worker, config, path, archive_file):
         resource.Resource.__init__(self)
@@ -129,6 +130,7 @@ class ZipArchiveResource(resource.Resource):
         self._origin = config.get('origin', None)
         self._cache = config.get('cache', False)
         self._default_object = config.get('default_object', None)
+        self._object_prefix = config.get('object_prefix', None)
         if 'mime_types' in config:
             self.contentTypes.update(config['mime_types'])
 
@@ -164,6 +166,9 @@ class ZipArchiveResource(resource.Resource):
 
         if (search_path == '' or search_path.endswith('/')) and self._default_object:
             search_path += self._default_object
+
+        if self._object_prefix:
+            search_path = os.path.join(self._object_prefix, search_path)
 
         self.log.debug('ZipArchiveResource.getChild - effective search path: "{}"'.format(search_path))
 
@@ -237,15 +242,37 @@ class RouterWebServiceArchive(RouterWebService):
             raise InvalidConfigException('unexpected Web service type "{}"'.format(config['type']))
 
         check_dict_args({
+            # ID of webservice (must be unique for the web transport)
             'id': (False, [str]),
+
+            # must be equal to "archive"
             'type': (True, [six.text_type]),
+
+            # local path to archive file (relative to node directory)
             'archive': (True, [six.text_type]),
+
+            # download URL for achive to auto-fetch
             'origin': (False, [six.text_type]),
+
+            # flag to control automatic downloading from origin
             'download': (False, [bool]),
+
+            # cache archive contents in memory
             'cache': (False, [bool]),
+
+            # default filename in archive when fetched URL is "" or "/"
             'default_object': (False, [six.text_type]),
+
+            # archive object prefix: this is prefixed to the path before looking within the archive file
+            'object_prefix': (False, [six.text_type]),
+
+            # configure additional MIME types, sending correct HTTP response headers
             'mime_types': (False, [Mapping]),
+
+            # list of SHA3-256 hashes (HEX string) the archive file is to be verified against
             'hashes': (False, [Sequence]),
+
+            # FIXME
             'options': (False, [Mapping]),
         }, config, "Static Web from Archive service configuration".format(config))
 
