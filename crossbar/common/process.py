@@ -59,7 +59,7 @@ else:
 from autobahn.util import utcnow, utcstr, rtime
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, RegisterOptions
+from autobahn.wamp.types import PublishOptions, RegisterOptions, ComponentConfig
 from autobahn import wamp
 
 import txaio
@@ -141,6 +141,8 @@ class NativeProcess(ApplicationSession):
             )
 
     def __init__(self, config=None, reactor=None, personality=None):
+        assert config is None or isinstance(config, ComponentConfig)
+
         # Twisted reactor
         if not reactor:
             from twisted.internet import reactor
@@ -157,6 +159,8 @@ class NativeProcess(ApplicationSession):
         self._node_id = config.extra.node if config and config.extra else None
         self._worker_id = config.extra.worker if config and config.extra else None
         self._uri_prefix = u'crossbar.worker.{}'.format(self._worker_id)
+
+        print('?'*100, self._node_id, self._worker_id, config)
 
         # base ctor
         super(ApplicationSession, self).__init__(config=config)

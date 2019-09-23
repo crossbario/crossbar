@@ -251,6 +251,7 @@ class _BridgeSession(ApplicationSession):
             me=self,
             other=other)
 
+        # called when a registration is created on the local router
         @inlineCallbacks
         def on_registration_create(reg_id, reg_details, details=None):
             """
@@ -340,6 +341,9 @@ class _BridgeSession(ApplicationSession):
             reg = None
             while n > 0:
                 try:
+                    print('#'*100)
+                    print('on_registration_create', self.IS_REMOTE_LEG, n, uri)
+                    print('#'*100)
                     reg = yield other.register(
                         on_call,
                         uri,
@@ -367,8 +371,7 @@ class _BridgeSession(ApplicationSession):
                 details=details,
             )
 
-        # listen to when a registration is removed from the router
-        #
+        # called when a registration is removed from the local router
         @inlineCallbacks
         def on_registration_delete(session_id, reg_id, details=None):
             self.log.info(
@@ -393,7 +396,6 @@ class _BridgeSession(ApplicationSession):
             self.log.info("{other} unsubscribed from {uri}".format(other=other, uri=uri))
 
         # get current registrations on the router
-        #
         regs = yield self.call(u"wamp.registration.list")
         for reg_id in regs['exact']:
             reg = yield self.call(u"wamp.registration.get", reg_id)
@@ -405,6 +407,7 @@ class _BridgeSession(ApplicationSession):
             u"wamp.registration.on_create",
             options=SubscribeOptions(details_arg="details"))
 
+        # listen to when a registration is removed from the local router
         yield self.subscribe(
             on_registration_delete,
             u"wamp.registration.on_delete",
@@ -579,7 +582,7 @@ class _RLinkRemoteSession(_BridgeSession):
         self.log.info(
             '{klass}.onJoin(): rlink remote session ready (forward_events={forward_events}, forward_invocations={forward_invocations}, realm={realm}, authid={authid}, authrole={authrole}, session={session}) {method}',
             klass=self.__class__.__name__,
-            method=hltype(_RLinkLocalSession.onJoin),
+            method=hltype(_RLinkRemoteSession.onJoin),
             forward_events=hluserid(forward_events),
             forward_invocations=hluserid(forward_invocations),
             realm=hluserid(details.realm),
@@ -805,6 +808,8 @@ class RLinkManager(object):
         local_authrole = 'trusted'
         local_config = ComponentConfig(local_realm, local_extra)
         local_session = _RLinkLocalSession(local_config)
+
+        print('PPPPPPPPPPPPPPPPPPPP', link_config, local_authid, local_authrole)
 
         # setup remote session
         #

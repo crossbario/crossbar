@@ -45,7 +45,7 @@ from twisted.python.runtime import platform
 
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions
+from autobahn.wamp.types import PublishOptions, ComponentConfig
 from autobahn import wamp
 
 import crossbar
@@ -83,16 +83,18 @@ class NodeController(NativeProcess):
     WORKER_TYPE = u'controller'
 
     def __init__(self, node):
+        # cfg = ComponentConfig(realm=self._realm, extra={})
         # base ctor
         NativeProcess.__init__(self, config=None, reactor=node._reactor, personality=node.personality)
 
         # associated node
         self._node = node
+        self._node_id = node._node_id
         self._realm = node._realm
-
         self.cbdir = self._node._cbdir
-
         self._uri_prefix = u'crossbar'
+
+        print('§'*100, self._realm, self._node_id)
 
         self._started = None
         self._pid = os.getpid()

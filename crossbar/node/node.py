@@ -701,7 +701,9 @@ class Node(object):
                 d.addCallback(done)
                 dl.append(d)
 
-        yield gatherResults(dl)
+        # FIXME: rlinks must be started without waiting for them to be established. otherwise the start of other stuff
+        # is waiting for all rlinks to be up!
+        d = gatherResults(dl)
 
     @inlineCallbacks
     def _configure_native_worker_container(self, worker_logname, worker_id, worker):
