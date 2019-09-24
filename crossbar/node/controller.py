@@ -36,6 +36,7 @@ import signal
 import threading
 from datetime import datetime
 from shutil import which
+from collections import namedtuple
 
 from twisted.python.reflect import qual
 from twisted.internet.error import ReactorNotRunning
@@ -83,18 +84,19 @@ class NodeController(NativeProcess):
     WORKER_TYPE = u'controller'
 
     def __init__(self, node):
-        # cfg = ComponentConfig(realm=self._realm, extra={})
-        # base ctor
-        NativeProcess.__init__(self, config=None, reactor=node._reactor, personality=node.personality)
+        # call base ctor
+        extra = namedtuple('Extra', ['node', 'worker'])(node._node_id, 'controller')
+        config = ComponentConfig(realm=node._realm, extra=extra)
+        NativeProcess.__init__(self, config=config, reactor=node._reactor, personality=node.personality)
 
         # associated node
         self._node = node
-        self._node_id = node._node_id
-        self._realm = node._realm
-        self.cbdir = self._node._cbdir
-        self._uri_prefix = u'crossbar'
 
-        print('§'*100, self._realm, self._node_id)
+        # node directory
+        self.cbdir = self._node._cbdir
+
+        # overwrite URI prefix for controller (normally: "crossbar.worker.<worker_id>")
+        self._uri_prefix = u'crossbar'
 
         self._started = None
         self._pid = os.getpid()

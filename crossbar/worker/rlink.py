@@ -37,6 +37,7 @@ from collections.abc import Mapping, Sequence
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 
+from autobahn import util
 from autobahn.wamp.types import SessionIdent
 
 from crossbar._util import hl, hlid, hltype, hluserid
@@ -428,8 +429,20 @@ class _RLinkLocalSession(_BridgeSession):
     # direction in which events are flowing (published) via this session
     DIR = hl('from remote to local', color='yellow', bold=True)
 
+    def onConnect(self):
+        print('<1'*100, self.config)
+        self.log.info('ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ {klass}.onConnect()', klass=self.__class__.__name__)
+        # _BridgeSession.onConnect(self)
+        authextra = {
+            'rlink': self.config.extra['rlink']
+        }
+        self.join(self.config.realm,
+                  authid=self.config.extra['rlink'],
+                  authextra=authextra)
+
     @inlineCallbacks
     def onJoin(self, details):
+        print('<2'*100)
         assert self.config.extra and 'on_ready' in self.config.extra
         assert self.config.extra and 'other' in self.config.extra
 
@@ -799,12 +812,13 @@ class RLinkManager(object):
         local_extra = {
             'other': None,
             'on_ready': Deferred(),
+            'rlink': link_id,
             # 'forward_events': False,
             'forward_events': link_config.forward_local_events,
         }
         local_realm = self._realm.config['name']
-        # local_authid = util.generate_serial_number()
-        local_authid = link_config.authid
+
+        local_authid = link_config.authid or util.generate_serial_number()
         local_authrole = 'trusted'
         local_config = ComponentConfig(local_realm, local_extra)
         local_session = _RLinkLocalSession(local_config)
@@ -844,7 +858,7 @@ class RLinkManager(object):
             # connect the local session
             #
             self._realm.controller.router_session_factory.add(
-                local_session, self._realm.router, authid=local_authid, authrole=local_authrole)
+                local_session, self._realm.router, authid=local_authid, authrole=local_authrole, authextra=local_extra)
 
             yield local_extra['on_ready']
 

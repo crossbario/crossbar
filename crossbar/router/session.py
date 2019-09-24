@@ -73,7 +73,7 @@ class RouterApplicationSession(object):
 
     log = make_logger()
 
-    def __init__(self, session, router, authid=None, authrole=None):
+    def __init__(self, session, router, authid=None, authrole=None, authextra=None):
         """
         Wrap an application session and add it to the given broker and dealer.
 
@@ -93,6 +93,7 @@ class RouterApplicationSession(object):
         assert isinstance(router, Router), 'router must be of class Router, not {}'.format(router.__class__.__name__ if router else type(router))
         assert(authid is None or isinstance(authid, str))
         assert(authrole is None or isinstance(authrole, str))
+        assert(authextra is None or type(authextra) == dict)
 
         # remember router we are wrapping the app session for
         #
@@ -106,6 +107,7 @@ class RouterApplicationSession(object):
         #
         self._trusted_authid = authid
         self._trusted_authrole = authrole
+        self._trusted_authextra = authextra
 
         # set fake transport on session ("pass-through transport")
         #
@@ -190,7 +192,10 @@ class RouterApplicationSession(object):
             # FIXME: the following does blow up
             # self._session._authmethod = u'trusted'
             self._session._authprovider = None
-            self._session._authextra = None
+            self._session._authextra = self._trusted_authextra
+
+            if True or self._trusted_authextra:
+                print('-8-'*50, self._trusted_authextra)
 
             # add app session to router
             self._router.attach(self._session)
@@ -831,6 +836,7 @@ class RouterSession(BaseSession):
                 u'authprovider': details.authprovider,
                 u'transport': self._transport._transport_info
             }
+            print('#'*100, self)
             self._service_session.publish(u'wamp.session.on_join', evt)
 
     def onWelcome(self, msg):
@@ -907,7 +913,7 @@ class RouterSessionFactory(object):
         self._routerFactory = routerFactory
         self._app_sessions = {}
 
-    def add(self, session, router, authid=None, authrole=None):
+    def add(self, session, router, authid=None, authrole=None, authextra=None):
         """
         Adds a WAMP application session to run directly in this router.
 
@@ -918,9 +924,10 @@ class RouterSessionFactory(object):
         assert isinstance(router, Router)
         assert authid is None or type(authid) == str
         assert authrole is None or type(authrole) == str
+        assert authextra is None or type(authextra) == dict
 
         if session not in self._app_sessions:
-            router_session = RouterApplicationSession(session, router, authid, authrole)
+            router_session = RouterApplicationSession(session, router, authid, authrole, authextra)
 
             self._app_sessions[session] = router_session
 

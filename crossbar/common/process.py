@@ -156,14 +156,13 @@ class NativeProcess(ApplicationSession):
             from crossbar.personality import Personality
             self.personality = Personality
 
+        # base ctor
+        super(ApplicationSession, self).__init__(config=config)
+
+        self._realm = config.realm if config  else None
         self._node_id = config.extra.node if config and config.extra else None
         self._worker_id = config.extra.worker if config and config.extra else None
         self._uri_prefix = u'crossbar.worker.{}'.format(self._worker_id)
-
-        print('?'*100, self._node_id, self._worker_id, config)
-
-        # base ctor
-        super(ApplicationSession, self).__init__(config=config)
 
     def onConnect(self, do_join=True):
         if not hasattr(self, 'cbdir'):
