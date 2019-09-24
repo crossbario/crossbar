@@ -299,7 +299,7 @@ class Dealer(object):
         # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
         # URI components must be non-empty other than for wildcard subscriptions
         #
-        is_rlink_session = isinstance(session, rlink._RLinkLocalSession)
+        is_rlink_session = isinstance(session, rlink.RLinkLocalSession)
         print('%'*100,
               session,
               is_rlink_session,
