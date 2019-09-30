@@ -299,7 +299,7 @@ class Dealer(object):
         # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
         # URI components must be non-empty other than for wildcard subscriptions
         #
-        is_rlink_session = isinstance(session, rlink.RLinkLocalSession)
+        is_rlink_session = isinstance(session, rlink.RLinkLocalSession)  # noqa
         if self._router.is_traced:
             if not register.correlation_id:
                 register.correlation_id = self._router.new_correlation_id()

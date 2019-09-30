@@ -159,7 +159,7 @@ class NativeProcess(ApplicationSession):
         # base ctor
         super(ApplicationSession, self).__init__(config=config)
 
-        self._realm = config.realm if config  else None
+        self._realm = config.realm if config else None
         self._node_id = config.extra.node if config and config.extra else None
         self._worker_id = config.extra.worker if config and config.extra else None
         self._uri_prefix = u'crossbar.worker.{}'.format(self._worker_id)
