@@ -342,9 +342,6 @@ class BridgeSession(ApplicationSession):
             reg = None
             while n > 0:
                 try:
-                    print('#'*100)
-                    print('on_registration_create', self.IS_REMOTE_LEG, n, uri)
-                    print('#'*100)
                     reg = yield other.register(
                         on_call,
                         uri,
@@ -430,8 +427,7 @@ class RLinkLocalSession(BridgeSession):
     DIR = hl('from remote to local', color='yellow', bold=True)
 
     def onConnect(self):
-        print('<1'*100, self.config)
-        self.log.info('ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ {klass}.onConnect()', klass=self.__class__.__name__)
+        self.log.info('{klass}.onConnect()', klass=self.__class__.__name__)
         # _BridgeSession.onConnect(self)
         authextra = {
             'rlink': self.config.extra['rlink']
@@ -442,7 +438,6 @@ class RLinkLocalSession(BridgeSession):
 
     @inlineCallbacks
     def onJoin(self, details):
-        print('<2'*100)
         assert self.config.extra and 'on_ready' in self.config.extra
         assert self.config.extra and 'other' in self.config.extra
 
@@ -822,8 +817,6 @@ class RLinkManager(object):
         local_authrole = 'trusted'
         local_config = ComponentConfig(local_realm, local_extra)
         local_session = RLinkLocalSession(local_config)
-
-        print('PPPPPPPPPPPPPPPPPPPP', link_config, local_authid, local_authrole)
 
         # setup remote session
         #

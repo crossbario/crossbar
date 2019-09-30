@@ -194,9 +194,6 @@ class RouterApplicationSession(object):
             self._session._authprovider = None
             self._session._authextra = self._trusted_authextra
 
-            if True or self._trusted_authextra:
-                print('-8-'*50, self._trusted_authextra)
-
             # add app session to router
             self._router.attach(self._session)
 
@@ -836,7 +833,6 @@ class RouterSession(BaseSession):
                 u'authprovider': details.authprovider,
                 u'transport': self._transport._transport_info
             }
-            print('#'*100, self)
             self._service_session.publish(u'wamp.session.on_join', evt)
 
     def onWelcome(self, msg):

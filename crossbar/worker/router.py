@@ -1158,7 +1158,6 @@ class RouterController(WorkerController):
             raise ApplicationError('crossbar.error.already_running',
                                    'router link {} already running'.format(link_id))
 
-        print('3'*100, link_config, self._node_id, self._worker_id)
         link_config = RLinkConfig.parse(self.personality, link_config, id=link_id)
 
         caller = SessionIdent.from_calldetails(details)
