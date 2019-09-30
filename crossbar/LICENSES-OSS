@@ -16,7 +16,7 @@
  argon2-cffi       19.1.0     MIT License                                          Hynek Schlawack                               
  asn1crypto        0.24.0     MIT License                                          wbond                                         
  attrs             19.1.0     MIT License                                          Hynek Schlawack                               
- autobahn          19.9.3     MIT License                                          Crossbar.io Technologies GmbH                 
+ autobahn          19.10.1    MIT License                                          Crossbar.io Technologies GmbH                 
  bcrypt            3.1.7      Apache Software License                              The Python Cryptographic Authority developers 
  bitstring         3.1.6      MIT License                                          Scott Griffiths                               
  cbor              1.0.0      Apache Software License                              Brian Olson                                   
