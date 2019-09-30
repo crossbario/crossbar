@@ -323,8 +323,8 @@ class Node(object):
             self._node_id = controller_config['id']
             _node_id_source = 'explicit configuration'
         else:
-            self._node_id = u'{}'.format(socket.gethostname()).lower()
-            _node_id_source = 'hostname'
+            self._node_id = u'{}-{}'.format(socket.gethostname(), os.getpid()).lower()
+            _node_id_source = 'hostname/pid'
         self.log.info('Node ID {node_id} set from {node_id_source}',
                       node_id=hlid(self._node_id),
                       node_id_source=_node_id_source)
@@ -355,11 +355,17 @@ class Node(object):
         # always add a realm service session
         cfg = ComponentConfig(self._realm)
         rlm.session = (self.ROUTER_SERVICE)(cfg, router)
-        self._router_session_factory.add(rlm.session, router, authrole=u'trusted')
-        self.log.debug('Router service session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
+        self._router_session_factory.add(rlm.session,
+                                         router,
+                                         authid=u'nodecontroller-serviceagent',
+                                         authrole=u'trusted')
+        self.log.debug('Router service agent session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
 
-        self._router_session_factory.add(self._controller, router, authrole=u'trusted')
-        self.log.debug('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
+        self._router_session_factory.add(self._controller,
+                                         router,
+                                         authid=u'nodecontroller',
+                                         authrole=u'trusted')
+        self.log.debug('Node controller session attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
 
         # add extra node controller components
         self._add_extra_controller_components(controller_config)
@@ -701,7 +707,9 @@ class Node(object):
                 d.addCallback(done)
                 dl.append(d)
 
-        yield gatherResults(dl)
+        # FIXME: rlinks must be started without waiting for them to be established. otherwise the start of other stuff
+        # is waiting for all rlinks to be up!
+        d = gatherResults(dl)
 
     @inlineCallbacks
     def _configure_native_worker_container(self, worker_logname, worker_id, worker):

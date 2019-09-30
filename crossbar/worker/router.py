@@ -302,7 +302,10 @@ class RouterController(WorkerController):
         }
         cfg = ComponentConfig(realm_name, extra)
         rlm.session = RouterServiceAgent(cfg, rlm.router)
-        self._router_session_factory.add(rlm.session, rlm.router, authrole=u'trusted')
+        self._router_session_factory.add(rlm.session,
+                                         rlm.router,
+                                         authid=u'routerworker-{}-realm-{}-serviceagent'.format(self._worker_id, realm_id),
+                                         authrole=u'trusted')
 
         yield extra['onready']
         self.log.info('RouterServiceAgent started on realm "{realm_name}"', realm_name=realm_name)

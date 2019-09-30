@@ -37,6 +37,7 @@ from collections.abc import Mapping, Sequence
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 
+from autobahn import util
 from autobahn.wamp.types import SessionIdent
 
 from crossbar._util import hl, hlid, hltype, hluserid
@@ -60,7 +61,7 @@ __all__ = (
 ERRMSG = False
 
 
-class _BridgeSession(ApplicationSession):
+class BridgeSession(ApplicationSession):
 
     log = make_logger()
 
@@ -102,7 +103,7 @@ class _BridgeSession(ApplicationSession):
                 self.log.error(
                     'on_subscription_create: sub ID {sub_id} already in map {method}',
                     sub_id=sub_id,
-                    method=hltype(_BridgeSession._setup_event_forwarding))
+                    method=hltype(BridgeSession._setup_event_forwarding))
                 return
 
             self._subs[sub_id] = sub_details
@@ -251,6 +252,7 @@ class _BridgeSession(ApplicationSession):
             me=self,
             other=other)
 
+        # called when a registration is created on the local router
         @inlineCallbacks
         def on_registration_create(reg_id, reg_details, details=None):
             """
@@ -270,7 +272,7 @@ class _BridgeSession(ApplicationSession):
                 self.log.error(
                     'on_registration_create: reg ID {reg_id} already in map {method}',
                     reg_id=reg_id,
-                    method=hltype(_BridgeSession._setup_invocation_forwarding))
+                    method=hltype(BridgeSession._setup_invocation_forwarding))
                 return
 
             self._regs[reg_id] = reg_details
@@ -367,8 +369,7 @@ class _BridgeSession(ApplicationSession):
                 details=details,
             )
 
-        # listen to when a registration is removed from the router
-        #
+        # called when a registration is removed from the local router
         @inlineCallbacks
         def on_registration_delete(session_id, reg_id, details=None):
             self.log.info(
@@ -393,7 +394,6 @@ class _BridgeSession(ApplicationSession):
             self.log.info("{other} unsubscribed from {uri}".format(other=other, uri=uri))
 
         # get current registrations on the router
-        #
         regs = yield self.call(u"wamp.registration.list")
         for reg_id in regs['exact']:
             reg = yield self.call(u"wamp.registration.get", reg_id)
@@ -405,6 +405,7 @@ class _BridgeSession(ApplicationSession):
             u"wamp.registration.on_create",
             options=SubscribeOptions(details_arg="details"))
 
+        # listen to when a registration is removed from the local router
         yield self.subscribe(
             on_registration_delete,
             u"wamp.registration.on_delete",
@@ -413,7 +414,7 @@ class _BridgeSession(ApplicationSession):
         self.log.info("{me}: call forwarding setup done", me=self)
 
 
-class _RLinkLocalSession(_BridgeSession):
+class RLinkLocalSession(BridgeSession):
     """
     This session is the local leg of the router-to-router link and runs embedded inside the local router.
     """
@@ -425,13 +426,23 @@ class _RLinkLocalSession(_BridgeSession):
     # direction in which events are flowing (published) via this session
     DIR = hl('from remote to local', color='yellow', bold=True)
 
+    def onConnect(self):
+        self.log.info('{klass}.onConnect()', klass=self.__class__.__name__)
+        # _BridgeSession.onConnect(self)
+        authextra = {
+            'rlink': self.config.extra['rlink']
+        }
+        self.join(self.config.realm,
+                  authid=self.config.extra['rlink'],
+                  authextra=authextra)
+
     @inlineCallbacks
     def onJoin(self, details):
         assert self.config.extra and 'on_ready' in self.config.extra
         assert self.config.extra and 'other' in self.config.extra
 
         remote = self.config.extra['other']
-        assert isinstance(remote, _RLinkRemoteSession)
+        assert isinstance(remote, RLinkRemoteSession)
 
         self._exclude_authid = self.config.extra.get('exclude_authid', None)
         self._exclude_authrole = self.config.extra.get('exclude_authrole', None)
@@ -448,7 +459,7 @@ class _RLinkLocalSession(_BridgeSession):
 
         self.log.debug(
             'Router link local session ready (forward_events={forward_events}, forward_invocations={forward_invocations}, realm={realm}, authid={authid}, authrole={authrole}, session={session}) {method}',
-            method=hltype(_RLinkLocalSession.onJoin),
+            method=hltype(RLinkLocalSession.onJoin),
             forward_events=hluserid(forward_events),
             forward_invocations=hluserid(forward_invocations),
             realm=hluserid(details.realm),
@@ -463,17 +474,17 @@ class _RLinkLocalSession(_BridgeSession):
     def onLeave(self, details):
         self.log.warn(
             'Router link local session down! (realm={realm}, authid={authid}, authrole={authrole}, session={session}, details={details}) {method}',
-            method=hltype(_RLinkLocalSession.onLeave),
+            method=hltype(RLinkLocalSession.onLeave),
             realm=hluserid(self.config.realm),
             authid=hluserid(self._authid),
             authrole=hluserid(self._authrole),
             details=details,
             session=hlid(self._session_id))
 
-        _BridgeSession.onLeave(self, details)
+        BridgeSession.onLeave(self, details)
 
 
-class _RLinkRemoteSession(_BridgeSession):
+class RLinkRemoteSession(BridgeSession):
     """
     This session is the remote leg of the router-to-router link.
     """
@@ -486,7 +497,7 @@ class _RLinkRemoteSession(_BridgeSession):
     DIR = hl('from local to remote', color='yellow', bold=True)
 
     def __init__(self, config):
-        _BridgeSession.__init__(self, config)
+        BridgeSession.__init__(self, config)
         self._subs = {}
         self._rlink_manager = self.config.extra['rlink_manager']
 
@@ -561,7 +572,7 @@ class _RLinkRemoteSession(_BridgeSession):
         assert self.config.extra and 'other' in self.config.extra
 
         local = self.config.extra['other']
-        assert isinstance(local, _RLinkLocalSession)
+        assert isinstance(local, RLinkLocalSession)
 
         self._exclude_authid = self.config.extra.get('exclude_authid', None)
         self._exclude_authrole = self.config.extra.get('exclude_authrole', None)
@@ -579,7 +590,7 @@ class _RLinkRemoteSession(_BridgeSession):
         self.log.info(
             '{klass}.onJoin(): rlink remote session ready (forward_events={forward_events}, forward_invocations={forward_invocations}, realm={realm}, authid={authid}, authrole={authrole}, session={session}) {method}',
             klass=self.__class__.__name__,
-            method=hltype(_RLinkLocalSession.onJoin),
+            method=hltype(RLinkRemoteSession.onJoin),
             forward_events=hluserid(forward_events),
             forward_invocations=hluserid(forward_invocations),
             realm=hluserid(details.realm),
@@ -596,14 +607,14 @@ class _RLinkRemoteSession(_BridgeSession):
         self.log.warn(
             '{klass}.onLeave(): rlink remote session left! (realm={realm}, authid={authid}, authrole={authrole}, session={session}, details={details}) {method}',
             klass=self.__class__.__name__,
-            method=hltype(_RLinkLocalSession.onLeave),
+            method=hltype(RLinkLocalSession.onLeave),
             realm=hluserid(self.config.realm),
             authid=hluserid(self._authid),
             authrole=hluserid(self._authrole),
             session=hlid(self._session_id),
             details=details)
 
-        _BridgeSession.onLeave(self, details)
+        BridgeSession.onLeave(self, details)
 
 
 class RLink(object):
@@ -612,8 +623,8 @@ class RLink(object):
         assert isinstance(config, RLinkConfig)
         assert started is None or type(started) == int
         assert started_by is None or isinstance(started_by, RLinkConfig)
-        assert local is None or isinstance(local, _RLinkLocalSession)
-        assert remote is None or isinstance(remote, _RLinkLocalSession)
+        assert local is None or isinstance(local, RLinkLocalSession)
+        assert remote is None or isinstance(remote, RLinkLocalSession)
 
         # link ID
         self.id = id
@@ -796,15 +807,16 @@ class RLinkManager(object):
         local_extra = {
             'other': None,
             'on_ready': Deferred(),
+            'rlink': link_id,
             # 'forward_events': False,
             'forward_events': link_config.forward_local_events,
         }
         local_realm = self._realm.config['name']
-        # local_authid = util.generate_serial_number()
-        local_authid = link_config.authid
+
+        local_authid = link_config.authid or util.generate_serial_number()
         local_authrole = 'trusted'
         local_config = ComponentConfig(local_realm, local_extra)
-        local_session = _RLinkLocalSession(local_config)
+        local_session = RLinkLocalSession(local_config)
 
         # setup remote session
         #
@@ -819,7 +831,7 @@ class RLinkManager(object):
         }
         remote_realm = link_config.realm
         remote_config = ComponentConfig(remote_realm, remote_extra)
-        remote_session = _RLinkRemoteSession(remote_config)
+        remote_session = RLinkRemoteSession(remote_config)
 
         # cross-connect the two sessions
         #
@@ -839,7 +851,7 @@ class RLinkManager(object):
             # connect the local session
             #
             self._realm.controller.router_session_factory.add(
-                local_session, self._realm.router, authid=local_authid, authrole=local_authrole)
+                local_session, self._realm.router, authid=local_authid, authrole=local_authrole, authextra=local_extra)
 
             yield local_extra['on_ready']
 

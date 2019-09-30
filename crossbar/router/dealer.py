@@ -48,6 +48,7 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
+from crossbar.worker import rlink
 
 from txaio import make_logger
 
@@ -298,6 +299,7 @@ class Dealer(object):
         # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
         # URI components must be non-empty other than for wildcard subscriptions
         #
+        is_rlink_session = isinstance(session, rlink.RLinkLocalSession)  # noqa
         if self._router.is_traced:
             if not register.correlation_id:
                 register.correlation_id = self._router.new_correlation_id()
@@ -373,7 +375,7 @@ class Dealer(object):
             #
             registration = self._registration_map.get_observation(register.procedure, register.match)
 
-            # if the session disconencted while the authorization was
+            # if the session disconnected while the authorization was
             # being checked, stop
             if session not in self._session_to_registrations:
                 # if the session *really* disconnected, it won't have
