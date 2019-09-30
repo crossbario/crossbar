@@ -1,3 +1,3 @@
 # NOT YET SUPPORTED: https://hub.docker.com/r/arm32v7/pypy/
 
-FROM arm32v7/pypy:3-slim
+FROM arm32v7/pypy:3.5-7.0.0-stretch

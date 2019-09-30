@@ -1,4 +1,4 @@
-FROM amd64/pypy:3-slim
+FROM amd64/pypy:3.5-7.0.0-stretch
 
 MAINTAINER The Crossbar.io Project <support@crossbario.com>
 
