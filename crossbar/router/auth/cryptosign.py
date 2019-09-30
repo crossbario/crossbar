@@ -125,13 +125,11 @@ class PendingAuthCryptosign(PendingAuth):
             # and we can infer the authid from that. BUT: that requires that
             # there is a 1:1 relation between authid's and pubkey's !! see below (*)
             if self._authid is None:
-                print('1'*100)
                 if pubkey:
                     # we do a naive search, but that is ok, since "static mode" is from
                     # node configuration, and won't contain a lot principals anyway
                     for _authid, _principal in self._config.get(u'principals', {}).items():
                         if pubkey in _principal[u'authorized_keys']:
-                            print('2' * 100, _authid)
                             # (*): this is necessary to detect multiple authid's having the same pubkey
                             # in which case we couldn't reliably map the authid from the pubkey
                             if self._authid is None:

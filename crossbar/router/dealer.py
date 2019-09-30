@@ -300,14 +300,6 @@ class Dealer(object):
         # URI components must be non-empty other than for wildcard subscriptions
         #
         is_rlink_session = isinstance(session, rlink.RLinkLocalSession)
-        print('%'*100,
-              session,
-              is_rlink_session,
-              session._session_id,
-              session._authid,
-              session._authrole,
-              session._authextra,
-              register.procedure)
         if self._router.is_traced:
             if not register.correlation_id:
                 register.correlation_id = self._router.new_correlation_id()
