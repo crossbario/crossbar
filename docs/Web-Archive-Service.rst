@@ -175,7 +175,7 @@ Above will
 Example
 -------
 
-Here is a complete node configuration example:
+Here is a complete node configuration example (store this in ``$CBDIR/config.json``):
 
 .. code-block:: json
 
@@ -200,7 +200,7 @@ Here is a complete node configuration example:
                         "paths": {
                             "/": {
                                 "type": "static",
-                                "directory": "../../web",
+                                "directory": "../web",
                                 "options": {
                                     "enable_directory_listing": true
                                 }
