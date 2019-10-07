@@ -25,6 +25,7 @@ Web services you want to run on that transport:
 -  :doc:`WSGI Host Service <WSGI-Host-Service>`
 -  :doc:`Resource Service <Resource-Service>`
 -  :doc:`Node Info Service <Node-Info-Service>`
+-  :doc:`Archive Service <Web-Archive-Service>`
 
 The following features of the :doc:`HTTP Bridge <HTTP-Bridge>` are also
 run as Web services on a Web transport of a router:
