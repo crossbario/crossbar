@@ -168,7 +168,7 @@ against a list of user configured, known good fingerprints:
 
 Above will
 
-1. download the archive file from ``https://github.com/crossbario/autobahn-js-browser/archive/master.zip`` and stores it as ``$CBDIR/master.zip``
+1. download the archive file from ``https://github.com/crossbario/autobahn-js-browser/archive/master.zip`` and stores it as ``$CBDIR/autobahn.zip``
 2. serves HTTP/GET requests from the file
 
 
@@ -199,14 +199,58 @@ Here is a complete node configuration example:
                         },
                         "paths": {
                             "/": {
+                                "type": "static",
+                                "directory": "../../web",
+                                "options": {
+                                    "enable_directory_listing": true
+                                }
+                            },
+                            "autobahn": {
                                 "type": "archive",
                                 "archive": "autobahn.zip",
                                 "origin": "https://github.com/crossbario/autobahn-js-browser/archive/master.zip",
+                                "object_prefix": "autobahn-js-browser-master",
+                                "default_object": "autobahn.min.js",
                                 "download": true,
                                 "cache": true,
+                                "hashes": [
+                                    "5ef1326e6f0f54e4552b5b5288d4dd2c96ad2e4164cd9e49886fe083fa5d8854"
+                                ],
                                 "mime_types": {
                                     ".min.js": "text/javascript",
                                     ".jgz": "text/javascript"
+                                }
+                            },
+                            "info": {
+                                "type": "nodeinfo"
+                            },
+                            "ws": {
+                                "type": "websocket",
+                                "serializers": [
+                                    "cbor", "msgpack", "json"
+                                ],
+                                "options": {
+                                    "allowed_origins": ["*"],
+                                    "allow_null_origin": true,
+                                    "enable_webstatus": true,
+                                    "max_frame_size": 1048576,
+                                    "max_message_size": 1048576,
+                                    "auto_fragment_size": 65536,
+                                    "fail_by_drop": true,
+                                    "open_handshake_timeout": 2500,
+                                    "close_handshake_timeout": 1000,
+                                    "auto_ping_interval": 10000,
+                                    "auto_ping_timeout": 5000,
+                                    "auto_ping_size": 4,
+                                    "compression": {
+                                        "deflate": {
+                                            "request_no_context_takeover": false,
+                                            "request_max_window_bits": 13,
+                                            "no_context_takeover": false,
+                                            "max_window_bits": 13,
+                                            "memory_level": 5
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -215,3 +259,10 @@ Here is a complete node configuration example:
             }
         ]
     }
+
+To use files from the ZIP, here is a HTML template piece:
+
+.. code-block:: html
+
+    <script type="text/javascript" src="{{ url_for('static', filename = 'autobahn/autobahn.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename = 'autobahn-xbr/autobahn-xbr.js') }}"></script>
