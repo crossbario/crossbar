@@ -163,19 +163,23 @@ against a list of user configured, known good fingerprints:
         "mime_types": {
             ".min.js": "text/javascript",
             ".jgz": "text/javascript"
-        }
+        },
+        "hashes": [
+            "5ef1326e6f0f54e4552b5b5288d4dd2c96ad2e4164cd9e49886fe083fa5d8854"
+        ]        
     }
 
 Above will
 
-1. download the archive file from ``https://github.com/crossbario/autobahn-js-browser/archive/master.zip`` and stores it as ``$CBDIR/autobahn.zip``
-2. serves HTTP/GET requests from the file
+1. download the archive file from ``https://github.com/crossbario/autobahn-js-browser/archive/master.zip``
+2. verify that the SHA256 fingerprint of the downloaded file matches ``5ef1326e6f0f54e4552b5b5288d4dd2c96ad2e4164cd9e49886fe083fa5d8854``, and if so, stores the downloaded file as ``$CBDIR/autobahn.zip``
+3. serves HTTP/GET requests from the files in the archive, caching all files in the archive in-memory
 
 
 Example
 -------
 
-Here is a complete node configuration example (store this in ``$CBDIR/config.json``):
+Check out this ``complete example <https://github.com/crossbario/crossbar-examples/tree/master/webservices/archive>``__ of a Crossbar.io node with an archive web service, or use this node configuration example as a starter (store this in ``$CBDIR/config.json``):
 
 .. code-block:: json
 
