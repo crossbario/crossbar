@@ -44,7 +44,7 @@ from crossbar.worker.router import RouterController
 from crossbar.worker import transport
 from crossbar.worker.container import ContainerController
 from crossbar.worker.testee import WebSocketTesteeController
-from crossbar.worker.proxy import ProxyNativeWorkerSession, ProxyWorkerProcess, PendingAuthProxy
+from crossbar.worker.proxy import ProxyController, ProxyWorkerProcess
 from crossbar.webservice import base
 from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static, archive, wap
 from crossbar.router.realmstore import MemoryRealmStore
@@ -109,9 +109,9 @@ def default_native_workers():
         }
     }
     factory['proxy'] = {
-        'process_class': ProxyNativeWorkerSession,
+        'process_class': ProxyWorkerProcess,
         'class': ProxyWorkerProcess,
-        'worker_class': ProxyNativeWorkerSession,
+        'worker_class': ProxyController,
 
         # FIXME: check a whole proxy worker configuration item (including transports, backends, ..)
         'checkconfig_item': _check_proxy_config,
@@ -286,7 +286,6 @@ class Personality(object):
     }
 
     EXTRA_AUTH_METHODS = {
-        u"proxy": PendingAuthProxy,
     }
 
     REALM_STORES = {

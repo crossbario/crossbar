@@ -243,11 +243,10 @@ class RouterTransport(object):
         returnValue(self)
 
     def _create_web_factory(self, create_paths=False, ignore=[]):
-        raise NotImplementedError()
+        raise NotImplementedError("_create_web_factory")
 
     @inlineCallbacks
     def _create_factory(self, create_paths=False, ignore=[]):
-
         # Twisted (listening endpoint) transport factory
         transport_factory = None
 

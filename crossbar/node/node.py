@@ -642,7 +642,7 @@ class Node(object):
 
                 if transport['type'] == 'web':
                     paths = transport.get('paths', {})
-                elif transport['type'] == 'universal':
+                elif transport['type'] in ('universal', 'proxy'):
                     paths = transport.get('web', {}).get('paths', {})
                 else:
                     paths = None
@@ -767,6 +767,9 @@ class Node(object):
                 transport_id=hlid(transport_id),
             )
 
+            # XXX we're doing startup, and begining proxy workers --
+            # want to share the web-transport etc etc stuff between
+            # these and otehr kinds of routers / transports
             yield self._controller.call(u'crossbar.worker.{}.start_proxy_transport'.format(worker_id),
                                         transport_id,
                                         transport,
