@@ -198,7 +198,7 @@ class ProxyWebSocketService(RouterWebService):
     @staticmethod
     def create(transport, path, config, controller):
         # this is the crossbar-specific wamp-websocket-server
-        #from crossbar.router.protocol import WampWebSocketServerFactory
+        # from crossbar.router.protocol import WampWebSocketServerFactory
         from autobahn.twisted.websocket import WampWebSocketServerFactory
         websocket_factory = WampWebSocketServerFactory(FrontendProxySession)
         websocket_factory.protocol = Frontend
