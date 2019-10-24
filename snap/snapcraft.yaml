@@ -23,19 +23,41 @@ architectures:
 
 apps:
   crossbar:
-    command: crossbar
+    command: python3.8 -u $SNAP/bin/crossbar
+    environment:
+      PYTHONPYCACHEPREFIX: $SNAP_DATA/pycache
+      PYTHONPATH: $PYTHONPATH:$SNAP/lib/python3.8/site-packages
     plugs:
       - home
       - network
       - network-bind
 
 parts:
+  py38:
+    plugin: nil
+    override-build: |
+      add-apt-repository ppa:deadsnakes/ppa -y
+      apt update
+      apt install python3.8 python3.8-venv python3.8-dev -y
   crossbar:
-    plugin: python
+    plugin: nil
     source: .
+    after:
+      - py38
+    override-build: |
+      snapcraftctl build
+      snapcraftctl set-version $(git describe --always --dirty | sed -e 's/-/+git/;y/-/./' | tail -c +2)
+      rm -rf venv
+      /usr/bin/python3.8 -m venv venv
+      venv/bin/python3 -m pip install .
+      find venv -type d -name __pycache__ -print0 | xargs -0 rm -rf
+      cp -r venv/* ${SNAPCRAFT_PART_INSTALL}
     stage-packages:
       - libsnappy1v5
+      - libunwind8
+      - python3.8
     build-packages:
+      - build-essential
       - gcc
       - libffi-dev
       - libssl-dev
@@ -44,15 +66,7 @@ parts:
       - libsnappy-dev
       - libunwind-dev
       - git
-    override-pull: |
-      snapcraftctl pull
-      snapcraftctl set-version $(git describe --always | sed -e 's/-/+git/;y/-/./' | tail -c +2)
-    override-prime: |
-      snapcraftctl prime
-      echo "Compiling pyc files..."
-      # Delete the file that would fail the compilation process
-      rm $SNAPCRAFT_PRIME/lib/python3.6/site-packages/crossbar/worker/test/examples/syntaxerror.py
-      $SNAPCRAFT_PART_INSTALL/usr/bin/python3 -m compileall -q $SNAPCRAFT_PRIME
+      - software-properties-common
 
 slots:
   runtime-dir:
