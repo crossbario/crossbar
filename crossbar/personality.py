@@ -44,9 +44,18 @@ from crossbar.worker.router import RouterController
 from crossbar.worker import transport
 from crossbar.worker.container import ContainerController
 from crossbar.worker.testee import WebSocketTesteeController
+from crossbar.worker.proxy import ProxyController, ProxyWorkerProcess
 from crossbar.webservice import base
 from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static, archive, wap
 from crossbar.router.realmstore import MemoryRealmStore
+
+
+def do_nothing(*args, **kw):
+    return
+
+
+def _check_proxy_config(personality, config):
+    print("_check_proxy_config: {}".format(config))
 
 
 def default_native_workers():
@@ -97,6 +106,21 @@ def default_native_workers():
         'topics': {
             'starting': u'crossbar.on_websocket_testee_starting',
             'started': u'crossbar.on_websocket_testee_started',
+        }
+    }
+    factory['proxy'] = {
+        'process_class': ProxyWorkerProcess,
+        'class': ProxyWorkerProcess,
+        'worker_class': ProxyController,
+
+        # FIXME: check a whole proxy worker configuration item (including transports, backends, ..)
+        'checkconfig_item': _check_proxy_config,
+        # FIXME: only check proxy worker options
+        'checkconfig_options': do_nothing,  # checkconfig.check_native_worker_options,
+        'logname': u'Proxy',
+        'topics': {
+            'starting': u'crossbar.on_proxy_starting',
+            'started': u'crossbar.on_proxy_started',
         }
     }
     return factory
@@ -261,7 +285,8 @@ class Personality(object):
         'wap': wap.RouterWebServiceWap,
     }
 
-    EXTRA_AUTH_METHODS = dict()
+    EXTRA_AUTH_METHODS = {
+    }
 
     REALM_STORES = {
         'memory': MemoryRealmStore
