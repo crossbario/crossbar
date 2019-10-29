@@ -1,9 +1,1 @@
-#!/bin/sh
-
-CACHE_DIR="$SNAP_DATA"/pycache
-PY=$SNAP/usr/bin/python3.8
-
-rm -rf "$CACHE_DIR"
-mkdir -p "$CACHE_DIR"
-export PYTHONPYCACHEPREFIX=$CACHE_DIR
-$PY -m compileall -x .*\.syntaxerror.py$ -q $SNAP/lib/python3.8/site-packages $SNAP/usr/lib/python3.8
+install
