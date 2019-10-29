@@ -21,9 +21,16 @@ architectures:
   - build-on: armhf
     run-on: armhf
 
+  - build-on: arm64
+    run-on: arm64
+
 apps:
   crossbar:
-    command: crossbar
+    command: python -u $SNAP/crossbar/bin/crossbar
+    environment:
+      PYTHONPYCACHEPREFIX: $SNAP_DATA/pycache
+      PYTHONPATH: $PYTHONPATH:$SNAP/crossbar
+      PATH: $PATH:$SNAP/crossbar/bin
     plugs:
       - home
       - network
@@ -31,11 +38,16 @@ apps:
 
 parts:
   crossbar:
-    plugin: python
+    plugin: py38
     source: .
+    override-build: |
+      snapcraftctl build
+      snapcraftctl set-version $(git describe --always --dirty | sed -e 's/-/+git/;y/-/./' | tail -c +2)
     stage-packages:
       - libsnappy1v5
+      - libunwind8
     build-packages:
+      - build-essential
       - gcc
       - libffi-dev
       - libssl-dev
@@ -44,15 +56,6 @@ parts:
       - libsnappy-dev
       - libunwind-dev
       - git
-    override-pull: |
-      snapcraftctl pull
-      snapcraftctl set-version $(git describe --always | sed -e 's/-/+git/;y/-/./' | tail -c +2)
-    override-prime: |
-      snapcraftctl prime
-      echo "Compiling pyc files..."
-      # Delete the file that would fail the compilation process
-      rm $SNAPCRAFT_PRIME/lib/python3.6/site-packages/crossbar/worker/test/examples/syntaxerror.py
-      $SNAPCRAFT_PART_INSTALL/usr/bin/python3 -m compileall -q $SNAPCRAFT_PRIME
 
 slots:
   runtime-dir:
