@@ -126,7 +126,6 @@ class Frontend(WampWebSocketServerProtocol):
     _backend_transport = None  # valid if we're completely setup
     _transport_d = None  # a Deferred if we're waiting for the backend
 
-
     def onConnect(self, request):
         print("frontend: onConnect: {}".format(request))
 
@@ -198,6 +197,7 @@ class Frontend(WampWebSocketServerProtocol):
             # XXX rawsocket-specific
             if not proto.isOpen():
                 orig = proto._on_handshake_complete
+
                 def _connected(*args, **kw):
                     x = orig(*args, **kw)
                     self._backend_transport.send(hello_msg)
@@ -345,8 +345,7 @@ class ProxyController(RouterController):
             raise RuntimeError("Only know about 'web' type services")
 
         # XXX remove "websocket" things from this config??
-        x = self.start_router_transport(transport_id, config, create_paths=False)
-        # print("started: {}".format(x))
+        self.start_router_transport(transport_id, config, create_paths=False)
 
         for path, path_config in config['paths'].items():
             if path_config['type'] == "websocket":
