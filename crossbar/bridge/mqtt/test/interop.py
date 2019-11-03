@@ -33,8 +33,6 @@ Server interop tests, making sure Crossbar's MQTT adapter responds the same as
 other MQTT servers.
 """
 
-from __future__ import print_function
-
 import click
 import attr
 import sys

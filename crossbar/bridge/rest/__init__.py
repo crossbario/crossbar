@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division
-
 from crossbar.bridge.rest.callee import RESTCallee
 from crossbar.bridge.rest.caller import CallerResource
 from crossbar.bridge.rest.publisher import PublisherResource

@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division
-
 from twisted.internet.defer import maybeDeferred
 
 from autobahn.wamp.types import CallResult

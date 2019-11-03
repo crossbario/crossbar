@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 from autobahn.twisted.websocket import WampWebSocketClientFactory, \
     WampWebSocketClientProtocol
 

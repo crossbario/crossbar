@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 from autobahn.wamp import types
 
 from txaio import make_logger

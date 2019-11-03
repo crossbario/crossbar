@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 from pytrie import StringTrie
 
 from autobahn.wamp.uri import convert_starred_uri, Pattern

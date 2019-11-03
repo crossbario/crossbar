@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division
-
 from bitstring import BitStream
 
 from crossbar.bridge.mqtt.protocol import (
