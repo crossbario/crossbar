@@ -1,4 +1,5 @@
 import os
+import pathlib
 import shlex
 import shutil
 import subprocess
@@ -41,9 +42,9 @@ class PythonPlugin(snapcraft.BasePlugin):
         self._run('ln -s python3.8 python', cwd=os.path.join(self.installdir, 'usr/bin'))
 
         target = os.path.join(self.installdir, 'crossbar')
-
-        self._run('rm -rf {}'.format(target))
-        self._run('mkdir {}'.format(target))
+        if os.path.exists(target):
+            shutil.rmtree(target)
+            pathlib.Path(target).mkdir()
 
         if self.options.python_packages and '__none__' in self.options.python_packages:
             return
@@ -51,15 +52,14 @@ class PythonPlugin(snapcraft.BasePlugin):
         self._run('/usr/bin/python3.8 -m ensurepip')
 
         if self.options.source:
-            self._run('/usr/bin/python3.8 -m pip install -t {} .'.format(target))
+            self._run('/usr/bin/python3.8 -m pip install --no-compile -t {} .'.format(target))
 
         if self.options.python_packages:
             packages = ' '.join(self.options.python_packages)
-            self._run('/usr/bin/python3.8 -m pip install -t {} {}'.format(target, packages))
+            self._run('/usr/bin/python3.8 -m pip install --no-compile -t {} {}'.format(target, packages))
 
-        for root, _, _ in os.walk(self.installdir, topdown=False):
-            if root.endswith('__pycache__') and os.path.exists(root):
-                shutil.rmtree(root)
+        for filename in pathlib.Path(target).rglob('*.so'):
+            self._run("strip -s {}".format(filename))
 
     @property
     def stage_packages(self):
