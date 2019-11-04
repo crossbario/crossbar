@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 from crossbar.worker.types import RouterComponent, RouterRealm, RouterRealmRole
 from twisted.internet.defer import Deferred, DeferredList, maybeDeferred, returnValue
 from twisted.internet.defer import inlineCallbacks

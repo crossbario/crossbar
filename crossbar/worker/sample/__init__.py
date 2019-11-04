@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 #
 # the imports here are important (though not used in CB unless configured),
 # because of single-exe packaging and pyinstaller otherwise missing deps

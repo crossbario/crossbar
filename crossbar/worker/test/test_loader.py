@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division, print_function
-
 from autobahn.wamp.exception import ApplicationError
 
 from crossbar.test import TestCase

@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 import os
 from zlmdb import time_ns
 import sys

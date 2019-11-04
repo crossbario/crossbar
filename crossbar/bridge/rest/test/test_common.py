@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 from crossbar.test import TestCase
 from crossbar._logging import LogCapturer
 from crossbar.bridge.rest import PublisherResource

@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 from urllib.parse import urljoin
 
 from twisted.internet.defer import inlineCallbacks, returnValue

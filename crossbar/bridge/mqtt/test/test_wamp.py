@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division
-
 import json
 
 from crossbar.router.test.helpers import make_router, connect_application_session, add_realm_to_router

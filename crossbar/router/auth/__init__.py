@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 from crossbar.router.auth.anonymous import PendingAuthAnonymous  # noqa
 from crossbar.router.auth.wampcra import PendingAuthWampCra  # noqa
 from crossbar.router.auth.ticket import PendingAuthTicket  # noqa

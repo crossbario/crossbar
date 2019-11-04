@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division
-
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.types import PublishOptions
 

@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division
-
 from autobahn.wamp.types import PublishOptions
 
 from crossbar._util import dump_json

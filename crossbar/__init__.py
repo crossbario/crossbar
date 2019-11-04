@@ -30,8 +30,6 @@
 
 """Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."""
 
-from __future__ import absolute_import
-
 from crossbar._version import __version__
 
 __all__ = ('__version__', 'version', 'run')

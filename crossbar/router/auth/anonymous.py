@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 from autobahn import util
 from autobahn.wamp import types
 

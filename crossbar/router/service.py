@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 

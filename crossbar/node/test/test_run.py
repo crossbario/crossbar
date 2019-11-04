@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division, print_function
-
 import json
 import os
 import sys
@@ -480,8 +478,7 @@ class MySession(ApplicationSession):
             ]
         }
 
-        myapp = """from __future__ import absolute_import, print_function
-from twisted.logger import Logger
+        myapp = """from twisted.logger import Logger
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from twisted.internet.defer import inlineCallbacks
