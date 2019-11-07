@@ -45,6 +45,7 @@ from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.webservice.base import RouterWebService
+from crossbar._util import hlid
 
 __all__ = ('RouterWebServiceWap', )
 
@@ -76,6 +77,7 @@ class WapResource(resource.Resource):
         self._session_cache = {}
 
         self._realm_name = config.get('wamp', {}).get('realm', None)
+        self._authrole = config.get('wamp', {}).get('authrole', 'anonymous')
         self._service_agent = worker.realm_by_name(self._realm_name).session
 
         #   TODO:
@@ -89,7 +91,7 @@ class WapResource(resource.Resource):
         #
         router = worker._router_factory.get(self._realm_name)
         self._default_session = ApplicationSession(ComponentConfig(realm=self._realm_name, extra=None))
-        worker._router_session_factory.add(self._default_session, router, authrole='anonymous')
+        worker._router_session_factory.add(self._default_session, router, authrole=self._authrole)
 
         # Setup Jinja2 to point to our templates folder
         #
@@ -97,7 +99,10 @@ class WapResource(resource.Resource):
             os.path.join(self._worker.config.extra.cbdir, config.get("templates")))
         env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
         self.log.info(
-            'WapResource is using templates directory "{templates_dir}"', templates_dir=templates_dir)
+            'WapResource added on realm "{realm}" (authrole "{authrole}") using templates directory "{templates_dir}"',
+            realm=hlid(self._realm_name),
+            authrole=hlid(self._authrole),
+            templates_dir=hlid(templates_dir))
 
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.Map
         map = Map()
