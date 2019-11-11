@@ -1,5 +1,5 @@
 attrs>=17.2.0
-autobahn[asyncio,twisted,encryption,compress,serialization,scram]>=19.10.1
+autobahn[asyncio,twisted,encryption,compress,serialization,scram]>=19.11.1
 bitstring>=3.1.5
 bcrypt>=3.1.6
 cbor>=1.0.0
@@ -43,5 +43,5 @@ vmprof>=0.4.12; platform_machine=='x86_64' or platform_machine=='i386' or platfo
 watchdog>=0.8.3
 werkzeug>=0.14.1
 wsaccel>=0.6.2; platform_python_implementation=='CPython'
-zlmdb>=19.9.2
+zlmdb>=19.11.1
 zope.interface>=4.4.2
