@@ -5,6 +5,15 @@
 Changelog
 =========
 
+19.11.1
+-------
+
+* new: authrole configuration for WAP web services
+* new: revise/improve WAMP proxy workers
+* new: snap improvements + use py3.8
+* fix: add Web-Archive service docs
+* fix: remove legacy python 2 imports
+
 19.10.1
 -------
 
