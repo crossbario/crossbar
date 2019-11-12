@@ -49,8 +49,6 @@ class PythonPlugin(snapcraft.BasePlugin):
         if self.options.python_packages and '__none__' in self.options.python_packages:
             return
 
-        self._run('/usr/bin/python3.8 -m ensurepip')
-
         if self.options.source:
             self._run('/usr/bin/python3.8 -m pip install --no-compile -t {} .'.format(target))
 
