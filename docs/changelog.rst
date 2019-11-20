@@ -5,6 +5,11 @@
 Changelog
 =========
 
+19.11.2
+-------
+
+* new: WAMP session statistics via WAMP meta API events (``wamp.session.on_stats``)
+
 19.11.1
 -------
 
