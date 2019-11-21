@@ -196,13 +196,23 @@ class Frontend(WampWebSocketServerProtocol):
 
             # XXX rawsocket-specific
             if not proto.isOpen():
-                orig = proto._on_handshake_complete
+                # rawsocket-specific
+                if hasattr(proto, "_on_handshake_complete"):
+                    orig = proto._on_handshake_complete
 
-                def _connected(*args, **kw):
-                    x = orig(*args, **kw)
-                    self._backend_transport.send(hello_msg)
-                    return x
-                proto._on_handshake_complete = _connected
+                    def _connected(*args, **kw):
+                        x = orig(*args, **kw)
+                        self._backend_transport.send(hello_msg)
+                        return x
+                    proto._on_handshake_complete = _connected
+
+                # websocket-specific
+                else:
+
+                    def _connected(arg):
+                        self._backend_transport.send(hello_msg)
+                        return arg
+                    proto.is_open.addCallback(_connected)
             else:
                 self._backend_transport.send(hello_msg)
 
