@@ -435,7 +435,7 @@ class RouterSession(BaseSession):
 
                 d = txaio.as_future(self.onHello, msg.realm, details)
 
-                def success(res):
+                def _on_success(res):
                     msg = None
                     # it is possible this session has disconnected
                     # while onHello was taking place
@@ -463,7 +463,12 @@ class RouterSession(BaseSession):
                     if msg:
                         self._transport.send(msg)
 
-                txaio.add_callbacks(d, success, self._swallow_error_and_abort)
+                def _on_error(err):
+                    self.log.warn('{klass}.onMessage(msg={msg}) -> callback user onHello raised {err}',
+                                  klass=self.__class__.__name__, msg=msg, err=err)
+                    return self._swallow_error_and_abort(err)
+
+                txaio.add_callbacks(d, _on_success, _on_error)
 
             elif isinstance(msg, message.Authenticate):
 
