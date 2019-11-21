@@ -435,7 +435,7 @@ class RouterSession(BaseSession):
 
                 d = txaio.as_future(self.onHello, msg.realm, details)
 
-                def success(res):
+                def _on_success(res):
                     msg = None
                     # it is possible this session has disconnected
                     # while onHello was taking place
@@ -463,7 +463,12 @@ class RouterSession(BaseSession):
                     if msg:
                         self._transport.send(msg)
 
-                txaio.add_callbacks(d, success, self._swallow_error_and_abort)
+                def _on_error(err):
+                    self.log.warn('{klass}.onMessage(msg={msg}) -> callback user onHello raised {err}',
+                                  klass=self.__class__.__name__, msg=msg, err=err)
+                    return self._swallow_error_and_abort(err)
+
+                txaio.add_callbacks(d, _on_success, _on_error)
 
             elif isinstance(msg, message.Authenticate):
 
@@ -574,6 +579,22 @@ class RouterSession(BaseSession):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onClose`
         """
+        self.log.debug('{klass}.onClose(was_clean={was_clean})',
+                       klass=self.__class__.__name__, was_clean=wasClean)
+
+        # publish final serializer stats for WAMP client connection being closed
+        session_info_short = {
+            'session': self._session_id,
+            'realm': self._realm,
+            'authid': self._authid,
+            'authrole': self._authrole,
+        }
+        session_stats = self._transport._serializer.stats()
+        session_stats['first'] = False
+        session_stats['last'] = True
+        self._service_session.publish('wamp.session.on_stats', session_info_short, session_stats)
+
+        # set transport to None: the session won't be usable anymore from here ..
         self._transport = None
 
         if self._session_id:
@@ -822,7 +843,7 @@ class RouterSession(BaseSession):
         # dispatch session metaevent from WAMP AP
         #
         if self._service_session:
-            evt = {
+            session_info_long = {
                 u'session': details.session,
                 u'authid': details.authid,
                 u'authrole': details.authrole,
@@ -831,7 +852,30 @@ class RouterSession(BaseSession):
                 u'authprovider': details.authprovider,
                 u'transport': self._transport._transport_info
             }
-            self._service_session.publish(u'wamp.session.on_join', evt)
+            self._service_session.publish(u'wamp.session.on_join', session_info_long)
+
+            # setup serializer stats event publishing
+            session_info_short = {
+                'realm': self._realm,
+                'session': details.session,
+                'authid': details.authid,
+                'authrole': details.authrole,
+            }
+
+            # if enabled, publish first stats event immediately when session is joined.
+            if False:
+                session_stats = self._transport._serializer.stats()
+                session_stats['first'] = True
+                session_stats['last'] = False
+                self._service_session.publish('wamp.session.on_stats', session_info_short, session_stats)
+
+            # publish stats events automatically ..
+            def on_stats(stats):
+                stats['first'] = False
+                stats['last'] = False
+                self._service_session.publish('wamp.session.on_stats', session_info_short, stats)
+
+            self._transport._serializer.set_stats_autoreset(5, 0, on_stats)
 
     def onWelcome(self, msg):
         # this is a hook for authentication methods to deny the
@@ -862,6 +906,22 @@ class RouterSession(BaseSession):
             # the transport vanished our _session_id will still be
             # valid.
             self._service_session.publish(u'wamp.session.on_leave', self._session_id)
+
+            if self._transport:
+                # publish final serializer stats for WAMP client connection being closed
+                session_info_short = {
+                    'session': self._session_id,
+                    'realm': self._realm,
+                    'authid': self._authid,
+                    'authrole': self._authrole,
+                }
+                session_stats = self._transport._serializer.stats()
+                session_stats['first'] = False
+                session_stats['last'] = True
+                self._service_session.publish('wamp.session.on_stats', session_info_short, session_stats)
+            else:
+                self.log.warn('{klass}.onLeave() - co0uld not retrieve last statistics for closing session {session_id}',
+                              klass=self.__class__.__name__, session_id=self._session_id)
 
         self._session_details = None
 

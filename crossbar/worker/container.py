@@ -384,7 +384,8 @@ class ContainerController(WorkerController):
                 # is necessary for container-components (as opposed to
                 # router-components) to work as expected
                 def _ready(s):
-                    joined_d.callback(None)
+                    if not joined_d.called:
+                        joined_d.callback(None)
                 session.on('ready', _ready)
 
                 def _left(s, details):
