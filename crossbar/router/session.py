@@ -865,14 +865,18 @@ class RouterSession(BaseSession):
 
             realm_config = self._router_factory._routers[self._realm]._realm.config
             if 'stats' in realm_config:
+                rated_message_size = realm_config['stats'].get('rated_message_size', 512)
                 trigger_after_rated_messages = realm_config['stats'].get('trigger_after_rated_messages', 0)
                 trigger_after_duration = realm_config['stats'].get('trigger_after_duration', 0)
                 trigger_on_join = realm_config['stats'].get('trigger_on_join', False)
+                trigger_on_leave = realm_config['stats'].get('trigger_on_leave', True)
 
+                assert type(rated_message_size) == int and rated_message_size > 0 and rated_message_size % 2 == 0
                 assert type(trigger_after_rated_messages) == int
                 assert type(trigger_after_duration) == int
                 assert trigger_after_rated_messages or trigger_after_duration
                 assert type(trigger_on_join) == bool
+                assert type(trigger_on_leave) == bool
 
                 # setup serializer stats event publishing
                 session_info_short = {
@@ -881,6 +885,7 @@ class RouterSession(BaseSession):
                     'authid': details.authid,
                     'authrole': details.authrole,
                 }
+                self._stats_trigger_on_leave = trigger_on_leave
 
                 # if enabled, publish first stats event immediately when session is joined.
                 if trigger_on_join:
@@ -888,23 +893,33 @@ class RouterSession(BaseSession):
                     session_stats['first'] = True
                     session_stats['last'] = False
                     self._service_session.publish('wamp.session.on_stats', session_info_short, session_stats)
+                    self._stats_has_triggered_first = True
+                else:
+                    self._stats_has_triggered_first = False
 
                 # publish stats events automatically ..
                 def on_stats(stats):
-                    stats['first'] = False
+                    if self._stats_has_triggered_first:
+                        stats['first'] = False
+                    else:
+                        stats['first'] = True
+                        self._stats_has_triggered_first = True
                     stats['last'] = False
                     self._service_session.publish('wamp.session.on_stats', session_info_short, stats)
 
+                self._transport._serializer.RATED_MESSAGE_SIZE = rated_message_size
                 self._transport._serializer.set_stats_autoreset(trigger_after_rated_messages,
                                                                 trigger_after_duration,
                                                                 on_stats)
 
                 self._stats_enabled = True
 
-                self.log.info('WAMP session statistics {mode} (trigger_after_rated_messages={trigger_after_rated_messages}, trigger_after_duration={trigger_after_duration}, trigger_on_join={trigger_on_join})',
+                self.log.info('WAMP session statistics {mode} (rated_message_size={rated_message_size}, trigger_after_rated_messages={trigger_after_rated_messages}, trigger_after_duration={trigger_after_duration}, trigger_on_join={trigger_on_join}, trigger_on_leave={trigger_on_leave})',
                               trigger_after_rated_messages=trigger_after_rated_messages,
                               trigger_after_duration=trigger_after_duration,
                               trigger_on_join=trigger_on_join,
+                              trigger_on_leave=trigger_on_leave,
+                              rated_message_size=rated_message_size,
                               mode=hl('ENABLED'))
 
             else:
@@ -941,7 +956,7 @@ class RouterSession(BaseSession):
             # valid.
             self._service_session.publish(u'wamp.session.on_leave', self._session_id)
 
-            if self._stats_enabled:
+            if self._stats_enabled and self._stats_trigger_on_leave:
                 if self._transport:
                     # publish final serializer stats for WAMP client connection being closed
                     session_info_short = {
@@ -951,7 +966,13 @@ class RouterSession(BaseSession):
                         'authrole': self._authrole,
                     }
                     session_stats = self._transport._serializer.stats()
-                    session_stats['first'] = False
+
+                    # the stats might both be the first _and_ the last we'll publish for this session
+                    if self._stats_has_triggered_first:
+                        session_stats['first'] = False
+                    else:
+                        session_stats['first'] = True
+                        self._stats_has_triggered_first = True
                     session_stats['last'] = True
                     self._service_session.publish('wamp.session.on_stats', session_info_short, session_stats)
                 else:
