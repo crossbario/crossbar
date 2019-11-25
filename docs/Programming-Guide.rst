@@ -31,6 +31,7 @@ General
 -  :doc:`Logging in Crossbar.io <Logging-in-Crossbar.io>`
 -  :doc:`Error Handling <Error-Handling>`
 -  :doc:`Session Meta Events and Procedures <Session-Metaevents-and-Procedures>`
+-  :doc:`Session Statistics <Session-Statistics>`
 -  :doc:`Development with External Devices <Development-with-External-Devices>`
 
 Publish and Subscribe
