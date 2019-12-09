@@ -127,7 +127,7 @@ class Frontend(WampWebSocketServerProtocol):
     _transport_d = None  # a Deferred if we're waiting for the backend
 
     def onConnect(self, request):
-        print("frontend: onConnect: {}".format(request))
+        # print("frontend: onConnect: {}".format(request))
 
         # okay, so we actually wait for the first message from the
         # client before connecting to the backend -- this message MUST
@@ -139,7 +139,7 @@ class Frontend(WampWebSocketServerProtocol):
         # cancel any previous backend connection setup attempts in
         # such a case).
         self._await_hello = request
-        print("Frontend.onConnect(): request protocols: {}".format(request.protocols))
+        # print("Frontend.onConnect(): request protocols: {}".format(request.protocols))
         x = super(Frontend, self).onConnect(request)
         # print("returning: {}".format(x))
         return x
@@ -165,16 +165,18 @@ class Frontend(WampWebSocketServerProtocol):
 
         controller = self.factory._controller
         backend_config = controller._find_backend_for(request, hello_msg.realm)
-        print("found config: {}".format(backend_config))
-        print("found config: {}".format(backend_config['transport']))
-        backend = _create_transport(0, backend_config["transport"])
+        # print("found config: {}".format(backend_config))
+        if 'id' in backend_config:  # FIXME
+            del backend_config['id']
+
+        backend = _create_transport(0, backend_config)
 
         # print("control: {}".format(controller))
         # print("backend: {}".format(backend))
 
         # client-factory
         factory = _create_transport_factory(reactor, backend, BackendProxySession)
-        endpoint = _create_transport_endpoint(reactor, backend_config["transport"]["endpoint"])
+        endpoint = _create_transport_endpoint(reactor, backend_config["endpoint"])
         self._transport_d = endpoint.connect(factory)
 
         def good(proto):
@@ -218,7 +220,7 @@ class Frontend(WampWebSocketServerProtocol):
 
         def bad(f):
             self._transport_d = None
-            print("fail: {}".format(f))
+            # print("fail: {}".format(f))
             self._teardown()
         self._transport_d.addCallbacks(good, bad)
         return self._transport_d
@@ -325,6 +327,7 @@ class ProxyController(RouterController):
         backend with no 'realm' key is a default one.
         """
         default_config = None
+        # print("find_backend_for({}, {}): {}".format(request, realm, self._backend_configs))
         for name, config in self._backend_configs.items():
             if realm == config.get("realm", None):
                 return config
@@ -354,11 +357,31 @@ class ProxyController(RouterController):
         if config['type'] != "web":
             raise RuntimeError("Only know about 'web' type services")
 
-        # XXX remove "websocket" things from this config??
-        self.start_router_transport(transport_id, config, create_paths=False)
+        # we remove "websocket-proxy" items from this config; only
+        # this class knows about those, but we want the base-class to
+        # start all other services
+
+        def filter_paths(paths):
+            """
+            remove any 'websocket-proxy' type configs
+            """
+            return {
+                k: v
+                for k, v in paths.items()
+                if v['type'] != "websocket-proxy"
+            }
+
+        config_prime = dict()
+        for k, v in config.items():
+            if k == 'paths':
+                config_prime[k] = filter_paths(v)
+            else:
+                config_prime[k] = v
+
+        x = yield self.start_router_transport(transport_id, config_prime, create_paths=False)
 
         for path, path_config in config['paths'].items():
-            if path_config['type'] == "websocket":
+            if path_config['type'] == "websocket-proxy":
                 # XXX okay this is where we "actually" want to start a
                 # proxy worker .. which just shovels bytes to the
                 # "backend". Are we assured exactly one backend? (At
