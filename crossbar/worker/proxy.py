@@ -163,8 +163,9 @@ class Frontend(WampWebSocketServerProtocol):
         from autobahn.wamp.component import _create_transport
         from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 
-        controller = self.factory._controller
-        backend_config = controller._find_backend_for(request, hello_msg.realm)
+        #controller = self.factory._controller
+        service = self.factory._service
+        backend_config = service._find_backend_for(request, hello_msg.realm)
         # print("found config: {}".format(backend_config))
         if 'id' in backend_config:  # FIXME
             del backend_config['id']
@@ -176,6 +177,7 @@ class Frontend(WampWebSocketServerProtocol):
 
         # client-factory
         factory = _create_transport_factory(reactor, backend, BackendProxySession)
+        factory._frontend = self
         endpoint = _create_transport_endpoint(reactor, backend_config["endpoint"])
         self._transport_d = endpoint.connect(factory)
 
@@ -271,10 +273,11 @@ class Frontend(WampWebSocketServerProtocol):
 
 class ProxyWebSocketService(RouterWebService):
     """
-    For every 'type=websocket' node configured in a proxy there is one
+    For every 'type=websocket-proxy' node configured in a proxy there is one
     of these; it will start FrontendProxySession instances upon every client
     connection
     """
+    _backend_configs = None
 
     @staticmethod
     def create(transport, path, config, controller):
@@ -283,11 +286,92 @@ class ProxyWebSocketService(RouterWebService):
         from autobahn.twisted.websocket import WampWebSocketServerFactory
         websocket_factory = WampWebSocketServerFactory(FrontendProxySession)
         websocket_factory.protocol = Frontend
-        websocket_factory._controller = controller
+        #websocket_factory._controller = controller
 
         resource = WebSocketResource(websocket_factory)
 
-        return ProxyWebSocketService(transport, path, config, resource)
+        service = ProxyWebSocketService(transport, path, config, resource)
+        websocket_factory._service = service
+
+        # a proxy-transport must have at least one backend (fixme: checkconfig)
+
+        print("DING")
+        for path, path_config in config.get("paths", dict()).items():
+            if path_config['type'] != 'websocket-proxy':
+                continue
+            for k, v in path_config.items():
+                print("  {}: {}".format(k, v))
+            backends = path_config['backends']
+            for backend in backends:
+                service.start_backend_for_path(u"/{}".format(path), backend)
+
+        return service
+
+    def start_backend_for_path(self, path, config, details=None):
+        if self._backend_configs is None:
+            self._backend_configs = dict()
+
+        if path not in self._backend_configs:
+            path_backend = list()
+            self._backend_configs[path] = path_backend
+        else:
+            path_backend = self._backend_configs[path]
+
+        # all backends must have unique realms configured. there may
+        # be a single default realm (i.e. no "realm" tag at all)
+        for existing in path_backend:
+            if existing.get('realm', None) == options.get('realm', None):
+                # if the realm is None, there isn't one .. which means
+                # "default", but there can be only one default (per path)
+                if existing.get('realm', None) is None:
+                    raise ApplicationError(
+                        u"crossbar.error",
+                        u"There can be only one default backend for path {}".format(path),
+                    )
+
+        # XXX FIXME checkconfig
+        path_backend.append(config)
+
+    def _find_backend_for(self, request, realm):
+        """
+        Returns the backend configuration for the given request + realm. A
+        backend with no 'realm' key is a default one.
+        """
+        print("_find_backend_for({}, {})".format(request, realm))
+        if self._backend_configs is None:
+            self._backend_configs = dict()
+        default_config = None
+
+        print(dir(request))
+        print(request)
+        print("path: {}".format(request.path))
+        if request.path not in self._backend_configs:
+            print("have: {}".format(self._backend_configs.keys()))
+            raise ApplicationError(
+                u"crossbar.error",
+                "No backends at path '{}'".format(
+                    request.path,
+                )
+            )
+
+        backends = self._backend_configs[request.path]
+        print("{}: {}".format(request.path, backends))
+        for config in backends:
+            if realm == config.get("realm", None):
+                return config
+            if config.get("realm", None) is None:
+                default_config = config
+
+        # we didn't find a config for the given realm .. but perhaps
+        # there is a default config?
+        if default_config is None:
+            raise ApplicationError(
+                u"crossbar.error",
+                "No backend for realm '{}' (and no default backend)".format(
+                    realm,
+                )
+            )
+        return default_config
 
 
 class ProxyController(RouterController):
@@ -320,30 +404,6 @@ class ProxyController(RouterController):
         yield WorkerController.onJoin(self, details, publish_ready=False)
 
         yield self.publish_ready()
-
-    def _find_backend_for(self, request, realm):
-        """
-        Returns the backend configuration for the given request + realm. A
-        backend with no 'realm' key is a default one.
-        """
-        default_config = None
-        # print("find_backend_for({}, {}): {}".format(request, realm, self._backend_configs))
-        for name, config in self._backend_configs.items():
-            if realm == config.get("realm", None):
-                return config
-            if config.get("realm", None) is None:
-                default_config = config
-
-        # we didn't find a config for the given realm .. but perhaps
-        # there is a default config?
-        if default_config is None:
-            raise ApplicationError(
-                u"crossbar.error",
-                "No backend for realm '{}' (and no default backend)".format(
-                    realm,
-                )
-            )
-        return default_config
 
     @wamp.register(None)
     @inlineCallbacks
@@ -387,7 +447,9 @@ class ProxyController(RouterController):
                 # "backend". Are we assured exactly one backend? (At
                 # this point, we have to assume yes I think)
                 transport = self.transports[transport_id]  # should always exist now .. right?
-                webservice = yield maybeDeferred(ProxyWebSocketService.create, transport, path, config, self)
+                webservice = yield maybeDeferred(
+                    ProxyWebSocketService.create, transport, path, config, self
+                )
                 transport.root[path] = webservice
             else:
                 yield self.start_web_transport_service(
@@ -408,30 +470,19 @@ class ProxyController(RouterController):
         del self._transports[name]
 
     @wamp.register(None)
-    def start_proxy_backend(self, name, options, details=None):
+    def start_proxy_backend(self, transport_id, name, options, details=None):
         self.log.info(
-            u"start_proxy_backend {name}: {options}",
+            u"start_proxy_backend '{transport_id}': {name}: {options}",
+            transport_id=transport_id,
             name=name,
             options=options,
         )
-        # names must be unique
-        if name in self._backend_configs:
+
+        if transport_id not in self._transports:
             raise ApplicationError(
                 u"crossbar.error",
-                u"Multiple backends with name '{}'".format(name),
+                u"start_proxy_backend: no transport '{}'".format(transport_id),
             )
 
-        # all backends must have unique realms configured. there may
-        # be a single default realm (i.e. no "realm" tag at all)
-        for existing in self._backend_configs.values():
-            if existing.get('realm', None) == options.get('realm', None):
-                # if the realm is None, there isn't one .. which means
-                # "default", but there can be only one default
-                if existing.get('realm', None) is None:
-                    raise ApplicationError(
-                        u"crossbar.error",
-                        u"There can be only one default backend",
-                    )
-
-        # XXX FIXME checkconfig
-        self._backend_configs[name] = options
+        print("XXX", self._transport[transport_id])
+        return self._transport[transport_id].start_backend(name, options)
