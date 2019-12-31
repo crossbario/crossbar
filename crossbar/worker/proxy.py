@@ -32,13 +32,12 @@ from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
 from autobahn import wamp
 from autobahn.wamp.exception import ApplicationError, TransportLost
-from autobahn.wamp.message import Hello, Goodbye
+from autobahn.wamp.message import Goodbye
 from autobahn.wamp.component import _create_transport
 from autobahn.wamp.websocket import parseSubprotocolIdentifier
 from autobahn.wamp.websocket import WampWebSocketFactory  # just for protocol negotiation..
 from autobahn.twisted.wamp import Session
 from autobahn.twisted.resource import WebSocketResource
-from autobahn.twisted.websocket import WampWebSocketServerProtocol
 from autobahn.twisted.websocket import WebSocketServerProtocol
 from autobahn.twisted.websocket import WebSocketServerFactory
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
@@ -353,7 +352,7 @@ class ProxyWebSocketService(RouterWebService):
         # all backends must have unique realms configured. there may
         # be a single default realm (i.e. no "realm" tag at all)
         for existing in path_backend:
-            if existing.get('realm', None) == options.get('realm', None):
+            if existing.get('realm', None) == config.get('realm', None):
                 # if the realm is None, there isn't one .. which means
                 # "default", but there can be only one default (per path)
                 if existing.get('realm', None) is None:
@@ -466,7 +465,7 @@ class ProxyController(RouterController):
             else:
                 config_prime[k] = v
 
-        x = yield self.start_router_transport(transport_id, config_prime, create_paths=False)
+        yield self.start_router_transport(transport_id, config_prime, create_paths=False)
 
         for path, path_config in config['paths'].items():
             if path_config['type'] == "websocket-proxy":
