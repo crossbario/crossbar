@@ -777,27 +777,3 @@ class Node(object):
                 worker_logname=worker_logname,
                 transport_id=hlid(transport_id),
             )
-
-        for i, backend in enumerate(worker.get('backends', [])):
-
-            if 'id' in backend:
-                backend_id = backend['id']
-            else:
-                backend_id = 'backend{:03d}'.format(i)
-                backend['id'] = backend_id
-
-            self.log.info(
-                "Order {worker_logname} to start BackendTransport {backend_id}",
-                worker_logname=worker_logname,
-                backend_id=hlid(backend_id),
-            )
-
-            yield self._controller.call(u'crossbar.worker.{}.start_proxy_backend'.format(worker_id),
-                                        backend_id,
-                                        backend,
-                                        options=CallOptions())
-            self.log.info(
-                "Ok, {worker_logname} has started BackendTransport {backend_id}",
-                worker_logname=worker_logname,
-                transport_id=hlid(backend_id),
-            )

@@ -31,11 +31,16 @@
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
 from autobahn import wamp
-from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.message import Hello
+from autobahn.wamp.exception import ApplicationError, TransportLost
+from autobahn.wamp.message import Goodbye
+from autobahn.wamp.component import _create_transport
+from autobahn.wamp.websocket import parseSubprotocolIdentifier
+from autobahn.wamp.websocket import WampWebSocketFactory  # just for protocol negotiation..
 from autobahn.twisted.wamp import Session
 from autobahn.twisted.resource import WebSocketResource
-from autobahn.twisted.websocket import WampWebSocketServerProtocol
+from autobahn.twisted.websocket import WebSocketServerProtocol
+from autobahn.twisted.websocket import WebSocketServerFactory
+from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
@@ -69,116 +74,194 @@ class BackendProxySession(Session):
     """
 
     def onOpen(self, transport):
+        # print("BackendProxySession.onOpen", transport, self)
         # instance of Frontend
         self._frontend = transport._proxy_other_side
+        Session.onOpen(self, transport)
+
+    def onConnect(self):
+        """
+        The base class will call .join() which we do NOT want to do;
+        instead we await the frontend sending its hello and forward
+        that along.
+        """
+        pass
+
+    def onClose(self, wasClean):
+        if self._frontend.transport:
+            self._frontend.transport.loseConnection()
+        self._frontend = None
+        super(BackendProxySession, self).onClose(wasClean)
 
     def onMessage(self, msg):
         # 'msg' is a real WAMP message that our backend WAMP protocol
         # has deserialized -- so now we re-serialize it for whatever
         # the frontend is speaking
-        self._frontend.send(msg)
+        self._frontend.forward_message(msg)
 
-        # XXX if they're both speaking the same serializer, can we
-        # avoid deserializing here and just pass along the bytes
-        # .. somehow? (We could monkey-patch the transports so they
-        # bypass the deserialize .. but, yuck)
+        # ... should we do this explicitly, or just count on the
+        # "disconnect" propogating properly
+        if False and isinstance(msg, Goodbye) and self._frontend:
+            self._frontend.transport.loseConnection()
+            self._frontend = None
 
 
-class FrontendProxySession(Session):
+class FrontendProxyProtocol(WebSocketServerProtocol):
     """
-    This is a single WAMP session from a client.
+    When a client connects, ProxyWebSocketService creates an instance
+    of this to handle the connection so there is one instance of this
+    class every client connection.
 
-    There is one of these for every client connection. This will take
-    incoming messages and pass them to the backend, and take backend
-    messages and forward them to the client.  (In the future, we could
-    multiplex over a single backend connection -- for now, there's a
-    backend connection per frontend client).
+    Note that this is just a WebSocket connection, not a WAMP one
+    .. although we do *some* WAMP handling because we wait for the
+    `Hello` before connecting to the backend in order to have the
+    realm. Mostly, WAMP messages are shuffled to the backend (see
+    `onMessage`) and WAMP messages from the backend (see
+    `forward_message`) are written to the front.
 
-    XXX serializer translation?
+    Care must be taken with 'connected-ness': if the frontend
+    disconnects (either 'nicely' via a Goodbye or 'not nicely' via
+    disconnecting the transport or just dropping) we must inform the
+    backend connection (and vice-versa).
 
-    XXX before ^ just negotiate with the frontend to have the same
-    serializer as the backend.
-    """
+    Future enhancements:
 
-    def onOpen(self, transport):
-        # instance of RawSocketProtocol or WebSocketProtocol
-        self._backend = transport._session
+     - multiplex over a single backend connection -- for now, there's
+       a backend connection per frontend client.
 
-    def onMessage(self, msg):
-        # print("FrontendProxySession.onMessage(): {}".format(msg))
-        # 'msg' is a real WAMP message that our frontend WAMP protocol
-        # has deserialized -- so now we re-serialize it for whatever
-        # the backend is speaking
-        self._backend.send(msg)
-
-        # XXX if they're both speaking the same serializer, can we
-        # avoid deserializing here and just pass along the bytes
-        # .. somehow?
-
-
-class Frontend(WampWebSocketServerProtocol):
-    """
-    The WebSocket protocol instance that talks to the real client that
-    has contacted the proxy.
+     - might be able to optimize out some de/serialization (although
+       the need to 'spy' on some messages might make this
+       hard). Another option is to prefer a 'zero work' serialization
+       format like CapnProto or flatbuffers (at least for the backend
+       connection -- producing less load on that end).
     """
 
-    _await_hello = None  # a Request if we're still waiting for the Hello message
-    _backend_transport = None  # valid if we're completely setup
-    _transport_d = None  # a Deferred if we're waiting for the backend
+    _backend_transport = None
+
+    def onClose(self, wasClean, code, reason):
+        # print("FrontendProxySession.onClose: {} {} {}".format(wasClean, code, reason))
+        if self._backend_transport:
+            try:
+                self._backend_transport.send(
+                    Goodbye(
+                        reason=u"wamp.close.error",
+                        message=reason,
+                    )
+                )
+                self._backend_transport.close()
+            except TransportLost:
+                self.transport = None
 
     def onConnect(self, request):
-        print("frontend: onConnect: {}".format(request))
+        """
+        We have a connection! However, we want to wait until the client
+        sends a `Hello` so we know the realm -- thus we cache the
+        request. We do protocol-negotiation here though, so that we
+        can continue the handshake and thus get the `Hello`.
+        """
+        # print("FrontendProxyProtocol.onConnect({})".format(request))
+        # XXX can we leverage WampWebSocketServerProtocol to do this
+        # .. withOUT "being" one of those?
 
-        # okay, so we actually wait for the first message from the
-        # client before connecting to the backend -- this message MUST
-        # be a "Hello" message which will tell us the realm. This
-        # allows configuration of different backends per-realm.
+        self._request = request
+        # we are using this factory *just* for its knowledge of valid serializers
+        fac = WampWebSocketFactory(None, serializers=self.factory._service._serializers)
+        # note: we don't have to copy the serializer instance out of
+        # "fac" becaue we throw the factory away at the end of this
+        # method -- but we DO want a unique serializer instance for
+        # every protocol instance (because it keeps statistics)
 
-        # could check if _await_hello is not None, which means two
-        # connects in a row (that is, some error-handling code should
-        # cancel any previous backend connection setup attempts in
-        # such a case).
-        self._await_hello = request
-        print("Frontend.onConnect(): request protocols: {}".format(request.protocols))
-        x = super(Frontend, self).onConnect(request)
-        # print("returning: {}".format(x))
-        return x
+        self._awaiting_hello = True
+        for subprotocol in request.protocols:
+            version, serializer_id = parseSubprotocolIdentifier(subprotocol)
+            if version == 2:
+                s = fac._serializers.get(serializer_id, None)
+                if s is not None:
+                    self._serializer = s
+                    return subprotocol
+
+        # error? or do we want the same the assumptions in onConnect
+        # from wampwebsocketserver? (should ideally factor that part
+        # out of there and use it directly)
+        self._serializer = fac._serializers["json"]
+        return "wamp.2.json"
+
+    def onMessage(self, payload, isBinary):
+        """
+        We've received messages from the frontend client; if we're still
+        awaiting the first (`Hello`) message, we treat it specially
+        (we wait for the `Hello` so we can find out the realm, thus
+        basing our decision as to which backend to connect to on
+        that). Otherwise, we just forward everything onwards.
+        """
+        # XXX THINK: is it possible for more messages to arrive BEFORE
+        # _hello_received() finishes processing (and thus we've sent
+        # the Hello onwards to the real backend)? I don't believe so:
+        # the client won't (is that a MUST NOT, though?) send more
+        # until it gets the Welcome, which will only arrive via the
+        # real backend...
+
+        # print("onMessage({} bytes, isBinary={})".format(len(payload), isBinary))
+
+        messages = self._serializer.unserialize(payload, isBinary)
+
+        if self._awaiting_hello:
+            if len(messages) != 1:
+                raise RuntimeError(
+                    "While waiting for Hello message, got {} WAMP "
+                    "messages (expected exactly one)".format(len(messages))
+                )
+            hello = messages[0]
+            # print("hello: realm='{}' path='{}'".format(hello.realm, self._request.path))
+            self._hello_received(self._request, hello)
+            self._request = None
+
+        else:
+            # XXX it MIGHT be possible to skip the deserialization and
+            # re-serialization here if we know the backend is using
+            # the same serializer .. right? (or, are there
+            # edge-cases?)
+            for msg in messages:
+                self._backend_transport.send(msg)
+
+    def forward_message(self, msg):
+        """
+        the backend uses this to tell us to send a message onwards to the
+        client
+        """
+        data, is_binary = self._serializer.serialize(msg)
+        self.sendMessage(data, is_binary)
 
     def _hello_received(self, request, hello_msg):
         """
         Whenever a client connects, we create a (new) client-type
-        connection to our configured backend. We actually wait for the
-        first client message to arrive -- a Hello message -- so that
-        we can choose a different backend based on the realm (and/or
-        any request headers).
+        connection to our configured backend. We actually don't do
+        this until the first client message arrives -- a Hello message
+        -- so that we can choose a different backend based on the
+        realm (and/or any request headers as a future enhancement).
 
         (In the future, this could be a lazily-created multiplex
         connection -- that exists only while we have >= 1 client
         active)
         """
+        self._awaiting_hello = None
 
-        self._await_hello = None
-
+        # this import should remain in here so we don't interfere with
+        # any reactor selection code
         from twisted.internet import reactor
-        from autobahn.wamp.component import _create_transport
-        from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 
-        controller = self.factory._controller
-        backend_config = controller._find_backend_for(request, hello_msg.realm)
-        print("found config: {}".format(backend_config))
-        print("found config: {}".format(backend_config['transport']))
-        backend = _create_transport(0, backend_config["transport"])
-
-        # print("control: {}".format(controller))
-        # print("backend: {}".format(backend))
+        # locate and create the backend endpoint for this path + realm
+        service = self.factory._service
+        backend_config = service._find_backend_for(request, hello_msg.realm)
+        backend = _create_transport(0, backend_config)
 
         # client-factory
         factory = _create_transport_factory(reactor, backend, BackendProxySession)
-        endpoint = _create_transport_endpoint(reactor, backend_config["transport"]["endpoint"])
+        factory._frontend = self
+        endpoint = _create_transport_endpoint(reactor, backend_config["endpoint"])
         self._transport_d = endpoint.connect(factory)
 
         def good(proto):
-            # print("got backend protocol: {}".format(proto))
             self._transport_d = None
             # we give the backend a way to get back to us .. perhaps
             # there's another / better way?
@@ -190,13 +273,10 @@ class Frontend(WampWebSocketServerProtocol):
             # listener interface on RawSocket :/ so we have to wrap
             # things ... at least we know "it's all Twisted" here (but
             # also: perhaps there SHOULD be a more-general interface
-            # for this, because we'll have the same problem with a
-            # WebSocket backend .. and also need to know what kind of
-            # backend we have so we wrap the correct thing)
+            # for this)
 
-            # XXX rawsocket-specific
             if not proto.isOpen():
-                # rawsocket-specific
+                # XXX rawsocket-specific
                 if hasattr(proto, "_on_handshake_complete"):
                     orig = proto._on_handshake_complete
 
@@ -206,13 +286,17 @@ class Frontend(WampWebSocketServerProtocol):
                         return x
                     proto._on_handshake_complete = _connected
 
-                # websocket-specific
+                # XXX websocket-specific
                 else:
 
                     def _connected(arg):
                         self._backend_transport.send(hello_msg)
                         return arg
                     proto.is_open.addCallback(_connected)
+
+                    def _closed(*arg, **kw):
+                        self.close()
+                    proto.is_closed.addCallback(_closed)
             else:
                 self._backend_transport.send(hello_msg)
 
@@ -223,69 +307,98 @@ class Frontend(WampWebSocketServerProtocol):
         self._transport_d.addCallbacks(good, bad)
         return self._transport_d
 
-    def onMessage(self, payload, isBinary):
-        # print("Frontend.onMessage: {} bytes isBinary={}".format(len(payload), isBinary))
-        # self._serializer is set by parent in onConnect()
-        # (i.e. during sub-protocol negotiation)
-        messages = self._serializer.unserialize(payload, isBinary)
-
-        if self._backend_transport:
-            # we have already got a backend transport so we are
-            # completely set up and just forwarding messages...
-            for msg in messages:
-                self._backend_transport.send(msg)
-
-        else:
-            # we haven't yet connected to the backend, because we are
-            # waiting for a Hello message. I don't think any client
-            # should send more than *just* a Hello until they receive
-            # something back from us .. this is double-checking that assumption
-            if self._transport_d is not None:
-                raise Exception(
-                    "Received '{}' while setting up backend".format(
-                        msg
-                    )
-                )
-
-            if len(messages) != 1 or not isinstance(messages[0], Hello):
-                raise Exception(
-                    "Expecting single 'Hello', but received {} messages: {}".format(
-                        len(messages),
-                        ", ".join([str(msg) for msg in messages]),
-                    )
-                )
-
-            # okay, we have received a single Hello message .. so we
-            # can set up the backend connection (which will also send
-            # the Hello to it once established)
-            self._hello_received(self._await_hello, messages[0])
-
-    def _teardown(self):
-        print("_teardown")
-        # we need to disconnect from the backend .. but practically
-        # speaking right now this is only called when we fail to
-        # connect to the backend...
-
 
 class ProxyWebSocketService(RouterWebService):
     """
-    For every 'type=websocket' node configured in a proxy there is one
+    For every 'type=websocket-proxy' node configured in a proxy there is one
     of these; it will start FrontendProxySession instances upon every client
-    connection
+    connection.
     """
+    _backend_configs = None
 
     @staticmethod
     def create(transport, path, config, controller):
-        # this is the crossbar-specific wamp-websocket-server
-        # from crossbar.router.protocol import WampWebSocketServerFactory
-        from autobahn.twisted.websocket import WampWebSocketServerFactory
-        websocket_factory = WampWebSocketServerFactory(FrontendProxySession)
-        websocket_factory.protocol = Frontend
-        websocket_factory._controller = controller
+        websocket_factory = WebSocketServerFactory()
+        websocket_factory.protocol = FrontendProxyProtocol
 
         resource = WebSocketResource(websocket_factory)
 
-        return ProxyWebSocketService(transport, path, config, resource)
+        service = ProxyWebSocketService(transport, path, config, resource)
+        websocket_factory._service = service
+
+        service._serializers = config.get('serializers', None)
+
+        # a proxy-transport must have at least one backend (fixme: checkconfig)
+
+        for path, path_config in config.get("paths", dict()).items():
+            if path_config['type'] != 'websocket-proxy':
+                continue
+            backends = path_config['backends']
+            for backend in backends:
+                service.start_backend_for_path(u"/{}".format(path), backend)
+
+        return service
+
+    def start_backend_for_path(self, path, config, details=None):
+        if self._backend_configs is None:
+            self._backend_configs = dict()
+
+        if path not in self._backend_configs:
+            path_backend = list()
+            self._backend_configs[path] = path_backend
+        else:
+            path_backend = self._backend_configs[path]
+
+        # all backends must have unique realms configured. there may
+        # be a single default realm (i.e. no "realm" tag at all)
+        for existing in path_backend:
+            if existing.get('realm', None) == config.get('realm', None):
+                # if the realm is None, there isn't one .. which means
+                # "default", but there can be only one default (per path)
+                if existing.get('realm', None) is None:
+                    raise ApplicationError(
+                        u"crossbar.error",
+                        u"There can be only one default backend for path {}".format(path),
+                    )
+
+        # XXX FIXME checkconfig
+        path_backend.append(config)
+
+    def _find_backend_for(self, request, realm):
+        """
+        Returns the backend configuration for the given request + realm. A
+        backend with no 'realm' key is a default one.
+        """
+        # print("_find_backend_for({}, {})".format(request, realm))
+        if self._backend_configs is None:
+            self._backend_configs = dict()
+        default_config = None
+
+        if request.path not in self._backend_configs:
+            raise ApplicationError(
+                u"crossbar.error",
+                "No backends at path '{}'".format(
+                    request.path,
+                )
+            )
+
+        backends = self._backend_configs[request.path]
+        for config in backends:
+            if realm == config.get("realm", None):
+                return config
+            if config.get("realm", None) is None:
+                default_config = config
+
+        # we didn't find a config for the given realm .. but perhaps
+        # there is a default config?
+        if default_config is None:
+            raise ApplicationError(
+                u"crossbar.error",
+                "No backend for realm '{}' (and no default backend)".format(
+                    realm,
+                )
+            )
+        return default_config
 
 
 class ProxyController(RouterController):
@@ -319,29 +432,6 @@ class ProxyController(RouterController):
 
         yield self.publish_ready()
 
-    def _find_backend_for(self, request, realm):
-        """
-        Returns the backend configuration for the given request + realm. A
-        backend with no 'realm' key is a default one.
-        """
-        default_config = None
-        for name, config in self._backend_configs.items():
-            if realm == config.get("realm", None):
-                return config
-            if config.get("realm", None) is None:
-                default_config = config
-
-        # we didn't find a config for the given realm .. but perhaps
-        # there is a default config?
-        if default_config is None:
-            raise ApplicationError(
-                u"crossbar.error",
-                "No backend for realm '{}' (and no default backend)".format(
-                    realm,
-                )
-            )
-        return default_config
-
     @wamp.register(None)
     @inlineCallbacks
     def start_proxy_transport(self, transport_id, config, details=None):
@@ -354,17 +444,39 @@ class ProxyController(RouterController):
         if config['type'] != "web":
             raise RuntimeError("Only know about 'web' type services")
 
-        # XXX remove "websocket" things from this config??
-        self.start_router_transport(transport_id, config, create_paths=False)
+        # we remove "websocket-proxy" items from this config; only
+        # this class knows about those, but we want the base-class to
+        # start all other services
+
+        def filter_paths(paths):
+            """
+            remove any 'websocket-proxy' type configs
+            """
+            return {
+                k: v
+                for k, v in paths.items()
+                if v['type'] != "websocket-proxy"
+            }
+
+        config_prime = dict()
+        for k, v in config.items():
+            if k == 'paths':
+                config_prime[k] = filter_paths(v)
+            else:
+                config_prime[k] = v
+
+        yield self.start_router_transport(transport_id, config_prime, create_paths=False)
 
         for path, path_config in config['paths'].items():
-            if path_config['type'] == "websocket":
+            if path_config['type'] == "websocket-proxy":
                 # XXX okay this is where we "actually" want to start a
                 # proxy worker .. which just shovels bytes to the
                 # "backend". Are we assured exactly one backend? (At
                 # this point, we have to assume yes I think)
                 transport = self.transports[transport_id]  # should always exist now .. right?
-                webservice = yield maybeDeferred(ProxyWebSocketService.create, transport, path, config, self)
+                webservice = yield maybeDeferred(
+                    ProxyWebSocketService.create, transport, path, config, self
+                )
                 transport.root[path] = webservice
             else:
                 yield self.start_web_transport_service(
@@ -385,30 +497,18 @@ class ProxyController(RouterController):
         del self._transports[name]
 
     @wamp.register(None)
-    def start_proxy_backend(self, name, options, details=None):
+    def start_proxy_backend(self, transport_id, name, options, details=None):
         self.log.info(
-            u"start_proxy_backend {name}: {options}",
+            u"start_proxy_backend '{transport_id}': {name}: {options}",
+            transport_id=transport_id,
             name=name,
             options=options,
         )
-        # names must be unique
-        if name in self._backend_configs:
+
+        if transport_id not in self._transports:
             raise ApplicationError(
                 u"crossbar.error",
-                u"Multiple backends with name '{}'".format(name),
+                u"start_proxy_backend: no transport '{}'".format(transport_id),
             )
 
-        # all backends must have unique realms configured. there may
-        # be a single default realm (i.e. no "realm" tag at all)
-        for existing in self._backend_configs.values():
-            if existing.get('realm', None) == options.get('realm', None):
-                # if the realm is None, there isn't one .. which means
-                # "default", but there can be only one default
-                if existing.get('realm', None) is None:
-                    raise ApplicationError(
-                        u"crossbar.error",
-                        u"There can be only one default backend",
-                    )
-
-        # XXX FIXME checkconfig
-        self._backend_configs[name] = options
+        return self._transport[transport_id].start_backend(name, options)
