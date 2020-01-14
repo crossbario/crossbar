@@ -5,9 +5,14 @@
 Changelog
 =========
 
-19.11.2
--------
+20.1.1
+------
 
+* new: OSS proxy workers refactor (#1671)
+* fix: handle websocket vs rawsocket proxy clients (#1663)
+* fix: use python3.8 from ubuntu archives (#1659)
+* fix: snap ensurepip failure (#1658)
+* new: configurable stats tracking (#1665)
 * new: WAMP session statistics via WAMP meta API events (``wamp.session.on_stats``)
 
 19.11.1
