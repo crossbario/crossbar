@@ -102,6 +102,7 @@ setup(
     include_package_data=True,
     data_files=[('.', ['crossbar/LEGAL', 'crossbar/LICENSE', 'crossbar/LICENSE-FOR-API', 'crossbar/LICENSES-OSS'])],
     zip_safe=False,
+    python_requires='>=3.5',
 
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=["License :: OSI Approved :: GNU Affero General Public License v3",
