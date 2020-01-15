@@ -3,7 +3,7 @@
  Click             7.0         BSD License                                          Armin Ronacher                                
  Jinja2            2.10.3      BSD License                                          Armin Ronacher                                
  MarkupSafe        1.1.1       BSD License                                          Armin Ronacher                                
- PyHamcrest        1.9.0       BSD License                                          Chris Rose                                    
+ PyHamcrest        1.10.1      BSD License                                          Chris Rose                                    
  PyNaCl            1.3.0       UNKNOWN                                              The PyNaCl developers                         
  PyQRCode          1.2.1       BSD License                                          Michael Nooner                                
  PyTrie            0.3.1       BSD License                                          George Sakkis                                 
@@ -15,11 +15,11 @@
  argh              0.26.2      GNU Library or Lesser General Public License (LGPL)  Andrey Mikhaylenko                            
  argon2-cffi       19.2.0      MIT License                                          Hynek Schlawack                               
  attrs             19.3.0      MIT License                                          Hynek Schlawack                               
- autobahn          20.1.1      MIT License                                          Crossbar.io Technologies GmbH                 
+ autobahn          20.1.2      MIT License                                          Crossbar.io Technologies GmbH                 
  bcrypt            3.1.7       Apache Software License                              The Python Cryptographic Authority developers 
  bitstring         3.1.6       MIT License                                          Scott Griffiths                               
  cbor              1.0.0       Apache Software License                              Brian Olson                                   
- cbor2             4.1.2       MIT License                                          Alex Grönholm                                 
+ cbor2             4.2.0       MIT License                                          Alex Grönholm                                 
  certifi           2019.11.28  Mozilla Public License 2.0 (MPL 2.0)                 Kenneth Reitz                                 
  cffi              1.13.2      UNKNOWN                                              Armin Rigo, Maciej Fijalkowski                
  chardet           3.0.4       GNU Library or Lesser General Public License (LGPL)  Daniel Blanchard                              
@@ -53,7 +53,7 @@
  sdnotify          0.3.2       MIT License                                          Brett Bethke                                  
  service-identity  18.1.0      MIT License                                          Hynek Schlawack                               
  setproctitle      1.1.10      BSD License                                          Daniele Varrazzo                              
- six               1.13.0      MIT License                                          Benjamin Peterson                             
+ six               1.14.0      MIT License                                          Benjamin Peterson                             
  sortedcontainers  2.1.0       Apache Software License                              Grant Jenks                                   
  treq              18.6.0      MIT License                                          David Reid                                    
  txaio             18.8.1      MIT License                                          Crossbar.io Technologies GmbH                 
