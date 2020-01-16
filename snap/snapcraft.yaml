@@ -26,41 +26,44 @@ architectures:
 
 apps:
   crossbar:
-    command: python3.8 -u $SNAP/bin/crossbar
+    command: crossbar
     environment:
-      PYTHONPYCACHEPREFIX: $SNAP_DATA/pycache
       PATH: $PATH:$SNAP/usr/bin:$SNAP/bin
-      PYTHONPATH: $PYTHONPATH:$SNAP/lib/python3.8/site-packages
+      PYTHONPATH: $PYTHONPATH:$SNAP/lib/python3.7/site-packages
     plugs:
       - home
       - network
       - network-bind
 
 parts:
-  py38:
+  py37:
     plugin: nil
     stage-packages:
-      - python3.8
+      - python3.7
     build-packages:
       - wget
-      - python3.8
-      - python3.8-dev
-      - python3.8-venv
-      - python3.8-distutils
+      - python3.7
+      - python3.7-dev
+      - python3.7-venv
+      - python3.7-distutils
     override-build: |
       snapcraftctl build
-      wget -O - https://bootstrap.pypa.io/get-pip.py | /usr/bin/python3.8 -u
+      wget -O - https://bootstrap.pypa.io/get-pip.py | /usr/bin/python3.7 -u
+      /usr/bin/python3.7 -m compileall -b $SNAPCRAFT_PART_INSTALL
+      find $SNAPCRAFT_PART_INSTALL -type f -name "*.py" -exec rm {} \;
   crossbar:
     plugin: nil
     after:
-      - py38
+      - py37
     source: .
     override-build: |
       snapcraftctl build
       # Build and install Crossbar
       export MAKEFLAGS="-j$(nproc)"
-      /usr/bin/python3.8 -m pip install --ignore-installed -U --no-compile --prefix $SNAPCRAFT_PART_INSTALL .
-      find $SNAPCRAFT_PART_INSTALL -type f -name *.so -exec strip -s {} \;
+      /usr/bin/python3.7 -m pip install --ignore-installed -U --no-compile --prefix $SNAPCRAFT_PART_INSTALL .
+      /usr/bin/python3.7 -m compileall -b -x .*\.syntaxerror.py$ $SNAPCRAFT_PART_INSTALL
+      find $SNAPCRAFT_PART_INSTALL -type f -name "*.py" -exec rm {} \;
+      find $SNAPCRAFT_PART_INSTALL -type f -name "*.so" -exec strip -s {} \;
       # Set package version
       snapcraftctl set-version $(git describe --always --dirty | sed -e 's/-/+git/;y/-/./' | tail -c +2)
     stage-packages:
@@ -77,10 +80,3 @@ parts:
       - libunwind-dev
       # required by package versioning
       - git
-
-slots:
-  runtime-dir:
-    interface: content
-    content: executables
-    read:
-      - $SNAP
