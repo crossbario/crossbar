@@ -52,8 +52,9 @@ There are four files. Make sure you have autobahn.min.js in a shared location, f
 
 `config.json`
 
-.. code::json
-```{
+. code-block:: none
+
+{
     "version": 2,
     "workers": [
         {
@@ -210,12 +211,13 @@ There are four files. Make sure you have autobahn.min.js in a shared location, f
             ]
         }
     ]
-}```
+}
 
 `authenticator.py`
 
-.. code::python
-```from pprint import pprint
+.. code-block:: none
+
+from pprint import pprint
 
 from twisted.internet.defer import inlineCallbacks
 
@@ -270,8 +272,9 @@ class AuthenticatorSession(ApplicationSession):
  
 `balloon.py`
 
-.. code::python
-```from autobahn.twisted.wamp import ApplicationSession
+.. code-block:: none
+
+from autobahn.twisted.wamp import ApplicationSession
 from twisted.internet.defer import inlineCallbacks
 
 def prCyan(skk): print("\033[96m {}\033[00m" .format(skk))
@@ -356,8 +359,9 @@ class App(ApplicationSession):
         
 `index.html`
 
-.. code::html    
-```<!DOCTYPE html>
+.. code-block:: none    
+
+<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8">
@@ -536,7 +540,7 @@ class App(ApplicationSession):
 
       </script>
    </body>
-</html>```
+</html>
   
 The worker itself has the options
 
