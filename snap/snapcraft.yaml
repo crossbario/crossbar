@@ -26,7 +26,7 @@ architectures:
 
 apps:
   crossbar:
-    command: crossbar
+    command: python3.7 -u $SNAP/bin/crossbar
     environment:
       PATH: $PATH:$SNAP/usr/bin:$SNAP/bin
       PYTHONPATH: $PYTHONPATH:$SNAP/lib/python3.7/site-packages
