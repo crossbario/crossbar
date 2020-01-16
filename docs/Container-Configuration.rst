@@ -53,7 +53,7 @@ There are four files. Make sure you have autobahn.min.js in a shared location, f
 `config.json`
 
 .. code::json
-{
+```{
     "version": 2,
     "workers": [
         {
@@ -210,12 +210,12 @@ There are four files. Make sure you have autobahn.min.js in a shared location, f
             ]
         }
     ]
-}
+}```
 
 `authenticator.py`
 
 .. code::python
-from pprint import pprint
+```from pprint import pprint
 
 from twisted.internet.defer import inlineCallbacks
 
@@ -266,12 +266,12 @@ class AuthenticatorSession(ApplicationSession):
          yield self.register(authenticate, u'com.balloon.authenticate')
          print("WAMP-CRA dynamic authenticator registered!")
       except Exception as e:
-         print("Failed to register dynamic authenticator: {0}".format(e))
+         print("Failed to register dynamic authenticator: {0}".format(e))```
  
 `balloon.py`
 
 .. code::python
-from autobahn.twisted.wamp import ApplicationSession
+```from autobahn.twisted.wamp import ApplicationSession
 from twisted.internet.defer import inlineCallbacks
 
 def prCyan(skk): print("\033[96m {}\033[00m" .format(skk))
@@ -352,12 +352,12 @@ class App(ApplicationSession):
          reg = yield self.register(add2, u'com.example.add2')
          print("procedure add2() registered")
       except Exception as e:
-         print("could not register procedure: {}".format(e))    
+         print("could not register procedure: {}".format(e))``` 
         
 `index.html`
 
 .. code::html    
-<!DOCTYPE html>
+```<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8">
@@ -536,7 +536,7 @@ class App(ApplicationSession):
 
       </script>
    </body>
-</html>
+</html>```
   
 The worker itself has the options
 
