@@ -44,22 +44,25 @@ It's easy to confuse or conflate these two terms as our minds tend to merge them
 
 Keeping these concepts distinct yet linked in our mind might be a helpful guide as Crossbar.io router components and container components handle both a litle differently.
 
-There are four files. Make sure you have autobahn.min.js in a shared location, for example "shared/autobahn/autobahn.min.js" as this is necessary for your index.html to work:
-	config.json is the Crossbar.io configuration file
-	authenticator.py provides dynamic wamp-cra authentication and contains the class ``AuthenticatorSession`` along with a tiny flat database of users and roles
-	balloon.py contains the class ``App`` which provides the means for the balloon to publish solar radiation data, and to register the routed remote procedure call (rRPC) that enables users to "pop" the balloon
-	index.htm is the browser client that calls the rRPC on loading.
+There are four files. Make sure you have autobahn.min.js in a shared location, for example `shared/autobahn/autobahn.min.js` as this is necessary for your index.html to work:
+-config.json is the Crossbar.io configuration file
+-authenticator.py provides dynamic wamp-cra authentication and contains the class ``AuthenticatorSession`` along with a tiny flat database of users and roles
+-balloon.py contains the class ``App`` which provides the means for the balloon to publish solar radiation data, and to register the routed remote procedure call (rRPC) that enables users to "pop" the balloon
+-index.htm is the browser client that calls the rRPC on loading.
 
+`config.json`
 
-config.json
-
-.. code:: javascript
-
+.. code::json
 {
     "version": 2,
     "workers": [
         {
             "type": "router",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
             "realms": [
                 {
                     "name": "realm1",
@@ -69,6 +72,26 @@ config.json
                             "permissions": [
                                 {
                                     "uri": "com.balloon.authenticate",
+                                    "match": "exact",
+                                    "allow": {
+                                        "call": false,
+                                        "register": true,
+                                        "publish": false,
+                                        "subscribe": false
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "backend",
+                            "permissions": [
+                                {
+                                    "uri": "com.balloon.pop",
                                     "match": "exact",
                                     "allow": {
                                         "call": false,
@@ -132,12 +155,16 @@ config.json
                     "type": "web",
                     "endpoint": {
                         "type": "tcp",
-                        "port": 8080
+                        "port": 8000
                     },
                     "paths": {
                         "/": {
                             "type": "static",
-                            "directory": ".."
+                            "directory": "../web"
+                        },
+                        "shared": {
+                            "type": "static",
+                            "directory": "../../_shared-web-resources"
                         },
                         "ws": {
                             "type": "websocket",
@@ -150,6 +177,14 @@ config.json
                         }
                     }
                 }
+            ],
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "authenticator.AuthenticatorSession",
+                    "realm": "realm1",
+                    "role": "authenticator"
+                }
             ]
         },
         {
@@ -160,20 +195,6 @@ config.json
             "components": [
                 {
                     "type": "class",
-                    "classname": "authenticator.AuthenticatorSession",
-                    "realm": "realm1",
-                    "transport": {
-                        "type": "websocket",
-                        "endpoint": {
-                            "type": "tcp",
-                            "host": "127.0.0.1",
-                            "port": 8080
-                        },
-                        "url": "ws://127.0.0.1:8080/ws"
-                    }
-                },
-                {
-                    "type": "class",
                     "classname": "balloon.App",
                     "realm": "realm1",
                     "transport": {
@@ -181,9 +202,9 @@ config.json
                         "endpoint": {
                             "type": "tcp",
                             "host": "127.0.0.1",
-                            "port": 8080
+                            "port": 8000
                         },
-                        "url": "ws://127.0.0.1:8080/ws"
+                        "url": "ws://127.0.0.1:8000/ws"
                     }
                 }
             ]
@@ -191,10 +212,9 @@ config.json
     ]
 }
 
-.. code:: python
+`authenticator.py`
 
-authenticator.py
-
+.. code::python
 from pprint import pprint
 
 from twisted.internet.defer import inlineCallbacks
@@ -247,13 +267,10 @@ class AuthenticatorSession(ApplicationSession):
          print("WAMP-CRA dynamic authenticator registered!")
       except Exception as e:
          print("Failed to register dynamic authenticator: {0}".format(e))
-         
-         
-.. code:: python
+ 
+`balloon.py`
 
-balloon.py      
-         
-         
+.. code::python
 from autobahn.twisted.wamp import ApplicationSession
 from twisted.internet.defer import inlineCallbacks
 
@@ -337,9 +354,9 @@ class App(ApplicationSession):
       except Exception as e:
          print("could not register procedure: {}".format(e))    
         
-        
-.. code:: javascript        
-        
+`index.html`
+
+.. code::html    
 <!DOCTYPE html>
 <html>
 <head>
@@ -408,15 +425,12 @@ class App(ApplicationSession):
             onchallenge: onchallenge
          });
 
-
          // timers
          //
          var t1, t2;
-
-				 function myFunction() {
-	 				document.getElementById("demo").innerHTML = "Hello Dear Visitor!</br> We are happy that you've chosen our website to learn programming languages. We're sure you'll become one of the best programmers in your country. Good luck to you!";
-	 			}
-
+	 function myFunction() {
+	 	document.getElementById("demo").innerHTML = "Hello Dear Visitor!</br> We are happy that you've chosen our website to learn programming languages. We're sure you'll become one of the best programmers in your country. Good luck to you!";
+	 }
 
          // fired when connection is established and session attached
          //
@@ -523,10 +537,7 @@ class App(ApplicationSession):
       </script>
    </body>
 </html>
-     
-        
-        
-        
+  
 The worker itself has the options
 
 1. ``type``: must be ``"container"``\ (*required*)
