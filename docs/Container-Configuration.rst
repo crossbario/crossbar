@@ -52,8 +52,6 @@ There are four files. Make sure you have autobahn.min.js in a shared location, f
 
 `config.json`
 
-.. code-block:: json
-
 {
   "version": 2,
   "workers": [
@@ -214,7 +212,6 @@ There are four files. Make sure you have autobahn.min.js in a shared location, f
 }
 `authenticator.py`
 
-.. code-block:: python
 
 from pprint import pprint
 from autobahn.twisted.wamp import ApplicationSession
@@ -302,8 +299,6 @@ class AuthenticatorSession(ApplicationSession):
  
 `balloon.py`
 
-.. code-block:: python
-
 ##show errors without running: python -m py_compile balloon.py
 ##  only compiles and creates .pyc file
 from autobahn.twisted.wamp import ApplicationSession
@@ -388,8 +383,6 @@ class App(ApplicationSession):
 
         
 `index.html`
-
-.. code-block:: html    
 
 <!DOCTYPE html>
 <html>
