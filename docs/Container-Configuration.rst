@@ -52,495 +52,529 @@ There are four files. Make sure you have autobahn.min.js in a shared location, f
 
 `config.json`
 
-. code-block:: none
+.. code-block:: json
 
 {
-    "version": 2,
-    "workers": [
+  "version": 2,
+  "workers": [
+    {
+      "type": "router",
+      "options": {
+        "pythonpath": [
+          ".."
+        ]
+      },
+      "realms": [
         {
-            "type": "router",
-            "options": {
-                "pythonpath": [
-                    ".."
-                ]
+          "name": "realm1",
+          "roles": [
+            {
+              "name": "authenticator",
+              "permissions": [
+                {
+                  "uri": "com.balloon.authenticate",
+                  "match": "exact",
+                  "allow": {
+                    "call": false,
+                    "register": true,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": false,
+                    "publisher": false
+                  },
+                  "cache": true
+                }
+              ]
             },
-            "realms": [
+            {
+              "name": "backend",
+              "permissions": [
                 {
-                    "name": "realm1",
-                    "roles": [
-                        {
-                            "name": "authenticator",
-                            "permissions": [
-                                {
-                                    "uri": "com.balloon.authenticate",
-                                    "match": "exact",
-                                    "allow": {
-                                        "call": false,
-                                        "register": true,
-                                        "publish": false,
-                                        "subscribe": false
-                                    },
-                                    "disclose": {
-                                        "caller": false,
-                                        "publisher": false
-                                    },
-                                    "cache": true
-                                }
-                            ]
-                        },
-                        {
-                            "name": "backend",
-                            "permissions": [
-                                {
-                                    "uri": "com.balloon.pop",
-                                    "match": "exact",
-                                    "allow": {
-                                        "call": false,
-                                        "register": true,
-                                        "publish": false,
-                                        "subscribe": false
-                                    },
-                                    "disclose": {
-                                        "caller": false,
-                                        "publisher": false
-                                    },
-                                    "cache": true
-                                }
-                            ]
-                        },
-                        {
-                            "name": "anonymous",
-                            "permissions": [
-                                {
-                                    "uri": "com.balloon.data",
-                                    "match": "exact",
-                                    "allow": {
-                                        "call": true,
-                                        "register": false,
-                                        "publish": false,
-                                        "subscribe": true
-                                    },
-                                    "disclose": {
-                                        "caller": false,
-                                        "publisher": false
-                                    },
-                                    "cache": true
-                                }
-                            ]
-                        },
-                        {
-                            "name": "balloonpopper",
-                            "permissions": [
-                                {
-                                    "uri": "com.balloon.pop",
-                                    "match": "exact",
-                                    "allow": {
-                                        "call": true,
-                                        "register": false,
-                                        "publish": false,
-                                        "subscribe": false
-                                    },
-                                    "disclose": {
-                                        "caller": false,
-                                        "publisher": false
-                                    },
-                                    "cache": true
-                                }
-                            ]
-                        }
-                    ]
+                  "uri": "com.balloon.pop",
+                  "match": "exact",
+                  "allow": {
+                    "call": false,
+                    "register": true,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": false,
+                    "publisher": false
+                  },
+                  "cache": true
                 }
-            ],
-            "transports": [
-                {
-                    "type": "web",
-                    "endpoint": {
-                        "type": "tcp",
-                        "port": 8000
-                    },
-                    "paths": {
-                        "/": {
-                            "type": "static",
-                            "directory": "../web"
-                        },
-                        "shared": {
-                            "type": "static",
-                            "directory": "../../_shared-web-resources"
-                        },
-                        "ws": {
-                            "type": "websocket",
-                            "auth": {
-                                "wampcra": {
-                                    "type": "dynamic",
-                                    "authenticator": "com.balloon.authenticate"
-                                }
-                            }
-                        }
-                    }
-                }
-            ],
-            "components": [
-                {
-                    "type": "class",
-                    "classname": "authenticator.AuthenticatorSession",
-                    "realm": "realm1",
-                    "role": "authenticator"
-                }
-            ]
-        },
-        {
-            "type": "container",
-            "options": {
-                "pythonpath": [".."]
+              ]
             },
-            "components": [
+            {
+              "name": "anonymous",
+              "permissions": [
                 {
-                    "type": "class",
-                    "classname": "balloon.App",
-                    "realm": "realm1",
-                    "transport": {
-                        "type": "websocket",
-                        "endpoint": {
-                            "type": "tcp",
-                            "host": "127.0.0.1",
-                            "port": 8000
-                        },
-                        "url": "ws://127.0.0.1:8000/ws"
-                    }
+                  "uri": "com.balloon.data",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": true
+                  },
+                  "disclose": {
+                    "caller": false,
+                    "publisher": false
+                  },
+                  "cache": true
                 }
-            ]
+              ]
+            },
+            {
+              "name": "balloonpopper",
+              "permissions": [
+                {
+                  "uri": "com.balloon.pop",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": false,
+                    "publisher": false
+                  },
+                  "cache": true
+                }
+              ]
+            }
+          ]
         }
-    ]
+      ],
+      "transports": [
+        {
+          "type": "web",
+          "endpoint": {
+            "type": "tcp",
+            "port": 8000
+          },
+          "paths": {
+            "/": {
+              "type": "static",
+              "directory": "../web"
+            },
+            "shared": {
+              "type": "static",
+              "directory": "../../_shared-web-resources"
+            },
+            "ws": {
+              "type": "websocket",
+              "auth": {
+                "wampcra": {
+                  "type": "dynamic",
+                  "authenticator": "com.balloon.authenticate"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "components": [
+        {
+          "type": "class",
+          "classname": "authenticator.AuthenticatorSession",
+          "realm": "realm1",
+          "role": "authenticator"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "options": {
+        "pythonpath": [".."]
+      },
+      "components": [
+        {
+          "type": "class",
+          "classname": "balloon.App",
+          "realm": "realm1",
+          "transport": {
+            "type": "websocket",
+            "endpoint": {
+              "type": "tcp",
+              "host": "127.0.0.1",
+              "port": 8000
+            },
+            "url": "ws://127.0.0.1:8000/ws"
+          }
+        }
+      ]
+    }
+  ]
 }
-
 `authenticator.py`
 
-.. code-block:: none
+.. code-block:: python
 
 from pprint import pprint
-
-from twisted.internet.defer import inlineCallbacks
-
 from autobahn.twisted.wamp import ApplicationSession
+from twisted.internet.defer import inlineCallbacks
 from autobahn.wamp.exception import ApplicationError
 
 
 # our user "database"
 USERDB = {
-   'karina': {
-      # these are required:
-      'secret': 'secret2',  # the secret/password to be used
-      'role': 'frontend'    # the auth role to be assigned when authentication succeeds
-   },
-   'ingemar': {
-      'authid': 'ID09125',  # assign a different auth ID during authentication
-      'secret': '123456',
-      'role': 'balloonpopper'
-   },
-   'anohni': {
-      # use salted passwords
+    'karina': {
+        # these are required:
+        'secret': 'secret2',  # the secret/password to be used
+        'role': 'backend'    # the auth role to be assigned when authentication succeeds
+    },
+    'ingemar': {
+        'authid': 'ID09125',  # assign a different auth ID during authentication
+        'secret': '123456',
+        'role': 'balloonpopper'
+    },
+    'anohni': {
+        # use salted passwords
 
-      # autobahn.wamp.auth.derive_key(secret.encode('utf8'), salt.encode('utf8')).decode('ascii')
-      'secret': 'prq7+YkJ1/KlW1X0YczMHw==',
-      'role': 'authenticator',
-      'salt': 'salt123',
-      'iterations': 100,
-      'keylen': 16
-   }
+        # autobahn.wamp.auth.derive_key(secret.encode('utf8'), salt.encode('utf8')).decode('ascii')
+        'secret': 'prq7+YkJ1/KlW1X0YczMHw==',
+        'role': 'authenticator',
+        'salt': 'salt123',
+        'iterations': 100,
+        'keylen': 16
+    }
 }
-
-class AuthenticatorSession(ApplicationSession):
-
-   @inlineCallbacks
-   def onJoin(self, details):
-      #print("AuthenticatorSession joined: {}".format(details))
-      def authenticate(realm, authid, details):
-         print("WAMP-CRA dynamic authenticator invoked: realm='{}', authid='{}'".format(realm, authid))
-         #print(details)
-
-         if authid in USERDB:
-            # return a dictionary with authentication information ...
-            return USERDB[authid]
-         else:
-            raise ApplicationError(u'com.example.no_such_user', 'could not authenticate session - no such user {}'.format(authid))
-
-      try:
-         yield self.register(authenticate, u'com.balloon.authenticate')
-         print("WAMP-CRA dynamic authenticator registered!")
-      except Exception as e:
-         print("Failed to register dynamic authenticator: {0}".format(e))```
- 
-`balloon.py`
-
-.. code-block:: none
-
-from autobahn.twisted.wamp import ApplicationSession
-from twisted.internet.defer import inlineCallbacks
-
-def prCyan(skk): print("\033[96m {}\033[00m" .format(skk))
 
 USER = u'anohni'
 USER_SECRET = u'secret1'
+def prCyan(skk): print("\033[96m {}\033[00m" .format(skk))
 
-class App(ApplicationSession):
+class AuthenticatorSession(ApplicationSession):
     
     def onConnect(self):
+        #self.join(self.config.realm, [u'wampcra'], u'peter')
+        prCyan("Client session connected. Starting WAMP-CRA authentication on realm '{}' as user '{}' ..".format(self.config.realm, USER))
         self.join(self.config.realm, [u"wampcra"], USER)
-
-    def onChallenge(self, challenge):
-      if challenge.method == u'wampcra':
-          prCyan("WAMP-CRA challenge received: {}".format(challenge))
-          if u'salt' in challenge.extra:
-            # salted secret
-              key = auth.derive_key(USER_SECRET,
-                                  challenge.extra['salt'],
-                                  challenge.extra['iterations'],
-                                  challenge.extra['keylen'])
-              #prCyan("key: {}".format(key))
-          else:
-              # plain, unsalted secret
-              key = USER_SECRET
-
-          # compute signature for challenge, using the key
-          signature = auth.compute_wcs(key, challenge.extra['challenge'])
-          #print('signature',signature)
-
-          # return the signature to the router for verification
-          return signature
-      else:
-          raise Exception('Invalid authmethod {}'.format(challenge.method))
-
-    @inlineCallbacks
-    def onJoin(self, details):
-    ## publish to a couple of topics we are allowed to publish to.
-      ##
-      for topic in [
-         u'com.example.topic1',
-         u'com.foobar.topic1']:
-         try:
-            yield self.publish(topic, "hello", options = PublishOptions(acknowledge = True))
-            print("ok, event published to topic {}".format(topic))
-         except Exception as e:
-            print("publication to topic {} failed: {}".format(topic, e))
-    ## REGISTER a procedure for remote calling
-        ##
-        def add2(x, y):
-            self.log.info("add2() called with {x} and {y}", x=x, y=y)
-            return x + y
-
-        reg = yield self.register(add2, 'com.example.add2')
-        self.log.info("procedure add2() registered")
         
-    ##@wamp.register(u'com.example.add2')
-   ##def adding2(self,x,y):
-   ##   self.log.info("add2() called with {x} and {y}", x=x, y=y)
-   ##   result = x + y
-   ##   return result
-   
-    def onJoin(self, details):
-        yield self.register(self.test, u'com.example.test')
-        self.log.info('component app.App registered com.example.test')
-        prCyan('component app.App registered com.example.test') 
+        def onChallenge(self, challenge):
+            if challenge.method == u'wampcra':
+                prCyan("WAMP-CRA challenge received: {}".format(challenge))
+                if u'salt' in challenge.extra:
+                    # salted secret
+                    key = auth.derive_key(USER_SECRET,
+                    challenge.extra['salt'],
+                    challenge.extra['iterations'],
+                    challenge.extra['keylen'])
+                    #prCyan("key: {}".format(key))
+                else:
+                    # plain, unsalted secret
+                    key = USER_SECRET
+                    
+                    # compute signature for challenge, using the key
+                    signature = auth.compute_wcs(key, challenge.extra['challenge'])
+                    #print('signature',signature)
+                    
+                    # return the signature to the router for verification
+                    return signature
+                else:
+                    raise Exception('Invalid authmethod {}'.format(challenge.method))
+                    
+                    @inlineCallbacks
+                    def onJoin(self, details):
+                        #print("AuthenticatorSession joined: {}".format(details))
+                        def authenticate(realm, authid, details):
+                            prCyan("WAMP-CRA dynamic authenticator invoked: realm='{}', authid='{}'".format(realm, authid))
+                            #print(details)
+                            
+                            if authid in USERDB:
+                                # return a dictionary with authentication information ...
+                                return USERDB[authid]
+                            else:
+                                raise ApplicationError(u'com.example.no_such_user', 'could not authenticate session - no such user {}'.format(authid))
+                                
+                                try:
+                                    yield self.register(authenticate, u'com.balloon.authenticate')
+                                    prCyan("WAMP-CRA dynamic authenticator registered!")
+                                except Exception as e:
+                                    prCyan("Failed to register dynamic authenticator: {0}".format(e))
 
-    def test(self):
-        pass
-        
-    ## REGISTER a procedure for remote calling
-      ##
-      def add2(x, y):
-         print("add2() called with {} and {}".format(x, y))
-         return x + y
+ 
+`balloon.py`
 
-      try:
-         reg = yield self.register(add2, u'com.example.add2')
-         print("procedure add2() registered")
-      except Exception as e:
-         print("could not register procedure: {}".format(e))``` 
+.. code-block:: python
+
+##show errors without running: python -m py_compile balloon.py
+##  only compiles and creates .pyc file
+from autobahn.twisted.wamp import ApplicationSession
+from twisted.internet.defer import inlineCallbacks
+from autobahn.wamp import auth
+from autobahn.wamp.types import PublishOptions
+from autobahn.wamp.exception import ApplicationError
+
+def prCyan(skk): print("\033[96m {}\033[00m" .format(skk))
+
+USER = u'karina'
+USER_SECRET = u'secret2'
+
+class App(ApplicationSession):
+
+    def onConnect(self):
+        self.join(self.config.realm, [u"wampcra"], USER)
+        prCyan("onConnect called: {}".format(__name__))
+
+        def onChallenge(self, challenge):
+            if challenge.method == u'wampcra':
+                prCyan("WAMP-CRA challenge received: {}".format(challenge))
+                if u'salt' in challenge.extra:
+                    # salted secret
+                    key = auth.derive_key(USER_SECRET,
+                    challenge.extra['salt'],
+                    challenge.extra['iterations'],
+                    challenge.extra['keylen'])
+                    #prCyan("key: {}".format(key))
+                else:
+                    # plain, unsalted secret
+                    key = USER_SECRET
+
+                    # compute signature for challenge, using the key
+                    signature = auth.compute_wcs(key, challenge.extra['challenge'])
+                    #print('signature',signature)
+
+                    # return the signature to the router for verification
+                    return signature
+                else:
+                    raise Exception('Invalid authmethod {}'.format(challenge.method))
+
+                    @inlineCallbacks
+                    #def test(self):
+                    #    self.log.info('test(self) passed')
+                    #    pass
+
+                    def onJoin(self, details):
+                        #yield self.register(self.test, u'com.example.test')
+                        ##self.log.info('component app.App registered com.example.test')
+                        #prCyan('component app.App registered com.example.test')
+                        ## publish to a couple of topics we are allowed to publish to.
+                        ##
+                        for topic in [
+                        u'com.example.topic1',
+                        u'com.foobar.topic1']:
+                        try:
+                            yield self.publish(topic, "hello", options = PublishOptions(acknowledge = True))
+                            prCyan("ok, event published to topic {}".format(topic))
+                        except Exception as e:
+                            prCyan("publication to topic {} failed: {}".format(topic, e))
+
+                            ## REGISTER a procedure for remote calling
+                            ##
+                            def pop(x, y):
+                                #self.log.info("pop() called with {x} and {y}", x=x, y=y)
+                                prCyan("pop() called with {} and {}".format(x, y))
+                                return x + y
+
+                                try:
+                                    reg = yield self.register(pop, 'com.balloon.pop')
+                                    prCyan("pop() registered")
+                                    #self.log.info("procedure pop registered")
+                                except Exception as e:
+                                    prCyan("could not register procedure: {}".format(e))
+
+                                    ##@wamp.register(u'com.example.add2')
+                                    ##def adding2(self,x,y):
+                                    ##   self.log.info("add2() called with {x} and {y}", x=x, y=y)
+                                    ##   result = x + y
+                                    ##   return result
+
         
 `index.html`
 
-.. code-block:: none    
+.. code-block:: html    
 
 <!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8">
 </head>
-   <body>
-      <h1>Hello WAMP</h1>
-      <p>Open JavaScript console to watch output.</p>
-			<p>There is a hidden message for you. Click to see it.</p>
-    <button onclick="myFunction()">Click me!</button>
-    <p id="demo"></p>
+<body>
+	<h1>Hello WAMP</h1>
+	<p>Open JavaScript console to watch output.</p>
+	<p>There is a hidden message for you. Click to see it.</p>
+	<button onclick="myFunction()">Click me!</button>
+	<p id="demo"></p>
 
-      <script>AUTOBAHN_DEBUG = true;</script>
-      <script src="shared/autobahn/autobahn.min.js"></script>
+	<script>AUTOBAHN_DEBUG = true;</script>
+	<script src="shared/autobahn/autobahn.min.js"></script>
 
-      <script>
+	<script>
 
-         console.log("Ok, AutobahnJS loaded", autobahn.version);
-         //
-         var wsuri;
-         if (document.location.origin === "null" || document.location.origin === "file://") {
-            wsuri = "ws://127.0.0.1:8000/ws";
+	console.log("Ok, AutobahnJS loaded", autobahn.version);
+	//
+	var wsuri;
+	if (document.location.origin === "null" || document.location.origin === "file://") {
+		wsuri = "ws://127.0.0.1:8000/ws";
 
-         } else {
-            wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
-                        document.location.host + "/ws";
-         }
-         // authenticate using
-         //var user = "karina";
-         //var key = "secret2";
+	} else {
+		wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
+		document.location.host + "/ws";
+	}
+	// authenticate using
+	//var user = "karina";
+	//var key = "secret2";
 
-         // authenticate using
-         var user = "ingemar";
-         var key = "123456";
+	// authenticate using
+	var user = "ingemar";
+	var key = "123456";
 
-         // authenticate using
-         //var user = "anohni";
-         //var key = autobahn.auth_cra.derive_key("secret1", "salt123", 100, 16);
-		 console.log("key=", key);
-         // this callback is fired during WAMP-CRA authentication
-         //
-         function onchallenge (session, method, extra) {
+	// authenticate using
+	//var user = "anohni";
+	//var key = autobahn.auth_cra.derive_key("secret1", "salt123", 100, 16);
+	console.log("key=", key);
+	// this callback is fired during WAMP-CRA authentication
+	//
+	function onchallenge (session, method, extra) {
 
-            console.log("onchallenge", method, extra);
+		console.log("onchallenge", method, extra);
 
-            if (method === "wampcra") {
+		if (method === "wampcra") {
 
-               console.log("authenticating via '" + method + "' and challenge '" + extra.challenge + "'");
+			console.log("authenticating via '" + method + "' and challenge '" + extra.challenge + "'");
 
-               return autobahn.auth_cra.sign(key, extra.challenge);
+			return autobahn.auth_cra.sign(key, extra.challenge);
 
-            } else {
-               throw "don't know how to authenticate using '" + method + "'";
-            }
-         }
+		} else {
+			throw "don't know how to authenticate using '" + method + "'";
+		}
+	}
 
-         // the WAMP connection to the Router
-         //
-         var connection = new autobahn.Connection({
-            url: wsuri,
-            realm: "realm1",
-            // the following attributes must be set of WAMP-CRA authentication
-            //
-            authmethods: ["wampcra"],
-            authid: user,
-            onchallenge: onchallenge
-         });
-
-         // timers
-         //
-         var t1, t2;
-	 function myFunction() {
-	 	document.getElementById("demo").innerHTML = "Hello Dear Visitor!</br> We are happy that you've chosen our website to learn programming languages. We're sure you'll become one of the best programmers in your country. Good luck to you!";
-	 }
-
-         // fired when connection is established and session attached
-         //
-         connection.onopen = function (session, details) {
-
-            console.log("Connected");
-
-            // SUBSCRIBE to a topic and receive events
-            //
-            function on_counter (args) {
-               var counter = args[0];
-               console.log("on_counter() event received with counter " + counter);
-            }
-            session.subscribe('com.example.oncounter', on_counter).then(
-               function (sub) {
-                  console.log('subscribed to topic');
-               },
-               function (err) {
-                  console.log('failed to subscribe to topic', err);
-               }
-            );
+	// the WAMP connection to the Router
+	//
+	var connection = new autobahn.Connection({
+		url: wsuri,
+		realm: "realm1",
+		// the following attributes must be set of WAMP-CRA authentication
+		//
+		authmethods: ["wampcra"],
+		authid: user,
+		onchallenge: onchallenge
+	});
 
 
-            // PUBLISH an event every second
-            //
-            //t1 = setInterval(function () {
+	// timers
+	//
+	var t1, t2;
 
-            //   session.publish('com.example.onhello', ['Hello from JavaScript (browser)']);
-            //   console.log("published to topic 'com.example.onhello'");
-            //}, 1000);
-
-
-            // REGISTER a procedure for remote calling
-            //
-            function mul2 (args) {
-               var x = args[0];
-               var y = args[1];
-               console.log("mul2() called with " + x + " and " + y);
-               return x * y;
-            }
-            session.register('com.example.mul2', mul2).then(
-               function (reg) {
-                  console.log('procedure registered');
-               },
-               function (err) {
-                  console.log('failed to register procedure', err);
-               }
-            );
-
-						// CALL a remote procedure
-						x = 56;
-						session.call('com.balloon.pop', [x, 18]).then(
-                  function (res) {
-                     console.log("pop() result:", res);
-                  },
-                  function (err) {
-                     console.log("pop() error:", err);
-                  }
-               );
+	function myFunction() {
+		document.getElementById("demo").innerHTML = "Hello Dear Visitor!</br> We are happy that you've chosen our website to learn programming languages. We're sure you'll become one of the best programmers in your country. Good luck to you!";
+	}
 
 
+	// fired when connection is established and session attached
+	//
+	connection.onopen = function (session, details) {
+
+		console.log("Connected");
+
+		// SUBSCRIBE to a topic and receive events
+		//
+		function on_counter (args) {
+			var counter = args[0];
+			console.log("on_counter() event received with counter " + counter);
+		}
+		session.subscribe('com.example.oncounter', on_counter).then(
+			function (sub) {
+				console.log('subscribed to topic');
+			},
+			function (err) {
+				console.log('failed to subscribe to topic', err);
+			}
+		);
+
+
+		// PUBLISH an event every second
+		//
+		//t1 = setInterval(function () {
+
+		//   session.publish('com.example.onhello', ['Hello from JavaScript (browser)']);
+		//   console.log("published to topic 'com.example.onhello'");
+		//}, 1000);
+
+
+		// REGISTER a procedure for remote calling
+		//
+		function mul2 (args) {
+			var x = args[0];
+			var y = args[1];
+			console.log("mul2() called with " + x + " and " + y);
+			return x * y;
+		}
+		session.register('com.example.mul2', mul2).then(
+			function (reg) {
+				console.log('procedure registered');
+			},
+			function (err) {
+				console.log('failed to register procedure', err);
+			}
+		);
+
+		// CALL a remote procedure
+		x = 56;
+		session.call('com.balloon.pop', [x, 18]).then(
+			function (res) {
+				console.log("pop() result:", res);
+			},
+			function (err) {
+				console.log("pop() error:", err);
+			}
+		);
 
 
 
-            // CALL a remote procedure every second
-            //
-            //var x = 0;
-
-            //t2 = setInterval(function () {
-
-            //   session.call('com.example.add2', [x, 18]).then(
-            //      function (res) {
-            //         console.log("add2() result:", res);
-            //      },
-            //      function (err) {
-            //         console.log("add2() error:", err);
-            //      }
-            //   );
-
-            //   x += 3;
-            //}, 1000);
-         };
 
 
-         // fired when connection was lost (or could not be established)
-         //
-         connection.onclose = function (reason, details) {
-            console.log("Connection lost: " + reason);
-            if (t1) {
-               clearInterval(t1);
-               t1 = null;
-            }
-            if (t2) {
-               clearInterval(t2);
-               t2 = null;
-            }
-         }
+		// CALL a remote procedure every second
+		//
+		//var x = 0;
+
+		//t2 = setInterval(function () {
+
+		//   session.call('com.example.add2', [x, 18]).then(
+		//      function (res) {
+		//         console.log("add2() result:", res);
+		//      },
+		//      function (err) {
+		//         console.log("add2() error:", err);
+		//      }
+		//   );
+
+		//   x += 3;
+		//}, 1000);
+	};
 
 
-         // now actually open the connection
-         //
-         connection.open();
+	// fired when connection was lost (or could not be established)
+	//
+	connection.onclose = function (reason, details) {
+		console.log("Connection lost: " + reason);
+		if (t1) {
+			clearInterval(t1);
+			t1 = null;
+		}
+		if (t2) {
+			clearInterval(t2);
+			t2 = null;
+		}
+	}
 
-      </script>
-   </body>
+
+	// now actually open the connection
+	//
+	connection.open();
+
+	</script>
+</body>
 </html>
+
   
 The worker itself has the options
 
