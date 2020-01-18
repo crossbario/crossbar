@@ -33,6 +33,10 @@ The router processes run :doc:`Router Transports <Router-Transports>`
 -  :doc:`RawSocket Transport <RawSocket-Transport>`
 -  :doc:`MQTT Broker <MQTT-Broker>`
 
+Here is a complete example of a node configuration with router and container workers:
+
+-  :doc:`Node Configuration Example <Node-Configuration-Example>`
+
 Authentication and Authorization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
