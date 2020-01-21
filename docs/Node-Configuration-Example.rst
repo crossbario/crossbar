@@ -6,7 +6,9 @@ IoT Microservice Weather Balloon example using Container Component with Dynamic 
 This complete example shows a crossbar.io configuration with two types of components together: a router component handling authorization and a container component. The container component registers a python app with a pretend balloon-popping procedure. As soon as index.html opens in your browser, the "pop" remote procedure is called. Use your imagination as to how to make this fun with your next IoT project!
 
 TL;DR
-Crossbar.io router components share the same single process as the router worker, so it makes sense to keep any router components simple and light as possible, for example just to handle authorization. Container component workers can run python applications natively, and unlike router components, each run on their own process. This is very useful to keep in mind when you design your services: keep loads off the main router worker process so if any of your applications go down, it may not take the router with it. Enjoy!
+Crossbar.io router components share the same single process as the router worker, so it makes sense to keep any router components simple and light as possible, for example just to handle authorization. Container component workers can run python applications natively, and unlike router components, each run on their own process. This is very useful to keep in mind when you design your services: keep loads off the main router worker process so if any of your applications go down, it may not take the router with it.
+
+In this example, user `anohni` with role `authenticator` does the authentication in `authenticator.py`, user `Karina` with role `backend` registers the rRPC com.balloon.pop from balloon.py, and user `Ingemar` with role `balloonpopper` actually calls com.balloon.pop from index.html. Enjoy!
 
 
 Disambiguation: containers discussed here are not related to Docker Containers
@@ -383,12 +385,7 @@ balloon.py
                                         #self.log.info("procedure pop registered")
                                     except Exception as e:
                                         prCyan("could not register procedure: {}".format(e))
-
-                                        ##@wamp.register(u'com.example.add2')
-                                        ##def adding2(self,x,y):
-                                        ##   self.log.info("add2() called with {x} and {y}", x=x, y=y)
-                                        ##   result = x + y
-                                        ##   return result
+					
 
 index.html
 ----------
@@ -492,14 +489,6 @@ index.html
                 }
             );
 
-            // PUBLISH an event every second
-            //
-            //t1 = setInterval(function () {
-
-            //   session.publish('com.example.onhello', ['Hello from JavaScript (browser)']);
-            //   console.log("published to topic 'com.example.onhello'");
-            //}, 1000);
-
 
             // REGISTER a procedure for remote calling
             //
@@ -528,21 +517,6 @@ index.html
                     console.log("pop() error:", err);
                 }
             );
-
-            // CALL a remote procedure every second
-            //
-            //var x = 0;
-
-            //t2 = setInterval(function () {
-
-            //   session.call('com.example.add2', [x, 18]).then(
-            //      function (res) {
-            //         console.log("add2() result:", res);
-            //      },
-            //      function (err) {
-            //         console.log("add2() error:", err);
-            //      }
-            //   );
 
             //   x += 3;
             //}, 1000);
