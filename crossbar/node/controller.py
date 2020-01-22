@@ -59,11 +59,10 @@ from crossbar.common.process import NativeProcess
 from crossbar.common.monitor import SystemMonitor
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
 
-from zlmdb import time_ns
-
 import txaio
 from txaio import make_logger, get_global_log_level
 txaio.use_twisted()
+from txaio import time_ns  # noqa
 
 __all__ = ('NodeController', 'create_process_env')
 

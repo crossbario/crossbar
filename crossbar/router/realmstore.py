@@ -28,10 +28,9 @@
 #
 #####################################################################################
 
-from zlmdb import time_ns
 from collections import deque
 
-from txaio import make_logger
+from txaio import make_logger, time_ns
 
 __all__ = ('MemoryRealmStore',)
 

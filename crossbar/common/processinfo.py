@@ -29,10 +29,10 @@
 #####################################################################################
 
 import os
-from zlmdb import time_ns
 import sys
 import socket
 
+from txaio import time_ns
 from autobahn.util import utcnow
 
 try:
