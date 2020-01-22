@@ -43,5 +43,5 @@ vmprof>=0.4.12; platform_machine=='x86_64' or platform_machine=='i386' or platfo
 watchdog>=0.8.3
 werkzeug>=0.14.1
 wsaccel>=0.6.2; platform_python_implementation=='CPython'
-zlmdb>=19.11.1
+zlmdb>=20.1.1
 zope.interface>=4.4.2

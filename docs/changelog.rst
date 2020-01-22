@@ -5,6 +5,9 @@
 Changelog
 =========
 
+* fix: use time_ns/perf_counter_ns shims from txaio and remove duplicate code here
+* fix: CPython 3.8 on Windows (#1682)
+
 20.1.1
 ------
 
