@@ -37,8 +37,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 
 from autobahn.util import utcstr
 
-from txaio import make_logger
-from zlmdb import time_ns
+from txaio import make_logger, time_ns
 
 from crossbar.common.checkconfig import check_dict_args
 

@@ -46,9 +46,7 @@ from autobahn.wamp.types import SubscribeOptions, PublishOptions, RegisterOption
 from autobahn.wamp.exception import ApplicationError, TransportLost
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
-from zlmdb import time_ns
-
-from txaio import make_logger
+from txaio import make_logger, time_ns
 
 __all__ = (
     'RLink',
