@@ -592,23 +592,25 @@ class RouterSession(BaseSession):
                        klass=self.__class__.__name__, was_clean=wasClean)
 
         # publish final serializer stats for WAMP client connection being closed
-        session_info_short = {
-            'session': self._session_id,
-            'realm': self._realm,
-            'authid': self._authid,
-            'authrole': self._authrole,
-        }
-        session_stats = self._transport._serializer.stats()
-        session_stats['first'] = False
-        session_stats['last'] = True
-        self._service_session.publish('wamp.session.on_stats', session_info_short, session_stats)
+        if self._service_session:
+            session_info_short = {
+                'session': self._session_id,
+                'realm': self._realm,
+                'authid': self._authid,
+                'authrole': self._authrole,
+            }
+
+            session_stats = self._transport._serializer.stats()
+            session_stats['first'] = False
+            session_stats['last'] = True
+
+            self._service_session.publish('wamp.session.on_stats', session_info_short, session_stats)
 
         # set transport to None: the session won't be usable anymore from here ..
         self._transport = None
 
+        # fire callback and close the transport
         if self._session_id:
-
-            # fire callback and close the transport
             try:
                 self.onLeave(types.CloseDetails())
             except Exception:
