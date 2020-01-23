@@ -5,8 +5,7 @@ Guest Configuration
 
 **Guest workers** are worker processes spawned by Crossbar.io which
 runapplication components written in languages other than Python (the
-language which Crossbar.io is written in), or in Python 3.x (Crossbar.io
-is currently on Python 2.7).
+language which Crossbar.io is written in).
 
 This makes deployment of WAMP applications easier, since you can start
 an entire application backend just by starting Crossbar.io.
