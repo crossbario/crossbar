@@ -5,8 +5,12 @@
 Changelog
 =========
 
+20.1.2
+------
+
 * fix: use time_ns/perf_counter_ns shims from txaio and remove duplicate code here
 * fix: CPython 3.8 on Windows (#1682)
+* new: comprehensive node configuration example / doc page
 
 20.1.1
 ------
