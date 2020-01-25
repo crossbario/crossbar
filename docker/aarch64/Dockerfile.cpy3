@@ -1,4 +1,4 @@
-FROM arm64v8/python:3-slim
+FROM arm64v8/python:3.7-slim
 
 COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
 
