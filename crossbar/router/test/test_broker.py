@@ -39,7 +39,7 @@ from autobahn.wamp import role
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.worker.types import RouterRealm
-from crossbar.router.router import RouterFactory
+from crossbar.router.router import RouterFactory, Router
 from crossbar.router.session import RouterSessionFactory, RouterSession
 from crossbar.router.broker import Broker
 from crossbar.router.role import RouterRoleStaticAuth
@@ -216,19 +216,24 @@ class TestBrokerPublish(unittest.TestCase):
         """
         Reason should be propagated properly from Goodbye message
         """
-        raise unittest.SkipTest('FIXME: Adjust unit test mocks #1567')
 
         from crossbar.router.session import RouterApplicationSession
-        session = mock.Mock()
+        session = ApplicationSession()
+        session.onLeave = mock.Mock()
         session._realm = u'realm'
-        router_factory = mock.Mock()
-        rap = RouterApplicationSession(session, router_factory)
+        router = Router(
+            factory=mock.Mock(),
+            realm=RouterRealm(
+                controller=None,
+                id=u'realm',
+                config=dict(name='realm'),
+            )
+        )
+        rap = RouterApplicationSession(session, router)
 
-        rap.send(message.Hello(u'realm', {u'caller': role.RoleCallerFeatures()}))
-        session.reset_mock()
         rap.send(message.Goodbye(u'wamp.reason.logout', u'some custom message'))
 
-        leaves = [call for call in session.mock_calls if call[0] == 'onLeave']
+        leaves = session.onLeave.mock_calls
         self.assertEqual(1, len(leaves))
         details = leaves[0][1][0]
         self.assertEqual(u'wamp.reason.logout', details.reason)
