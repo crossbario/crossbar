@@ -157,7 +157,6 @@ class TestBrokerPublish(unittest.TestCase):
         similar to above, but during _RouterSession's onMessage handling,
         where it calls self.onHello
         """
-        raise unittest.SkipTest('FIXME: Adjust unit test mocks #1567')
 
         # setup
         transport = mock.MagicMock()
@@ -171,9 +170,7 @@ class TestBrokerPublish(unittest.TestCase):
         session.onOpen(transport)
         msg = message.Hello(u'realm1', dict(caller=role.RoleCallerFeatures()))
 
-        # XXX think: why isn't this using _RouterSession.log?
-        from crossbar.router.session import RouterSession
-        with mock.patch.object(RouterSession, 'log') as logger:
+        with mock.patch.object(session, 'log') as logger:
             # do the test; should call onHello which is now "boom", above
             session.onMessage(msg)
 
@@ -182,16 +179,15 @@ class TestBrokerPublish(unittest.TestCase):
             call = logger.method_calls[0]
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
-            self.assertEqual(call[0], 'failure')
-            self.assertTrue('failure' in call[2])
-            self.assertEqual(call[2]['failure'].value, the_exception)
+            self.assertEqual(call[0], 'warn')
+            self.assertTrue('err' in call[2])
+            self.assertEqual(call[2]['err'].value, the_exception)
 
     def test_router_session_internal_error_onAuthenticate(self):
         """
         similar to above, but during _RouterSession's onMessage handling,
         where it calls self.onAuthenticate)
         """
-        raise unittest.SkipTest('FIXME: Adjust unit test mocks #1567')
 
         # setup
         transport = mock.MagicMock()
@@ -243,21 +239,24 @@ class TestBrokerPublish(unittest.TestCase):
         """
         Reason should be propagated properly from Goodbye message
         """
-        raise unittest.SkipTest('FIXME: Adjust unit test mocks #1567')
-
         from crossbar.router.session import RouterApplicationSession
-        session = mock.Mock()
+        session = ApplicationSession()
         the_exception = RuntimeError("onLeave fails")
 
         def boom(*args, **kw):
             raise the_exception
         session.onLeave = mock.Mock(side_effect=boom)
         session._realm = u'realm'
-        router_factory = mock.Mock()
-        rap = RouterApplicationSession(session, router_factory)
+        router = Router(
+            factory=mock.Mock(),
+            realm=RouterRealm(
+                controller=None,
+                id=u'realm',
+                config=dict(name='realm'),
+            )
+        )
+        rap = RouterApplicationSession(session, router)
 
-        rap.send(message.Hello(u'realm', {u'caller': role.RoleCallerFeatures()}))
-        session.reset_mock()
         rap.send(message.Goodbye(u'wamp.reason.logout', u'some custom message'))
 
         errors = self.flushLoggedErrors()
@@ -268,10 +267,9 @@ class TestBrokerPublish(unittest.TestCase):
         """
         Reason should be propagated properly from Goodbye message
         """
-        raise unittest.SkipTest('FIXME: Adjust unit test mocks #1567')
 
         from crossbar.router.session import RouterApplicationSession
-        session = mock.Mock()
+        session = ApplicationSession()
         the_exception = RuntimeError("sad times at ridgemont high")
 
         def boom(*args, **kw):
@@ -280,11 +278,16 @@ class TestBrokerPublish(unittest.TestCase):
             return defer.succeed(None)
         session.fire = mock.Mock(side_effect=boom)
         session._realm = u'realm'
-        router_factory = mock.Mock()
-        rap = RouterApplicationSession(session, router_factory)
+        router = Router(
+            factory=mock.Mock(),
+            realm=RouterRealm(
+                controller=None,
+                id=u'realm',
+                config=dict(name='realm'),
+            )
+        )
+        rap = RouterApplicationSession(session, router)
 
-        rap.send(message.Hello(u'realm', {u'caller': role.RoleCallerFeatures()}))
-        session.reset_mock()
         rap.send(message.Goodbye(u'wamp.reason.logout', u'some custom message'))
 
         errors = self.flushLoggedErrors()
@@ -295,7 +298,6 @@ class TestBrokerPublish(unittest.TestCase):
         """
         We see all 'lifecycle' notifications.
         """
-        raise unittest.SkipTest('FIXME: Adjust unit test mocks #1567')
 
         from crossbar.router.session import RouterApplicationSession
 
@@ -304,15 +306,21 @@ class TestBrokerPublish(unittest.TestCase):
             return defer.succeed(None)
 
         fired = []
-        session = mock.Mock()
+        session = ApplicationSession()
         session._realm = u'realm'
         session.fire = mock.Mock(side_effect=mock_fire)
-        router_factory = mock.Mock()
-        rap = RouterApplicationSession(session, router_factory)
+        router = Router(
+            factory=mock.Mock(),
+            realm=RouterRealm(
+                controller=None,
+                id=u'realm',
+                config=dict(name='realm'),
+            )
+        )
+        rap = RouterApplicationSession(session, router)
 
         # we never fake out the 'Welcome' message, so there will be no
         # 'ready' notification...
-        rap.send(message.Hello(u'realm', {u'caller': role.RoleCallerFeatures()}))
         rap.send(message.Goodbye(u'wamp.reason.logout', u'some custom message'))
 
         self.assertTrue('connect' in fired)
