@@ -77,7 +77,7 @@ if _HAS_PSUTIL:
             """
             res = {}
             res['ts'] = utcnow()
-            res['cp'] = self.cpu_stats()
+            res['cpu'] = self.cpu_stats()
             res['mem'] = self.mem_stats()
             res['net'] = self.net_stats()
             res['disk'] = self.disk_stats()
