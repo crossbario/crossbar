@@ -74,10 +74,10 @@ if HAS_FS_WATCHER:
             if not self._started:
                 def on_any_event(evt):
                     event = {
-                        u'type': evt.event_type,
-                        u'abs_path': os.path.abspath(evt.src_path),
-                        u'rel_path': os.path.relpath(evt.src_path, self._working_dir),
-                        u'is_directory': evt.is_directory,
+                        'type': evt.event_type,
+                        'abs_path': os.path.abspath(evt.src_path),
+                        'rel_path': os.path.relpath(evt.src_path, self._working_dir),
+                        'is_directory': evt.is_directory,
                     }
 
                     from twisted.internet import reactor

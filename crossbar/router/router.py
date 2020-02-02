@@ -58,7 +58,7 @@ class Router(object):
     """
     log = make_logger()
 
-    RESERVED_ROLES = [u'trusted']
+    RESERVED_ROLES = ['trusted']
     """
     Roles with these URIs are built-in and cannot be added/dropped.
     """
@@ -89,11 +89,11 @@ class Router(object):
         self._options = options or RouterOptions()
         self._store = store
         self._realm = realm
-        self.realm = realm.config[u'name']
+        self.realm = realm.config['name']
 
         self._trace_traffic = False
         self._trace_traffic_roles_include = None
-        self._trace_traffic_roles_exclude = [u'trusted']
+        self._trace_traffic_roles_exclude = ['trusted']
 
         # map: session_id -> session
         self._session_id_to_session = {}
@@ -107,7 +107,7 @@ class Router(object):
         self._attached = 0
 
         self._roles = {
-            u'trusted': RouterTrustedRole(self, u'trusted')
+            'trusted': RouterTrustedRole(self, 'trusted')
         }
 
         # FIXME: this was previsouly just checking for existence of
@@ -185,7 +185,7 @@ class Router(object):
                       session=session._session_id if session else None,
                       realm=self.realm)
 
-        return {u'broker': self._broker._role_features, u'dealer': self._dealer._role_features}
+        return {'broker': self._broker._role_features, 'dealer': self._dealer._role_features}
 
     def _session_joined(self, session, session_details):
         """
@@ -205,7 +205,7 @@ class Router(object):
             self._store.event_store.store_session_joined(session, session_details)
 
         # log session details, but skip Crossbar.io internal sessions
-        if self.realm != u'crossbar':
+        if self.realm != 'crossbar':
             self.log.debug(
                 'session "{session_id}" joined realm "{realm}"',
                 session_id=session_details.session,
@@ -226,7 +226,7 @@ class Router(object):
             self._store.event_store.store_session_left(session, session_details, close_details)
 
         # log session details, but skip Crossbar.io internal sessions
-        if self.realm != u'crossbar':
+        if self.realm != 'crossbar':
             self.log.debug(
                 'session "{session_id}" left realm "{realm}"',
                 session_id=session_details.session,
@@ -415,7 +415,7 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
         """
         assert(type(uri) == str)
-        assert(action in [u'call', u'register', u'publish', u'subscribe'])
+        assert(action in ['call', 'register', 'publish', 'subscribe'])
 
         # the role under which the session that wishes to perform the given action on
         # the given URI was authenticated under
@@ -439,15 +439,15 @@ class Router(object):
             # backward compatibility
             if isinstance(authorization, bool):
                 authorization = {
-                    u'allow': authorization,
-                    u'cache': False
+                    'allow': authorization,
+                    'cache': False
                 }
-                if action in [u'call', u'publish']:
-                    authorization[u'disclose'] = False
+                if action in ['call', 'publish']:
+                    authorization['disclose'] = False
 
             auto_disclose_trusted = False
-            if auto_disclose_trusted and role == u'trusted' and action in [u'call', u'publish']:
-                authorization[u'disclose'] = True
+            if auto_disclose_trusted and role == 'trusted' and action in ['call', 'publish']:
+                authorization['disclose'] = True
 
             self.log.debug("Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and authrole '{authrole}' -> authorization: {authorization}",
                            session_id=session._session_id,
@@ -598,14 +598,14 @@ class RouterFactory(object):
         assert(realm in self._routers)
 
         router = self._routers[realm]
-        uri = config[u'name']
+        uri = config['name']
 
-        if u'permissions' in config:
-            role = RouterRoleStaticAuth(router, uri, config[u'permissions'])
-        elif u'authorizer' in config:
-            role = RouterRoleDynamicAuth(router, uri, config[u'authorizer'])
+        if 'permissions' in config:
+            role = RouterRoleStaticAuth(router, uri, config['permissions'])
+        elif 'authorizer' in config:
+            role = RouterRoleDynamicAuth(router, uri, config['authorizer'])
         else:
-            allow_by_default = config.get(u'allow-by-default', False)
+            allow_by_default = config.get('allow-by-default', False)
             role = RouterRole(router, uri, allow_by_default=allow_by_default)
 
         router.add_role(role)

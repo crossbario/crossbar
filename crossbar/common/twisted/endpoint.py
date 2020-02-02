@@ -97,34 +97,34 @@ def extract_peer_certificate(transport):
                 return value
 
         result = {
-            u'md5': u'{}'.format(maybe_bytes(cert.digest('md5'))).upper(),
-            u'sha1': u'{}'.format(maybe_bytes(cert.digest('sha1'))).upper(),
-            u'sha256': u'{}'.format(maybe_bytes(cert.digest('sha256'))).upper(),
-            u'expired': bool(cert.has_expired()),
-            u'hash': maybe_bytes(cert.subject_name_hash()),
-            u'serial': int(cert.get_serial_number()),
-            u'signature_algorithm': maybe_bytes(cert.get_signature_algorithm()),
-            u'version': int(cert.get_version()),
-            u'not_before': maybe_bytes(cert.get_notBefore()),
-            u'not_after': maybe_bytes(cert.get_notAfter()),
-            u'extensions': []
+            'md5': '{}'.format(maybe_bytes(cert.digest('md5'))).upper(),
+            'sha1': '{}'.format(maybe_bytes(cert.digest('sha1'))).upper(),
+            'sha256': '{}'.format(maybe_bytes(cert.digest('sha256'))).upper(),
+            'expired': bool(cert.has_expired()),
+            'hash': maybe_bytes(cert.subject_name_hash()),
+            'serial': int(cert.get_serial_number()),
+            'signature_algorithm': maybe_bytes(cert.get_signature_algorithm()),
+            'version': int(cert.get_version()),
+            'not_before': maybe_bytes(cert.get_notBefore()),
+            'not_after': maybe_bytes(cert.get_notAfter()),
+            'extensions': []
         }
 
         for i in range(cert.get_extension_count()):
             ext = cert.get_extension(i)
             ext_info = {
-                u'name': u'{}'.format(maybe_bytes(ext.get_short_name())),
-                u'value': u'{}'.format(maybe_bytes(ext)),
-                u'criticial': ext.get_critical() != 0
+                'name': '{}'.format(maybe_bytes(ext.get_short_name())),
+                'value': '{}'.format(maybe_bytes(ext)),
+                'criticial': ext.get_critical() != 0
             }
-            result[u'extensions'].append(ext_info)
+            result['extensions'].append(ext_info)
 
-        for entity, name in [(u'subject', cert.get_subject()), (u'issuer', cert.get_issuer())]:
+        for entity, name in [('subject', cert.get_subject()), ('issuer', cert.get_issuer())]:
             result[entity] = {}
             for key, value in name.get_components():
                 key = maybe_bytes(key)
                 value = maybe_bytes(value)
-                result[entity][u'{}'.format(key).lower()] = u'{}'.format(value)
+                result[entity]['{}'.format(key).lower()] = '{}'.format(value)
 
         return result
 
@@ -444,9 +444,9 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
     # tor endpoint
     elif config['type'] == 'onion':  # or "tor"? r "tor_onion"?
         port = config['port']
-        private_key_fname = _ensure_absolute(config[u'private_key_file'], cbdir)
+        private_key_fname = _ensure_absolute(config['private_key_file'], cbdir)
         tor_control_ep = create_connecting_endpoint_from_config(
-            config[u'tor_control_endpoint'], cbdir, reactor, log
+            config['tor_control_endpoint'], cbdir, reactor, log
         )
         version = config.get('version', 3)  # default to modern version 3
 
@@ -676,7 +676,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
         port = config['port']
         socks_port = config['tor_socks_port']
         tls = config.get('tls', False)
-        if not tls and not host.endswith(u'.onion'):
+        if not tls and not host.endswith('.onion'):
             log.warn("Non-TLS connection traversing Tor network; end-to-end encryption advised")
 
         socks_endpoint = TCP4ClientEndpoint(

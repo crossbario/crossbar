@@ -140,7 +140,7 @@ class WebSocketTesteeController(WorkerController):
     A native Crossbar.io worker that runs a WebSocket testee.
     """
     WORKER_TYPE = 'websocket-testee'
-    WORKER_TITLE = u'WebSocket Testee'
+    WORKER_TITLE = 'WebSocket Testee'
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
@@ -174,7 +174,7 @@ class WebSocketTesteeController(WorkerController):
         # if id in self.transports:
         #     emsg = "Could not start transport: a transport with ID '{}' is already running (or starting)".format(id)
         #     self.log.error(emsg)
-        #     raise ApplicationError(u'crossbar.error.already_running', emsg)
+        #     raise ApplicationError('crossbar.error.already_running', emsg)
 
         # check configuration
         #

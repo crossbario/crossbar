@@ -116,12 +116,12 @@ class RouterTransport(object):
 
     def marshal(self):
         return {
-            u'id': self._transport_id,
-            u'type': self._type,
-            u'config': self._config,
-            u'created_at': utcstr(self._created_at),
-            u'listening_since': utcstr(self._listening_since) if self._listening_since else None,
-            u'state': self._state,
+            'id': self._transport_id,
+            'type': self._type,
+            'config': self._config,
+            'created_at': utcstr(self._created_at),
+            'listening_since': utcstr(self._listening_since) if self._listening_since else None,
+            'state': self._state,
         }
 
     @property

@@ -455,7 +455,7 @@ def _get_versions(reactor):
     # Release Public Key
     from crossbar.common.key import _read_release_key
     release_pubkey = _read_release_key()
-    v.release_pubkey = release_pubkey[u'base64']
+    v.release_pubkey = release_pubkey['base64']
 
     return v
 
@@ -487,7 +487,7 @@ def _run_command_version(options, reactor, personality):
     log.info("   Twisted          : {ver}", ver=decorate(v.tx_ver))
     log.info("   LMDB             : {ver}", ver=decorate(v.lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(v.py_ver), impl=decorate(v.py_ver_detail))
-    if personality.NAME in (u'edge', u'master'):
+    if personality.NAME in ('edge', 'master'):
         log.info(" CrossbarFX         : {ver}", ver=decorate(v.crossbarfx_ver))
         log.info("   NumPy            : {ver}", ver=decorate(v.numpy_ver))
         log.info("   zLMDB            : {ver}", ver=decorate(v.zlmdb_ver))
@@ -522,12 +522,12 @@ def _run_command_keys(options, reactor, personality):
 
     log.info('')
     log.info('{key_title}', key_title=hl('Crossbar Software Release Key', color='yellow', bold=True))
-    log.info('base64: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
-    log.info(release_pubkey[u'qrcode'].strip())
+    log.info('base64: {release_pubkey}', release_pubkey=release_pubkey['base64'])
+    log.info(release_pubkey['qrcode'].strip())
     log.info('')
     log.info('{key_title}', key_title=hl(key_title, color='yellow', bold=True))
-    log.info('hex: {node_key}', node_key=node_key[u'hex'])
-    log.info(node_key[u'qrcode'].strip())
+    log.info('hex: {node_key}', node_key=node_key['hex'])
+    log.info(node_key['qrcode'].strip())
     log.info('')
 
 

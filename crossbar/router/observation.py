@@ -44,11 +44,11 @@ def is_protected_uri(uri, details=None):
     Test if the given URI is from a "protected namespace" (starting with `wamp.`
     or `crossbar.`). Note that "trusted" clients can access all namespaces.
     """
-    trusted = details and details.caller_authrole == u'trusted'
+    trusted = details and details.caller_authrole == 'trusted'
     if trusted:
         return False
     else:
-        return uri.startswith(u'wamp.') or uri.startswith(u'crossbar.')
+        return uri.startswith('wamp.') or uri.startswith('crossbar.')
 
 
 class OrderedSet(set):
@@ -360,8 +360,8 @@ class UriObservationMap(object):
             return self._observations_prefix.longest_prefix_value(uri)
         except KeyError:
             # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
-            if u'' in self._observations_prefix:
-                return self._observations_prefix[u'']
+            if '' in self._observations_prefix:
+                return self._observations_prefix['']
 
         # FIXME: for wildcard observations, when there are multiple matching, we'd
         # like to deterministically select the "most selective one"

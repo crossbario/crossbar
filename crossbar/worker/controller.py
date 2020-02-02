@@ -150,11 +150,11 @@ class WorkerController(NativeProcess):
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
         yield self.publish(
-            u'{}.on_worker_ready'.format(self._uri_prefix),
+            '{}.on_worker_ready'.format(self._uri_prefix),
             {
-                u'type': self.WORKER_TYPE,
-                u'id': self.config.extra.worker,
-                u'pid': os.getpid(),
+                'type': self.WORKER_TYPE,
+                'id': self.config.extra.worker,
+                'pid': os.getpid(),
             },
             options=PublishOptions(acknowledge=True)
         )
@@ -172,7 +172,7 @@ class WorkerController(NativeProcess):
         if self._is_shutting_down:
             # ignore: we are already shutting down ..
             return
-            # raise ApplicationError(u'crossbar.error.operation_in_progress', 'cannot shutdown - the worker is already shutting down')
+            # raise ApplicationError('crossbar.error.operation_in_progress', 'cannot shutdown - the worker is already shutting down')
         else:
             self._is_shutting_down = True
 
@@ -181,10 +181,10 @@ class WorkerController(NativeProcess):
         # publish management API event
         #
         yield self.publish(
-            u'{}.on_shutdown_requested'.format(self._uri_prefix),
+            '{}.on_shutdown_requested'.format(self._uri_prefix),
             {
-                u'who': details.caller if details else None,
-                u'when': utcnow()
+                'who': details.caller if details else None,
+                'when': utcnow()
             },
             options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
         )
@@ -219,7 +219,7 @@ class WorkerController(NativeProcess):
         return [p.marshal() for p in PROFILERS.items()]
 
     @wamp.register(None)
-    def start_profiler(self, profiler=u'vmprof', runtime=10, start_async=True, details=None):
+    def start_profiler(self, profiler='vmprof', runtime=10, start_async=True, details=None):
         """
         Registered under: ``crossbar.worker.<worker_id>.start_profiler``
 
@@ -253,8 +253,8 @@ class WorkerController(NativeProcess):
         # that will fire with the actual profile recorded
         profile_id, profile_finished = profiler.start(runtime=runtime)
 
-        on_profile_started = u'{}.on_profile_started'.format(self._uri_prefix)
-        on_profile_finished = u'{}.on_profile_finished'.format(self._uri_prefix)
+        on_profile_started = '{}.on_profile_started'.format(self._uri_prefix)
+        on_profile_finished = '{}.on_profile_finished'.format(self._uri_prefix)
 
         if start_async:
             publish_options = None
@@ -262,11 +262,11 @@ class WorkerController(NativeProcess):
             publish_options = PublishOptions(exclude=details.caller)
 
         profile_started = {
-            u'id': profile_id,
-            u'who': details.caller,
-            u'profiler': profiler,
-            u'runtime': runtime,
-            u'async': start_async,
+            'id': profile_id,
+            'who': details.caller,
+            'profiler': profiler,
+            'runtime': runtime,
+            'async': start_async,
         }
 
         self.publish(
@@ -277,18 +277,18 @@ class WorkerController(NativeProcess):
 
         def on_profile_success(profile_result):
             self._profiles[profile_id] = {
-                u'id': profile_id,
-                u'profiler': profiler,
-                u'runtime': runtime,
-                u'profile': profile_result
+                'id': profile_id,
+                'profiler': profiler,
+                'runtime': runtime,
+                'profile': profile_result
             }
 
             self.publish(
                 on_profile_finished,
                 {
-                    u'id': profile_id,
-                    u'error': None,
-                    u'profile': profile_result
+                    'id': profile_id,
+                    'error': None,
+                    'profile': profile_result
                 },
                 options=publish_options
             )
@@ -301,9 +301,9 @@ class WorkerController(NativeProcess):
             self.publish(
                 on_profile_finished,
                 {
-                    u'id': profile_id,
-                    u'error': u'{0}'.format(error),
-                    u'profile': None
+                    'id': profile_id,
+                    'error': '{0}'.format(error),
+                    'profile': None
                 },
                 options=publish_options
             )
@@ -335,7 +335,7 @@ class WorkerController(NativeProcess):
         if profile_id in self._profiles:
             return self._profiles[profile_id]
         else:
-            raise ApplicationError(u'crossbar.error.no_such_object', 'no profile with ID {} saved'.format(profile_id))
+            raise ApplicationError('crossbar.error.no_such_object', 'no profile with ID {} saved'.format(profile_id))
 
     @wamp.register(None)
     def get_pythonpath(self, details=None):
@@ -378,7 +378,7 @@ class WorkerController(NativeProcess):
             else:
                 emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(p, path_to_add)
                 self.log.error(emsg)
-                raise ApplicationError(u'crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
+                raise ApplicationError('crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
 
         # now extend python module search path
         #
@@ -400,12 +400,12 @@ class WorkerController(NativeProcess):
 
         # publish event "on_pythonpath_add" to all but the caller
         #
-        topic = u'{}.on_pythonpath_add'.format(self._uri_prefix)
+        topic = '{}.on_pythonpath_add'.format(self._uri_prefix)
         res = {
-            u'paths': sys.path,
-            u'paths_added': paths_added,
-            u'prepend': prepend,
-            u'who': details.caller
+            'paths': sys.path,
+            'paths_added': paths_added,
+            'prepend': prepend,
+            'who': details.caller
         }
         self.publish(topic, res, options=PublishOptions(exclude=details.caller))
 

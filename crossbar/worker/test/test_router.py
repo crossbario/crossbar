@@ -142,16 +142,16 @@ class RouterWorkerSessionTests(TestCase):
 
         realm_config = {
             "name": "realm1",
-            u'roles': [{u'name': u'anonymous',
-                        u'permissions': [{u'subscribe': True,
-                                          u'register': True, u'call': True,
-                                          u'uri': u'*', u'publish': True}]}]
+            'roles': [{'name': 'anonymous',
+                        'permissions': [{'subscribe': True,
+                                          'register': True, 'call': True,
+                                          'uri': '*', 'publish': True}]}]
         }
 
         r.start_router_realm("realm1", realm_config)
 
-        permissions = RouterPermissions(u'', True, True, True, True, True)
-        routera = r._router_factory.get(u'realm1')
+        permissions = RouterPermissions('', True, True, True, True, True)
+        routera = r._router_factory.get('realm1')
         routera.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=permissions))
 
         component_config = {
@@ -185,10 +185,10 @@ class RouterWorkerSessionTests(TestCase):
 
         realm_config = {
             "name": "realm1",
-            u'roles': [{u'name': u'anonymous',
-                        u'permissions': [{u'subscribe': True,
-                                          u'register': True, u'call': True,
-                                          u'uri': u'*', u'publish': True}]}]
+            'roles': [{'name': 'anonymous',
+                        'permissions': [{'subscribe': True,
+                                          'register': True, 'call': True,
+                                          'uri': '*', 'publish': True}]}]
         }
 
         r.start_router_realm("realm1", realm_config)
@@ -223,7 +223,7 @@ class RouterWorkerSessionTests(TestCase):
 
         realm_config = {
             "name": "realm1",
-            u'roles': []
+            'roles': []
         }
 
         r.start_router_realm("realm1", realm_config)
@@ -253,7 +253,7 @@ class RouterWorkerSessionTests(TestCase):
 
         realm_config = {
             "name": "realm1",
-            u'roles': []
+            'roles': []
         }
 
         r.start_router_realm("realm1", realm_config)
@@ -329,7 +329,7 @@ class WebTests(TestCase):
 
         realm_config = {
             "name": "realm1",
-            u'roles': []
+            'roles': []
         }
 
         # Make a file
@@ -403,7 +403,7 @@ class WSGITests(TestCase):
 
         realm_config = {
             "name": "realm1",
-            u'roles': []
+            'roles': []
         }
 
         r.start_router_realm("realm1", realm_config)
@@ -453,7 +453,7 @@ class WSGITests(TestCase):
 
         realm_config = {
             "name": "realm1",
-            u'roles': []
+            'roles': []
         }
 
         r.start_router_realm("realm1", realm_config)
@@ -509,7 +509,7 @@ class WSGITests(TestCase):
 
     #     realm_config = {
     #         "name": "realm1",
-    #         u'roles': []
+    #         'roles': []
     #     }
 
     #     threads = 20

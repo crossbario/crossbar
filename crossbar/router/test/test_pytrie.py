@@ -40,7 +40,7 @@ class TestPyTrie(unittest.TestCase):
         Test trie ctor, and that is doesn't match on "any" prefix.
         """
         t = StringTrie()
-        for key in [u'', u'f', u'foo', u'foobar']:
+        for key in ['', 'f', 'foo', 'foobar']:
             with self.assertRaises(KeyError):
                 t.longest_prefix_value(key)
 
@@ -49,12 +49,12 @@ class TestPyTrie(unittest.TestCase):
         Test the contains operator.
         """
         t = StringTrie()
-        test_keys = [u'', u'f', u'foo', u'foobar', u'baz']
+        test_keys = ['', 'f', 'foo', 'foobar', 'baz']
         for key in test_keys:
             t[key] = key
         for key in test_keys:
             self.assertTrue(key in t)
-        for key in [u'x', u'fb', u'foob', u'fooba', u'bazz']:
+        for key in ['x', 'fb', 'foob', 'fooba', 'bazz']:
             self.assertFalse(key in t)
 
     def test_longest_prefix_1(self):
@@ -62,7 +62,7 @@ class TestPyTrie(unittest.TestCase):
         Test that keys are detected as prefix of themselfes.
         """
         t = StringTrie()
-        test_keys = [u'f', u'foo', u'foobar', u'baz']
+        test_keys = ['f', 'foo', 'foobar', 'baz']
         for key in test_keys:
             t[key] = key
         for key in test_keys:
@@ -73,19 +73,19 @@ class TestPyTrie(unittest.TestCase):
         Test matching prefix lookups.
         """
         t = StringTrie()
-        test_keys = [u'f', u'foo', u'foobar']
+        test_keys = ['f', 'foo', 'foobar']
         for key in test_keys:
             t[key] = key
 
         test_keys = {
-            u'foobarbaz': u'foobar',
-            u'foobaz': u'foo',
-            u'fool': u'foo',
-            u'foo': u'foo',
-            u'fob': u'f',
-            u'fo': u'f',
-            u'fx': u'f',
-            u'f': u'f',
+            'foobarbaz': 'foobar',
+            'foobaz': 'foo',
+            'fool': 'foo',
+            'foo': 'foo',
+            'fob': 'f',
+            'fo': 'f',
+            'fx': 'f',
+            'f': 'f',
         }
         for key in test_keys:
             self.assertEqual(t.longest_prefix_value(key), test_keys[key])
@@ -96,10 +96,10 @@ class TestPyTrie(unittest.TestCase):
         """
         t = StringTrie()
 
-        for key in [u'x', u'fop', u'foobar']:
+        for key in ['x', 'fop', 'foobar']:
             t[key] = key
 
-        for key in [u'y', u'yfoo', u'fox', u'fooba']:
+        for key in ['y', 'yfoo', 'fox', 'fooba']:
             with self.assertRaises(KeyError):
                 t.longest_prefix_value(key)
 
@@ -109,9 +109,9 @@ class TestPyTrie(unittest.TestCase):
         matches a non-empty prefix matching lookup.
         """
         self.skip = True
-        # stored_key = u'x'  # this works (and of course it should!)
-        stored_key = u''  # this blows up! (and it _should_ work)
-        test_key = u'xyz'
+        # stored_key = 'x'  # this works (and of course it should!)
+        stored_key = ''  # this blows up! (and it _should_ work)
+        test_key = 'xyz'
 
         t = StringTrie()
         t[stored_key] = stored_key

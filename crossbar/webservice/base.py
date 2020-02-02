@@ -76,7 +76,7 @@ class Resource404(Resource):
         Resource.__init__(self)
         self._page = templates.get_template('cb_web_404.html')
         self._directory = directory
-        self._pid = u'{}'.format(os.getpid())
+        self._pid = '{}'.format(os.getpid())
 
     def render_HEAD(self, request):
         request.setResponseCode(NOT_FOUND)
@@ -87,9 +87,9 @@ class Resource404(Resource):
 
         try:
             peer = request.transport.getPeer()
-            peer = u'{}:{}'.format(peer.host, peer.port)
+            peer = '{}:{}'.format(peer.host, peer.port)
         except:
-            peer = u'?:?'
+            peer = '?:?'
 
         s = self._page.render(cbVersion=crossbar.__version__,
                               directory=self._directory,

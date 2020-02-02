@@ -364,7 +364,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         # create a WAMP-over-WebSocket transport server factory
         #
         from autobahn.twisted.websocket import WampWebSocketServerFactory
-        transport_factory = WampWebSocketServerFactory(make_session, u'ws://localhost')
+        transport_factory = WampWebSocketServerFactory(make_session, 'ws://localhost')
         transport_factory.protocol = WorkerServerProtocol
         transport_factory.setProtocolOptions(failByDrop=False)
 

@@ -44,7 +44,7 @@ class PendingAuthWampCra(PendingAuth):
     Pending WAMP-CRA authentication.
     """
 
-    AUTHMETHOD = u'wampcra'
+    AUTHMETHOD = 'wampcra'
 
     def __init__(self, session, config):
         PendingAuth.__init__(self, session, config)
@@ -57,13 +57,13 @@ class PendingAuthWampCra(PendingAuth):
         Returns: challenge, signature
         """
         challenge_obj = {
-            u'authid': self._authid,
-            u'authrole': self._authrole,
-            u'authmethod': self._authmethod,
-            u'authprovider': self._authprovider,
-            u'session': self._session_details[u'session'],
-            u'nonce': util.newid(64),
-            u'timestamp': util.utcnow()
+            'authid': self._authid,
+            'authrole': self._authrole,
+            'authmethod': self._authmethod,
+            'authprovider': self._authprovider,
+            'session': self._session_details['session'],
+            'nonce': util.newid(64),
+            'timestamp': util.utcnow()
         }
         challenge = json.dumps(challenge_obj, ensure_ascii=False)
 
@@ -77,15 +77,15 @@ class PendingAuthWampCra(PendingAuth):
 
         # extra data to send to client in CHALLENGE
         extra = {
-            u'challenge': challenge
+            'challenge': challenge
         }
 
         # when using salted passwords, provide the client with
         # the salt and then PBKDF2 parameters used
         if 'salt' in user:
-            extra[u'salt'] = user['salt']
-            extra[u'iterations'] = user.get('iterations', 1000)
-            extra[u'keylen'] = user.get('keylen', 32)
+            extra['salt'] = user['salt']
+            extra['iterations'] = user.get('iterations', 1000)
+            extra['keylen'] = user.get('keylen', 32)
 
         return extra, signature
 
@@ -98,13 +98,13 @@ class PendingAuthWampCra(PendingAuth):
         self._authid = details.authid
 
         # use static principal database from configuration
-        if self._config[u'type'] == u'static':
+        if self._config['type'] == 'static':
 
-            self._authprovider = u'static'
+            self._authprovider = 'static'
 
-            if self._authid in self._config.get(u'users', {}):
+            if self._authid in self._config.get('users', {}):
 
-                principal = self._config[u'users'][self._authid]
+                principal = self._config['users'][self._authid]
 
                 error = self._assign_principal(principal)
                 if error:
@@ -116,19 +116,19 @@ class PendingAuthWampCra(PendingAuth):
 
                 return types.Challenge(self._authmethod, extra)
             else:
-                return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
+                return types.Deny(message='no principal with authid "{}" exists'.format(details.authid))
 
         # use configured procedure to dynamically get a ticket for the principal
-        elif self._config[u'type'] == u'dynamic':
+        elif self._config['type'] == 'dynamic':
 
-            self._authprovider = u'dynamic'
+            self._authprovider = 'dynamic'
 
             error = self._init_dynamic_authenticator()
             if error:
                 return error
 
-            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details[u'authextra'] = details.authextra
+            self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details['authextra'] = details.authextra
 
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
@@ -149,7 +149,7 @@ class PendingAuthWampCra(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
 
     def authenticate(self, signature):
 

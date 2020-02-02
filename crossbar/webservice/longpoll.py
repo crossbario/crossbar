@@ -45,11 +45,11 @@ class WampLongPollResourceSession(longpoll.WampLongPollResourceSession):
     def __init__(self, parent, transport_details):
         longpoll.WampLongPollResourceSession.__init__(self, parent, transport_details)
         self._transport_info = {
-            u'type': 'longpoll',
-            u'protocol': transport_details['protocol'],
-            u'peer': transport_details['peer'],
-            u'http_headers_received': transport_details['http_headers_received'],
-            u'http_headers_sent': transport_details['http_headers_sent']
+            'type': 'longpoll',
+            'protocol': transport_details['protocol'],
+            'peer': transport_details['peer'],
+            'http_headers_received': transport_details['http_headers_received'],
+            'http_headers_sent': transport_details['http_headers_sent']
         }
         self._cbtid = None
 

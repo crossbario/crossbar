@@ -271,7 +271,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                     if self._authid:
                         # there is a cookie set, and the cookie was previously successfully authenticated,
                         # so immediately authenticate the client using that information
-                        self._authprovider = u'cookie'
+                        self._authprovider = 'cookie'
                         self.log.debug("Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
                                        cookiename=self.factory._cookiestore._cookie_id_field, cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod, authrealm=self._authrealm)
                     else:
@@ -286,27 +286,27 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             # WAMP meta event "wamp.session.on_join"
             #
             self._transport_info = {
-                u'type': 'websocket',
-                u'protocol': protocol,
-                u'peer': self.peer,
+                'type': 'websocket',
+                'protocol': protocol,
+                'peer': self.peer,
 
                 # all HTTP headers as received by the WebSocket client
-                u'http_headers_received': request.headers,
+                'http_headers_received': request.headers,
 
                 # only customer user headers (such as cookie)
-                u'http_headers_sent': headers,
+                'http_headers_sent': headers,
 
                 # all HTTP response lines sent (verbatim, in order as sent)
                 # this will get filled in onOpen() from the HTTP response
                 # data that will be stored by AutobahnPython at the WebSocket
                 # protocol level (WebSocketServerProtocol)
-                # u'http_response_lines': None,
+                # 'http_response_lines': None,
 
                 # WebSocket extensions in use .. will be filled in onOpen() - see below
-                u'websocket_extensions_in_use': None,
+                'websocket_extensions_in_use': None,
 
                 # Crossbar.io tracking ID (for cookie tracking)
-                u'cbtid': self._cbtid
+                'cbtid': self._cbtid
             }
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
@@ -325,10 +325,10 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 line = line.strip()
                 if line:
                     http_response_lines.append(line)
-            self._transport_info[u'http_response_lines'] = http_response_lines
+            self._transport_info['http_response_lines'] = http_response_lines
 
         # note the WebSocket extensions negotiated
-        self._transport_info[u'websocket_extensions_in_use'] = [e.__json__() for e in self.websocket_extensions_in_use]
+        self._transport_info['websocket_extensions_in_use'] = [e.__json__() for e in self.websocket_extensions_in_use]
 
         return super(WampWebSocketServerProtocol, self).onOpen()
 
@@ -405,7 +405,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
             serializers = []
             sers = set(config['serializers'])
 
-            if u'flatbuffers' in sers:
+            if 'flatbuffers' in sers:
                 # try FlatBuffers WAMP serializer
                 try:
                     from autobahn.wamp.serializer import FlatBuffersSerializer
@@ -414,9 +414,9 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-FlatBuffers serializer")
                 else:
-                    sers.discard(u'flatbuffers')
+                    sers.discard('flatbuffers')
 
-            if u'cbor' in sers:
+            if 'cbor' in sers:
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
@@ -425,9 +425,9 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
-                    sers.discard(u'cbor')
+                    sers.discard('cbor')
 
-            if u'msgpack' in sers:
+            if 'msgpack' in sers:
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
@@ -438,7 +438,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 else:
                     sers.discard('msgpack')
 
-            if u'ubjson' in sers:
+            if 'ubjson' in sers:
                 # try UBJSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import UBJSONSerializer
@@ -447,9 +447,9 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
                 else:
-                    sers.discard(u'ubjson')
+                    sers.discard('ubjson')
 
-            if u'json' in sers:
+            if 'json' in sers:
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
@@ -458,7 +458,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
-                    sers.discard(u'json')
+                    sers.discard('json')
 
             if not serializers:
                 raise Exception("no valid WAMP serializers specified")
@@ -551,13 +551,13 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         # WAMP meta event "wamp.session.on_join"
         #
         self._transport_info = {
-            u'type': 'rawsocket',
-            u'protocol': None,
-            u'peer': self.peer
+            'type': 'rawsocket',
+            'protocol': None,
+            'peer': self.peer
         }
 
     def _on_handshake_complete(self):
-        self._transport_info[u'protocol'] = u'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
+        self._transport_info['protocol'] = 'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
         return rawsocket.WampRawSocketServerProtocol._on_handshake_complete(self)
 
 
@@ -578,11 +578,11 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
 
         # explicit list of WAMP serializers
         #
-        if u'serializers' in config:
+        if 'serializers' in config:
             serializers = []
             sers = set(config['serializers'])
 
-            if u'flatbuffers' in sers:
+            if 'flatbuffers' in sers:
                 # try FlatBuffers WAMP serializer
                 try:
                     from autobahn.wamp.serializer import FlatBuffersSerializer
@@ -590,9 +590,9 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-FlatBuffers serializer")
                 else:
-                    sers.discard(u'flatbuffers')
+                    sers.discard('flatbuffers')
 
-            if u'cbor' in sers:
+            if 'cbor' in sers:
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
@@ -600,9 +600,9 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
-                    sers.discard(u'cbor')
+                    sers.discard('cbor')
 
-            if u'msgpack' in sers:
+            if 'msgpack' in sers:
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
@@ -612,9 +612,9 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
-                    sers.discard(u'msgpack')
+                    sers.discard('msgpack')
 
-            if u'ubjson' in sers:
+            if 'ubjson' in sers:
                 # try UBJSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import UBJSONSerializer
@@ -623,9 +623,9 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
                 else:
-                    sers.discard(u'ubjson')
+                    sers.discard('ubjson')
 
-            if u'json' in sers:
+            if 'json' in sers:
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
@@ -633,7 +633,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
-                    sers.discard(u'json')
+                    sers.discard('json')
 
             if not serializers:
                 raise Exception("no valid WAMP serializers specified")
@@ -695,9 +695,9 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
 
         # WAMP serializer
         #
-        serid = config.get(u'serializer', u'json')
+        serid = config.get('serializer', 'json')
 
-        if serid == u'json':
+        if serid == 'json':
             # try JSON WAMP serializer
             try:
                 from autobahn.wamp.serializer import JsonSerializer
@@ -705,7 +705,7 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
             except ImportError:
                 raise Exception("could not load WAMP-JSON serializer")
 
-        elif serid == u'msgpack':
+        elif serid == 'msgpack':
             # try MessagePack WAMP serializer
             try:
                 from autobahn.wamp.serializer import MsgPackSerializer
@@ -714,7 +714,7 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
             except ImportError:
                 raise Exception("could not load WAMP-MessagePack serializer")
 
-        elif serid == u'cbor':
+        elif serid == 'cbor':
             # try CBOR WAMP serializer
             try:
                 from autobahn.wamp.serializer import CBORSerializer
@@ -750,7 +750,7 @@ class WebSocketReverseProxyClientProtocol(websocket.WebSocketClientProtocol):
 
     def onMessage(self, payload, isBinary):
         self.log.debug('WebSocketReverseProxyClientProtocol.onMessage(payload={payload}, isBinary={isBinary})',
-                       payload=u'{}..'.format((binascii.b2a_hex(payload).decode() if isBinary else payload.decode('utf8'))[:16]),
+                       payload='{}..'.format((binascii.b2a_hex(payload).decode() if isBinary else payload.decode('utf8'))[:16]),
                        isBinary=isBinary)
         self.factory.frontend_protocol.sendMessage(payload, isBinary)
 
@@ -818,7 +818,7 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
 
         # create and connect client endpoint
         #
-        endpoint = create_connecting_endpoint_from_config(self.backend_config[u'endpoint'],
+        endpoint = create_connecting_endpoint_from_config(self.backend_config['endpoint'],
                                                           None,
                                                           self.factory.reactor,
                                                           self.log)
@@ -835,7 +835,7 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
             self.backend_protocol = proto
 
         def on_connect_error(err):
-            deny = ConnectionDeny(ConnectionDeny.SERVICE_UNAVAILABLE, u'WebSocket reverse proxy backend not reachable')
+            deny = ConnectionDeny(ConnectionDeny.SERVICE_UNAVAILABLE, 'WebSocket reverse proxy backend not reachable')
             backend_on_connect.errback(deny)
 
         d.addCallbacks(on_connect_success, on_connect_error)

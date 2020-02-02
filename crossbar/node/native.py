@@ -49,17 +49,17 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         self.factory.proto = self
 
         # native workers are implicitly trusted
-        self._authid = u'crossbar.process.{}'.format(self._pid)
+        self._authid = 'crossbar.process.{}'.format(self._pid)
         self._authrole = self.factory._authrole
 
         # the worker is actively spawned by the node controller,
         # and we talk over the pipes that were create during
         # process creation. this established implicit trust.
-        self._authmethod = u'trusted'
+        self._authmethod = 'trusted'
 
         # the trust is established implicitly by the way the
         # the client (worker) is created
-        self._authprovider = u'programcode'
+        self._authprovider = 'programcode'
 
         # FIXME / CHECKME
         self._cbtid = None
@@ -129,7 +129,7 @@ def create_native_worker_client_factory(router_session_factory, authrole, on_rea
     :param router_session_factory: Router session factory to attach to.
     :type router_session_factory: :class:`crossbar.router.session.RouterSessionFactory`
     """
-    factory = NativeWorkerClientFactory(router_session_factory, u'ws://localhost', authrole=authrole)
+    factory = NativeWorkerClientFactory(router_session_factory, 'ws://localhost', authrole=authrole)
 
     # we need to increase the opening handshake timeout in particular, since starting up a worker
     # on PyPy will take a little (due to JITting)

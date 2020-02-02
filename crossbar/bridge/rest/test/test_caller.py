@@ -75,7 +75,7 @@ class TestSession(ApplicationSession):
                 # this also will raise, if x < 0
                 return math.sqrt(x)
 
-        yield self.register(sqrt, u'com.myapp.sqrt')
+        yield self.register(sqrt, 'com.myapp.sqrt')
 
         # raising WAMP application exceptions
         ##
@@ -91,7 +91,7 @@ class TestSession(ApplicationSession):
                 # forward keyword arguments in exceptions
                 raise ApplicationError("com.myapp.error.invalid_length", min=3, max=10)
 
-        yield self.register(checkname, u'com.myapp.checkname')
+        yield self.register(checkname, 'com.myapp.checkname')
 
         # defining and automapping WAMP application exceptions
         ##
@@ -101,7 +101,7 @@ class TestSession(ApplicationSession):
             if a < b:
                 raise AppError1(b - a)
 
-        yield self.register(compare, u'com.myapp.compare')
+        yield self.register(compare, 'com.myapp.compare')
 
 
 class CallerTestCase(TestCase):
@@ -114,23 +114,23 @@ class CallerTestCase(TestCase):
         self.router_factory = RouterFactory(None, None)
 
         # start a realm
-        self.realm = RouterRealm(None, None, {u'name': u'realm1'})
+        self.realm = RouterRealm(None, None, {'name': 'realm1'})
         self.router_factory.start_realm(self.realm)
 
         # allow everything
-        self.router = self.router_factory.get(u'realm1')
+        self.router = self.router_factory.get('realm1')
         self.router.add_role(
             RouterRoleStaticAuth(
                 self.router,
-                u'test_role',
+                'test_role',
                 default_permissions={
-                    u'uri': u'com.myapp.',
-                    u'match': u'prefix',
-                    u'allow': {
-                        u'call': True,
-                        u'register': True,
-                        u'publish': True,
-                        u'subscribe': True,
+                    'uri': 'com.myapp.',
+                    'match': 'prefix',
+                    'allow': {
+                        'call': True,
+                        'register': True,
+                        'publish': True,
+                        'subscribe': True,
                     }
                 }
             )
@@ -145,10 +145,10 @@ class CallerTestCase(TestCase):
         Test a very basic call where you square root a number. This has one
         arg, no kwargs, and no authorisation.
         """
-        session = TestSession(types.ComponentConfig(u'realm1'))
+        session = TestSession(types.ComponentConfig('realm1'))
         self.session_factory.add(session, self.router, authrole="test_role")
 
-        session2 = ApplicationSession(types.ComponentConfig(u'realm1'))
+        session2 = ApplicationSession(types.ComponentConfig('realm1'))
         self.session_factory.add(session2, self.router, authrole="test_role")
         resource = CallerResource({}, session2)
 
@@ -172,10 +172,10 @@ class CallerTestCase(TestCase):
         """
         A failed call returns the error to the client.
         """
-        session = TestSession(types.ComponentConfig(u'realm1'))
+        session = TestSession(types.ComponentConfig('realm1'))
         self.session_factory.add(session, self.router, authrole="test_role")
 
-        session2 = ApplicationSession(types.ComponentConfig(u'realm1'))
+        session2 = ApplicationSession(types.ComponentConfig('realm1'))
         self.session_factory.add(session2, self.router, authrole="test_role")
         resource = CallerResource({}, session2)
 

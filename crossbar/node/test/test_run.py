@@ -492,10 +492,10 @@ class MySession(ApplicationSession):
 
         def _err():
             raise ApplicationError("com.example.error.form_error", "\\u2603")
-        e = yield self.register(_err, u'com.example.err')
+        e = yield self.register(_err, 'com.example.err')
 
         try:
-            yield self.call(u'com.example.err')
+            yield self.call('com.example.err')
         except ApplicationError as e:
             assert e.args[0] == "\\u2603"
             print("Caught error:", e)

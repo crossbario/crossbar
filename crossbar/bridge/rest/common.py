@@ -96,9 +96,9 @@ def _confirm_github_signature(request, secret_token, raw_body):
         secret_token = secret_token.encode('ascii')
     assert isinstance(raw_body, bytes)
     # must have the header to continue
-    if not request.requestHeaders.getRawHeaders(u'X-Hub-Signature'):
+    if not request.requestHeaders.getRawHeaders('X-Hub-Signature'):
         return False
-    purported_signature = str(request.requestHeaders.getRawHeaders(u'X-Hub-Signature')[0]).lower()
+    purported_signature = str(request.requestHeaders.getRawHeaders('X-Hub-Signature')[0]).lower()
     # NOTE: never use SHA1 for new code ... but GitHub signatures are
     # SHA1, so we have to here :(
     h = hazmat_hmac.HMAC(secret_token, hashes.SHA1(), default_backend())  # nosec
@@ -181,7 +181,7 @@ class _CommonResource(Resource):
             code = 200
         else:
             # This is a "CB" error, so return 500 and a generic error
-            res['error'] = u'wamp.error.runtime_error'
+            res['error'] = 'wamp.error.runtime_error'
             res['args'] = ["Sorry, Crossbar.io has encountered a problem."]
             res['kwargs'] = {}
 

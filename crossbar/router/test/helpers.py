@@ -66,11 +66,11 @@ def make_router():
     return router_factory, server_factory, session_factory
 
 
-def add_realm_to_router(router_factory, session_factory, realm_name=u'default',
+def add_realm_to_router(router_factory, session_factory, realm_name='default',
                         realm_options={}):
 
     opts = dict(realm_options)
-    opts.update({u'name': realm_name})
+    opts.update({'name': realm_name})
 
     # start a realm
     realm = RouterRealm(None, None, opts)
@@ -82,25 +82,25 @@ def add_realm_to_router(router_factory, session_factory, realm_name=u'default',
 
     # allow everything
     default_permissions = {
-        u'uri': u'',
-        u'match': u'prefix',
-        u'allow': {
-            u'call': True,
-            u'register': True,
-            u'publish': True,
-            u'subscribe': True
+        'uri': '',
+        'match': 'prefix',
+        'allow': {
+            'call': True,
+            'register': True,
+            'publish': True,
+            'subscribe': True
         }
     }
 
     router = router_factory.get(realm_name)
     router.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=default_permissions))
 
-    session_factory.add(realm.session, router, authrole=u'trusted')
+    session_factory.add(realm.session, router, authrole='trusted')
 
     return router
 
 
-def make_router_and_realm(realm_name=u'default'):
+def make_router_and_realm(realm_name='default'):
 
     router_factory, server_factory, session_factory = make_router()
     router = add_realm_to_router(router_factory, session_factory, realm_name)

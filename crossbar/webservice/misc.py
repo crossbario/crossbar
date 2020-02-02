@@ -52,15 +52,15 @@ class NodeInfoResource(Resource):
     def __init__(self, templates, controller_session):
         Resource.__init__(self)
         self._page = templates.get_template('cb_node_info.html')
-        self._pid = u'{}'.format(os.getpid())
+        self._pid = '{}'.format(os.getpid())
         self._controller_session = controller_session
 
     def _delayedRender(self, node_info, request):
         try:
             peer = request.transport.getPeer()
-            peer = u'{}:{}'.format(peer.host, peer.port)
+            peer = '{}:{}'.format(peer.host, peer.port)
         except:
-            peer = u'?:?'
+            peer = '?:?'
 
         s = self._page.render(cbVersion=crossbar.__version__,
                               workerPid=self._pid,
@@ -72,7 +72,7 @@ class NodeInfoResource(Resource):
 
     def render_GET(self, request):
         # http://twistedmatrix.com/documents/current/web/howto/web-in-60/asynchronous-deferred.html
-        d = self._controller_session.call(u'crossbar.get_status')
+        d = self._controller_session.call('crossbar.get_status')
         d.addCallback(self._delayedRender, request)
         return server.NOT_DONE_YET
 

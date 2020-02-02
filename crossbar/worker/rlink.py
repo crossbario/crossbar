@@ -508,21 +508,21 @@ class RLinkRemoteSession(BridgeSession):
         authextra.update({
             # forward the client pubkey: this allows us to omit authid as
             # the router can identify us with the pubkey already
-            u'pubkey': self._rlink_manager._controller._node_key.public_key(),
+            'pubkey': self._rlink_manager._controller._node_key.public_key(),
 
             # not yet implemented. a public key the router should provide
             # a trustchain for it's public key. the trustroot can eg be
             # hard-coded in the client, or come from a command line option.
-            u'trustroot': None,
+            'trustroot': None,
 
             # not yet implemented. for authenticating the router, this
             # challenge will need to be signed by the router and send back
             # in AUTHENTICATE for client to verify. A string with a hex
             # encoded 32 bytes random value.
-            u'challenge': None,
+            'challenge': None,
 
             # https://tools.ietf.org/html/rfc5929
-            u'channel_binding': u'tls-unique'
+            'channel_binding': 'tls-unique'
         })
 
         self.log.info(
@@ -541,7 +541,7 @@ class RLinkRemoteSession(BridgeSession):
         self.log.debug(
             '{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
-        if challenge.method == u'cryptosign':
+        if challenge.method == 'cryptosign':
             # alright, we've got a challenge from the router.
 
             # not yet implemented. check the trustchain the router provided against

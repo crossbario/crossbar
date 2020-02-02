@@ -67,7 +67,7 @@ class TestamentTests(unittest.TestCase):
                 self.events = []
                 self.s = yield self.subscribe(
                     lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-                    u'com.test.destroyed')
+                    'com.test.destroyed')
 
         session, pump = connect_application_session(server_factory,
                                                     ApplicationSession)
@@ -76,7 +76,7 @@ class TestamentTests(unittest.TestCase):
                                                           ObservingSession)
 
         d = session.call("wamp.session.add_testament", "com.test.destroyed",
-                         [u'hello'], {})
+                         ['hello'], {})
         pump.flush()
 
         # Make sure it returns a publication ID
@@ -112,7 +112,7 @@ class TestamentTests(unittest.TestCase):
                 self.events = []
                 self.s = yield self.subscribe(
                     lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-                    u'com.test.destroyed')
+                    'com.test.destroyed')
 
         session, pump = connect_application_session(server_factory,
                                                     ApplicationSession)
@@ -121,7 +121,7 @@ class TestamentTests(unittest.TestCase):
                                                           ObservingSession)
 
         d = session.call("wamp.session.add_testament", "com.test.destroyed",
-                         [u'hello'], {})
+                         ['hello'], {})
         pump.flush()
 
         # Make sure it returns an integer (the testament event publication ID)
@@ -157,7 +157,7 @@ class TestamentTests(unittest.TestCase):
                                                     ApplicationSession)
 
         d = session.call("wamp.session.add_testament", "com.test.destroyed",
-                         [u'hello'], {}, scope="bar")
+                         ['hello'], {}, scope="bar")
         pump.flush()
 
         # Make sure it returns a failure
@@ -196,7 +196,7 @@ class TestamentTests(unittest.TestCase):
                 self.events = []
                 self.s = yield self.subscribe(
                     lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-                    u'com.test.dc')
+                    'com.test.dc')
 
         session, pump = connect_application_session(server_factory,
                                                     ApplicationSession)
@@ -206,13 +206,13 @@ class TestamentTests(unittest.TestCase):
 
         # Add a destroyed testament
         d = session.call("wamp.session.add_testament", "com.test.dc",
-                         [u'destroyed'], {}, scope="destroyed")
+                         ['destroyed'], {}, scope="destroyed")
         pump.flush()
         self.assertIsInstance(self.successResultOf(d), (int, ))
 
         # Add a detached testament
         d = session.call("wamp.session.add_testament", "com.test.dc",
-                         [u'detached'], {}, scope="detached")
+                         ['detached'], {}, scope="detached")
         pump.flush()
         self.assertIsInstance(self.successResultOf(d), (int, ))
 
@@ -234,4 +234,4 @@ class TestamentTests(unittest.TestCase):
         ob_pump.flush()
 
         # Just the detached testament is sent
-        self.assertEqual(ob_session.events, [{"args": (u'detached',), "kwargs": {}}])
+        self.assertEqual(ob_session.events, [{"args": ('detached',), "kwargs": {}}])

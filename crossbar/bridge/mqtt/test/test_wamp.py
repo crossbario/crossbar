@@ -68,7 +68,7 @@ from txaio.tx import make_logger
 
 
 class ObservingSession(ApplicationSession):
-    _topic = u'test'
+    _topic = 'test'
 
     @inlineCallbacks
     def onJoin(self, details):
@@ -91,22 +91,22 @@ def build_mqtt_server():
     add_realm_to_router(router_factory, session_factory)
     router = add_realm_to_router(router_factory,
                                  session_factory,
-                                 realm_name=u'mqtt',
+                                 realm_name='mqtt',
                                  realm_options={})
 
     # allow everything
     default_permissions = {
-        u'uri': u'',
-        u'match': u'prefix',
-        u'allow': {
-            u'call': True,
-            u'register': True,
-            u'publish': True,
-            u'subscribe': True
+        'uri': '',
+        'match': 'prefix',
+        'allow': {
+            'call': True,
+            'register': True,
+            'publish': True,
+            'subscribe': True
         }
     }
 
-    router.add_role(RouterRoleStaticAuth(router, u'mqttrole', default_permissions=default_permissions))
+    router.add_role(RouterRoleStaticAuth(router, 'mqttrole', default_permissions=default_permissions))
 
     class AuthenticatorSession(ApplicationSession):
 
@@ -117,23 +117,23 @@ def build_mqtt_server():
 
                 if authid == "test123":
 
-                    if details["ticket"] != u'password':
-                        raise ApplicationError(u'com.example.invalid_ticket', u'nope')
+                    if details["ticket"] != 'password':
+                        raise ApplicationError('com.example.invalid_ticket', 'nope')
 
                     res = {
-                        u'realm': u'mqtt',
-                        u'role': u'mqttrole',
-                        u'extra': {}
+                        'realm': 'mqtt',
+                        'role': 'mqttrole',
+                        'extra': {}
                     }
                     return res
 
                 else:
-                    raise ApplicationError(u'com.example.no_such_user', u'nah')
+                    raise ApplicationError('com.example.no_such_user', 'nah')
 
-            yield self.register(authenticate, u'com.example.auth')
+            yield self.register(authenticate, 'com.example.auth')
 
             def tls(realm, authid, details):
-                ACCEPTED_CERTS = set([u'95:1C:A9:6B:CD:8D:D2:BD:F4:73:82:01:55:89:41:12:9C:F8:AF:8E'])
+                ACCEPTED_CERTS = set(['95:1C:A9:6B:CD:8D:D2:BD:F4:73:82:01:55:89:41:12:9C:F8:AF:8E'])
 
                 if 'client_cert' not in details['transport'] or not details['transport']['client_cert']:
                     raise ApplicationError("com.example.no_cert", "no client certificate presented")
@@ -146,12 +146,12 @@ def build_mqtt_server():
                     raise ApplicationError("com.example.invalid_cert", "certificate with SHA1 {} denied".format(sha1))
                 else:
                     return {
-                        u'authid': subject_cn,
-                        u'role': u'mqttrole',
-                        u'realm': u'mqtt'
+                        'authid': subject_cn,
+                        'role': 'mqttrole',
+                        'realm': 'mqtt'
                     }
 
-            yield self.register(tls, u'com.example.tls')
+            yield self.register(tls, 'com.example.tls')
 
     config = ComponentConfig("default", {})
     authsession = AuthenticatorSession(config)
@@ -239,7 +239,7 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(
             session.events,
             [{"args": tuple(),
-              "kwargs": {u'bar': u'baz'}}])
+              "kwargs": {'bar': 'baz'}}])
 
     def _test_tls_auth(self):
         """

@@ -318,14 +318,14 @@ class SystemMonitor(Monitor):
                         d['{}_per_sec'.format(k2)] = int(value)
 
             # float values: user, nice, system, idle, iowait, irq, softirq, streal, guest, guest_nice
-            current['cpu'] = dict(psutil.cpu_times_percent(interval=None)._asdict())
+            current['cp'] = dict(psutil.cpu_times_percent(interval=None)._asdict())
 
             cpu_freq = psutil.cpu_freq()
-            current['cpu']['freq'] = round(cpu_freq.current) if cpu_freq else None
+            current['cp']['freq'] = round(cpu_freq.current) if cpu_freq else None
             s = psutil.cpu_stats()
-            current['cpu']['ctx_switches'] = s.ctx_switches
-            current['cpu']['interrupts'] = s.interrupts
-            current['cpu']['soft_interrupts'] = s.soft_interrupts
+            current['cp']['ctx_switches'] = s.ctx_switches
+            current['cp']['interrupts'] = s.interrupts
+            current['cp']['soft_interrupts'] = s.soft_interrupts
 
             # int values: total, available, used, free, active, inactive, buffers, cached, shared, slab
             # float values: percent

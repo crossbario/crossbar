@@ -36,25 +36,25 @@ from crossbar.router.auth.scram import PendingAuthScram  # noqa
 
 
 AUTHMETHODS = set([
-    u'ticket',
-    u'wampcra',
-    u'tls',
-    u'cryptosign',
-    u'cookie',
-    u'anonymous',
-    u'scram',
+    'ticket',
+    'wampcra',
+    'tls',
+    'cryptosign',
+    'cookie',
+    'anonymous',
+    'scram',
 ])
 
 # map of authmethod name to processor class
 # note that not all of AUTHMETHODS need to have an
 # entry here .. eg when dependencies are missing
 AUTHMETHOD_MAP = {
-    u'anonymous': PendingAuthAnonymous,
-    u'ticket': PendingAuthTicket,
-    u'wampcra': PendingAuthWampCra,
-    u'tls': PendingAuthTLS,
-    u'cookie': None,
-    u'scram': PendingAuthScram,
+    'anonymous': PendingAuthAnonymous,
+    'ticket': PendingAuthTicket,
+    'wampcra': PendingAuthWampCra,
+    'tls': PendingAuthTLS,
+    'cookie': None,
+    'scram': PendingAuthScram,
 }
 
 try:
@@ -75,4 +75,4 @@ __all__ = [
 if HAS_CRYPTOSIGN:
     from crossbar.router.auth.cryptosign import PendingAuthCryptosign  # noqa
     __all__.append('PendingAuthCryptosign')
-    AUTHMETHOD_MAP[u'cryptosign'] = PendingAuthCryptosign
+    AUTHMETHOD_MAP['cryptosign'] = PendingAuthCryptosign

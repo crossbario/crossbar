@@ -247,7 +247,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                 'packet_identifier': 1,
                 'topic_requests': [
                     {
-                        'topic_filter': u'test/123',
+                        'topic_filter': 'test/123',
                         'max_qos': 0,
                     }
                 ]
@@ -258,7 +258,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
             events.pop(0), Unsubscribe,
             {
                 'packet_identifier': 3,
-                'topics': [u'test/123'],
+                'topics': ['test/123'],
             }
         )
 

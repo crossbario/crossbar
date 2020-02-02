@@ -106,11 +106,11 @@ if _HAS_MANHOLE:
             """
             now = datetime.utcnow()
             return {
-                u'created': utcstr(self.created),
-                u'status': self.status,
-                u'started': utcstr(self.started) if self.started else None,
-                u'uptime': (now - self.started).total_seconds() if self.started else None,
-                u'config': self.config
+                'created': utcstr(self.created),
+                'status': self.status,
+                'started': utcstr(self.started) if self.started else None,
+                'uptime': (now - self.started).total_seconds() if self.started else None,
+                'config': self.config
             }
 
 
@@ -120,7 +120,7 @@ class NativeProcess(ApplicationSession):
     """
     log = make_logger()
 
-    WORKER_TYPE = u'native'
+    WORKER_TYPE = 'native'
 
     def onUserError(self, fail, msg):
         """
@@ -160,7 +160,7 @@ class NativeProcess(ApplicationSession):
         self._realm = config.realm if config else None
         self._node_id = config.extra.node if config and config.extra else None
         self._worker_id = config.extra.worker if config and config.extra else None
-        self._uri_prefix = u'crossbar.worker.{}'.format(self._worker_id)
+        self._uri_prefix = 'crossbar.worker.{}'.format(self._worker_id)
 
     def onConnect(self, do_join=True):
         if not hasattr(self, 'cbdir'):
@@ -199,7 +199,7 @@ class NativeProcess(ApplicationSession):
 
         regs = yield self.register(
             self,
-            prefix=u'{}.'.format(self._uri_prefix),
+            prefix='{}.'.format(self._uri_prefix),
             options=RegisterOptions(details_arg='details'),
         )
 
@@ -312,12 +312,12 @@ class NativeProcess(ApplicationSession):
 
             # publish info to all but the caller ..
             #
-            cpu_affinity_set_topic = u'{}.on_cpu_affinity_set'.format(self._uri_prefix)
+            cpu_affinity_set_topic = '{}.on_cpu_affinity_set'.format(self._uri_prefix)
             cpu_affinity_set_info = {
-                u'cpus': cpus,
-                u'relative': relative,
-                u'affinity': new_affinity,
-                u'who': details.caller
+                'cpus': cpus,
+                'relative': relative,
+                'affinity': new_affinity,
+                'who': details.caller
             }
             self.publish(cpu_affinity_set_topic, cpu_affinity_set_info, options=PublishOptions(exclude=details.caller))
 
@@ -397,7 +397,7 @@ class NativeProcess(ApplicationSession):
                 def publish_stats():
                     stats = self._pinfo.get_stats()
                     self._pinfo_monitor_seq += 1
-                    stats[u'seq'] = self._pinfo_monitor_seq
+                    stats['seq'] = self._pinfo_monitor_seq
                     self.publish(stats_topic, stats)
 
                 self._pinfo_monitor = LoopingCall(publish_stats)
@@ -450,17 +450,17 @@ class NativeProcess(ApplicationSession):
 
         duration = int(round(1000. * (rtime() - started)))
 
-        on_gc_finished = u'{}.on_gc_finished'.format(self._uri_prefix)
+        on_gc_finished = '{}.on_gc_finished'.format(self._uri_prefix)
         self.publish(
             on_gc_finished,
             {
-                u'requester': {
-                    u'session_id': details.caller,
+                'requester': {
+                    'session_id': details.caller,
                     # FIXME:
-                    u'auth_id': None,
-                    u'auth_role': None
+                    'auth_id': None,
+                    'auth_role': None
                 },
-                u'duration': duration
+                'duration': duration
             },
             options=PublishOptions(exclude=details.caller)
         )
@@ -540,7 +540,7 @@ class NativeProcess(ApplicationSession):
         except Exception as e:
             emsg = "Could not start manhole: invalid configuration ({})".format(e)
             self.log.error(emsg)
-            raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
+            raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
         from twisted.conch.ssh import keys
         from twisted.conch.manhole_ssh import (
@@ -667,7 +667,7 @@ class NativeProcess(ApplicationSession):
 
         self._manhole_service.status = 'stopping'
 
-        stopping_topic = u'{}.on_manhole_stopping'.format(self._uri_prefix)
+        stopping_topic = '{}.on_manhole_stopping'.format(self._uri_prefix)
         stopping_info = None
 
         # the caller gets a progressive result ..
@@ -684,7 +684,7 @@ class NativeProcess(ApplicationSession):
 
         self._manhole_service = None
 
-        stopped_topic = u'{}.on_manhole_stopped'.format(self._uri_prefix)
+        stopped_topic = '{}.on_manhole_stopped'.format(self._uri_prefix)
         stopped_info = None
         self.publish(stopped_topic, stopped_info, options=PublishOptions(exclude=details.caller))
 

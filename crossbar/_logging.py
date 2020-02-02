@@ -160,8 +160,8 @@ def make_stdout_observer(levels=(LogLevel.info,),
                 text=formatEvent(event))
         else:
             eventString = strip_ansi(FORMAT_STRING.format(
-                startcolor=u'', time=formatTime(event["log_time"]),
-                system=logSystem, endcolor=u'',
+                startcolor='', time=formatTime(event["log_time"]),
+                system=logSystem, endcolor='',
                 text=formatEvent(event)))
 
         print(eventString, file=_file)
@@ -230,8 +230,8 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                 text=eventText)
         else:
             eventString = strip_ansi(FORMAT_STRING.format(
-                startcolor=u'', time=formatTime(event["log_time"]),
-                system=logSystem, endcolor=u'',
+                startcolor='', time=formatTime(event["log_time"]),
+                system=logSystem, endcolor='',
                 text=eventText))
 
         print(eventString, file=_file)
@@ -330,8 +330,8 @@ def make_logfile_observer(path, show_source=False):
             eventText = eventText + event["log_failure"].getTraceback()
 
         eventString = strip_ansi(STANDARD_FORMAT.format(
-            startcolor=u'', time=formatTime(event["log_time"]),
-            system=logSystem, endcolor=u'',
+            startcolor='', time=formatTime(event["log_time"]),
+            system=logSystem, endcolor='',
             text=eventText)) + os.linesep
 
         return eventString

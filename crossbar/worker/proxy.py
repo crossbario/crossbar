@@ -402,8 +402,8 @@ class ProxyWebSocketService(RouterWebService):
 
 
 class ProxyController(RouterController):
-    WORKER_TYPE = u'proxy'
-    WORKER_TITLE = u'WAMP proxy'
+    WORKER_TYPE = 'proxy'
+    WORKER_TITLE = 'WAMP proxy'
 
     def __init__(self, config=None, reactor=None, personality=None):
         super(ProxyController, self).__init__(

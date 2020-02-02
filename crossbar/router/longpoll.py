@@ -345,8 +345,8 @@ class WampLongPollResourceSession(Resource):
         self._parent._set_standard_headers(request)
 
         res = {
-            u'transport': self._transport_id,
-            u'session': self._session._session_id if self._session else None
+            'transport': self._transport_id,
+            'session': self._session._session_id if self._session else None
         }
         return json.dumps(res).encode()
 
@@ -477,14 +477,14 @@ class WampLongPollResourceOpen(Resource):
         if not isinstance(options, dict):
             return self._parent._fail_request(request, b"invalid type for WAMP session open request")
 
-        if u'protocols' not in options:
+        if 'protocols' not in options:
             return self._parent._fail_request(request, "missing attribute 'protocols' in WAMP session open request")
 
         # determine the protocol to speak
         #
         protocol = None
         serializer = None
-        for p in options[u'protocols']:
+        for p in options['protocols']:
             version, serializerId = parseSubprotocolIdentifier(p)
             if version == 2 and serializerId in self._parent._serializers.keys():
                 serializer = self._parent._serializers[serializerId]
@@ -515,12 +515,12 @@ class WampLongPollResourceOpen(Resource):
             http_headers_received[key].extend(values)
 
         transport_details = {
-            u'transport': transport,
-            u'serializer': serializer,
-            u'protocol': protocol,
-            u'peer': request.getClientIP(),
-            u'http_headers_received': http_headers_received,
-            u'http_headers_sent': None
+            'transport': transport,
+            'serializer': serializer,
+            'protocol': protocol,
+            'peer': request.getClientIP(),
+            'http_headers_received': http_headers_received,
+            'http_headers_sent': None
         }
 
         # create instance of WampLongPollResourceSession or subclass thereof ..
@@ -533,8 +533,8 @@ class WampLongPollResourceOpen(Resource):
         request.setHeader(b'content-type', b'application/json; charset=utf-8')
 
         result = {
-            u'transport': transport,
-            u'protocol': protocol
+            'transport': transport,
+            'protocol': protocol
         }
 
         self.log.debug(

@@ -257,7 +257,7 @@ class Dealer(object):
                 #
                 if self._router._realm and \
                    self._router._realm.session and \
-                   not registration.uri.startswith(u'wamp.'):
+                   not registration.uri.startswith('wamp.'):
 
                     def _publish(registration):
                         service_session = self._router._realm.session
@@ -269,7 +269,7 @@ class Dealer(object):
 
                         if was_registered:
                             service_session.publish(
-                                u'wamp.registration.on_unregister',
+                                'wamp.registration.on_unregister',
                                 session._session_id,
                                 registration.id,
                                 options=options,
@@ -277,7 +277,7 @@ class Dealer(object):
 
                         if was_last_callee:
                             service_session.publish(
-                                u'wamp.registration.on_delete',
+                                'wamp.registration.on_delete',
                                 session._session_id,
                                 registration.id,
                                 options=options,
@@ -353,13 +353,13 @@ class Dealer(object):
 
         # authorize REGISTER action
         #
-        d = self._router.authorize(session, register.procedure, u'register', options=register.marshal_options())
+        d = self._router.authorize(session, register.procedure, 'register', options=register.marshal_options())
 
         def on_authorize_success(authorization):
             # check the authorization before ANYTHING else, otherwise
             # we may leak information about already-registered URIs
             # etc.
-            if not authorization[u'allow']:
+            if not authorization['allow']:
                 # error reply since session is not authorized to register
                 #
                 reply = message.Error(
@@ -439,7 +439,7 @@ class Dealer(object):
 
             # this check is a little redundant, because theoretically
             # we already returned (above) if this was False, but for safety...
-            if authorization[u'allow']:
+            if authorization['allow']:
                 registration = self._registration_map.get_observation(register.procedure, register.match)
                 if register.force_reregister and registration:
                     for obs in registration.observers:
@@ -477,7 +477,7 @@ class Dealer(object):
                 #
                 if self._router._realm and \
                    self._router._realm.session and \
-                   not registration.uri.startswith(u'wamp.') and \
+                   not registration.uri.startswith('wamp.') and \
                    (is_first_callee or not was_already_registered):
 
                     reply.correlation_is_last = False
@@ -506,14 +506,14 @@ class Dealer(object):
 
                         if is_first_callee:
                             registration_details = {
-                                u'id': registration.id,
-                                u'created': registration.created,
-                                u'uri': registration.uri,
-                                u'match': registration.match,
-                                u'invoke': registration.extra.invoke,
+                                'id': registration.id,
+                                'created': registration.created,
+                                'uri': registration.uri,
+                                'match': registration.match,
+                                'invoke': registration.extra.invoke,
                             }
                             service_session.publish(
-                                u'wamp.registration.on_create',
+                                'wamp.registration.on_create',
                                 session._session_id,
                                 registration_details,
                                 options=options
@@ -524,7 +524,7 @@ class Dealer(object):
                                 options.correlation_is_last = True
 
                             service_session.publish(
-                                u'wamp.registration.on_register',
+                                'wamp.registration.on_register',
                                 session._session_id,
                                 registration.id,
                                 options=options
@@ -634,7 +634,7 @@ class Dealer(object):
         #
         if self._router._realm and \
            self._router._realm.session and \
-           not registration.uri.startswith(u'wamp.') and \
+           not registration.uri.startswith('wamp.') and \
            (was_registered or was_deleted):
 
             has_follow_up_messages = True
@@ -664,7 +664,7 @@ class Dealer(object):
 
                 if was_registered:
                     service_session.publish(
-                        u'wamp.registration.on_unregister',
+                        'wamp.registration.on_unregister',
                         session._session_id,
                         registration.id,
                         options=options
@@ -675,7 +675,7 @@ class Dealer(object):
                         options.correlation_is_last = True
 
                     service_session.publish(
-                        u'wamp.registration.on_delete',
+                        'wamp.registration.on_delete',
                         session._session_id,
                         registration.id,
                         options=options
@@ -735,13 +735,13 @@ class Dealer(object):
 
         # authorize CALL action
         #
-        d = self._router.authorize(session, call.procedure, u'call', options=call.marshal_options())
+        d = self._router.authorize(session, call.procedure, 'call', options=call.marshal_options())
 
         def on_authorize_success(authorization):
             # the call to authorize the action _itself_ succeeded. now go on depending on whether
             # the action was actually authorized or not ..
             #
-            if not authorization[u'allow']:
+            if not authorization['allow']:
                 reply = message.Error(
                     message.Call.MESSAGE_TYPE,
                     call.request,
@@ -769,7 +769,7 @@ class Dealer(object):
                     #
                     if call.payload is None:
                         try:
-                            self._router.validate(u'call', call.procedure, call.args, call.kwargs)
+                            self._router.validate('call', call.procedure, call.args, call.kwargs)
                         except Exception as e:
                             reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, ["call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
                             reply.correlation_id = call.correlation_id
@@ -846,8 +846,8 @@ class Dealer(object):
                         reply = message.Error(
                             message.Call.MESSAGE_TYPE,
                             call.request,
-                            u'crossbar.error.max_concurrency_reached',
-                            [u'maximum concurrency {} of callee/endpoint reached (on non-shared/single registration)'.format(callee_extra.concurrency)]
+                            'crossbar.error.max_concurrency_reached',
+                            ['maximum concurrency {} of callee/endpoint reached (on non-shared/single registration)'.format(callee_extra.concurrency)]
                         )
                         reply.correlation_id = call.correlation_id
                         reply.correlation_uri = call.procedure
@@ -886,8 +886,8 @@ class Dealer(object):
                                 reply = message.Error(
                                     message.Call.MESSAGE_TYPE,
                                     call.request,
-                                    u'crossbar.error.max_concurrency_reached',
-                                    [u'maximum concurrency of all callee/endpoints reached (on round-robin registration)'.format(callee_extra.concurrency)]
+                                    'crossbar.error.max_concurrency_reached',
+                                    ['maximum concurrency of all callee/endpoints reached (on round-robin registration)'.format(callee_extra.concurrency)]
                                 )
                                 reply.correlation_id = call.correlation_id
                                 reply.correlation_uri = call.procedure
@@ -925,7 +925,7 @@ class Dealer(object):
 
         # caller disclosure
         #
-        if authorization.get(u'disclose', False):
+        if authorization.get('disclose', False):
             disclose = True
         elif (call.procedure.startswith("wamp.") or call.procedure.startswith("crossbar.")):
             disclose = True

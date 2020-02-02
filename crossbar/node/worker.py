@@ -54,8 +54,8 @@ class WorkerProcess(object):
     """
     Internal run-time representation of a worker process.
     """
-    TYPE = u'worker'
-    LOGNAME = u'Worker'
+    TYPE = 'worker'
+    LOGNAME = 'Worker'
 
     def __init__(self, controller, id, who=None, keeplog=None):
         """
@@ -81,7 +81,7 @@ class WorkerProcess(object):
         self.id = id
         self.who = who
         self.pid = None
-        self.status = u'starting'
+        self.status = 'starting'
 
         self.created = datetime.utcnow()
         self.connected = None
@@ -97,7 +97,7 @@ class WorkerProcess(object):
         else:
             self._log_fds = [1, 2]
         self._log_lineno = 0
-        self._log_topic = u'crossbar.worker.{}.on_log'.format(self.id)
+        self._log_topic = 'crossbar.worker.{}.on_log'.format(self.id)
 
         self._log_rich = None  # Does not support rich logs
 
@@ -118,12 +118,12 @@ class WorkerProcess(object):
 
         IMPORTANT: this slightly differs between native workers and guest workers!
         """
-        assert(self.status == u'starting')
+        assert(self.status == 'starting')
         assert(self.connected is None)
         assert(self.proto is None)
         assert(self.pid is None)
         assert(self.pinfo is None)
-        self.status = u'connected'
+        self.status = 'connected'
         self.connected = datetime.utcnow()
         self.proto = proto
         self.pid = proto.transport.pid
@@ -136,7 +136,7 @@ class WorkerProcess(object):
 
         The worker is now ready for use!
         """
-        assert(self.status in [u'starting', u'connected'])
+        assert(self.status in ['starting', 'connected'])
         assert(self.started is None)
         assert(self.proto is not None or proto is not None)
 
@@ -148,7 +148,7 @@ class WorkerProcess(object):
         assert(self.pid is not None)
         assert(self.pinfo is not None)
 
-        self.status = u'started'
+        self.status = 'started'
         self.proto = self.proto or proto
         self.started = datetime.utcnow()
 
@@ -279,8 +279,8 @@ class NativeWorkerProcess(WorkerProcess):
     container currently) process.
     """
 
-    TYPE = u'native'
-    LOGNAME = u'Native'
+    TYPE = 'native'
+    LOGNAME = 'Native'
 
     def __init__(self, controller, id, who=None, keeplog=None):
         """
@@ -305,8 +305,8 @@ class ControllerWorkerProcess(NativeWorkerProcess):
     Internal run-time representation of a controller process.
     """
 
-    TYPE = u'controller'
-    LOGNAME = u'Controller'
+    TYPE = 'controller'
+    LOGNAME = 'Controller'
 
 
 class RouterWorkerProcess(NativeWorkerProcess):
@@ -314,8 +314,8 @@ class RouterWorkerProcess(NativeWorkerProcess):
     Internal run-time representation of a router worker process.
     """
 
-    TYPE = u'router'
-    LOGNAME = u'Router'
+    TYPE = 'router'
+    LOGNAME = 'Router'
 
 
 class ContainerWorkerProcess(NativeWorkerProcess):
@@ -323,8 +323,8 @@ class ContainerWorkerProcess(NativeWorkerProcess):
     Internal run-time representation of a container worker process.
     """
 
-    TYPE = u'container'
-    LOGNAME = u'Container'
+    TYPE = 'container'
+    LOGNAME = 'Container'
 
 
 class WebSocketTesteeWorkerProcess(NativeWorkerProcess):
@@ -332,8 +332,8 @@ class WebSocketTesteeWorkerProcess(NativeWorkerProcess):
     Internal run-time representation of a websocket-testee worker process.
     """
 
-    TYPE = u'websocket-testee'
-    LOGNAME = u'WebSocketTestee'
+    TYPE = 'websocket-testee'
+    LOGNAME = 'WebSocketTestee'
 
 
 class GuestWorkerProcess(WorkerProcess):
@@ -341,8 +341,8 @@ class GuestWorkerProcess(WorkerProcess):
     Internal run-time representation of a guest worker process.
     """
 
-    TYPE = u'guest'
-    LOGNAME = u'Guest'
+    TYPE = 'guest'
+    LOGNAME = 'Guest'
 
     def __init__(self, controller, id, who, keeplog=None):
         """

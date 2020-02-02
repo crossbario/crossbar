@@ -61,7 +61,7 @@ class StaticResource(File):
 
     def render_GET(self, request):
         if self._cache_timeout is not None:
-            request.setHeader(b'cache-control', u'max-age={}, public'.format(self._cache_timeout).encode('utf8'))
+            request.setHeader(b'cache-control', 'max-age={}, public'.format(self._cache_timeout).encode('utf8'))
             request.setHeader(b'expires', http.datetimeToString(time.time() + self._cache_timeout))
 
         # set response headers for cross-origin requests
