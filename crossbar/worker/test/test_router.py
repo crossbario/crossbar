@@ -143,9 +143,9 @@ class RouterWorkerSessionTests(TestCase):
         realm_config = {
             "name": "realm1",
             'roles': [{'name': 'anonymous',
-                        'permissions': [{'subscribe': True,
-                                          'register': True, 'call': True,
-                                          'uri': '*', 'publish': True}]}]
+                       'permissions': [{'subscribe': True,
+                                        'register': True, 'call': True,
+                                        'uri': '*', 'publish': True}]}]
         }
 
         r.start_router_realm("realm1", realm_config)
@@ -186,9 +186,9 @@ class RouterWorkerSessionTests(TestCase):
         realm_config = {
             "name": "realm1",
             'roles': [{'name': 'anonymous',
-                        'permissions': [{'subscribe': True,
-                                          'register': True, 'call': True,
-                                          'uri': '*', 'publish': True}]}]
+                       'permissions': [{'subscribe': True,
+                                        'register': True, 'call': True,
+                                        'uri': '*', 'publish': True}]}]
         }
 
         r.start_router_realm("realm1", realm_config)
