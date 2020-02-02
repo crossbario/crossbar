@@ -140,7 +140,7 @@ class Broker(object):
         if session not in self._session_to_subscriptions:
             self._session_to_subscriptions[session] = set()
         else:
-            raise Exception(u"session with ID {} already attached".format(session._session_id))
+            raise Exception("session with ID {} already attached".format(session._session_id))
 
     def detach(self, session):
         """
@@ -284,7 +284,7 @@ class Broker(object):
                     publish.correlation_is_last = False
                     self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
-                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with invalid topic URI '{0}' (URI strict checking {1})".format(publish.topic, self._option_uri_strict)])
+                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with invalid topic URI '{0}' (URI strict checking {1})".format(publish.topic, self._option_uri_strict)])
                 reply.correlation_id = publish.correlation_id
                 reply.correlation_uri = publish.topic
                 reply.correlation_is_anchor = False
@@ -300,15 +300,15 @@ class Broker(object):
         # disallow publication to topics starting with "wamp." other than for
         # trusted sessions (that are sessions built into Crossbar.io routing core)
         #
-        if session._authrole is not None and session._authrole != u"trusted":
-            is_restricted = publish.topic.startswith(u"wamp.")
+        if session._authrole is not None and session._authrole != "trusted":
+            is_restricted = publish.topic.startswith("wamp.")
             if is_restricted:
                 if publish.acknowledge:
                     if self._router.is_traced:
                         publish.correlation_is_last = False
                         self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
-                    reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with restricted topic URI '{0}'".format(publish.topic)])
+                    reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with restricted topic URI '{0}'".format(publish.topic)])
                     reply.correlation_id = publish.correlation_id
                     reply.correlation_uri = publish.topic
                     reply.correlation_is_anchor = False
@@ -373,7 +373,7 @@ class Broker(object):
                             publish.correlation_is_last = False
                             self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
-                        reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [u"publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
+                        reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, ["publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
                         reply.correlation_id = publish.correlation_id
                         reply.correlation_uri = publish.topic
                         reply.correlation_is_anchor = False
@@ -402,7 +402,7 @@ class Broker(object):
                             publish.correlation_is_last = False
                             self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
-                        reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, [u"session not authorized to publish to topic '{0}'".format(publish.topic)])
+                        reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, ["session not authorized to publish to topic '{0}'".format(publish.topic)])
                         reply.correlation_id = publish.correlation_id
                         reply.correlation_uri = publish.topic
                         reply.correlation_is_anchor = False
@@ -424,7 +424,7 @@ class Broker(object):
                     #
                     if authorization[u'disclose']:
                         disclose = True
-                    elif (publish.topic.startswith(u"wamp.") or publish.topic.startswith(u"crossbar.")):
+                    elif (publish.topic.startswith("wamp.") or publish.topic.startswith("crossbar.")):
                         disclose = True
                     else:
                         disclose = False
@@ -719,7 +719,7 @@ class Broker(object):
                         message.Publish.MESSAGE_TYPE,
                         publish.request,
                         ApplicationError.AUTHORIZATION_FAILED,
-                        [u"failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)]
+                        ["failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)]
                     )
                     reply.correlation_id = publish.correlation_id
                     reply.correlation_uri = publish.topic
@@ -751,22 +751,22 @@ class Broker(object):
         # prefix subscriptions
         #
         if self._option_uri_strict:
-            if subscribe.match == u"wildcard":
+            if subscribe.match == "wildcard":
                 uri_is_valid = _URI_PAT_STRICT_EMPTY.match(subscribe.topic)
-            elif subscribe.match == u"prefix":
+            elif subscribe.match == "prefix":
                 uri_is_valid = _URI_PAT_STRICT_LAST_EMPTY.match(subscribe.topic)
             else:
                 uri_is_valid = _URI_PAT_STRICT_NON_EMPTY.match(subscribe.topic)
         else:
-            if subscribe.match == u"wildcard":
+            if subscribe.match == "wildcard":
                 uri_is_valid = _URI_PAT_LOOSE_EMPTY.match(subscribe.topic)
-            elif subscribe.match == u"prefix":
+            elif subscribe.match == "prefix":
                 uri_is_valid = _URI_PAT_LOOSE_LAST_EMPTY.match(subscribe.topic)
             else:
                 uri_is_valid = _URI_PAT_LOOSE_NON_EMPTY.match(subscribe.topic)
 
         if not uri_is_valid:
-            reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, [u"subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
+            reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, ["subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
             reply.correlation_id = subscribe.correlation_id
             reply.correlation_uri = subscribe.topic
             reply.correlation_is_anchor = False
@@ -782,7 +782,7 @@ class Broker(object):
             if not authorization[u'allow']:
                 # error reply since session is not authorized to subscribe
                 #
-                replies = [message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])]
+                replies = [message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])]
                 replies[0].correlation_id = subscribe.correlation_id
                 replies[0].correlation_uri = subscribe.topic
                 replies[0].correlation_is_anchor = False
@@ -945,7 +945,7 @@ class Broker(object):
                 message.Subscribe.MESSAGE_TYPE,
                 subscribe.request,
                 ApplicationError.AUTHORIZATION_FAILED,
-                [u"failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)]
+                ["failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)]
             )
             reply.correlation_id = subscribe.correlation_id
             reply.correlation_uri = subscribe.topic

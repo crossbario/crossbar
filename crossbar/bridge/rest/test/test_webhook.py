@@ -53,7 +53,7 @@ class WebhookTestCase(TestCase):
         message on the configured topic.
         """
         session = MockPublisherSession(self)
-        resource = WebhookResource({u"topic": u"com.test.webhook"}, session)
+        resource = WebhookResource({"topic": "com.test.webhook"}, session)
 
         with LogCapturer() as l:
             request = yield renderResource(
@@ -65,9 +65,9 @@ class WebhookTestCase(TestCase):
         self.assertEqual(len(session._published_messages), 1)
         self.assertEqual(
             {
-                u"body": u'{"foo": "has happened"}',
-                u"headers": {
-                    u"Content-Type": [],
+                "body": u'{"foo": "has happened"}',
+                "headers": {
+                    "Content-Type": [],
                     u'Date': [u'Sun, 1 Jan 2013 15:21:01 GMT'],
                     u'Host': [u'localhost:8000']
                 }
@@ -89,8 +89,8 @@ class WebhookTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = WebhookResource(
             options={
-                u"topic": u"com.test.webhook",
-                u"github_secret": u"deadbeef",
+                "topic": "com.test.webhook",
+                "github_secret": "deadbeef",
             },
             session=session,
         )
@@ -121,8 +121,8 @@ class WebhookTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = WebhookResource(
             options={
-                u"topic": u"com.test.webhook",
-                u"github_secret": "deadbeef",
+                "topic": "com.test.webhook",
+                "github_secret": "deadbeef",
             },
             session=session,
         )
@@ -153,8 +153,8 @@ class WebhookTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = WebhookResource(
             options={
-                u"topic": u"com.test.webhook",
-                u"github_secret": github_test_token,
+                "topic": "com.test.webhook",
+                "github_secret": github_test_token,
             },
             session=session,
         )

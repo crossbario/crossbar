@@ -42,7 +42,7 @@ class TestamentTests(unittest.TestCase):
     # FIXME:
     # [ERROR] Traceback (most recent call last):
     # File "/home/oberstet/scm/crossbario/crossbar/crossbar/router/test/test_testament.py", line 203, in test_one_scope_does_not_affect_other
-    # d = session.call(u"wamp.session.add_testament", u"com.test.dc",
+    # d = session.call("wamp.session.add_testament", "com.test.dc",
     # builtins.AttributeError: 'NoneType' object has no attribute 'call'
     skip = True
 
@@ -75,7 +75,7 @@ class TestamentTests(unittest.TestCase):
         ob_session, ob_pump = connect_application_session(server_factory,
                                                           ObservingSession)
 
-        d = session.call(u"wamp.session.add_testament", u"com.test.destroyed",
+        d = session.call("wamp.session.add_testament", "com.test.destroyed",
                          [u'hello'], {})
         pump.flush()
 
@@ -94,7 +94,7 @@ class TestamentTests(unittest.TestCase):
 
         # Testament is sent
         self.assertEqual(ob_session.events,
-                         [{'args': (u"hello",), 'kwargs': {}}])
+                         [{'args': ("hello",), 'kwargs': {}}])
 
     def test_destroy_testament_not_sent_when_cleared(self):
         """
@@ -120,7 +120,7 @@ class TestamentTests(unittest.TestCase):
         ob_session, ob_pump = connect_application_session(server_factory,
                                                           ObservingSession)
 
-        d = session.call(u"wamp.session.add_testament", u"com.test.destroyed",
+        d = session.call("wamp.session.add_testament", "com.test.destroyed",
                          [u'hello'], {})
         pump.flush()
 
@@ -133,7 +133,7 @@ class TestamentTests(unittest.TestCase):
         self.assertEqual(ob_session.events, [])
 
         # Flush the testament
-        d = session.call(u"wamp.session.flush_testaments")
+        d = session.call("wamp.session.flush_testaments")
         pump.flush()
 
         # Make sure it returns flushed count 1
@@ -156,14 +156,14 @@ class TestamentTests(unittest.TestCase):
         session, pump = connect_application_session(server_factory,
                                                     ApplicationSession)
 
-        d = session.call(u"wamp.session.add_testament", u"com.test.destroyed",
-                         [u'hello'], {}, scope=u"bar")
+        d = session.call("wamp.session.add_testament", "com.test.destroyed",
+                         [u'hello'], {}, scope="bar")
         pump.flush()
 
         # Make sure it returns a failure
         failure = self.failureResultOf(d)
         self.assertEqual(failure.value.args,
-                         (u"scope must be destroyed or detached",))
+                         ("scope must be destroyed or detached",))
 
     def test_flush_testament_needs_valid_scope(self):
         """
@@ -174,13 +174,13 @@ class TestamentTests(unittest.TestCase):
         session, pump = connect_application_session(server_factory,
                                                     ApplicationSession)
 
-        d = session.call(u"wamp.session.flush_testaments", scope=u"bar")
+        d = session.call("wamp.session.flush_testaments", scope="bar")
         pump.flush()
 
         # Make sure it returns a failure
         failure = self.failureResultOf(d)
         self.assertEqual(failure.value.args,
-                         (u"scope must be destroyed or detached",))
+                         ("scope must be destroyed or detached",))
 
     def test_one_scope_does_not_affect_other(self):
         """
@@ -205,14 +205,14 @@ class TestamentTests(unittest.TestCase):
                                                           ObservingSession)
 
         # Add a destroyed testament
-        d = session.call(u"wamp.session.add_testament", u"com.test.dc",
-                         [u'destroyed'], {}, scope=u"destroyed")
+        d = session.call("wamp.session.add_testament", "com.test.dc",
+                         [u'destroyed'], {}, scope="destroyed")
         pump.flush()
         self.assertIsInstance(self.successResultOf(d), (int, ))
 
         # Add a detached testament
-        d = session.call(u"wamp.session.add_testament", u"com.test.dc",
-                         [u'detached'], {}, scope=u"detached")
+        d = session.call("wamp.session.add_testament", "com.test.dc",
+                         [u'detached'], {}, scope="detached")
         pump.flush()
         self.assertIsInstance(self.successResultOf(d), (int, ))
 
@@ -222,7 +222,7 @@ class TestamentTests(unittest.TestCase):
         self.assertEqual(ob_session.events, [])
 
         # Flush the destroyed testament
-        d = session.call(u"wamp.session.flush_testaments", scope=u"destroyed")
+        d = session.call("wamp.session.flush_testaments", scope="destroyed")
         pump.flush()
 
         # Make sure it returns number of flushed testaments

@@ -161,7 +161,7 @@ class WorkerProcess(object):
         If there's anything left in the log buffer, log it out so it's not
         lost.
         """
-        if self._log_rich and self._log_data != u"":
+        if self._log_rich and self._log_data != "":
             self._logger.warn("REMAINING LOG BUFFER AFTER EXIT FOR PID {pid}:",
                               pid=self.pid)
 
@@ -196,7 +196,7 @@ class WorkerProcess(object):
             # "magic phrase" as its first message.
             if data[0:len(cb_logging_aware)] == cb_logging_aware:
                 self._log_rich = True
-                self._log_data = u""  # Log buffer
+                self._log_data = ""  # Log buffer
                 return
             else:
                 self._log_rich = False
@@ -233,7 +233,7 @@ class WorkerProcess(object):
             for row in data.split(os.linesep):
                 row = row.strip()
 
-                if row == u"":
+                if row == "":
                     continue
 
                 self._logger.info(row, log_system=system)

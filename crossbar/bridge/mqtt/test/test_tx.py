@@ -306,7 +306,7 @@ class TwistedProtocolTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=False)).serialise()
         )
 
@@ -330,7 +330,7 @@ class TwistedProtocolTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=False)).serialise()
         )
 
@@ -385,7 +385,7 @@ class TwistedProtocolTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=False)).serialise() + SubACK(1, [1]).serialise()
+            Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise() + SubACK(1, [1]).serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -409,9 +409,9 @@ class TwistedProtocolTests(TestCase):
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        conn = Connect(client_id=u"test123", flags=ConnectFlags(clean_session=False))
+        conn = Connect(client_id="test123", flags=ConnectFlags(clean_session=False))
         pub = Publish(duplicate=False, qos_level=3, retain=False,
-                      topic_name=u"foo", packet_identifier=1, payload=b"bar")
+                      topic_name="foo", packet_identifier=1, payload=b"bar")
 
         with LogCapturer("trace") as logs:
             p._handle_events([conn, pub])
@@ -426,7 +426,7 @@ class TwistedProtocolTests(TestCase):
         """
         The packet ID generator makes IDs that fit within a 16bit uint.
         """
-        session = Session(client_id=u"test123")
+        session = Session(client_id="test123")
 
         # 100,000 > max 16bit, should loop
         for x in range(100000):
@@ -450,7 +450,7 @@ class NonZeroConnACKTests(object):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=False)).serialise()
         )
 
@@ -501,7 +501,7 @@ class SubscribeHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Subscribe(packet_identifier=1234, topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
+            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Subscribe(packet_identifier=1234, topic_requests=[SubscriptionTopicRequest("a", 0)]).serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -539,7 +539,7 @@ class ConnectHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise()
         )
 
@@ -547,7 +547,7 @@ class ConnectHandlingTests(TestCase):
             p.dataReceived(x)
 
         self.assertEqual(len(got_packets), 1)
-        self.assertEqual(got_packets[0].client_id, u"test123")
+        self.assertEqual(got_packets[0].client_id, "test123")
         self.assertEqual(got_packets[0].serialise(), data)
 
     def test_exception_in_connect_drops_connection(self):
@@ -566,7 +566,7 @@ class ConnectHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise()
         )
 
@@ -605,7 +605,7 @@ class UnsubscribeHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Unsubscribe(packet_identifier=1234, topics=[u"foo"]).serialise()
+            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Unsubscribe(packet_identifier=1234, topics=["foo"]).serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -643,10 +643,10 @@ class UnsubscribeHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         unsub = Unsubscribe(packet_identifier=1234,
-                            topics=[u"foo"]).serialise()
+                            topics=["foo"]).serialise()
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise() + unsub
         )
 
@@ -683,11 +683,11 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         pub = Publish(duplicate=False, qos_level=0, retain=False,
-                      topic_name=u"foo", packet_identifier=None,
+                      topic_name="foo", packet_identifier=None,
                       payload=b"bar").serialise()
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise() + pub
         )
 
@@ -726,7 +726,7 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=0, retain=False, topic_name=u"foo", packet_identifier=None, payload=b"bar").serialise()
+            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=0, retain=False, topic_name="foo", packet_identifier=None, payload=b"bar").serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -765,11 +765,11 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         pub = Publish(duplicate=False, qos_level=1, retain=False,
-                      topic_name=u"foo", packet_identifier=1,
+                      topic_name="foo", packet_identifier=1,
                       payload=b"bar").serialise()
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise() + pub
         )
 
@@ -809,7 +809,7 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=1, retain=False, topic_name=u"foo", packet_identifier=1, payload=b"bar").serialise()
+            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=1, retain=False, topic_name="foo", packet_identifier=1, payload=b"bar").serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -849,11 +849,11 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         pub = Publish(duplicate=False, qos_level=2, retain=False,
-                      topic_name=u"foo", packet_identifier=1,
+                      topic_name="foo", packet_identifier=1,
                       payload=b"bar").serialise()
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise() + pub
         )
 
@@ -908,7 +908,7 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=2, retain=False, topic_name=u"foo", packet_identifier=1, payload=b"bar").serialise()
+            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=2, retain=False, topic_name="foo", packet_identifier=1, payload=b"bar").serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -943,7 +943,7 @@ class SendPublishTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise()
         )
 
@@ -957,7 +957,7 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
 
         # WAMP layer calls send_publish
-        p.send_publish(u"hello", 0, b'some bytes', False)
+        p.send_publish("hello", 0, b'some bytes', False)
 
         # Nothing should have been sent yet, it is queued
         self.assertEqual(t.value(), b'')
@@ -971,7 +971,7 @@ class SendPublishTests(TestCase):
         self.assertEqual(
             events[0],
             Publish(duplicate=False, qos_level=0, retain=False,
-                    packet_identifier=None, topic_name=u"hello",
+                    packet_identifier=None, topic_name="hello",
                     payload=b"some bytes"))
 
     def test_qos_1_queues_message(self):
@@ -983,7 +983,7 @@ class SendPublishTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise()
         )
 
@@ -997,7 +997,7 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
 
         # WAMP layer calls send_publish, with QoS 1
-        p.send_publish(u"hello", 1, b'some bytes', False)
+        p.send_publish("hello", 1, b'some bytes', False)
 
         # Nothing should have been sent yet, it is queued
         self.assertEqual(t.value(), b'')
@@ -1008,7 +1008,7 @@ class SendPublishTests(TestCase):
         # We should now get the sent Publish
         expected_publish = Publish(
             duplicate=False, qos_level=1, retain=False, packet_identifier=1,
-            topic_name=u"hello", payload=b"some bytes")
+            topic_name="hello", payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
         self.assertEqual(len(events), 1)
@@ -1034,7 +1034,7 @@ class SendPublishTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise()
         )
 
@@ -1048,7 +1048,7 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
 
         # WAMP layer calls send_publish, with QoS 2
-        p.send_publish(u"hello", 2, b'some bytes', False)
+        p.send_publish("hello", 2, b'some bytes', False)
 
         # Nothing should have been sent yet, it is queued
         self.assertEqual(t.value(), b'')
@@ -1058,7 +1058,7 @@ class SendPublishTests(TestCase):
 
         # We should now get the sent Publish
         expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
-                                   packet_identifier=1, topic_name=u"hello",
+                                   packet_identifier=1, topic_name="hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1096,7 +1096,7 @@ class SendPublishTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=False)).serialise()
         )
 
@@ -1104,14 +1104,14 @@ class SendPublishTests(TestCase):
             p.dataReceived(x)
 
         # WAMP layer calls send_publish, with QoS 1
-        p.send_publish(u"hello", 1, b'some bytes', False)
+        p.send_publish("hello", 1, b'some bytes', False)
 
         # Advance the clock
         r.advance(0.1)
 
         # We should now get the sent Publish
         expected_publish = Publish(duplicate=False, qos_level=1, retain=False,
-                                   packet_identifier=1, topic_name=u"hello",
+                                   packet_identifier=1, topic_name="hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1127,7 +1127,7 @@ class SendPublishTests(TestCase):
 
         # We must NOT have a clean session
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=False)).serialise()
         )
 
@@ -1147,7 +1147,7 @@ class SendPublishTests(TestCase):
 
         # The Publish packet must have DUP set to True.
         resent_publish = Publish(duplicate=True, qos_level=1, retain=False,
-                                 packet_identifier=1, topic_name=u"hello",
+                                 packet_identifier=1, topic_name="hello",
                                  payload=b"some bytes")
         self.assertEqual(events[1], resent_publish)
 
@@ -1174,7 +1174,7 @@ class SendPublishTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=False)).serialise()
         )
 
@@ -1182,14 +1182,14 @@ class SendPublishTests(TestCase):
             p.dataReceived(x)
 
         # WAMP layer calls send_publish, with QoS 2
-        p.send_publish(u"hello", 2, b'some bytes', False)
+        p.send_publish("hello", 2, b'some bytes', False)
 
         # Advance the clock
         r.advance(0.1)
 
         # We should now get the sent Publish
         expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
-                                   packet_identifier=1, topic_name=u"hello",
+                                   packet_identifier=1, topic_name="hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1205,7 +1205,7 @@ class SendPublishTests(TestCase):
 
         # We must NOT have a clean session
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=False)).serialise()
         )
 
@@ -1225,7 +1225,7 @@ class SendPublishTests(TestCase):
 
         # The Publish packet must have DUP set to True.
         resent_publish = Publish(duplicate=True, qos_level=2, retain=False,
-                                 packet_identifier=1, topic_name=u"hello",
+                                 packet_identifier=1, topic_name="hello",
                                  payload=b"some bytes")
         self.assertEqual(events[1], resent_publish)
 
@@ -1265,7 +1265,7 @@ class SendPublishTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=False)).serialise()
         )
 
@@ -1273,14 +1273,14 @@ class SendPublishTests(TestCase):
             p.dataReceived(x)
 
         # WAMP layer calls send_publish, with QoS 2
-        p.send_publish(u"hello", 2, b'some bytes', False)
+        p.send_publish("hello", 2, b'some bytes', False)
 
         # Advance the clock
         r.advance(0.1)
 
         # We should now get the sent Publish
         expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
-                                   packet_identifier=1, topic_name=u"hello",
+                                   packet_identifier=1, topic_name="hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1308,7 +1308,7 @@ class SendPublishTests(TestCase):
 
         # We must NOT have a clean session
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=False)).serialise()
         )
 
@@ -1347,7 +1347,7 @@ class SendPublishTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
+            Connect(client_id="test123",
                     flags=ConnectFlags(clean_session=True)).serialise()
         )
 
@@ -1362,7 +1362,7 @@ class SendPublishTests(TestCase):
 
         # WAMP layer calls send_publish w/ invalid QoS
         with self.assertRaises(ValueError):
-            p.send_publish(u"hello", 5, b'some bytes', False)
+            p.send_publish("hello", 5, b'some bytes', False)
 
         # Nothing will be sent
         self.assertEqual(t.value(), b'')

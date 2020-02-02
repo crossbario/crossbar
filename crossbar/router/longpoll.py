@@ -355,7 +355,7 @@ class WampLongPollResourceSession(Resource):
         Implements :func:`autobahn.wamp.interfaces.ITransport.close`
         """
         if self.isOpen():
-            self.onClose(True, 1000, u"session closed")
+            self.onClose(True, 1000, "session closed")
             self._receive._kill()
             del self._parent._transports[self._transport_id]
         else:
@@ -366,7 +366,7 @@ class WampLongPollResourceSession(Resource):
         Implements :func:`autobahn.wamp.interfaces.ITransport.abort`
         """
         if self.isOpen():
-            self.onClose(True, 1000, u"session aborted")
+            self.onClose(True, 1000, "session aborted")
             self._receive._kill()
             del self._parent._transports[self._transport_id]
         else:

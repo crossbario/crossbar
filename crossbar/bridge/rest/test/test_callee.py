@@ -45,55 +45,55 @@ class CalleeTestCase(TestCase):
         """
         Plain request, no params.
         """
-        config = ComponentConfig(realm=u"realm1",
-                                 extra={u"baseurl": u"https://foo.com/",
-                                        u"procedure": u"io.crossbar.testrest"})
+        config = ComponentConfig(realm="realm1",
+                                 extra={"baseurl": "https://foo.com/",
+                                        "procedure": "io.crossbar.testrest"})
 
         m = MockWebTransport(self)
-        m._addResponse(200, u"whee")
+        m._addResponse(200, "whee")
 
         c = RESTCallee(config=config, webTransport=m)
         MockTransport(c)
 
-        res = yield c.call(u"io.crossbar.testrest", method=u"GET", url=u"baz.html")
+        res = yield c.call("io.crossbar.testrest", method="GET", url="baz.html")
 
-        self.assertEqual(m.maderequest["args"], (u"GET", u"https://foo.com/baz.html"))
+        self.assertEqual(m.maderequest["args"], ("GET", "https://foo.com/baz.html"))
         self.assertEqual(m.maderequest["kwargs"], {
-            u"data": b"",
-            u"headers": Headers({}),
-            u"params": {}
+            "data": b"",
+            "headers": Headers({}),
+            "params": {}
         })
         self.assertEqual(res,
-                         {"content": u"whee",
+                         {"content": "whee",
                           "code": 200,
-                          "headers": {u"foo": [u"bar"]}})
+                          "headers": {"foo": ["bar"]}})
 
     @inlineCallbacks
     def test_slightlymorecomplex_web(self):
         """
         Giving headers, params, a body.
         """
-        config = ComponentConfig(realm=u"realm1",
-                                 extra={u"baseurl": u"https://foo.com/",
-                                        u"procedure": u"io.crossbar.testrest"})
+        config = ComponentConfig(realm="realm1",
+                                 extra={"baseurl": "https://foo.com/",
+                                        "procedure": "io.crossbar.testrest"})
 
         m = MockWebTransport(self)
-        m._addResponse(220, u"whee!")
+        m._addResponse(220, "whee!")
 
         c = RESTCallee(config=config, webTransport=m)
         MockTransport(c)
 
-        res = yield c.call(u"io.crossbar.testrest", method=u"POST",
-                           url=u"baz.html", params={u"spam": u"ham"},
-                           body=u"see params", headers={u"X-Something": [u"baz"]})
+        res = yield c.call("io.crossbar.testrest", method="POST",
+                           url="baz.html", params={"spam": "ham"},
+                           body="see params", headers={"X-Something": ["baz"]})
 
-        self.assertEqual(m.maderequest["args"], (u"POST", u"https://foo.com/baz.html"))
+        self.assertEqual(m.maderequest["args"], ("POST", "https://foo.com/baz.html"))
         self.assertEqual(m.maderequest["kwargs"], {
             "data": b"see params",
             "headers": Headers({b"X-Something": [b"baz"]}),
             "params": {b"spam": b"ham"}
         })
         self.assertEqual(res,
-                         {"content": u"whee!",
+                         {"content": "whee!",
                           "code": 220,
-                          "headers": {u"foo": [u"bar"]}})
+                          "headers": {"foo": ["bar"]}})

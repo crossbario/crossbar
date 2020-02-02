@@ -61,7 +61,7 @@ class MessageForwarder(ApplicationSession):
         subscriptions = self.config.extra["subscriptions"]
 
         debug = self.config.extra.get("debug", False)
-        method = self.config.extra.get("method", u"POST")
+        method = self.config.extra.get("method", "POST")
         expectedCode = self.config.extra.get("expectedcode")
 
         @inlineCallbacks
@@ -103,7 +103,7 @@ class MessageForwarder(ApplicationSession):
             yield self.subscribe(
                 partial(on_event, s["url"]),
                 s["topic"],
-                options=SubscribeOptions(match=s.get("match", u"exact"))
+                options=SubscribeOptions(match=s.get("match", "exact"))
             )
 
             self.log.debug("MessageForwarder subscribed to {topic}",

@@ -264,7 +264,7 @@ class RouterServiceAgent(ApplicationSession):
         )
 
     @wamp.register(u'wamp.session.add_testament')
-    def session_add_testament(self, topic, args, kwargs, publish_options=None, scope=u"destroyed", details=None):
+    def session_add_testament(self, topic, args, kwargs, publish_options=None, scope="destroyed", details=None):
         """
         Add a testament to the current session.
 
@@ -289,8 +289,8 @@ class RouterServiceAgent(ApplicationSession):
         """
         session = self._router._session_id_to_session[details.caller]
 
-        if scope not in [u"destroyed", u"detached"]:
-            raise ApplicationError(u"wamp.error.testament_error", u"scope must be destroyed or detached")
+        if scope not in ["destroyed", "detached"]:
+            raise ApplicationError("wamp.error.testament_error", "scope must be destroyed or detached")
 
         pub_id = util.id()
 
@@ -311,7 +311,7 @@ class RouterServiceAgent(ApplicationSession):
         return pub_id
 
     @wamp.register(u'wamp.session.flush_testaments')
-    def session_flush_testaments(self, scope=u"destroyed", details=None):
+    def session_flush_testaments(self, scope="destroyed", details=None):
         """
         Flush the testaments of a given scope.
 
@@ -323,8 +323,8 @@ class RouterServiceAgent(ApplicationSession):
         """
         session = self._router._session_id_to_session[details.caller]
 
-        if scope not in [u"destroyed", u"detached"]:
-            raise ApplicationError(u"wamp.error.testament_error", u"scope must be destroyed or detached")
+        if scope not in ["destroyed", "detached"]:
+            raise ApplicationError("wamp.error.testament_error", "scope must be destroyed or detached")
 
         flushed = len(session._testaments[scope])
 

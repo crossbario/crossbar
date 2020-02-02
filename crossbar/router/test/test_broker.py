@@ -741,7 +741,7 @@ class TestRouterSession(unittest.TestCase):
         self.assertEqual(1, len(publishes))
         call = publishes[0]
         self.assertEqual(call[0], "publish")
-        self.assertEqual(call[1], (u"wamp.session.on_leave", 1234))
+        self.assertEqual(call[1], ("wamp.session.on_leave", 1234))
 
     def test_onleave_publish(self):
         """

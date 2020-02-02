@@ -120,7 +120,7 @@ class PendingAuthTicket(PendingAuth):
                     sig=signature,
                     sig_type=type(signature),
                 )
-                return types.Deny(message=u"ticket in static WAMP-Ticket authentication is invalid")
+                return types.Deny(message="ticket in static WAMP-Ticket authentication is invalid")
 
         # WAMP-Ticket "dynamic"
         elif self._authprovider == u'dynamic':

@@ -48,8 +48,8 @@ from txaio.tx import log_levels
 
 from crossbar import _log_categories
 
-record_separator = u"\x1e"
-cb_logging_aware = u"CROSSBAR_RICH_LOGGING_ENABLE=True"
+record_separator = "\x1e"
+cb_logging_aware = "CROSSBAR_RICH_LOGGING_ENABLE=True"
 
 try:
     from colorama import Fore
@@ -75,9 +75,9 @@ except ImportError:
         LIGHTWHITE_EX = ""
     Fore = _Fore()
 
-STANDARD_FORMAT = u"{startcolor}{time} [{system}]{endcolor} {text}"
-SYSLOGD_FORMAT = u"{startcolor}[{system}]{endcolor} {text}"
-NONE_FORMAT = u"{text}"
+STANDARD_FORMAT = "{startcolor}{time} [{system}]{endcolor} {text}"
+SYSLOGD_FORMAT = "{startcolor}[{system}]{endcolor} {text}"
+NONE_FORMAT = "{text}"
 
 # A regex that matches ANSI escape sequences
 # http://stackoverflow.com/a/33925425
@@ -95,7 +95,7 @@ def escape_formatting(text):
     """
     Escape things that would otherwise confuse `.format`.
     """
-    return text.replace(u"{", u"{{").replace(u"}", u"}}")
+    return text.replace("{", "{{").replace("}", "}}")
 
 
 def make_stdout_observer(levels=(LogLevel.info,),
@@ -188,8 +188,8 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
         if event["log_level"] not in levels:
             return
 
-        if event.get("log_system", u"-") == u"-":
-            logSystem = u"{:<10} {:>6}".format("Controller", os.getpid())
+        if event.get("log_system", "-") == "-":
+            logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
         else:
             logSystem = event["log_system"]
 
@@ -205,7 +205,7 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
         if event.get("log_format", None) is not None:
             eventText = formatEvent(event)
         else:
-            eventText = u""
+            eventText = ""
 
         if "log_failure" in event:
             # This is a traceback. Print it.
@@ -312,8 +312,8 @@ def make_logfile_observer(path, show_source=False):
 
     def _render(event):
 
-        if event.get("log_system", u"-") == u"-":
-            logSystem = u"{:<10} {:>6}".format("Controller", os.getpid())
+        if event.get("log_system", "-") == "-":
+            logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
         else:
             logSystem = event["log_system"]
 
@@ -323,7 +323,7 @@ def make_logfile_observer(path, show_source=False):
         if event.get("log_format", None) is not None:
             eventText = formatEvent(event)
         else:
-            eventText = u""
+            eventText = ""
 
         if "log_failure" in event:
             # This is a traceback. Print it.

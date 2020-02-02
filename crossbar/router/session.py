@@ -321,7 +321,7 @@ class RouterSession(BaseSession):
 
         self._router = None
         self._realm = None
-        self._testaments = {u"destroyed": [], u"detached": []}
+        self._testaments = {"destroyed": [], "detached": []}
 
         self._goodbye_sent = False
         self._transport_is_closing = False
@@ -521,7 +521,7 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
-                # raise ProtocolError(u"PReceived {0} message while session is not joined".format(msg.__class__))
+                # raise ProtocolError("PReceived {0} message while session is not joined".format(msg.__class__))
                 # self.log.warn('Protocol state error - received {message} while session is not joined')
                 # swallow all noise like still getting PUBLISH messages from log event forwarding - maybe FIXME
                 pass
@@ -529,7 +529,7 @@ class RouterSession(BaseSession):
         else:
 
             if isinstance(msg, message.Hello):
-                raise ProtocolError(u"HELLO message received, while session is already established")
+                raise ProtocolError("HELLO message received, while session is already established")
 
             elif isinstance(msg, message.Goodbye):
                 if not self._goodbye_sent:
@@ -646,7 +646,7 @@ class RouterSession(BaseSession):
             self._transport.send(msg)
             self._goodbye_sent = True
         else:
-            raise SessionNotReady(u"Already requested to close the session")
+            raise SessionNotReady("Already requested to close the session")
 
     def _swallow_error_and_abort(self, fail):
         """
@@ -659,7 +659,7 @@ class RouterSession(BaseSession):
         self.log.failure("Internal error (2): {log_failure.value}", failure=fail)
 
         # tell other side we're done
-        reply = message.Abort(u"wamp.error.authorization_failed", u"Internal server error")
+        reply = message.Abort("wamp.error.authorization_failed", "Internal server error")
         self._transport.send(reply)
 
         # cleanup
@@ -941,10 +941,10 @@ class RouterSession(BaseSession):
         # because they hit a syntax error)
         if self._router is not None:
             # todo: move me into detatch when session resumption happens
-            for msg in self._testaments[u"detached"]:
+            for msg in self._testaments["detached"]:
                 self._router.process(self, msg)
 
-            for msg in self._testaments[u"destroyed"]:
+            for msg in self._testaments["destroyed"]:
                 self._router.process(self, msg)
 
             self._router._session_left(self, self._session_details, details)
@@ -984,7 +984,7 @@ class RouterSession(BaseSession):
         self._session_details = None
 
         # if asked to explicitly close the session ..
-        if details.reason == u"wamp.close.logout":
+        if details.reason == "wamp.close.logout":
 
             # if cookie was set on transport ..
             if self._transport._cbtid and self._transport.factory._cookiestore:

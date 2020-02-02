@@ -67,7 +67,7 @@ def _appsession_loader(config):
 
             if not issubclass(component, ApplicationSession):
                 raise ApplicationError(
-                    u"crossbar.error.class_import_failed", "session not derived of ApplicationSession"
+                    "crossbar.error.class_import_failed", "session not derived of ApplicationSession"
                 )
 
         except Exception:
@@ -76,7 +76,7 @@ def _appsession_loader(config):
             log.debug(emsg)
             log.debug("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
             raise ApplicationError(
-                u"crossbar.error.class_import_failed",
+                "crossbar.error.class_import_failed",
                 emsg,
                 pythonpath=sys.path
             )
@@ -86,7 +86,7 @@ def _appsession_loader(config):
         for name, funcref in config.get('callbacks', {}).items():
             if '.' not in funcref:
                 raise ApplicationError(
-                    u"crossbar.error",
+                    "crossbar.error",
                     "no '.' in callback reference '{}'".format(funcref),
                 )
 
@@ -100,7 +100,7 @@ def _appsession_loader(config):
                 emsg = "Failed to import package '{}' (for '{}')\n{}".format(
                     package, funcref, Failure().getTraceback())
                 log.error('{msg}', msg=emsg)
-                raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
+                raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
         # while the "component" callback is usually an
         # ApplicationSession class, it can be anything that takes a
@@ -114,7 +114,7 @@ def _appsession_loader(config):
 
     else:
         raise ApplicationError(
-            u"crossbar.error.invalid_configuration",
+            "crossbar.error.invalid_configuration",
             "invalid component type '{}'".format(config['type'])
         )
 

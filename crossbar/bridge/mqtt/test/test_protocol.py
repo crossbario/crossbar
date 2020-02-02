@@ -76,7 +76,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                 'password': None,
                 'will_message': None,
                 'will_topic': None,
-                'client_id': u"test123",
+                'client_id': "test123",
                 'keep_alive': 120,
                 'flags': {
                     'username': False,
@@ -135,7 +135,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                 'password': None,
                 'will_message': None,
                 'will_topic': None,
-                'client_id': u"test123",
+                'client_id': "test123",
                 'keep_alive': 120,
                 'flags': {
                     'username': False,
@@ -180,7 +180,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                 'password': None,
                 'will_message': None,
                 'will_topic': None,
-                'client_id': u"test123",
+                'client_id': "test123",
                 'keep_alive': 2,
                 'flags': {
                     'username': False,
@@ -227,7 +227,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                 'password': None,
                 'will_message': None,
                 'will_topic': None,
-                'client_id': u"test123",
+                'client_id': "test123",
                 'keep_alive': 2,
                 'flags': {
                     'username': False,
@@ -459,7 +459,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
                 'password': None,
                 'will_message': None,
                 'will_topic': None,
-                'client_id': u"test\uFEFF",
+                'client_id': "test\uFEFF",
                 'keep_alive': 120,
                 'flags': {
                     'username': False,

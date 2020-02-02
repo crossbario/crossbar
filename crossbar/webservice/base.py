@@ -225,7 +225,7 @@ class RouterWebServiceTwistedWeb(RouterWebService):
             resource = make(config.get('extra', {}))
         except Exception as e:
             emsg = "Failed to import class '{}' - {}".format(klassname, e)
-            raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
+            raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
         return RouterWebServiceTwistedWeb(transport, path, config, resource)
 

@@ -189,7 +189,7 @@ class RouterController(WorkerController):
         self.log.debug("{name}.get_router_realm(realm_id={realm_id})", name=self.__class__.__name__, realm_id=realm_id)
 
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         return self.realms[realm_id].marshal()
 
@@ -207,7 +207,7 @@ class RouterController(WorkerController):
         self.log.debug("{name}.get_router_realm_stats(realm_id={realm_id})", name=self.__class__.__name__, realm_id=realm_id)
 
         if realm_id is not None and realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         if realm_id:
             realm_ids = [realm_id]
@@ -253,7 +253,7 @@ class RouterController(WorkerController):
         except Exception as e:
             emsg = "Invalid router realm configuration: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # URI of the realm to start
         realm_name = realm_config['name']
@@ -336,7 +336,7 @@ class RouterController(WorkerController):
         self.log.info("{name}.stop_router_realm", name=self.__class__.__name__)
 
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         rlm = self.realms[realm_id]
         realm_name = rlm.config['name']
@@ -377,7 +377,7 @@ class RouterController(WorkerController):
         self.log.debug("{name}.get_router_realm_roles({realm_id})", name=self.__class__.__name__, realm_id=realm_id)
 
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         return self.realms[realm_id].roles.values()
 
@@ -402,10 +402,10 @@ class RouterController(WorkerController):
                        name=self.__class__.__name__, realm_id=realm_id, role_id=role_id)
 
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         if role_id not in self.realms[realm_id].roles:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' on realm '{}'".format(role_id, realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No role with ID '{}' on realm '{}'".format(role_id, realm_id))
 
         return self.realms[realm_id].roles[role_id].marshal()
 
@@ -430,10 +430,10 @@ class RouterController(WorkerController):
                       role_id=role_id, realm_id=realm_id, method=hltype(self.start_router_realm_role))
 
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         if role_id in self.realms[realm_id].roles:
-            raise ApplicationError(u"crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, realm_id))
+            raise ApplicationError("crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, realm_id))
 
         self.realms[realm_id].roles[role_id] = RouterRealmRole(role_id, role_config)
 
@@ -465,10 +465,10 @@ class RouterController(WorkerController):
         self.log.debug("{name}.stop_router_realm_role", name=self.__class__.__name__)
 
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         if role_id not in self.realms[realm_id].roles:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, realm_id))
 
         role = self.realms[realm_id].roles.pop(role_id)
 
@@ -520,7 +520,7 @@ class RouterController(WorkerController):
         if id in self.components:
             return self.components[id].marshal()
         else:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No component {}".format(id))
+            raise ApplicationError("crossbar.error.no_such_object", "No component {}".format(id))
 
     @wamp.register(None)
     def start_router_component(self, id, config, details=None):
@@ -554,7 +554,7 @@ class RouterController(WorkerController):
         except Exception as e:
             emsg = "Invalid router component configuration: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
             self.log.debug("Starting {type}-component on router.",
                            type=config['type'])
@@ -570,11 +570,11 @@ class RouterController(WorkerController):
                 else:
                     emsg = "cannot resolve reference '{}' - no '{}' with ID '{}'".format(ref, ref_type, ref_id)
                     self.log.error(emsg)
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+                    raise ApplicationError("crossbar.error.invalid_configuration", emsg)
             else:
                 emsg = "cannot resolve reference '{}' - invalid reference type '{}'".format(ref, ref_type)
                 self.log.error(emsg)
-                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+                raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # create component config
         #
@@ -719,9 +719,9 @@ class RouterController(WorkerController):
                 self._session_factory.remove(self.components[id])
                 del self.components[id]
             except Exception as e:
-                raise ApplicationError(u"crossbar.error.cannot_stop", "Failed to stop component {}: {}".format(id, e))
+                raise ApplicationError("crossbar.error.cannot_stop", "Failed to stop component {}: {}".format(id, e))
         else:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No component {}".format(id))
+            raise ApplicationError("crossbar.error.no_such_object", "No component {}".format(id))
 
     @wamp.register(None)
     def get_router_transports(self, details=None):
@@ -759,7 +759,7 @@ class RouterController(WorkerController):
             obj = transport.marshal()
             return obj
         else:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No transport {}".format(transport_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No transport {}".format(transport_id))
 
     @wamp.register(None)
     def start_router_transport(self, transport_id, config, create_paths=False, details=None):
@@ -817,7 +817,7 @@ class RouterController(WorkerController):
             topic = u'{}.on_router_transport_stopped'.format(self._uri_prefix)
             self.publish(topic, event, options=PublishOptions(exclude=caller))
 
-            raise ApplicationError(u"crossbar.error.cannot_listen", _emsg)
+            raise ApplicationError("crossbar.error.cannot_listen", _emsg)
 
         d.addCallbacks(ok, fail)
         return d
@@ -864,7 +864,7 @@ class RouterController(WorkerController):
             emsg = "Cannot stop listening on transport endpoint: {log_failure}"
             self.log.error(emsg, log_failure=err)
 
-            raise ApplicationError(u"crossbar.error.cannot_stop", emsg)
+            raise ApplicationError("crossbar.error.cannot_stop", emsg)
 
         d.addCallbacks(ok, fail)
         return d
@@ -1033,7 +1033,7 @@ class RouterController(WorkerController):
                       method=hltype(RouterController.start_router_realm))
 
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         # forward call directly to service agent
         return self.realms[realm_id].session.session_kill_by_authid(authid, reason, message=message, details=details)
@@ -1058,7 +1058,7 @@ class RouterController(WorkerController):
             method=hltype(RouterController.get_router_realm_links))
 
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         rlink_manager = self.realms[realm_id].rlink_manager
 
@@ -1089,12 +1089,12 @@ class RouterController(WorkerController):
             method=hltype(RouterController.get_router_realm_links))
 
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         rlink_manager = self.realms[realm_id].rlink_manager
 
         if link_id not in rlink_manager:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No link with ID '{}'".format(link_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No link with ID '{}'".format(link_id))
 
         rlink = rlink_manager[link_id]
 

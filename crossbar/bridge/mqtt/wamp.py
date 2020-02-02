@@ -186,7 +186,7 @@ class WampMQTTServerProtocol(Protocol):
         self.log.debug('WampMQTTServerProtocol._on_message(inc_msg={inc_msg})', inc_msg=inc_msg)
 
         if isinstance(inc_msg, message.Challenge):
-            assert inc_msg.method == u"ticket"
+            assert inc_msg.method == "ticket"
 
             msg = message.Authenticate(signature=self._pw_challenge)
             del self._pw_challenge
@@ -299,10 +299,10 @@ class WampMQTTServerProtocol(Protocol):
         self._waiting_for_connect = Deferred()
 
         roles = {
-            u"subscriber": role.RoleSubscriberFeatures(
+            "subscriber": role.RoleSubscriberFeatures(
                 payload_transparency=True,
                 pattern_based_subscription=True),
-            u"publisher": role.RolePublisherFeatures(
+            "publisher": role.RolePublisherFeatures(
                 payload_transparency=True,
                 x_acknowledged_event_delivery=True)
         }
@@ -319,10 +319,10 @@ class WampMQTTServerProtocol(Protocol):
         }
 
         if ISSLTransport.providedBy(self.transport):
-            authmethods.append(u"tls")
+            authmethods.append("tls")
 
         if packet.username and packet.password:
-            authmethods.append(u"ticket")
+            authmethods.append("ticket")
             msg = message.Hello(
                 realm=realm,
                 roles=roles,
@@ -332,7 +332,7 @@ class WampMQTTServerProtocol(Protocol):
             self._pw_challenge = packet.password
 
         else:
-            authmethods.append(u"anonymous")
+            authmethods.append("anonymous")
             msg = message.Hello(
                 realm=realm,
                 roles=roles,
@@ -363,7 +363,7 @@ class WampMQTTServerProtocol(Protocol):
 
                 msg = message.Call(
                     request=request,
-                    procedure=u"wamp.session.add_testament",
+                    procedure="wamp.session.add_testament",
                     args=[
                         mapped_topic,
                         options.get('args', None),

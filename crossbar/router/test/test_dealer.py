@@ -101,7 +101,7 @@ class TestDealer(unittest.TestCase):
         )
         rap = RouterApplicationSession(session, self.router_factory)
 
-        rap.send(message.Hello(u"realm1", {u'caller': role.RoleCallerFeatures()}))
+        rap.send(message.Hello("realm1", {u'caller': role.RoleCallerFeatures()}))
         rap.send(message.Register(1, u'foo'))
 
         # we can retrieve the Registration via
@@ -344,7 +344,7 @@ class TestDealer(unittest.TestCase):
         )
         rap = RouterApplicationSession(session, self.router_factory)
 
-        rap.send(message.Hello(u"realm1", {u'caller': role.RoleCallerFeatures()}))
+        rap.send(message.Hello("realm1", {u'caller': role.RoleCallerFeatures()}))
         rap.send(message.Register(1, u'foo'))
 
         reg_id = session.mock_calls[-1][1][0].registration
@@ -562,12 +562,12 @@ class TestDealer(unittest.TestCase):
         invocation_msg = callee_messages[-1]
         self.assertIsInstance(invocation_msg, message.Invocation)
 
-        error = message.Error(message.Call.MESSAGE_TYPE, invocation_msg.request, u"wamp.error.foo")
+        error = message.Error(message.Call.MESSAGE_TYPE, invocation_msg.request, "wamp.error.foo")
         dealer.processInvocationError(session, error)
 
         self.assertEqual(1, len(caller_messages))
         self.assertEqual(
-            u"wamp.error.foo",
+            "wamp.error.foo",
             caller_messages[-1].error,
         )
 

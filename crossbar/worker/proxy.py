@@ -144,7 +144,7 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
             try:
                 self._backend_transport.send(
                     Goodbye(
-                        reason=u"wamp.close.error",
+                        reason="wamp.close.error",
                         message=reason,
                     )
                 )
@@ -335,7 +335,7 @@ class ProxyWebSocketService(RouterWebService):
                 continue
             backends = path_config['backends']
             for backend in backends:
-                service.start_backend_for_path(u"/{}".format(path), backend)
+                service.start_backend_for_path("/{}".format(path), backend)
 
         return service
 
@@ -357,8 +357,8 @@ class ProxyWebSocketService(RouterWebService):
                 # "default", but there can be only one default (per path)
                 if existing.get('realm', None) is None:
                     raise ApplicationError(
-                        u"crossbar.error",
-                        u"There can be only one default backend for path {}".format(path),
+                        "crossbar.error",
+                        "There can be only one default backend for path {}".format(path),
                     )
 
         # XXX FIXME checkconfig
@@ -376,7 +376,7 @@ class ProxyWebSocketService(RouterWebService):
 
         if request.path not in self._backend_configs:
             raise ApplicationError(
-                u"crossbar.error",
+                "crossbar.error",
                 "No backends at path '{}'".format(
                     request.path,
                 )
@@ -393,7 +393,7 @@ class ProxyWebSocketService(RouterWebService):
         # there is a default config?
         if default_config is None:
             raise ApplicationError(
-                u"crossbar.error",
+                "crossbar.error",
                 "No backend for realm '{}' (and no default backend)".format(
                     realm,
                 )
@@ -436,7 +436,7 @@ class ProxyController(RouterController):
     @inlineCallbacks
     def start_proxy_transport(self, transport_id, config, details=None):
         self.log.info(
-            u"start_proxy_transport: transport_id={transport_id}, config={config}",
+            "start_proxy_transport: transport_id={transport_id}, config={config}",
             transport_id=transport_id,
             config=config,
         )
@@ -490,8 +490,8 @@ class ProxyController(RouterController):
     def stop_proxy_transport(self, name, details=None):
         if name not in self._transports:
             raise ApplicationError(
-                u"crossbar.error.worker_not_running",
-                u"No such worker '{}'".format(name),
+                "crossbar.error.worker_not_running",
+                "No such worker '{}'".format(name),
             )
         yield self._transports[name].port.stopListening()
         del self._transports[name]
@@ -499,7 +499,7 @@ class ProxyController(RouterController):
     @wamp.register(None)
     def start_proxy_backend(self, transport_id, name, options, details=None):
         self.log.info(
-            u"start_proxy_backend '{transport_id}': {name}: {options}",
+            "start_proxy_backend '{transport_id}': {name}: {options}",
             transport_id=transport_id,
             name=name,
             options=options,
@@ -507,8 +507,8 @@ class ProxyController(RouterController):
 
         if transport_id not in self._transports:
             raise ApplicationError(
-                u"crossbar.error",
-                u"start_proxy_backend: no transport '{}'".format(transport_id),
+                "crossbar.error",
+                "start_proxy_backend: no transport '{}'".format(transport_id),
             )
 
         return self._transport[transport_id].start_backend(name, options)

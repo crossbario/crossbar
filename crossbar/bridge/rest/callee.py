@@ -56,7 +56,7 @@ class RESTCallee(ApplicationSession):
         procedure = self.config.extra["procedure"]
 
         @inlineCallbacks
-        def on_call(method=None, url=None, body=u"", headers={}, params={}):
+        def on_call(method=None, url=None, body="", headers={}, params={}):
 
             newURL = urljoin(baseURL, url)
 
@@ -75,9 +75,9 @@ class RESTCallee(ApplicationSession):
                        for x, y in dict(res.headers.getAllRawHeaders()).items()}
 
             resp = {
-                u"code": res.code,
-                u"content": content,
-                u"headers": headers
+                "code": res.code,
+                "content": content,
+                "headers": headers
             }
 
             returnValue(resp)

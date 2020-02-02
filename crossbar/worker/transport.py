@@ -96,7 +96,7 @@ class RouterTransport(object):
         except Exception as e:
             emsg = "Invalid router transport configuration: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
             self.log.debug("Router transport parsed successfully (transport_id={transport_id}, transport_type={transport_type})",
                            transport_id=transport_id, transport_type=config['type'])

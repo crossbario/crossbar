@@ -158,4 +158,4 @@ class PendingAuthWampCra(PendingAuth):
             return self._accept()
         else:
             # signature was invalid: deny the client
-            return types.Deny(message=u"WAMP-CRA signature is invalid")
+            return types.Deny(message="WAMP-CRA signature is invalid")

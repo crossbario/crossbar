@@ -275,8 +275,8 @@ class CheckRealmTests(TestCase):
             "name": "realm1",
             "roles": [
                 {
-                    "name": u"dynamic",
-                    "authorizer": u"com.example.foo"
+                    "name": "dynamic",
+                    "authorizer": "com.example.foo"
                 }
             ]
         }
@@ -291,7 +291,7 @@ class CheckRealmTests(TestCase):
                     "name": "backend",
                     "permissions": [
                         {
-                            "uri": u"*",
+                            "uri": "*",
                             "allow": {
                                 "publish": True,
                                 "subscribe": True,
@@ -314,7 +314,7 @@ class CheckRealmTests(TestCase):
                     "name": "backend",
                     "permissions": [
                         {
-                            "uri": u"*foo",
+                            "uri": "*foo",
                             "allow": {
                                 "publish": True,
                                 "subscribe": True,
@@ -438,8 +438,8 @@ class CheckOnion(TestCase):
     def test_unknown_attr(self):
         with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
             self.personality.check_listening_endpoint_onion(self.personality, {
-                u"type": u"onion",
-                u"foo": 42,
+                "type": "onion",
+                "foo": 42,
             })
         self.assertIn(
             "unknown attribute",
@@ -448,20 +448,20 @@ class CheckOnion(TestCase):
 
     def test_success(self):
         self.personality.check_listening_endpoint_onion(self.personality, {
-            u"type": u"onion",
-            u"private_key_file": u"something",
-            u"port": 1234,
-            u"tor_control_endpoint": {
-                u"type": u"unix",
-                u"path": u"/dev/null",
+            "type": "onion",
+            "private_key_file": "something",
+            "port": 1234,
+            "tor_control_endpoint": {
+                "type": "unix",
+                "path": "/dev/null",
             }
         })
 
     def test_port_wrong_type(self):
         with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
             self.personality.check_listening_endpoint_onion(self.personality, {
-                u"type": u"onion",
-                u"port": u"1234",
+                "type": "onion",
+                "port": "1234",
             })
         self.assertIn(
             "invalid type",

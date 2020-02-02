@@ -218,9 +218,9 @@ class BridgeSession(ApplicationSession):
 
         # get current subscriptions on the router
         #
-        subs = yield self.call(u"wamp.subscription.list")
+        subs = yield self.call("wamp.subscription.list")
         for sub_id in subs['exact']:
-            sub = yield self.call(u"wamp.subscription.get", sub_id)
+            sub = yield self.call("wamp.subscription.get", sub_id)
 
             if True:
                 yield on_subscription_create(sub_id, sub)
@@ -228,12 +228,12 @@ class BridgeSession(ApplicationSession):
         # listen to when new subscriptions are created on the local router
         yield self.subscribe(
             on_subscription_create,
-            u"wamp.subscription.on_create",
+            "wamp.subscription.on_create",
             options=SubscribeOptions(details_arg="details"))
 
         yield self.subscribe(
             on_subscription_delete,
-            u"wamp.subscription.on_delete",
+            "wamp.subscription.on_delete",
             options=SubscribeOptions(details_arg="details"))
 
         self.log.debug("{me}: event forwarding setup done", me=self)
@@ -390,21 +390,21 @@ class BridgeSession(ApplicationSession):
             self.log.info("{other} unsubscribed from {uri}".format(other=other, uri=uri))
 
         # get current registrations on the router
-        regs = yield self.call(u"wamp.registration.list")
+        regs = yield self.call("wamp.registration.list")
         for reg_id in regs['exact']:
-            reg = yield self.call(u"wamp.registration.get", reg_id)
+            reg = yield self.call("wamp.registration.get", reg_id)
             yield on_registration_create(reg_id, reg)
 
         # listen to when new registrations are created on the local router
         yield self.subscribe(
             on_registration_create,
-            u"wamp.registration.on_create",
+            "wamp.registration.on_create",
             options=SubscribeOptions(details_arg="details"))
 
         # listen to when a registration is removed from the local router
         yield self.subscribe(
             on_registration_delete,
-            u"wamp.registration.on_delete",
+            "wamp.registration.on_delete",
             options=SubscribeOptions(details_arg="details"))
 
         self.log.info("{me}: call forwarding setup done", me=self)

@@ -61,7 +61,7 @@ def read_string(data):
 
     if _validator.validate(byte_data)[0]:
         decoded = byte_data.decode('utf8', 'strict')
-        if u"\u0000" in decoded:
+        if "\u0000" in decoded:
             raise ParseFailure("Invalid UTF-8 string (contains nulls)")
         return decoded
     else:

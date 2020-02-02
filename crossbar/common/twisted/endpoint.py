@@ -467,7 +467,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
             def listen(self, proto_factory):
                 # we don't care which local TCP port we listen on, but
                 # we do need to know it
-                local_ep = TCP4ServerEndpoint(reactor, 0, interface=u"127.0.0.1")
+                local_ep = TCP4ServerEndpoint(reactor, 0, interface="127.0.0.1")
                 target_port = yield local_ep.listen(proto_factory)
                 tor = yield txtorcon.connect(
                     reactor,

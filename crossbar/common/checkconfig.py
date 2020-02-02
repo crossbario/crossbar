@@ -918,11 +918,11 @@ def check_listening_endpoint_onion(personality, endpoint):
 
     check_dict_args(
         {
-            u"type": (True, [str]),
-            u"port": (True, [int]),
-            u"version": (False, [int]),
-            u"private_key_file": (True, [str]),
-            u"tor_control_endpoint": (True, [Mapping])
+            "type": (True, [str]),
+            "port": (True, [int]),
+            "version": (False, [int]),
+            "private_key_file": (True, [str]),
+            "tor_control_endpoint": (True, [Mapping])
         },
         endpoint,
         "onion endpoint config",
@@ -934,8 +934,8 @@ def check_listening_endpoint_onion(personality, endpoint):
                 "Onion endpoint version must be 2 or 3"
             )
 
-    check_endpoint_port(endpoint[u"port"])
-    personality.check_connecting_endpoint(personality, endpoint[u"tor_control_endpoint"])
+    check_endpoint_port(endpoint["port"])
+    personality.check_connecting_endpoint(personality, endpoint["tor_control_endpoint"])
 
 
 def check_connecting_endpoint_tcp(endpoint):

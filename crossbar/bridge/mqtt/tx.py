@@ -94,7 +94,7 @@ class MQTTServerTwistedProtocol(Protocol):
         self._timeout_time = 0
         self._flush_publishes = None
         self._connection_id = next(_id_maker)
-        self.session = Session(client_id=u"<still connecting>")
+        self.session = Session(client_id="<still connecting>")
 
     @property
     def _connected(self):

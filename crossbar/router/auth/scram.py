@@ -70,7 +70,7 @@ class PendingAuthScram(PendingAuth):
     def hello(self, realm, details):
         # the channel binding requested by the client authenticating
         # client must send "nonce" in details, and MAY send "gs2_cbind_flag"
-        self._client_nonce = details.authextra.get(u"nonce", None)
+        self._client_nonce = details.authextra.get("nonce", None)
         if self._client_nonce is None:
             return types.Deny(
                 message=u'client must send a nonce'
@@ -151,11 +151,11 @@ class PendingAuthScram(PendingAuth):
         self._server_nonce = self._client_nonce + os.urandom(16)
 
         challenge = {
-            u"nonce": base64.b64encode(self._server_nonce).decode('ascii'),
-            u"kdf": self._kdf,
-            u"salt": base64.b64encode(self._salt).decode('ascii'),
-            u"iterations": self._iterations,
-            u"memory": self._memory,
+            "nonce": base64.b64encode(self._server_nonce).decode('ascii'),
+            "kdf": self._kdf,
+            "salt": base64.b64encode(self._salt).decode('ascii'),
+            "iterations": self._iterations,
+            "memory": self._memory,
         }
         return challenge
 

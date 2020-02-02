@@ -227,7 +227,7 @@ class NativeProcess(ApplicationSession):
         if not _HAS_PSUTIL:
             emsg = "unable to get CPU count: required package 'psutil' is not installed"
             self.log.warn(emsg)
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         return psutil.cpu_count(logical=logical)
 
@@ -241,7 +241,7 @@ class NativeProcess(ApplicationSession):
         if not _HAS_PSUTIL:
             emsg = "unable to get CPUs: required package 'psutil' is not installed"
             self.log.warn(emsg)
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         return self._pinfo.cpus
 
@@ -256,7 +256,7 @@ class NativeProcess(ApplicationSession):
         if not _HAS_PSUTIL:
             emsg = "unable to get CPU affinity: required package 'psutil' is not installed"
             self.log.warn(emsg)
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         try:
             p = psutil.Process(os.getpid())
@@ -264,7 +264,7 @@ class NativeProcess(ApplicationSession):
         except Exception as e:
             emsg = "Could not get CPU affinity: {}".format(e)
             self.log.failure(emsg)
-            raise ApplicationError(u"crossbar.error.runtime_error", emsg)
+            raise ApplicationError("crossbar.error.runtime_error", emsg)
         else:
             return current_affinity
 
@@ -284,13 +284,13 @@ class NativeProcess(ApplicationSession):
         if not _HAS_PSUTIL:
             emsg = "Unable to set CPU affinity: required package 'psutil' is not installed"
             self.log.warn(emsg)
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if sys.platform.startswith('darwin'):
             # https://superuser.com/questions/149312/how-to-set-processor-affinity-on-os-x
             emsg = "Unable to set CPU affinity: OSX lacks process CPU affinity"
             self.log.warn(emsg)
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if relative:
             _cpu_ids = self._pinfo.cpus
@@ -307,7 +307,7 @@ class NativeProcess(ApplicationSession):
         except Exception as e:
             emsg = "Could not set CPU affinity: {}".format(e)
             self.log.failure(emsg)
-            raise ApplicationError(u"crossbar.error.runtime_error", emsg)
+            raise ApplicationError("crossbar.error.runtime_error", emsg)
         else:
 
             # publish info to all but the caller ..
@@ -341,7 +341,7 @@ class NativeProcess(ApplicationSession):
             return self._pinfo.get_info()
         else:
             emsg = "Could not retrieve process statistics: required packages not installed"
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
     @wamp.register(None)
     def get_process_stats(self, details=None):
@@ -356,7 +356,7 @@ class NativeProcess(ApplicationSession):
             return self._pinfo.get_stats()
         else:
             emsg = "Could not retrieve process statistics: required packages not installed"
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
     @wamp.register(None)
     def get_process_monitor(self, details=None):
@@ -366,7 +366,7 @@ class NativeProcess(ApplicationSession):
             return self._pmonitor.poll()
         else:
             emsg = "Could not retrieve process statistics: required packages not installed"
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
     @wamp.register(None)
     def set_process_stats_monitoring(self, interval, details=None):
@@ -406,7 +406,7 @@ class NativeProcess(ApplicationSession):
                 self.publish(stats_monitor_set_topic, interval, options=PublishOptions(exclude=details.caller))
         else:
             emsg = "Cannot setup process statistics monitor: required packages not installed"
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
     @wamp.register(None)
     def trigger_gc(self, details=None):
@@ -528,12 +528,12 @@ class NativeProcess(ApplicationSession):
         if not _HAS_MANHOLE:
             emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if self._manhole_service:
             emsg = "Could not start manhole - already running (or starting)"
             self.log.warn(emsg)
-            raise ApplicationError(u"crossbar.error.already_started", emsg)
+            raise ApplicationError("crossbar.error.already_started", emsg)
 
         try:
             self.personality.check_manhole(self.personality, config)
@@ -622,7 +622,7 @@ class NativeProcess(ApplicationSession):
             self._manhole_service = None
             emsg = "Manhole service endpoint cannot listen: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.cannot_listen", emsg)
+            raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
         # alright, manhole has started
         self._manhole_service.started = datetime.utcnow()
@@ -663,7 +663,7 @@ class NativeProcess(ApplicationSession):
 
         if not self._manhole_service or self._manhole_service.status != 'started':
             emsg = "Cannot stop manhole: not running (or already shutting down)"
-            raise ApplicationError(u"crossbar.error.not_started", emsg)
+            raise ApplicationError("crossbar.error.not_started", emsg)
 
         self._manhole_service.status = 'stopping'
 
@@ -702,7 +702,7 @@ class NativeProcess(ApplicationSession):
         if not _HAS_MANHOLE:
             emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if not self._manhole_service:
             return None

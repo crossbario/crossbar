@@ -225,39 +225,39 @@ class Node(object):
 
     def _add_worker_role(self, worker_auth_role, options):
         worker_role_config = {
-            u"name": worker_auth_role,
-            u"permissions": [
+            "name": worker_auth_role,
+            "permissions": [
                 # the worker requires these permissions to work:
                 {
                     # worker_auth_role: "crossbar.worker.worker-001"
-                    u"uri": worker_auth_role,
-                    u"match": u"prefix",
-                    u"allow": {
-                        u"call": False,
-                        u"register": True,
-                        u"publish": True,
-                        u"subscribe": False
+                    "uri": worker_auth_role,
+                    "match": "prefix",
+                    "allow": {
+                        "call": False,
+                        "register": True,
+                        "publish": True,
+                        "subscribe": False
                     },
-                    u"disclose": {
-                        u"caller": False,
-                        u"publisher": False
+                    "disclose": {
+                        "caller": False,
+                        "publisher": False
                     },
-                    u"cache": True
+                    "cache": True
                 },
                 {
-                    u"uri": u"crossbar.get_status",
-                    u"match": u"exact",
-                    u"allow": {
-                        u"call": True,
-                        u"register": False,
-                        u"publish": False,
-                        u"subscribe": False
+                    "uri": "crossbar.get_status",
+                    "match": "exact",
+                    "allow": {
+                        "call": True,
+                        "register": False,
+                        "publish": False,
+                        "subscribe": False
                     },
-                    u"disclose": {
-                        u"caller": False,
-                        u"publisher": False
+                    "disclose": {
+                        "caller": False,
+                        "publisher": False
                     },
-                    u"cache": True
+                    "cache": True
                 }
             ]
         }

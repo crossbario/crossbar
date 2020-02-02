@@ -51,15 +51,15 @@ class WebhookResource(_CommonResource):
         topic = self._options["topic"]
 
         message = {}
-        message[u"headers"] = {
+        message["headers"] = {
             native_string(x): [native_string(z) for z in y]
             for x, y in request.requestHeaders.getAllRawHeaders()}
-        message[u"body"] = event
+        message["body"] = event
 
         publish_options = PublishOptions(acknowledge=True)
 
         def _succ(result):
-            response_text = self._options.get("success_response", u"OK").encode('utf8')
+            response_text = self._options.get("success_response", "OK").encode('utf8')
             return self._complete_request(
                 request, 202, response_text,
                 reason="Successfully sent webhook from {ip} to {topic}",
@@ -69,7 +69,7 @@ class WebhookResource(_CommonResource):
             )
 
         def _err(result):
-            response_text = self._options.get("error_response", u"NOT OK").encode('utf8')
+            response_text = self._options.get("error_response", "NOT OK").encode('utf8')
             error_message = str(result.value)
             authorization_problem = False
             if isinstance(result.value, ApplicationError):
@@ -77,10 +77,10 @@ class WebhookResource(_CommonResource):
                     result.value.error,
                     result.value.args[0],
                 )
-                if result.value.error == u"wamp.error.not_authorized":
+                if result.value.error == "wamp.error.not_authorized":
                     authorization_problem = True
             self.log.error(
-                u"Unable to send webhook from {ip} to '{topic}' topic: {err}",
+                "Unable to send webhook from {ip} to '{topic}' topic: {err}",
                 ip=request.getClientIP(),
                 body=response_text,
                 log_failure=result,
@@ -90,7 +90,7 @@ class WebhookResource(_CommonResource):
             )
             if authorization_problem:
                 self.log.error(
-                    u"Session realm={realm} role={role}",
+                    "Session realm={realm} role={role}",
                     realm=self._session._realm,
                     role=self._session._authrole,
                 )

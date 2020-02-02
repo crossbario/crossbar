@@ -180,7 +180,7 @@ class NodeController(NativeProcess):
 
         self._started = utcnow()
 
-        self.publish(u"crossbar.on_ready")
+        self.publish("crossbar.on_ready")
 
         self.log.debug("Node controller ready")
 
@@ -495,7 +495,7 @@ class NodeController(NativeProcess):
         else:
             # we are invoking via "-m" so that .pyc files, __pycache__
             # etc work properly. this works everywhere, but frozen executables
-            args = [exe, "-u", "-m", "crossbar.worker.main"]
+            args = [exe, "-", "-m", "crossbar.worker.main"]
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--node", str(self._node._node_id)])
         args.extend(["--worker", str(worker_id)])
@@ -613,7 +613,7 @@ class NodeController(NativeProcess):
             del self._workers[worker.id]
             emsg = 'Failed to start native worker: {}'.format(err.value)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.cannot_start", emsg, worker.getlog())
+            raise ApplicationError("crossbar.error.cannot_start", emsg, worker.getlog())
 
         worker.ready.addCallbacks(on_ready_success, on_ready_error)
 
@@ -982,7 +982,7 @@ class NodeController(NativeProcess):
 
             emsg = 'Failed to start guest worker: {}'.format(err.value)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.cannot_start", emsg, ep.getlog())
+            raise ApplicationError("crossbar.error.cannot_start", emsg, ep.getlog())
 
         worker.ready.addCallbacks(on_ready_success, on_ready_error)
 

@@ -111,11 +111,11 @@ class ContainerRunningTests(CLITestBase):
         err = self.stderr.getvalue()
         for i in stdout_expected:
             if i not in out:
-                self.fail(u"Error: '{}' not in:\n{}".format(i, out))
+                self.fail("Error: '{}' not in:\n{}".format(i, out))
 
         for i in stderr_expected:
             if i not in err:
-                self.fail(u"Error: '{}' not in:\n{}".format(i, err))
+                self.fail("Error: '{}' not in:\n{}".format(i, err))
 
     def test_start_run(self):
         """
@@ -306,12 +306,12 @@ print("Loaded the component!")
         Logging things that are UTF8 but not Unicode should work fine.
         """
         expected_stdout = [
-            "Entering reactor event loop", u"\u2603"
+            "Entering reactor event loop", "\u2603"
         ]
         expected_stderr = []
 
         def _check(lc, reactor):
-            if u"\u2603" in self.stdout.getvalue():
+            if "\u2603" in self.stdout.getvalue():
                 lc.stop()
                 try:
                     reactor.stop()
@@ -400,7 +400,7 @@ class MySession(ApplicationSession):
     log = Logger()
 
     def onJoin(self, details):
-        self.log.info(u"\\u2603")
+        self.log.info("\\u2603")
 """
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
@@ -491,13 +491,13 @@ class MySession(ApplicationSession):
     def onJoin(self, details):
 
         def _err():
-            raise ApplicationError(u"com.example.error.form_error", u"\\u2603")
+            raise ApplicationError("com.example.error.form_error", "\\u2603")
         e = yield self.register(_err, u'com.example.err')
 
         try:
             yield self.call(u'com.example.err')
         except ApplicationError as e:
-            assert e.args[0] == u"\\u2603"
+            assert e.args[0] == "\\u2603"
             print("Caught error:", e)
         except:
             print('other err:', e)

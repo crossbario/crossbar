@@ -183,7 +183,7 @@ class WebSocketTesteeController(WorkerController):
         except Exception as e:
             emsg = "Invalid WebSocket testee transport configuration: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
             self.log.debug("Starting {ttype}-transport on websocket-testee.", ttype=config['type'])
 
@@ -216,7 +216,7 @@ class WebSocketTesteeController(WorkerController):
         def fail(err):
             emsg = "Cannot listen on transport endpoint: {}".format(err.value)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.cannot_listen", emsg)
+            raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
         d.addCallbacks(ok, fail)
         return d
