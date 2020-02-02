@@ -1038,7 +1038,7 @@ class Dealer(object):
                     invoke_request.caller,
                     message.Error(
                         message.Call.MESSAGE_TYPE,
-                        call.request, #invoke_request.id,
+                        call.request,
                         ApplicationError.CANCELED,
                         [u"timeout reached"],
                     ),
