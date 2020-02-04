@@ -70,8 +70,8 @@ def default_native_workers():
 
         'logname': 'Router',
         'topics': {
-            'starting': u'crossbar.on_router_starting',
-            'started': u'crossbar.on_router_started',
+            'starting': 'crossbar.on_router_starting',
+            'started': 'crossbar.on_router_started',
         }
     }
     factory['container'] = {
@@ -86,8 +86,8 @@ def default_native_workers():
 
         'logname': 'Container',
         'topics': {
-            'starting': u'crossbar.on_container_starting',
-            'started': u'crossbar.on_container_started',
+            'starting': 'crossbar.on_container_starting',
+            'started': 'crossbar.on_container_started',
         }
     }
     factory['websocket-testee'] = {
@@ -102,8 +102,8 @@ def default_native_workers():
 
         'logname': 'WebSocketTestee',
         'topics': {
-            'starting': u'crossbar.on_websocket_testee_starting',
-            'started': u'crossbar.on_websocket_testee_started',
+            'starting': 'crossbar.on_websocket_testee_starting',
+            'started': 'crossbar.on_websocket_testee_started',
         }
     }
     factory['proxy'] = {
@@ -115,10 +115,10 @@ def default_native_workers():
         'checkconfig_item': _check_proxy_config,
         # FIXME: only check proxy worker options
         'checkconfig_options': do_nothing,  # checkconfig.check_native_worker_options,
-        'logname': u'Proxy',
+        'logname': 'Proxy',
         'topics': {
-            'starting': u'crossbar.on_proxy_starting',
-            'started': u'crossbar.on_proxy_started',
+            'starting': 'crossbar.on_proxy_starting',
+            'started': 'crossbar.on_proxy_started',
         }
     }
     return factory

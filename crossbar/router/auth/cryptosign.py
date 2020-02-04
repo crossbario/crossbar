@@ -52,7 +52,7 @@ class PendingAuthCryptosign(PendingAuth):
 
     log = make_logger()
 
-    AUTHMETHOD = u'cryptosign'
+    AUTHMETHOD = 'cryptosign'
 
     def __init__(self, session, config):
         PendingAuth.__init__(self, session, config)
@@ -61,7 +61,7 @@ class PendingAuthCryptosign(PendingAuth):
         # https://tools.ietf.org/html/rfc5056
         # https://tools.ietf.org/html/rfc5929
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
-        channel_id_hex = session._transport._transport_info.get(u'channel_id', None)
+        channel_id_hex = session._transport._transport_info.get('channel_id', None)
         if channel_id_hex:
             self._channel_id = binascii.a2b_hex(channel_id_hex)
         else:
@@ -74,8 +74,8 @@ class PendingAuthCryptosign(PendingAuth):
         # this is to allow clients to authenticate without specifying an authid
         if config['type'] == 'static':
             self._pubkey_to_authid = {}
-            for authid, principal in self._config.get(u'principals', {}).items():
-                for pubkey in principal[u'authorized_keys']:
+            for authid, principal in self._config.get('principals', {}).items():
+                for pubkey in principal['authorized_keys']:
                     self._pubkey_to_authid[pubkey] = authid
 
     def _compute_challenge(self, channel_binding):
@@ -87,15 +87,15 @@ class PendingAuthCryptosign(PendingAuth):
             self._expected_signed_message = self._challenge
 
         extra = {
-            u'challenge': binascii.b2a_hex(self._challenge).decode('ascii')
+            'challenge': binascii.b2a_hex(self._challenge).decode('ascii')
         }
         return extra
 
     def hello(self, realm, details):
         # the channel binding requested by the client authenticating
-        channel_binding = details.authextra.get(u'channel_binding', None) if details.authextra else None
-        if channel_binding is not None and channel_binding not in [u'tls-unique']:
-            return types.Deny(message=u'invalid channel binding type "{}" requested'.format(channel_binding))
+        channel_binding = details.authextra.get('channel_binding', None) if details.authextra else None
+        if channel_binding is not None and channel_binding not in ['tls-unique']:
+            return types.Deny(message='invalid channel binding type "{}" requested'.format(channel_binding))
         else:
             self.log.debug(
                 "WAMP-cryptosign CHANNEL BINDING requested: channel_binding={channel_binding}, channel_id={channel_id}",
@@ -112,12 +112,12 @@ class PendingAuthCryptosign(PendingAuth):
         # use static principal database from configuration
         if self._config['type'] == 'static':
 
-            self._authprovider = u'static'
+            self._authprovider = 'static'
 
             # get client's pubkey, if it was provided in authextra
             pubkey = None
-            if details.authextra and u'pubkey' in details.authextra:
-                pubkey = details.authextra[u'pubkey']
+            if details.authextra and 'pubkey' in details.authextra:
+                pubkey = details.authextra['pubkey']
 
             # if the client provides it's public key, that's enough to identify,
             # and we can infer the authid from that. BUT: that requires that
@@ -126,25 +126,25 @@ class PendingAuthCryptosign(PendingAuth):
                 if pubkey:
                     # we do a naive search, but that is ok, since "static mode" is from
                     # node configuration, and won't contain a lot principals anyway
-                    for _authid, _principal in self._config.get(u'principals', {}).items():
-                        if pubkey in _principal[u'authorized_keys']:
+                    for _authid, _principal in self._config.get('principals', {}).items():
+                        if pubkey in _principal['authorized_keys']:
                             # (*): this is necessary to detect multiple authid's having the same pubkey
                             # in which case we couldn't reliably map the authid from the pubkey
                             if self._authid is None:
                                 self._authid = _authid
                             else:
-                                return types.Deny(message=u'cannot infer client identity from pubkey: multiple authids in principal database have this pubkey')
+                                return types.Deny(message='cannot infer client identity from pubkey: multiple authids in principal database have this pubkey')
                     if self._authid is None:
-                        return types.Deny(message=u'cannot identify client: no authid requested and no principal found for provided extra.pubkey')
+                        return types.Deny(message='cannot identify client: no authid requested and no principal found for provided extra.pubkey')
                 else:
-                    return types.Deny(message=u'cannot identify client: no authid requested and no extra.pubkey provided')
+                    return types.Deny(message='cannot identify client: no authid requested and no extra.pubkey provided')
 
-            if self._authid in self._config.get(u'principals', {}):
+            if self._authid in self._config.get('principals', {}):
 
-                principal = self._config[u'principals'][self._authid]
+                principal = self._config['principals'][self._authid]
 
-                if pubkey and (pubkey not in principal[u'authorized_keys']):
-                    return types.Deny(message=u'extra.pubkey provided does not match any one of authorized_keys for the principal')
+                if pubkey and (pubkey not in principal['authorized_keys']):
+                    return types.Deny(message='extra.pubkey provided does not match any one of authorized_keys for the principal')
 
                 error = self._assign_principal(principal)
                 if error:
@@ -156,20 +156,20 @@ class PendingAuthCryptosign(PendingAuth):
                 return types.Challenge(self._authmethod, extra)
 
             else:
-                return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
+                return types.Deny(message='no principal with authid "{}" exists'.format(details.authid))
 
-        elif self._config[u'type'] == u'dynamic':
+        elif self._config['type'] == 'dynamic':
 
-            self._authprovider = u'dynamic'
+            self._authprovider = 'dynamic'
 
             error = self._init_dynamic_authenticator()
             if error:
                 return error
 
-            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details[u'authid'] = details.authid
-            self._session_details[u'authrole'] = details.authrole
-            self._session_details[u'authextra'] = details.authextra
+            self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details['authid'] = details.authid
+            self._session_details['authrole'] = details.authrole
+            self._session_details['authextra'] = details.authextra
 
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
@@ -178,7 +178,7 @@ class PendingAuthCryptosign(PendingAuth):
                 if error:
                     return error
 
-                self._verify_key = VerifyKey(principal[u'pubkey'], encoder=nacl.encoding.HexEncoder)
+                self._verify_key = VerifyKey(principal['pubkey'], encoder=nacl.encoding.HexEncoder)
 
                 extra = self._compute_challenge(channel_binding)
                 return types.Challenge(self._authmethod, extra)
@@ -191,7 +191,7 @@ class PendingAuthCryptosign(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
 
     def authenticate(self, signed_message):
         """
@@ -201,25 +201,25 @@ class PendingAuthCryptosign(PendingAuth):
         """
         try:
             if not isinstance(signed_message, str):
-                return types.Deny(message=u'invalid type {} for signed message'.format(type(signed_message)))
+                return types.Deny(message='invalid type {} for signed message'.format(type(signed_message)))
 
             try:
                 signed_message = binascii.a2b_hex(signed_message)
             except TypeError:
-                return types.Deny(message=u'signed message is invalid (not a HEX encoded string)')
+                return types.Deny(message='signed message is invalid (not a HEX encoded string)')
 
             if len(signed_message) != 96:
-                return types.Deny(message=u'signed message has invalid length (was {}, but should have been 96)'.format(len(signed_message)))
+                return types.Deny(message='signed message has invalid length (was {}, but should have been 96)'.format(len(signed_message)))
 
             # now verify the signed message versus the client public key ..
             try:
                 message = self._verify_key.verify(signed_message)
             except BadSignatureError:
-                return types.Deny(message=u'signed message has invalid signature')
+                return types.Deny(message='signed message has invalid signature')
 
             # .. and check that the message signed by the client is really what we expect
             if message != self._expected_signed_message:
-                return types.Deny(message=u'message signed is bogus')
+                return types.Deny(message='message signed is bogus')
 
             # signature was valid _and_ the message that was signed is equal to
             # what we expected => accept the client
@@ -228,4 +228,4 @@ class PendingAuthCryptosign(PendingAuth):
         except Exception as e:
 
             # should not arrive here .. but who knows
-            return types.Deny(message=u'internal error: {}'.format(e))
+            return types.Deny(message='internal error: {}'.format(e))

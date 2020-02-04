@@ -49,4 +49,4 @@ class NativeStringTestCase(TestCase):
         A unicode argument should never be allowed.
         """
         with self.assertRaises(ValueError):
-            compat.native_string(u"bar")
+            compat.native_string("bar")

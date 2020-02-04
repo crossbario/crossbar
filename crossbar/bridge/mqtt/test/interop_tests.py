@@ -43,7 +43,7 @@ def test_connect(host, port):
     record = [
         Frame(
             send=True,
-            data=Connect(client_id=u"test_cleanconnect",
+            data=Connect(client_id="test_cleanconnect",
                          flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
@@ -90,7 +90,7 @@ def test_reserved_packet_15(host, port):
     record = [
         Frame(
             send=True,
-            data=Connect(client_id=u"test_reserved15",
+            data=Connect(client_id="test_reserved15",
                          flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
@@ -115,7 +115,7 @@ def test_reserved_packet_0(host, port):
     record = [
         Frame(
             send=True,
-            data=Connect(client_id=u"test_reserved0",
+            data=Connect(client_id="test_reserved0",
                          flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
@@ -140,7 +140,7 @@ def test_uninvited_puback(host, port):
     record = [
         Frame(
             send=True,
-            data=Connect(client_id=u"test_puback",
+            data=Connect(client_id="test_puback",
                          flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
@@ -170,7 +170,7 @@ def test_uninvited_pubrel(host, port):
     record = [
         Frame(
             send=True,
-            data=Connect(client_id=u"test_pubrel",
+            data=Connect(client_id="test_pubrel",
                          flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
@@ -200,7 +200,7 @@ def test_self_subscribe(host, port):
     record = [
         Frame(
             send=True,
-            data=Connect(client_id=u"test_selfsub",
+            data=Connect(client_id="test_selfsub",
                          flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
@@ -208,17 +208,17 @@ def test_self_subscribe(host, port):
         Frame(
             send=True,
             data=Subscribe(packet_identifier=1234,
-                           topic_requests=[SubscriptionTopicRequest(u"foo", 2)])),
+                           topic_requests=[SubscriptionTopicRequest("foo", 2)])),
         Frame(
             send=False,
             data=SubACK(packet_identifier=1234, return_codes=[2])),
         Frame(
             send=True,
-            data=Publish(duplicate=False, qos_level=0, topic_name=u"foo",
+            data=Publish(duplicate=False, qos_level=0, topic_name="foo",
                          payload=b"abc", retain=False)),
         Frame(
             send=False,
-            data=Publish(duplicate=False, qos_level=0, topic_name=u"foo",
+            data=Publish(duplicate=False, qos_level=0, topic_name="foo",
                          payload=b"abc", retain=False)),
         Frame(
             send=True,
@@ -239,7 +239,7 @@ def test_qos2_send_wrong_confirm(host, port):
     record = [
         Frame(
             send=True,
-            data=Connect(client_id=u"test_wrong_confirm_qos2",
+            data=Connect(client_id="test_wrong_confirm_qos2",
                          flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
@@ -247,19 +247,19 @@ def test_qos2_send_wrong_confirm(host, port):
         Frame(
             send=True,
             data=Subscribe(packet_identifier=1234,
-                           topic_requests=[SubscriptionTopicRequest(u"foo", 2)])),
+                           topic_requests=[SubscriptionTopicRequest("foo", 2)])),
         Frame(
             send=False,
             data=SubACK(packet_identifier=1234, return_codes=[2])),
         Frame(
             send=True,
-            data=Publish(duplicate=False, qos_level=2, topic_name=u"foo",
+            data=Publish(duplicate=False, qos_level=2, topic_name="foo",
                          payload=b"abc", retain=False, packet_identifier=12)),
         Frame(
             send=False,
             data=[
                 PubREC(packet_identifier=12),
-                Publish(duplicate=False, qos_level=2, topic_name=u"foo",
+                Publish(duplicate=False, qos_level=2, topic_name="foo",
                         payload=b"abc", retain=False, packet_identifier=1),
                 PubCOMP(packet_identifier=12)]),
         Frame(
@@ -290,7 +290,7 @@ def test_qos1_send_wrong_confirm(host, port):
     record = [
         Frame(
             send=True,
-            data=Connect(client_id=u"test_wrong_confirm_qos1",
+            data=Connect(client_id="test_wrong_confirm_qos1",
                          flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
@@ -298,19 +298,19 @@ def test_qos1_send_wrong_confirm(host, port):
         Frame(
             send=True,
             data=Subscribe(packet_identifier=1234,
-                           topic_requests=[SubscriptionTopicRequest(u"foo", 2)])),
+                           topic_requests=[SubscriptionTopicRequest("foo", 2)])),
         Frame(
             send=False,
             data=SubACK(packet_identifier=1234, return_codes=[2])),
         Frame(
             send=True,
-            data=Publish(duplicate=False, qos_level=1, topic_name=u"foo",
+            data=Publish(duplicate=False, qos_level=1, topic_name="foo",
                          payload=b"abc", retain=False, packet_identifier=12)),
         Frame(
             send=False,
             data=[
                 PubACK(packet_identifier=12),
-                Publish(duplicate=False, qos_level=1, topic_name=u"foo",
+                Publish(duplicate=False, qos_level=1, topic_name="foo",
                         payload=b"abc", retain=False, packet_identifier=1)]),
         # We send a pubrel to the packet_id expecting a puback
         Frame(

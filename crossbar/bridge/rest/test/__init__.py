@@ -164,7 +164,7 @@ class MockTransport(object):
 
         self._handler.onOpen(self)
 
-        roles = {u'broker': role.RoleBrokerFeatures(), u'dealer': role.RoleDealerFeatures()}
+        roles = {'broker': role.RoleBrokerFeatures(), 'dealer': role.RoleDealerFeatures()}
 
         msg = message.Welcome(self._my_session_id, roles)
         self._handler.onMessage(msg)
@@ -196,9 +196,9 @@ class MockTransport(object):
                     reactor.callLater(0, published)
 
             elif len(msg.topic) == 0:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, u'wamp.error.invalid_uri')
+                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, 'wamp.error.invalid_uri')
             else:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, u'wamp.error.not_authorized')
+                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, 'wamp.error.not_authorized')
 
         elif isinstance(msg, message.Error):
             # Convert an invocation error into a call error
@@ -219,7 +219,7 @@ class MockTransport(object):
                 reactor.callLater(0, invoke)
 
             else:
-                reply = message.Error(message.Call.MESSAGE_TYPE, msg.request, u'wamp.error.no_such_procedure')
+                reply = message.Error(message.Call.MESSAGE_TYPE, msg.request, 'wamp.error.no_such_procedure')
 
         elif isinstance(msg, message.Yield):
             if msg.request in self._invocations:

@@ -40,7 +40,7 @@ class PendingAuthTLS(PendingAuth):
     Pending WAMP-TLS authentication.
     """
 
-    AUTHMETHOD = u'tls'
+    AUTHMETHOD = 'tls'
 
     def __init__(self, session, config):
         PendingAuth.__init__(self, session, config)
@@ -50,13 +50,13 @@ class PendingAuthTLS(PendingAuth):
         # for static-mode, the config has principals as a dict indexed
         # by authid, but we need the reverse map: cert-sha1 -> principal
         self._cert_sha1_to_principal = None
-        if self._config[u'type'] == u'static':
+        if self._config['type'] == 'static':
             self._cert_sha1_to_principal = {}
-            if u'principals' in self._config:
-                for authid, principal in self._config[u'principals'].items():
-                    self._cert_sha1_to_principal[principal[u'certificate-sha1']] = {
-                        u'authid': authid,
-                        u'role': principal[u'role']
+            if 'principals' in self._config:
+                for authid, principal in self._config['principals'].items():
+                    self._cert_sha1_to_principal[principal['certificate-sha1']] = {
+                        'authid': authid,
+                        'role': principal['role']
                     }
 
     def hello(self, realm, details):
@@ -68,14 +68,14 @@ class PendingAuthTLS(PendingAuth):
         self._authid = details.authid
 
         # use static principal database from configuration
-        if self._config[u'type'] == u'static':
+        if self._config['type'] == 'static':
 
-            self._authprovider = u'static'
+            self._authprovider = 'static'
 
-            client_cert = self._session_details[u'transport'].get(u'client_cert', None)
+            client_cert = self._session_details['transport'].get('client_cert', None)
             if not client_cert:
-                return types.Deny(message=u'client did not send a TLS client certificate')
-            client_cert_sha1 = client_cert[u'sha1']
+                return types.Deny(message='client did not send a TLS client certificate')
+            client_cert_sha1 = client_cert['sha1']
 
             if client_cert_sha1 in self._cert_sha1_to_principal:
 
@@ -87,21 +87,21 @@ class PendingAuthTLS(PendingAuth):
 
                 return self._accept()
             else:
-                return types.Deny(message=u'no principal with authid "{}" exists'.format(client_cert_sha1))
+                return types.Deny(message='no principal with authid "{}" exists'.format(client_cert_sha1))
 
             raise Exception("not implemented")
 
         # use configured procedure to dynamically get a ticket for the principal
-        elif self._config[u'type'] == u'dynamic':
+        elif self._config['type'] == 'dynamic':
 
-            self._authprovider = u'dynamic'
+            self._authprovider = 'dynamic'
 
             error = self._init_dynamic_authenticator()
             if error:
                 return error
 
-            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details[u'authextra'] = details.authextra
+            self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details['authextra'] = details.authextra
 
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
@@ -127,7 +127,7 @@ class PendingAuthTLS(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
 
     def authenticate(self, signature):
         # should not arrive here!

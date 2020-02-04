@@ -62,25 +62,25 @@ LATEST_CONFIG_VERSION = 2
 The current configuration file version.
 """
 
-NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED = u'shutdown_on_shutdown_requested'
+NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED = 'shutdown_on_shutdown_requested'
 """
 Shutdown the node when explicitly asked to (by calling the management
 procedure 'crossbar.node.<node_id>.shutdown'). This is the default when running
 in "managed mode".
 """
 
-NODE_SHUTDOWN_ON_WORKER_EXIT = u'shutdown_on_worker_exit'
+NODE_SHUTDOWN_ON_WORKER_EXIT = 'shutdown_on_worker_exit'
 """
 Shutdown the node whenever a worker exits with success or error. This is the default
 when running in "standalone mode".
 """
 
-NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR = u'shutdown_on_worker_exit_with_error'
+NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR = 'shutdown_on_worker_exit_with_error'
 """
 Shutdown the node whenever a worker exits with error.
 """
 
-NODE_SHUTDOWN_ON_LAST_WORKER_EXIT = u'shutdown_on_last_worker_exit'
+NODE_SHUTDOWN_ON_LAST_WORKER_EXIT = 'shutdown_on_last_worker_exit'
 """
 Shutdown the node whenever there are no more workers running.
 """
@@ -156,7 +156,7 @@ def construct_yaml_str(self, node):
 
 
 for Klass in [Loader, SafeLoader]:
-    Klass.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
+    Klass.add_constructor('tag:yaml.org,2002:str', construct_yaml_str)
 
 
 # Enable PyYAML to deserialize mappings into OrderedDicts
@@ -223,7 +223,7 @@ def represent_ordered_dict(dump, tag, mapping, flow_style=None):
 
 for Klass in [Dumper, SafeDumper]:
     Klass.add_representer(OrderedDict,
-                          lambda dumper, value: represent_ordered_dict(dumper, u'tag:yaml.org,2002:map', value))
+                          lambda dumper, value: represent_ordered_dict(dumper, 'tag:yaml.org,2002:map', value))
 
 
 # Environment variable names used by the utilities in the Shell and Utilities volume
@@ -324,9 +324,9 @@ def check_id(id):
     Check a configuration item ID.
     """
     if not isinstance(id, str):
-        raise InvalidConfigException(u'invalid configuration item ID "{}" - type must be string, was {}'.format(id, type(id)))
+        raise InvalidConfigException('invalid configuration item ID "{}" - type must be string, was {}'.format(id, type(id)))
     if not _CONFIG_ITEM_ID_PAT.match(id):
-        raise InvalidConfigException(u'invalid configuration item ID "{}" - must match regular expression {}'.format(id, _CONFIG_ITEM_ID_PAT_STR))
+        raise InvalidConfigException('invalid configuration item ID "{}" - must match regular expression {}'.format(id, _CONFIG_ITEM_ID_PAT_STR))
 
 
 def check_realm_name(name):
@@ -334,9 +334,9 @@ def check_realm_name(name):
     Check a realm name.
     """
     if not isinstance(name, str):
-        raise InvalidConfigException(u'invalid realm name "{}" - type must be string, was {}'.format(name, type(name)))
+        raise InvalidConfigException('invalid realm name "{}" - type must be string, was {}'.format(name, type(name)))
     if not _REALM_NAME_PAT.match(name):
-        raise InvalidConfigException(u'invalid realm name "{}" - must match regular expression {}'.format(name, _REALM_NAME_PAT_STR))
+        raise InvalidConfigException('invalid realm name "{}" - must match regular expression {}'.format(name, _REALM_NAME_PAT_STR))
 
 
 def check_dict_args(spec, config, msg):
@@ -522,14 +522,14 @@ def check_transport_auth_scram(config):
     """
     Check a WAMP-SCRAM configuration item.
     """
-    if u'type' not in config:
+    if 'type' not in config:
         raise InvalidConfigException(
-            "missing mandatory attribute '{}' in WAMP-SCRAM configuration".format(u'type')
+            "missing mandatory attribute '{}' in WAMP-SCRAM configuration".format('type')
         )
-    if config[u'type'] == u'static':
-        if u'principals' not in config:
+    if config['type'] == 'static':
+        if 'principals' not in config:
             raise InvalidConfigException(
-                "missing mandatory attribute '{}' in WAMP-SCRAM configuration".format(u'principals')
+                "missing mandatory attribute '{}' in WAMP-SCRAM configuration".format('principals')
             )
 
         # check map of principals
@@ -543,8 +543,8 @@ def check_transport_auth_scram(config):
                 'server-key': (True, [str]),
                 'role': (False, [str]),
             }, principal, "WAMP-SCRAM - principal '{}' configuration".format(authid))
-            available_kdfs = (u'argon2id-13', u'pbkdf2')
-            kdf = principal[u'kdf']
+            available_kdfs = ('argon2id-13', 'pbkdf2')
+            kdf = principal['kdf']
             if kdf not in available_kdfs:
                 raise ValueError(
                     "WAMP-SCRAM illegal KDF '{}' not one of {}".format(
@@ -918,11 +918,11 @@ def check_listening_endpoint_onion(personality, endpoint):
 
     check_dict_args(
         {
-            u"type": (True, [str]),
-            u"port": (True, [int]),
-            u"version": (False, [int]),
-            u"private_key_file": (True, [str]),
-            u"tor_control_endpoint": (True, [Mapping])
+            "type": (True, [str]),
+            "port": (True, [int]),
+            "version": (False, [int]),
+            "private_key_file": (True, [str]),
+            "tor_control_endpoint": (True, [Mapping])
         },
         endpoint,
         "onion endpoint config",
@@ -934,8 +934,8 @@ def check_listening_endpoint_onion(personality, endpoint):
                 "Onion endpoint version must be 2 or 3"
             )
 
-    check_endpoint_port(endpoint[u"port"])
-    personality.check_connecting_endpoint(personality, endpoint[u"tor_control_endpoint"])
+    check_endpoint_port(endpoint["port"])
+    personality.check_connecting_endpoint(personality, endpoint["tor_control_endpoint"])
 
 
 def check_connecting_endpoint_tcp(endpoint):
@@ -1917,19 +1917,19 @@ def check_listening_transport_mqtt(personality, transport, with_endpoint=True):
                 raise InvalidConfigException('invalid MQTT payload mapping value {}'.format(type(v)))
             if 'type' not in v:
                 raise InvalidConfigException('missing "type" in MQTT payload mapping {}'.format(v))
-            if v['type'] not in [u'passthrough', u'native', u'dynamic']:
+            if v['type'] not in ['passthrough', 'native', 'dynamic']:
                 raise InvalidConfigException('invalid "type" in MQTT payload mapping: {}'.format(v['type']))
-            if v['type'] == u'passthrough':
+            if v['type'] == 'passthrough':
                 pass
-            elif v['type'] == u'native':
-                serializer = v.get(u'serializer', None)
-                if serializer not in [u'cbor', u'json', u'msgpack', u'ubjson']:
+            elif v['type'] == 'native':
+                serializer = v.get('serializer', None)
+                if serializer not in ['cbor', 'json', 'msgpack', 'ubjson']:
                     raise InvalidConfigException('invalid serializer "{}" in MQTT payload mapping'.format(serializer))
-            elif v['type'] == u'dynamic':
-                encoder = v.get(u'encoder', None)
+            elif v['type'] == 'dynamic':
+                encoder = v.get('encoder', None)
                 if not isinstance(encoder, str):
                     raise InvalidConfigException('invalid encoder "{}" in MQTT payload mapping'.format(encoder))
-                decoder = v.get(u'decoder', None)
+                decoder = v.get('decoder', None)
                 if not isinstance(decoder, str):
                     raise InvalidConfigException('invalid decoder "{}" in MQTT payload mapping'.format(decoder))
             else:
@@ -2217,7 +2217,7 @@ def check_listening_transport_rawsocket(personality, transport, with_endpoint=Tr
         if not isinstance(serializers, Sequence):
             raise InvalidConfigException("'serializers' in RawSocket transport configuration must be list ({} encountered)".format(type(serializers)))
         for serializer in serializers:
-            if serializer not in [u'json', u'msgpack', u'cbor', u'ubjson']:
+            if serializer not in ['json', 'msgpack', 'cbor', 'ubjson']:
                 raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor', 'ubjson']".format(serializer))
 
     if 'options' in transport:
@@ -2636,7 +2636,7 @@ def check_router_realm_role(personality, role):
             }, role, "invalid grant in role permissions")
 
             if 'match' in role:
-                if role['match'] not in [u'exact', u'prefix', u'wildcard']:
+                if role['match'] not in ['exact', 'prefix', 'wildcard']:
                     raise InvalidConfigException("invalid value '{}' for 'match' attribute in role permissions".format(role['match']))
 
             if not _URI_PAT_STRICT_LAST_EMPTY.match(role_uri):
@@ -2739,10 +2739,10 @@ def check_container_options(personality, options):
     check_native_worker_options(personality, options, ignore=['shutdown', 'restart'])
     if 'shutdown' in options:
         valid_shutdown_modes = [
-            u'shutdown-manual',
-            u'shutdown-on-last-component-stopped',
-            u'shutdown-on-any-component-failed',
-            u'shutdown-on-any-component-stopped',
+            'shutdown-manual',
+            'shutdown-on-last-component-stopped',
+            'shutdown-on-any-component-failed',
+            'shutdown-on-any-component-stopped',
         ]
         if options['shutdown'] not in valid_shutdown_modes:
             raise InvalidConfigException(
@@ -2751,7 +2751,7 @@ def check_container_options(personality, options):
                 )
             )
     if 'restart' in options:
-        valid_restart_modes = [u'restart-always', u'restart-on-failed', u'restart-never']
+        valid_restart_modes = ['restart-always', 'restart-on-failed', 'restart-never']
         if options['restart'] not in valid_restart_modes:
             raise InvalidConfigException(
                 "'restart' must be one of: {}".format(
@@ -2762,10 +2762,10 @@ def check_container_options(personality, options):
         # any of the nonsense cases
         if 'shutdown' in options:
             impossible = [
-                (u'restart-always', u'shutdown-on-any-component-stopped'),
-                (u'restart-always', u'shutdown-on-any-component-failed'),
-                (u'restart-always', u'shutdown-on-last-component-stopped'),
-                (u'restart-on-failed', u'shutdown-on-any-component-failed'),
+                ('restart-always', 'shutdown-on-any-component-stopped'),
+                ('restart-always', 'shutdown-on-any-component-failed'),
+                ('restart-always', 'shutdown-on-last-component-stopped'),
+                ('restart-on-failed', 'shutdown-on-any-component-failed'),
             ]
             if (options['restart'], options['shutdown']) in impossible:
                 raise InvalidConfigException(
@@ -3047,7 +3047,7 @@ def check_guest(personality, guest):
                 # the following configures in which format the value is to be serialized and forwarded
                 # to the spawned worker on stdin
                 _type = options['stdin']['type']
-                _permissible_types = [u'json']
+                _permissible_types = ['json']
 
                 if options['stdin']['type'] not in _permissible_types:
                     raise InvalidConfigException("invalid value '{}' for 'type' in 'stdin' guest worker configuration - must be one of: {}".format(_type, _permissible_types))
@@ -3172,7 +3172,7 @@ def check_config(personality, config):
         if k not in ['$schema', 'version', 'controller', 'workers']:
             raise InvalidConfigException("encountered unknown attribute '{}' in top-level configuration".format(k))
 
-    version = config.get(u'version', 1)
+    version = config.get('version', 1)
     if version not in range(1, LATEST_CONFIG_VERSION + 1):
         raise InvalidConfigException("Invalid configuration version '{}' - must be 1..{}".format(version, LATEST_CONFIG_VERSION))
 
@@ -3333,8 +3333,8 @@ def upgrade_config_file(personality, configfile):
     if not isinstance(config, Mapping):
         raise InvalidConfigException("configuration top-level item must be a dict/mapping (was type {})".format(type(config), config))
 
-    if u'version' in config:
-        version = config[u'version']
+    if 'version' in config:
+        version = config['version']
     else:
         version = 1
 
@@ -3350,39 +3350,39 @@ def upgrade_config_file(personality, configfile):
 
         # upgrade from version 1 -> 2
         if version == 1:
-            for worker in config.get(u'workers', []):
-                if worker[u'type'] == u'router':
-                    for realm in worker.get(u'realms', []):
-                        for role in realm.get(u'roles', []):
+            for worker in config.get('workers', []):
+                if worker['type'] == 'router':
+                    for realm in worker.get('realms', []):
+                        for role in realm.get('roles', []):
                             # upgrade "permissions" subitem (if there is any)
-                            if u'permissions' in role:
+                            if 'permissions' in role:
                                 permissions = []
-                                for p in role[u'permissions']:
-                                    uri, match = convert_starred_uri(p[u'uri'])
+                                for p in role['permissions']:
+                                    uri, match = convert_starred_uri(p['uri'])
                                     pp = OrderedDict([
-                                        (u'uri', uri),
-                                        (u'match', match),
-                                        (u'allow', OrderedDict([
-                                            (u'call', p.get(u'call', False)),
-                                            (u'register', p.get(u'register', False)),
-                                            (u'publish', p.get(u'publish', False)),
-                                            (u'subscribe', p.get(u'subscribe', False))
+                                        ('uri', uri),
+                                        ('match', match),
+                                        ('allow', OrderedDict([
+                                            ('call', p.get('call', False)),
+                                            ('register', p.get('register', False)),
+                                            ('publish', p.get('publish', False)),
+                                            ('subscribe', p.get('subscribe', False))
                                         ])),
-                                        (u'disclose', OrderedDict([
-                                            (u'caller', False),
-                                            (u'publisher', False),
+                                        ('disclose', OrderedDict([
+                                            ('caller', False),
+                                            ('publisher', False),
                                         ])),
-                                        (u'cache', True)
+                                        ('cache', True)
                                     ])
                                     permissions.append(pp)
-                                role[u'permissions'] = permissions
+                                role['permissions'] = permissions
         else:
             raise Exception('logic error')
 
         version += 1
 
     # make sure the config version is there, and at top of config
-    config = OrderedDict([(u'version', version)] + list(config.items()))
+    config = OrderedDict([('version', version)] + list(config.items()))
 
     # write out updated configuration ..
     with open(configfile, 'wb') as outfile:
@@ -3397,7 +3397,7 @@ def upgrade_config_file(personality, configfile):
                 indent=4,
             )
             # ensure newline at end of file
-            data += u'\n'
+            data += '\n'
             outfile.write(data.encode('utf8'))
 
         # write config in YAML format

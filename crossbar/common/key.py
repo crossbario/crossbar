@@ -65,9 +65,9 @@ def _read_release_key():
     release_pubkey_qrcode = cryptosign._qrcode_from_signify_ed25519_pubkey(release_pubkey_path)
 
     release_pubkey = {
-        u'base64': release_pubkey_base64,
-        u'hex': release_pubkey_hex,
-        u'qrcode': release_pubkey_qrcode
+        'base64': release_pubkey_base64,
+        'hex': release_pubkey_hex,
+        'qrcode': release_pubkey_qrcode
     }
 
     return release_pubkey
@@ -81,10 +81,10 @@ def _parse_key_file(key_path, private=True):
     if os.path.exists(key_path) and not os.path.isfile(key_path):
         raise Exception("Key file '{}' exists, but isn't a file".format(key_path))
 
-    allowed_tags = [u'public-key-ed25519', u'machine-id', u'created-at',
-                    u'creator']
+    allowed_tags = ['public-key-ed25519', 'machine-id', 'created-at',
+                    'creator']
     if private:
-        allowed_tags.append(u'private-key-ed25519')
+        allowed_tags.append('private-key-ed25519')
 
     tags = OrderedDict()
     with open(key_path, 'r') as key_file:
@@ -104,7 +104,7 @@ def _parse_key_file(key_path, private=True):
     return tags
 
 
-def _read_node_key(cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub', private=False):
+def _read_node_key(cbdir, privkey_path='key.priv', pubkey_path='key.pub', private=False):
     if private:
         node_key_path = os.path.join(cbdir, privkey_path)
     else:
@@ -116,9 +116,9 @@ def _read_node_key(cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub', priv
     node_key_tags = _parse_key_file(node_key_path)
 
     if private:
-        node_key_hex = node_key_tags[u'private-key-ed25519']
+        node_key_hex = node_key_tags['private-key-ed25519']
     else:
-        node_key_hex = node_key_tags[u'public-key-ed25519']
+        node_key_hex = node_key_tags['public-key-ed25519']
 
     qr = pyqrcode.create(node_key_hex, error='L', mode='binary')
     mode = 'text'
@@ -133,8 +133,8 @@ def _read_node_key(cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub', priv
         raise Exception('logic error')
 
     node_key = {
-        u'hex': node_key_hex,
-        u'qrcode': node_key_qr
+        'hex': node_key_hex,
+        'qrcode': node_key_qr
     }
 
     return node_key
@@ -168,7 +168,7 @@ def _creator():
     for informational purposes, try to identify the creator (user@hostname)
     """
     try:
-        return u'{}@{}'.format(getpass.getuser(), socket.gethostname())
+        return '{}@{}'.format(getpass.getuser(), socket.gethostname())
     except:
         return None
 
@@ -183,10 +183,10 @@ def _write_node_key(filepath, tags, msg):
         for (tag, value) in tags.items():
             if value is None:
                 value = 'unknown'
-            f.write(u'{}: {}\n'.format(tag, value))
+            f.write('{}: {}\n'.format(tag, value))
 
 
-def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
+def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
     was_new = True
     privkey_path = os.path.join(cbdir, privfile)
@@ -197,16 +197,16 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
         # node private key seems to exist already .. check!
 
         priv_tags = _parse_key_file(privkey_path, private=True)
-        for tag in [u'creator', u'created-at', u'machine-id', u'public-key-ed25519', u'private-key-ed25519']:
+        for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519', 'private-key-ed25519']:
             if tag not in priv_tags:
                 raise Exception("Corrupt node private key file {} - {} tag not found".format(privkey_path, tag))
 
-        privkey_hex = priv_tags[u'private-key-ed25519']
+        privkey_hex = priv_tags['private-key-ed25519']
         privkey = signing.SigningKey(privkey_hex, encoder=encoding.HexEncoder)
         pubkey = privkey.verify_key
         pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
-        if priv_tags[u'public-key-ed25519'] != pubkey_hex:
+        if priv_tags['public-key-ed25519'] != pubkey_hex:
             raise Exception(
                 ("Inconsistent node private key file {} - public-key-ed25519 doesn't"
                  " correspond to private-key-ed25519").format(pubkey_path)
@@ -214,11 +214,11 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
 
         if os.path.exists(pubkey_path):
             pub_tags = _parse_key_file(pubkey_path, private=False)
-            for tag in [u'creator', u'created-at', u'machine-id', u'public-key-ed25519']:
+            for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519']:
                 if tag not in pub_tags:
                     raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))
 
-            if pub_tags[u'public-key-ed25519'] != pubkey_hex:
+            if pub_tags['public-key-ed25519'] != pubkey_hex:
                 raise Exception(
                     ("Inconsistent node public key file {} - public-key-ed25519 doesn't"
                      " correspond to private-key-ed25519").format(pubkey_path)
@@ -230,12 +230,12 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
                 priv_path=privkey_path,
             )
             pub_tags = OrderedDict([
-                (u'creator', priv_tags[u'creator']),
-                (u'created-at', priv_tags[u'created-at']),
-                (u'machine-id', priv_tags[u'machine-id']),
-                (u'public-key-ed25519', pubkey_hex),
+                ('creator', priv_tags['creator']),
+                ('created-at', priv_tags['created-at']),
+                ('machine-id', priv_tags['machine-id']),
+                ('public-key-ed25519', pubkey_hex),
             ])
-            msg = u'Crossbar.io node public key\n\n'
+            msg = 'Crossbar.io node public key\n\n'
             _write_node_key(pubkey_path, pub_tags, msg)
 
         log.info('Node key files exist and are valid. Node public key is {pubkey}',
@@ -253,17 +253,17 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
 
         # first, write the public file
         tags = OrderedDict([
-            (u'creator', _creator()),
-            (u'created-at', utcnow()),
-            (u'machine-id', _machine_id()),
-            (u'public-key-ed25519', pubkey_hex),
+            ('creator', _creator()),
+            ('created-at', utcnow()),
+            ('machine-id', _machine_id()),
+            ('public-key-ed25519', pubkey_hex),
         ])
-        msg = u'Crossbar.io node public key\n\n'
+        msg = 'Crossbar.io node public key\n\n'
         _write_node_key(pubkey_path, tags, msg)
 
         # now, add the private key and write the private file
-        tags[u'private-key-ed25519'] = privkey_hex
-        msg = u'Crossbar.io node private key - KEEP THIS SAFE!\n\n'
+        tags['private-key-ed25519'] = privkey_hex
+        msg = 'Crossbar.io node private key - KEEP THIS SAFE!\n\n'
         _write_node_key(privkey_path, tags, msg)
 
         log.info('New node key pair generated! Public key is {pubkey}', pubkey=hlid('0x' + pubkey_hex))

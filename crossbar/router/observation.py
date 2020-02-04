@@ -44,11 +44,11 @@ def is_protected_uri(uri, details=None):
     Test if the given URI is from a "protected namespace" (starting with `wamp.`
     or `crossbar.`). Note that "trusted" clients can access all namespaces.
     """
-    trusted = details and details.caller_authrole == u'trusted'
+    trusted = details and details.caller_authrole == 'trusted'
     if trusted:
         return False
     else:
-        return uri.startswith(u'wamp.') or uri.startswith(u'crossbar.')
+        return uri.startswith('wamp.') or uri.startswith('crossbar.')
 
 
 class OrderedSet(set):
@@ -136,7 +136,7 @@ class ExactUriObservation(UriObservation):
     Represents an exact-matching observation.
     """
 
-    match = u"exact"
+    match = "exact"
 
 
 class PrefixUriObservation(UriObservation):
@@ -145,7 +145,7 @@ class PrefixUriObservation(UriObservation):
     Represents a prefix-matching observation.
     """
 
-    match = u"prefix"
+    match = "prefix"
 
 
 class WildcardUriObservation(UriObservation):
@@ -153,7 +153,7 @@ class WildcardUriObservation(UriObservation):
     """
     Represents a wildcard-matching observation.
     """
-    match = u"wildcard"
+    match = "wildcard"
 
 
 class UriObservationMap(object):
@@ -203,7 +203,7 @@ class UriObservationMap(object):
             self._observations_wildcard,
             self._observation_id_to_observation)
 
-    def add_observer(self, observer, uri, match=u"exact", extra=None, observer_extra=None):
+    def add_observer(self, observer, uri, match="exact", extra=None, observer_extra=None):
         """
         Adds a observer to the observation set and returns the respective observation.
 
@@ -211,7 +211,7 @@ class UriObservationMap(object):
         :type observer: obj
         :param uri: The URI (or URI pattern) to add the observer to add to.
         :type uri: unicode
-        :param match: The matching policy for observing, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
+        :param match: The matching policy for observing, one of ``"exact"``, ``"prefix"`` or ``"wildcard"``.
         :type match: unicode
 
         :returns: A tuple ``(observation, was_already_observed, was_first_observer)``. Here,
@@ -223,7 +223,7 @@ class UriObservationMap(object):
 
         is_first_observer = False
 
-        if match == u"exact":
+        if match == "exact":
 
             # if the exact-matching URI isn't in our map, create a new observation
             #
@@ -235,7 +235,7 @@ class UriObservationMap(object):
             #
             observation = self._observations_exact[uri]
 
-        elif match == u"prefix":
+        elif match == "prefix":
 
             # if the prefix-matching URI isn't in our map, create a new observation
             #
@@ -247,7 +247,7 @@ class UriObservationMap(object):
             #
             observation = self._observations_prefix[uri]
 
-        elif match == u"wildcard":
+        elif match == "wildcard":
 
             # if the wildcard-matching URI isn't in our map, create a new observation
             #
@@ -278,13 +278,13 @@ class UriObservationMap(object):
 
         return observation, was_already_observed, is_first_observer
 
-    def get_observation(self, uri, match=u"exact"):
+    def get_observation(self, uri, match="exact"):
         """
         Get a observation (if any) for given URI and match policy.
 
         :param uri: The URI (or URI pattern) to get the observation for.
         :type uri: unicode
-        :param match: The matching policy for observation to retrieve, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
+        :param match: The matching policy for observation to retrieve, one of ``"exact"``, ``"prefix"`` or ``"wildcard"``.
         :type match: unicode
 
         :returns: The observation (instance of one of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation``)
@@ -295,13 +295,13 @@ class UriObservationMap(object):
         if not isinstance(uri, str):
             raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
-        if match == u"exact":
+        if match == "exact":
             return self._observations_exact.get(uri, None)
 
-        elif match == u"prefix":
+        elif match == "prefix":
             return self._observations_prefix.get(uri, None)
 
-        elif match == u"wildcard":
+        elif match == "wildcard":
             return self._observations_wildcard.get(uri, None)
 
         else:
@@ -360,8 +360,8 @@ class UriObservationMap(object):
             return self._observations_prefix.longest_prefix_value(uri)
         except KeyError:
             # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
-            if u'' in self._observations_prefix:
-                return self._observations_prefix[u'']
+            if '' in self._observations_prefix:
+                return self._observations_prefix['']
 
         # FIXME: for wildcard observations, when there are multiple matching, we'd
         # like to deterministically select the "most selective one"
@@ -382,25 +382,25 @@ class UriObservationMap(object):
         """
         return self._observation_id_to_observation.get(id, None)
 
-    def create_observation(self, uri, match=u"exact", extra=None):
+    def create_observation(self, uri, match="exact", extra=None):
         """
         Create an observation with no observers.
 
         :param uri: The URI (or URI pattern) to get the observation for.
         :type uri: unicode
-        :param match: The matching policy for observation to retrieve, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
+        :param match: The matching policy for observation to retrieve, one of ``"exact"``, ``"prefix"`` or ``"wildcard"``.
         :type match: unicode
 
         :returns: The observation (instance of one of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation``).
         :rtype: obj
         """
-        if match == u"exact":
+        if match == "exact":
             observation = ExactUriObservation(uri, ordered=self._ordered, extra=extra)
             self._observations_exact[uri] = observation
-        elif match == u"prefix":
+        elif match == "prefix":
             observation = PrefixUriObservation(uri, ordered=self._ordered, extra=extra)
             self._observations_prefix[uri] = observation
-        elif match == u"wildcard":
+        elif match == "wildcard":
             observation = WildcardUriObservation(uri, ordered=self._ordered, extra=extra)
             self._observations_wildcard[uri] = observation
 
@@ -466,13 +466,13 @@ class UriObservationMap(object):
         if observation.observers:
             raise ValueError("Can't delete an observation with current observers.")
 
-        if observation.match == u"exact":
+        if observation.match == "exact":
             del self._observations_exact[observation.uri]
 
-        elif observation.match == u"prefix":
+        elif observation.match == "prefix":
             del self._observations_prefix[observation.uri]
 
-        elif observation.match == u"wildcard":
+        elif observation.match == "wildcard":
             del self._observations_wildcard[observation.uri]
 
         else:

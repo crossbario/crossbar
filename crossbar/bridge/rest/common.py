@@ -96,14 +96,14 @@ def _confirm_github_signature(request, secret_token, raw_body):
         secret_token = secret_token.encode('ascii')
     assert isinstance(raw_body, bytes)
     # must have the header to continue
-    if not request.requestHeaders.getRawHeaders(u'X-Hub-Signature'):
+    if not request.requestHeaders.getRawHeaders('X-Hub-Signature'):
         return False
-    purported_signature = str(request.requestHeaders.getRawHeaders(u'X-Hub-Signature')[0]).lower()
+    purported_signature = str(request.requestHeaders.getRawHeaders('X-Hub-Signature')[0]).lower()
     # NOTE: never use SHA1 for new code ... but GitHub signatures are
     # SHA1, so we have to here :(
     h = hazmat_hmac.HMAC(secret_token, hashes.SHA1(), default_backend())  # nosec
     h.update(raw_body)
-    our_signature = u"sha1={}".format(binascii.b2a_hex(h.finalize()).decode('ascii'))
+    our_signature = "sha1={}".format(binascii.b2a_hex(h.finalize()).decode('ascii'))
     return _constant_compare(our_signature, purported_signature)
 
 
@@ -181,7 +181,7 @@ class _CommonResource(Resource):
             code = 200
         else:
             # This is a "CB" error, so return 500 and a generic error
-            res['error'] = u'wamp.error.runtime_error'
+            res['error'] = 'wamp.error.runtime_error'
             res['args'] = ["Sorry, Crossbar.io has encountered a problem."]
             res['kwargs'] = {}
 
@@ -376,7 +376,7 @@ class _CommonResource(Resource):
             if self._secret:
                 return self._deny_request(
                     request, 400,
-                    reason=u"'key' field missing",
+                    reason="'key' field missing",
                     log_category="AR461")
 
         # timestamp
@@ -393,12 +393,12 @@ class _CommonResource(Resource):
             except ValueError:
                 return self._deny_request(
                     request, 400,
-                    reason=u"invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(native_string(timestamp_str)),
+                    reason="invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(native_string(timestamp_str)),
                     log_category="AR462")
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400, reason=u"signed request required, but mandatory 'timestamp' field missing",
+                    request, 400, reason="signed request required, but mandatory 'timestamp' field missing",
                     log_category="AR461")
 
         # seq
@@ -411,13 +411,13 @@ class _CommonResource(Resource):
             except:
                 return self._deny_request(
                     request, 400,
-                    reason=u"invalid sequence number '{0}' (must be an integer)".format(native_string(seq_str)),
+                    reason="invalid sequence number '{0}' (must be an integer)".format(native_string(seq_str)),
                     log_category="AR462")
         else:
             if self._secret:
                 return self._deny_request(
                     request, 400,
-                    reason=u"'seq' field missing",
+                    reason="'seq' field missing",
                     log_category="AR461")
 
         # nonce
@@ -430,13 +430,13 @@ class _CommonResource(Resource):
             except:
                 return self._deny_request(
                     request, 400,
-                    reason=u"invalid nonce '{0}' (must be an integer)".format(native_string(nonce_str)),
+                    reason="invalid nonce '{0}' (must be an integer)".format(native_string(nonce_str)),
                     log_category="AR462")
         else:
             if self._secret:
                 return self._deny_request(
                     request, 400,
-                    reason=u"'nonce' field missing",
+                    reason="'nonce' field missing",
                     log_category="AR461")
 
         # signature
@@ -447,7 +447,7 @@ class _CommonResource(Resource):
             if self._secret:
                 return self._deny_request(
                     request, 400,
-                    reason=u"'signature' field missing",
+                    reason="'signature' field missing",
                     log_category="AR461")
 
         # do more checks if signed requests are required
@@ -457,7 +457,7 @@ class _CommonResource(Resource):
             if key_str != self._key:
                 return self._deny_request(
                     request, 401,
-                    reason=u"unknown key '{0}' in signed request".format(native_string(key_str)),
+                    reason="unknown key '{0}' in signed request".format(native_string(key_str)),
                     log_category="AR460")
 
             # Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
@@ -497,13 +497,13 @@ class _CommonResource(Resource):
         if self._require_tls:
             if not is_secure:
                 return self._deny_request(request, 400,
-                                          reason=u"request denied because not using TLS")
+                                          reason="request denied because not using TLS")
 
         # FIXME: authorize request
         authorized = True
 
         if not authorized:
-            return self._deny_request(request, 401, reason=u"not authorized")
+            return self._deny_request(request, 401, reason="not authorized")
 
         _validator.reset()
         validation_result = _validator.validate(body)

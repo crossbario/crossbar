@@ -85,10 +85,10 @@ class Profiler(object):
 
     def marshal(self):
         return {
-            u'id': self._id,
-            u'config': self._config,
-            u'state': u'running' if self._state == Profiler.STATE_RUNNING else u'stopped',
-            u'started': self._started,
+            'id': self._id,
+            'config': self._config,
+            'state': 'running' if self._state == Profiler.STATE_RUNNING else 'stopped',
+            'started': self._started,
         }
 
 
@@ -154,31 +154,31 @@ if _HAS_VMPROF:
                         block_type, funname, funline, filename = node.name.split(':')
                         res.append(
                             {
-                                u'type': u'py',
-                                u'level': level,
-                                u'parent': parent_name,
-                                u'fun': funname,
-                                u'filename': filename,
-                                u'dirname': os.path.dirname(filename),
-                                u'basename': os.path.basename(filename),
-                                u'line': funline,
-                                u'perc': perc,
-                                u'perc_of_parent': perc_of_parent,
-                                u'count': node.count,
-                                u'parent_count': parent.count if parent else None,
+                                'type': 'py',
+                                'level': level,
+                                'parent': parent_name,
+                                'fun': funname,
+                                'filename': filename,
+                                'dirname': os.path.dirname(filename),
+                                'basename': os.path.basename(filename),
+                                'line': funline,
+                                'perc': perc,
+                                'perc_of_parent': perc_of_parent,
+                                'count': node.count,
+                                'parent_count': parent.count if parent else None,
                             })
                     elif parts == 1:
                         block_type, funname = node.name.split(':')
                         res.append(
                             {
-                                u'type': u'jit',
-                                u'level': level,
-                                u'parent': parent_name,
-                                u'fun': funname,
-                                u'perc': perc,
-                                u'perc_of_parent': perc_of_parent,
-                                u'count': node.count,
-                                u'parent_count': parent.count if parent else None,
+                                'type': 'jit',
+                                'level': level,
+                                'parent': parent_name,
+                                'fun': funname,
+                                'perc': perc,
+                                'perc_of_parent': perc_of_parent,
+                                'count': node.count,
+                                'parent_count': parent.count if parent else None,
                             })
                     else:
                         raise Exception("fail!")

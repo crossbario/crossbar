@@ -165,7 +165,7 @@ class UniSocketTests(TestCase):
                 self.transport.write(data)
 
         fake_websocket = Factory.forProtocol(MyFakeWebSocket)
-        websocket_map = OrderedDict({u"baz": None})
+        websocket_map = OrderedDict({"baz": None})
         websocket_map["ws"] = fake_websocket
 
         f = UniSocketServerFactory(websocket_factory_map=websocket_map)
@@ -187,7 +187,7 @@ class UniSocketTests(TestCase):
         """
         t = StringTransport()
 
-        websocket_map = {u"x": None, u"y": None}
+        websocket_map = {"x": None, "y": None}
 
         f = UniSocketServerFactory(websocket_factory_map=websocket_map)
         p = f.buildProtocol(None)

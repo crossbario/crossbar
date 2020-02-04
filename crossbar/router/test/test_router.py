@@ -58,21 +58,21 @@ class TestEmbeddedSessions(unittest.TestCase):
         self.router_factory = RouterFactory(None, None)
 
         # start a realm
-        self.router_factory.start_realm(RouterRealm(None, None, {u'name': u'realm1'}))
+        self.router_factory.start_realm(RouterRealm(None, None, {'name': 'realm1'}))
 
         # allow everything
         default_permissions = {
-            u'uri': u'',
-            u'match': u'prefix',
-            u'allow': {
-                u'call': True,
-                u'register': True,
-                u'publish': True,
-                u'subscribe': True
+            'uri': '',
+            'match': 'prefix',
+            'allow': {
+                'call': True,
+                'register': True,
+                'publish': True,
+                'subscribe': True
             }
         }
-        self.router = self.router_factory.get(u'realm1')
-        self.router.add_role(RouterRoleStaticAuth(self.router, u'test_role', default_permissions=default_permissions))
+        self.router = self.router_factory.get('realm1')
+        self.router.add_role(RouterRoleStaticAuth(self.router, 'test_role', default_permissions=default_permissions))
         self.router.add_role(RouterRoleStaticAuth(self.router, None, default_permissions=default_permissions))
 
         # create a router session factory
@@ -92,15 +92,15 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         def boom(*args, **kw):
             raise the_exception
-        self.router._roles[u'test_role'].authorize = boom
+        self.router._roles['test_role'].authorize = boom
 
         class TestSession(ApplicationSession):
             def __init__(self, *args, **kw):
                 super(TestSession, self).__init__(*args, **kw)
-                self._authrole = u'test_role'
+                self._authrole = 'test_role'
                 self._transport = mock.MagicMock()
         session0 = TestSession()
-        self.router._dealer._registration_map.add_observer(session0, u'test.proc')
+        self.router._dealer._registration_map.add_observer(session0, 'test.proc')
 
         # okay, we have an authorizer that will always explode and a
         # single procedure registered; when we call it, then
@@ -109,7 +109,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         call = message.Call(
             request=1234,
-            procedure=u'test.proc',
+            procedure='test.proc',
             args=tuple(),
             kwargs=dict(),
         )
@@ -138,18 +138,18 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         def boom(*args, **kw):
             raise the_exception
-        self.router._roles[u'test_role'].authorize = boom
+        self.router._roles['test_role'].authorize = boom
 
         class TestSession(ApplicationSession):
             def __init__(self, *args, **kw):
                 super(TestSession, self).__init__(*args, **kw)
-                self._authrole = u'test_role'
+                self._authrole = 'test_role'
                 self._transport = mock.MagicMock()
         session0 = TestSession()
 
         call = message.Register(
             request=1234,
-            procedure=u'test.proc_reg',
+            procedure='test.proc_reg',
         )
         # this should produce an error -- however processCall doesn't
         # itself return the Deferred, so we look for the side-effect
@@ -177,7 +177,7 @@ class TestEmbeddedSessions(unittest.TestCase):
             def onJoin(self, details):
                 txaio.resolve(d, None)
 
-        session = TestSession(types.ComponentConfig(u'realm1'))
+        session = TestSession(types.ComponentConfig('realm1'))
 
         self.session_factory.add(session, self.router)
 
@@ -198,7 +198,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
             def onUserError(self, *args, **kw):
                 errors.append((args, kw))
-        session = TestSession(types.ComponentConfig(u'realm1'))
+        session = TestSession(types.ComponentConfig('realm1'))
 
         # in this test, we are just looking for onUserError to get
         # called so we don't need to patch the logger. this should
@@ -227,7 +227,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onHello = boom
         session.onOpen(transport)
-        msg = message.Hello(u'realm1', dict(caller=role.RoleCallerFeatures()))
+        msg = message.Hello('realm1', dict(caller=role.RoleCallerFeatures()))
 
         # XXX think: why isn't this using _RouterSession.log?
         from crossbar.router.session import RouterSession
@@ -261,7 +261,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onAuthenticate = boom
         session.onOpen(transport)
-        msg = message.Authenticate(u'bogus signature')
+        msg = message.Authenticate('bogus signature')
 
         # XXX think: why isn't this using _RouterSession.log?
         from crossbar.router.session import RouterSession
@@ -291,7 +291,7 @@ class TestEmbeddedSessions(unittest.TestCase):
                 def on_event(*arg, **kwargs):
                     pass
 
-                d2 = self.subscribe(on_event, u'com.example.topic1')
+                d2 = self.subscribe(on_event, 'com.example.topic1')
 
                 def ok(_):
                     txaio.resolve(d, None)
@@ -301,7 +301,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
                 txaio.add_callbacks(d2, ok, error)
 
-        session = TestSession(types.ComponentConfig(u'realm1'))
+        session = TestSession(types.ComponentConfig('realm1'))
 
         self.session_factory.add(session, self.router)
 

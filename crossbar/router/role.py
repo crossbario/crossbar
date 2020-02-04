@@ -69,7 +69,7 @@ class RouterPermissions(object):
         :param uri: The URI to match.
         """
         assert(uri is None or isinstance(uri, str))
-        assert(match is None or match in [u'exact', u'prefix', u'wildcard'])
+        assert(match is None or match in ['exact', 'prefix', 'wildcard'])
         assert(isinstance(call, bool))
         assert(isinstance(register, bool))
         assert(isinstance(publish, bool))
@@ -89,55 +89,55 @@ class RouterPermissions(object):
         self.cache = cache
 
     def __repr__(self):
-        return u'RouterPermissions(uri="{}", match="{}", call={}, register={}, publish={}, subscribe={}, disclose_caller={}, disclose_publisher={}, cache={})'.format(self.uri, self.match, self.call, self.register, self.publish, self.subscribe, self.disclose_caller, self.disclose_publisher, self.cache)
+        return 'RouterPermissions(uri="{}", match="{}", call={}, register={}, publish={}, subscribe={}, disclose_caller={}, disclose_publisher={}, cache={})'.format(self.uri, self.match, self.call, self.register, self.publish, self.subscribe, self.disclose_caller, self.disclose_publisher, self.cache)
 
     def to_dict(self):
         return {
-            u'uri': self.uri,
-            u'match': self.match,
-            u'allow': {
-                u'call': self.call,
-                u'register': self.register,
-                u'publish': self.publish,
-                u'subscribe': self.subscribe
+            'uri': self.uri,
+            'match': self.match,
+            'allow': {
+                'call': self.call,
+                'register': self.register,
+                'publish': self.publish,
+                'subscribe': self.subscribe
             },
-            u'disclose': {
-                u'caller': self.disclose_caller,
-                u'publisher': self.disclose_publisher
+            'disclose': {
+                'caller': self.disclose_caller,
+                'publisher': self.disclose_publisher
             },
-            u'cache': self.cache
+            'cache': self.cache
         }
 
     @staticmethod
     def from_dict(obj):
         assert(isinstance(obj, dict))
 
-        uri = obj.get(u'uri', None)
+        uri = obj.get('uri', None)
 
         # support "starred" URIs:
-        if u'match' in obj:
+        if 'match' in obj:
             # when a match policy is explicitly configured, the starred URI
             # conversion logic is skipped! we want to preserve the higher
             # expressiveness of regular WAMP URIs plus explicit match policy
-            match = obj[u'match']
+            match = obj['match']
         else:
             # when no explicit match policy is selected, we assume the use
             # of starred URIs and convert to regular URI + detected match policy
             uri, match = convert_starred_uri(uri)
 
-        allow = obj.get(u'allow', {})
+        allow = obj.get('allow', {})
         assert(isinstance(allow, dict))
-        allow_call = allow.get(u'call', False)
-        allow_register = allow.get(u'register', False)
-        allow_publish = allow.get(u'publish', False)
-        allow_subscribe = allow.get(u'subscribe', False)
+        allow_call = allow.get('call', False)
+        allow_register = allow.get('register', False)
+        allow_publish = allow.get('publish', False)
+        allow_subscribe = allow.get('subscribe', False)
 
-        disclose = obj.get(u'disclose', {})
+        disclose = obj.get('disclose', {})
         assert(isinstance(disclose, dict))
-        disclose_caller = disclose.get(u'caller', False)
-        disclose_publisher = disclose.get(u'publisher', False)
+        disclose_caller = disclose.get('caller', False)
+        disclose_publisher = disclose.get('publisher', False)
 
-        cache = obj.get(u'cache', False)
+        cache = obj.get('cache', False)
 
         return RouterPermissions(uri, match,
                                  call=allow_call,
@@ -279,15 +279,15 @@ class RouterRoleStaticAuth(RouterRole):
 
             # if there is a _prefix_ matching URI, check that this is actually the
             # match policy on the permission (otherwise, apply default permissions)!
-            if permissions.match != u'prefix' and uri != permissions.uri:
+            if permissions.match != 'prefix' and uri != permissions.uri:
                 permissions = self._default
 
         except KeyError:
             # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
-            permissions = self._permissions.get(u'', self._default)
+            permissions = self._permissions.get('', self._default)
 
         # if we found a non-"exact" match, there might be a better one in the wildcards
-        if permissions.match != u'exact':
+        if permissions.match != 'exact':
             try:
                 wildperm = self._wild_permissions.longest_prefix_value(uri)
                 Pattern(wildperm.uri, Pattern.URI_TARGET_ENDPOINT).match(uri)
@@ -301,30 +301,30 @@ class RouterRoleStaticAuth(RouterRole):
         # we now have some permissions, either from matching something
         # or via self._default
 
-        if action == u'publish':
+        if action == 'publish':
             return {
-                u'allow': permissions.publish,
-                u'disclose': permissions.disclose_publisher,
-                u'cache': permissions.cache
+                'allow': permissions.publish,
+                'disclose': permissions.disclose_publisher,
+                'cache': permissions.cache
             }
 
-        elif action == u'subscribe':
+        elif action == 'subscribe':
             return {
-                u'allow': permissions.subscribe,
-                u'cache': permissions.cache
+                'allow': permissions.subscribe,
+                'cache': permissions.cache
             }
 
-        elif action == u'call':
+        elif action == 'call':
             return {
-                u'allow': permissions.call,
-                u'disclose': permissions.disclose_caller,
-                u'cache': permissions.cache
+                'allow': permissions.call,
+                'disclose': permissions.disclose_caller,
+                'cache': permissions.cache
             }
 
-        elif action == u'register':
+        elif action == 'register':
             return {
-                u'allow': permissions.register,
-                u'cache': permissions.cache
+                'allow': permissions.register,
+                'cache': permissions.cache
             }
 
         else:
@@ -384,25 +384,25 @@ class RouterRoleDynamicAuth(RouterRole):
             # should have a better way to detect this -- also
             # session._transport should be a RouterApplicationSession
             details = {
-                u'session': session._session_id,
-                u'authid': session._authid,
-                u'authrole': session._authrole,
-                u'authmethod': session._authmethod,
-                u'authprovider': session._authprovider,
-                u'authextra': session._authextra,
-                u'transport': {
-                    u'type': u'stdio',  # or maybe "embedded"?
+                'session': session._session_id,
+                'authid': session._authid,
+                'authrole': session._authrole,
+                'authmethod': session._authmethod,
+                'authprovider': session._authprovider,
+                'authextra': session._authextra,
+                'transport': {
+                    'type': 'stdio',  # or maybe "embedded"?
                 }
             }
         else:
             details = {
-                u'session': session_details.session,
-                u'authid': session_details.authid,
-                u'authrole': session_details.authrole,
-                u'authmethod': session_details.authmethod,
-                u'authprovider': session_details.authprovider,
-                u'authextra': session_details.authextra,
-                u'transport': session._transport._transport_info
+                'session': session_details.session,
+                'authid': session_details.authid,
+                'authrole': session_details.authrole,
+                'authmethod': session_details.authmethod,
+                'authprovider': session_details.authprovider,
+                'authextra': session_details.authextra,
+                'transport': session._transport._transport_info
             }
 
         self.log.debug(
@@ -432,7 +432,7 @@ class RouterRoleDynamicAuth(RouterRole):
             """
             if isinstance(authorization, dict):
                 for key in authorization.keys():
-                    if key not in [u'allow', u'cache', u'disclose']:
+                    if key not in ['allow', 'cache', 'disclose']:
                         return Failure(
                             ValueError(
                                 "Authorizer returned unknown key '{key}'".format(
@@ -441,7 +441,7 @@ class RouterRoleDynamicAuth(RouterRole):
                             )
                         )
                 # must have "allow"
-                if u'allow' not in authorization:
+                if 'allow' not in authorization:
                     return Failure(
                         ValueError(
                             "Authorizer must have 'allow' in returned dict"

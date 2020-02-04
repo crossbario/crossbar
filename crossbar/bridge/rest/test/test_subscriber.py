@@ -46,14 +46,14 @@ class MessageForwarderTestCase(TestCase):
         Plain request, no params.
         """
         extra = {
-            u"subscriptions": [
+            "subscriptions": [
                 {
-                    u"url": u"https://foo.com/msg",
-                    u"topic": u"io.crossbar.forward1"
+                    "url": "https://foo.com/msg",
+                    "topic": "io.crossbar.forward1"
                 }
             ]
         }
-        config = ComponentConfig(realm=u"realm1", extra=extra)
+        config = ComponentConfig(realm="realm1", extra=extra)
 
         m = MockWebTransport(self)
         m._addResponse(200, "whee")
@@ -61,7 +61,7 @@ class MessageForwarderTestCase(TestCase):
         c = MessageForwarder(config=config, webTransport=m)
         MockTransport(c)
 
-        res = yield c.publish(u"io.crossbar.forward1", "hi",
+        res = yield c.publish("io.crossbar.forward1", "hi",
                               options=PublishOptions(acknowledge=True))
 
         self.assertNotEqual(res.id, None)

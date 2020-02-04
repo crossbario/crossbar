@@ -43,7 +43,7 @@ class PendingAuth:
     then ``verify()`` (each should be called exactly once, and in this order).
     """
 
-    AUTHMETHOD = u'abstract'
+    AUTHMETHOD = 'abstract'
 
     def __init__(self, session, config):
         """
@@ -58,10 +58,10 @@ class PendingAuth:
 
         # Details about the authenticating session
         self._session_details = {
-            u'transport': session._transport._transport_info,
-            u'session': session._pending_session_id,
-            u'authmethod': None,
-            u'authextra': None
+            'transport': session._transport._transport_info,
+            'session': session._pending_session_id,
+            'authmethod': None,
+            'authextra': None
         }
 
         # The router factory we are working for
@@ -101,65 +101,65 @@ class PendingAuth:
             pass
         else:
             error = ApplicationError.AUTHENTICATION_FAILED
-            message = u'got invalid return type "{}" from dynamic authenticator'.format(type(principal))
+            message = 'got invalid return type "{}" from dynamic authenticator'.format(type(principal))
             return types.Deny(error, message)
 
         # backwards compatibility: dynamic authenticator
         # was expected to return a role directly
         if isinstance(principal, str):
             principal = {
-                u'role': principal
+                'role': principal
             }
 
         # allow to override realm request, redirect realm or set default realm
-        if u'realm' in principal:
+        if 'realm' in principal:
             self._realm = principal['realm']
 
         # allow overriding effectively assigned authid
-        if u'authid' in principal:
-            self._authid = principal[u'authid']
+        if 'authid' in principal:
+            self._authid = principal['authid']
 
         # determine effectively assigned authrole
-        if u'role' in principal:
-            self._authrole = principal[u'role']
-        elif u'default-role' in self._config:
-            self._authrole = self._config[u'default-role']
+        if 'role' in principal:
+            self._authrole = principal['role']
+        elif 'default-role' in self._config:
+            self._authrole = self._config['default-role']
 
         # allow forwarding of application-specific "welcome data"
-        if u'extra' in principal:
-            self._authextra = principal[u'extra']
+        if 'extra' in principal:
+            self._authextra = principal['extra']
 
         # a realm must have been assigned by now, otherwise bail out!
         if not self._realm:
-            return types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm assigned')
+            return types.Deny(ApplicationError.NO_SUCH_REALM, message='no realm assigned')
 
         # an authid MUST be set at least by here - otherwise bail out now!
         if not self._authid:
-            return types.Deny(ApplicationError.NO_SUCH_PRINCIPAL, message=u'no authid assigned')
+            return types.Deny(ApplicationError.NO_SUCH_PRINCIPAL, message='no authid assigned')
 
         # an authrole MUST be set at least by here - otherwise bail out now!
         if not self._authrole:
-            return types.Deny(ApplicationError.NO_SUCH_ROLE, message=u'no authrole assigned')
+            return types.Deny(ApplicationError.NO_SUCH_ROLE, message='no authrole assigned')
 
         # if realm is not started on router, bail out now!
         if self._realm not in self._router_factory:
-            return types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm "{}" exists on this router'.format(self._realm))
+            return types.Deny(ApplicationError.NO_SUCH_REALM, message='no realm "{}" exists on this router'.format(self._realm))
 
         # if role is not running on realm, bail out now!
         if self._authrole and not self._router_factory[self._realm].has_role(self._authrole):
-            return types.Deny(ApplicationError.NO_SUCH_ROLE, message=u'realm "{}" has no role "{}"'.format(self._realm, self._authrole))
+            return types.Deny(ApplicationError.NO_SUCH_ROLE, message='realm "{}" has no role "{}"'.format(self._realm, self._authrole))
 
     def _init_dynamic_authenticator(self):
         self._authenticator = self._config['authenticator']
 
         authenticator_realm = None
-        if u'authenticator-realm' in self._config:
-            authenticator_realm = self._config[u'authenticator-realm']
+        if 'authenticator-realm' in self._config:
+            authenticator_realm = self._config['authenticator-realm']
             if authenticator_realm not in self._router_factory:
-                return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"explicit realm <{}> configured for dynamic authenticator does not exist".format(authenticator_realm))
+                return types.Deny(ApplicationError.NO_SUCH_REALM, message="explicit realm <{}> configured for dynamic authenticator does not exist".format(authenticator_realm))
         else:
             if not self._realm:
-                return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)")
+                return types.Deny(ApplicationError.NO_SUCH_REALM, message="client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)")
             authenticator_realm = self._realm
 
         self._authenticator_session = self._router_factory.get(authenticator_realm)._realm.session
@@ -169,12 +169,12 @@ class PendingAuth:
             # forward the inner error URI and message (or coerce the first args item to str)
             msg = None
             if err.value.args:
-                msg = u'{}'.format(err.value.args[0])
+                msg = '{}'.format(err.value.args[0])
             return types.Deny(err.value.error, msg)
         else:
             # wrap the error
             error = ApplicationError.AUTHENTICATION_FAILED
-            message = u'dynamic authenticator failed: {}'.format(err.value)
+            message = 'dynamic authenticator failed: {}'.format(err.value)
             return types.Deny(error, message)
 
     def _accept(self):

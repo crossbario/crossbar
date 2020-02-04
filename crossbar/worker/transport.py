@@ -96,7 +96,7 @@ class RouterTransport(object):
         except Exception as e:
             emsg = "Invalid router transport configuration: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
             self.log.debug("Router transport parsed successfully (transport_id={transport_id}, transport_type={transport_type})",
                            transport_id=transport_id, transport_type=config['type'])
@@ -116,12 +116,12 @@ class RouterTransport(object):
 
     def marshal(self):
         return {
-            u'id': self._transport_id,
-            u'type': self._type,
-            u'config': self._config,
-            u'created_at': utcstr(self._created_at),
-            u'listening_since': utcstr(self._listening_since) if self._listening_since else None,
-            u'state': self._state,
+            'id': self._transport_id,
+            'type': self._type,
+            'config': self._config,
+            'created_at': utcstr(self._created_at),
+            'listening_since': utcstr(self._listening_since) if self._listening_since else None,
+            'state': self._state,
         }
 
     @property

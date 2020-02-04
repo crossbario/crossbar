@@ -50,7 +50,7 @@ from crossbar.bridge.rest import CallerResource
 from crossbar.bridge.rest.test import renderResource
 
 
-@error(u"com.myapp.error1")
+@error("com.myapp.error1")
 class AppError1(Exception):
     """
     An application specific exception that is decorated with a WAMP URI,
@@ -75,23 +75,23 @@ class TestSession(ApplicationSession):
                 # this also will raise, if x < 0
                 return math.sqrt(x)
 
-        yield self.register(sqrt, u'com.myapp.sqrt')
+        yield self.register(sqrt, 'com.myapp.sqrt')
 
         # raising WAMP application exceptions
         ##
         def checkname(name):
             if name in ['foo', 'bar']:
-                raise ApplicationError(u"com.myapp.error.reserved")
+                raise ApplicationError("com.myapp.error.reserved")
 
             if name.lower() != name.upper():
                 # forward positional arguments in exceptions
-                raise ApplicationError(u"com.myapp.error.mixed_case", name.lower(), name.upper())
+                raise ApplicationError("com.myapp.error.mixed_case", name.lower(), name.upper())
 
             if len(name) < 3 or len(name) > 10:
                 # forward keyword arguments in exceptions
-                raise ApplicationError(u"com.myapp.error.invalid_length", min=3, max=10)
+                raise ApplicationError("com.myapp.error.invalid_length", min=3, max=10)
 
-        yield self.register(checkname, u'com.myapp.checkname')
+        yield self.register(checkname, 'com.myapp.checkname')
 
         # defining and automapping WAMP application exceptions
         ##
@@ -101,7 +101,7 @@ class TestSession(ApplicationSession):
             if a < b:
                 raise AppError1(b - a)
 
-        yield self.register(compare, u'com.myapp.compare')
+        yield self.register(compare, 'com.myapp.compare')
 
 
 class CallerTestCase(TestCase):
@@ -114,23 +114,23 @@ class CallerTestCase(TestCase):
         self.router_factory = RouterFactory(None, None)
 
         # start a realm
-        self.realm = RouterRealm(None, None, {u'name': u'realm1'})
+        self.realm = RouterRealm(None, None, {'name': 'realm1'})
         self.router_factory.start_realm(self.realm)
 
         # allow everything
-        self.router = self.router_factory.get(u'realm1')
+        self.router = self.router_factory.get('realm1')
         self.router.add_role(
             RouterRoleStaticAuth(
                 self.router,
-                u'test_role',
+                'test_role',
                 default_permissions={
-                    u'uri': u'com.myapp.',
-                    u'match': u'prefix',
-                    u'allow': {
-                        u'call': True,
-                        u'register': True,
-                        u'publish': True,
-                        u'subscribe': True,
+                    'uri': 'com.myapp.',
+                    'match': 'prefix',
+                    'allow': {
+                        'call': True,
+                        'register': True,
+                        'publish': True,
+                        'subscribe': True,
                     }
                 }
             )
@@ -145,11 +145,11 @@ class CallerTestCase(TestCase):
         Test a very basic call where you square root a number. This has one
         arg, no kwargs, and no authorisation.
         """
-        session = TestSession(types.ComponentConfig(u'realm1'))
-        self.session_factory.add(session, self.router, authrole=u"test_role")
+        session = TestSession(types.ComponentConfig('realm1'))
+        self.session_factory.add(session, self.router, authrole="test_role")
 
-        session2 = ApplicationSession(types.ComponentConfig(u'realm1'))
-        self.session_factory.add(session2, self.router, authrole=u"test_role")
+        session2 = ApplicationSession(types.ComponentConfig('realm1'))
+        self.session_factory.add(session2, self.router, authrole="test_role")
         resource = CallerResource({}, session2)
 
         with LogCapturer() as l:
@@ -172,24 +172,24 @@ class CallerTestCase(TestCase):
         """
         A failed call returns the error to the client.
         """
-        session = TestSession(types.ComponentConfig(u'realm1'))
-        self.session_factory.add(session, self.router, authrole=u"test_role")
+        session = TestSession(types.ComponentConfig('realm1'))
+        self.session_factory.add(session, self.router, authrole="test_role")
 
-        session2 = ApplicationSession(types.ComponentConfig(u'realm1'))
-        self.session_factory.add(session2, self.router, authrole=u"test_role")
+        session2 = ApplicationSession(types.ComponentConfig('realm1'))
+        self.session_factory.add(session2, self.router, authrole="test_role")
         resource = CallerResource({}, session2)
 
         tests = [
-            (u"com.myapp.sqrt", (0,),
-             {u"error": u"wamp.error.runtime_error", u"args": [u"don't ask foolish questions ;)"], u"kwargs": {}}),
-            (u"com.myapp.checkname", ("foo",),
-             {u"error": u"com.myapp.error.reserved", u"args": [], u"kwargs": {}}),
-            (u"com.myapp.checkname", ("*",),
-             {u"error": u"com.myapp.error.invalid_length", u"args": [], u"kwargs": {"min": 3, "max": 10}}),
-            (u"com.myapp.checkname", ("hello",),
-             {u"error": u"com.myapp.error.mixed_case", u"args": ["hello", "HELLO"], u"kwargs": {}}),
-            (u"com.myapp.compare", (1, 10),
-             {u"error": u"com.myapp.error1", u"args": [9], u"kwargs": {}}),
+            ("com.myapp.sqrt", (0,),
+             {"error": "wamp.error.runtime_error", "args": ["don't ask foolish questions ;)"], "kwargs": {}}),
+            ("com.myapp.checkname", ("foo",),
+             {"error": "com.myapp.error.reserved", "args": [], "kwargs": {}}),
+            ("com.myapp.checkname", ("*",),
+             {"error": "com.myapp.error.invalid_length", "args": [], "kwargs": {"min": 3, "max": 10}}),
+            ("com.myapp.checkname", ("hello",),
+             {"error": "com.myapp.error.mixed_case", "args": ["hello", "HELLO"], "kwargs": {}}),
+            ("com.myapp.compare", (1, 10),
+             {"error": "com.myapp.error1", "args": [9], "kwargs": {}}),
         ]
 
         for procedure, args, err in tests:

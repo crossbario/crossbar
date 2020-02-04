@@ -68,7 +68,7 @@ from txaio.tx import make_logger
 
 
 class ObservingSession(ApplicationSession):
-    _topic = u'test'
+    _topic = 'test'
 
     @inlineCallbacks
     def onJoin(self, details):
@@ -91,22 +91,22 @@ def build_mqtt_server():
     add_realm_to_router(router_factory, session_factory)
     router = add_realm_to_router(router_factory,
                                  session_factory,
-                                 realm_name=u'mqtt',
+                                 realm_name='mqtt',
                                  realm_options={})
 
     # allow everything
     default_permissions = {
-        u'uri': u'',
-        u'match': u'prefix',
-        u'allow': {
-            u'call': True,
-            u'register': True,
-            u'publish': True,
-            u'subscribe': True
+        'uri': '',
+        'match': 'prefix',
+        'allow': {
+            'call': True,
+            'register': True,
+            'publish': True,
+            'subscribe': True
         }
     }
 
-    router.add_role(RouterRoleStaticAuth(router, u'mqttrole', default_permissions=default_permissions))
+    router.add_role(RouterRoleStaticAuth(router, 'mqttrole', default_permissions=default_permissions))
 
     class AuthenticatorSession(ApplicationSession):
 
@@ -115,68 +115,68 @@ def build_mqtt_server():
 
             def authenticate(realm, authid, details):
 
-                if authid == u"test123":
+                if authid == "test123":
 
-                    if details["ticket"] != u'password':
-                        raise ApplicationError(u'com.example.invalid_ticket', u'nope')
+                    if details["ticket"] != 'password':
+                        raise ApplicationError('com.example.invalid_ticket', 'nope')
 
                     res = {
-                        u'realm': u'mqtt',
-                        u'role': u'mqttrole',
-                        u'extra': {}
+                        'realm': 'mqtt',
+                        'role': 'mqttrole',
+                        'extra': {}
                     }
                     return res
 
                 else:
-                    raise ApplicationError(u'com.example.no_such_user', u'nah')
+                    raise ApplicationError('com.example.no_such_user', 'nah')
 
-            yield self.register(authenticate, u'com.example.auth')
+            yield self.register(authenticate, 'com.example.auth')
 
             def tls(realm, authid, details):
-                ACCEPTED_CERTS = set([u'95:1C:A9:6B:CD:8D:D2:BD:F4:73:82:01:55:89:41:12:9C:F8:AF:8E'])
+                ACCEPTED_CERTS = set(['95:1C:A9:6B:CD:8D:D2:BD:F4:73:82:01:55:89:41:12:9C:F8:AF:8E'])
 
                 if 'client_cert' not in details['transport'] or not details['transport']['client_cert']:
-                    raise ApplicationError(u"com.example.no_cert", u"no client certificate presented")
+                    raise ApplicationError("com.example.no_cert", "no client certificate presented")
 
                 client_cert = details['transport']['client_cert']
                 sha1 = client_cert['sha1']
                 subject_cn = client_cert['subject']['cn']
 
                 if sha1 not in ACCEPTED_CERTS:
-                    raise ApplicationError(u"com.example.invalid_cert", u"certificate with SHA1 {} denied".format(sha1))
+                    raise ApplicationError("com.example.invalid_cert", "certificate with SHA1 {} denied".format(sha1))
                 else:
                     return {
-                        u'authid': subject_cn,
-                        u'role': u'mqttrole',
-                        u'realm': u'mqtt'
+                        'authid': subject_cn,
+                        'role': 'mqttrole',
+                        'realm': 'mqtt'
                     }
 
-            yield self.register(tls, u'com.example.tls')
+            yield self.register(tls, 'com.example.tls')
 
-    config = ComponentConfig(u"default", {})
+    config = ComponentConfig("default", {})
     authsession = AuthenticatorSession(config)
-    session_factory.add(authsession, router, authrole=u"trusted")
+    session_factory.add(authsession, router, authrole="trusted")
 
     options = {
-        u"options": {
-            u"realm": u"mqtt",
-            u"role": u"mqttrole",
-            u"payload_mapping": {
-                u"": {
-                    u"type": u"native",
-                    u"serializer": u"json"
+        "options": {
+            "realm": "mqtt",
+            "role": "mqttrole",
+            "payload_mapping": {
+                "": {
+                    "type": "native",
+                    "serializer": "json"
                 }
             },
-            u"auth": {
-                u"ticket": {
-                    u"type": u"dynamic",
-                    u"authenticator": u"com.example.auth",
-                    u"authenticator-realm": u"default",
+            "auth": {
+                "ticket": {
+                    "type": "dynamic",
+                    "authenticator": "com.example.auth",
+                    "authenticator-realm": "default",
                 },
-                u"tls": {
-                    u"type": u"dynamic",
-                    u"authenticator": u"com.example.tls",
-                    u"authenticator-realm": u"default",
+                "tls": {
+                    "type": "dynamic",
+                    "authenticator": "com.example.tls",
+                    "authenticator-realm": "default",
                 }
             }
         }
@@ -216,11 +216,11 @@ class MQTTAdapterTests(TestCase):
         reactor, router, server_factory, session_factory = build_mqtt_server()
 
         session, pump = connect_application_session(
-            server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
+            server_factory, ObservingSession, component_config=ComponentConfig(realm="mqtt"))
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         client_transport.write(
-            Connect(client_id=u"testclient", username=u"test123", password=u"password",
+            Connect(client_id="testclient", username="test123", password="password",
                     flags=ConnectFlags(clean_session=False, username=True, password=True)).serialise())
         mqtt_pump.flush()
 
@@ -230,7 +230,7 @@ class MQTTAdapterTests(TestCase):
         client_protocol.data = b""
 
         client_transport.write(
-            Publish(duplicate=False, qos_level=0, retain=False, topic_name=u"test", payload=b'{"kwargs": {"bar": "baz"}}').serialise())
+            Publish(duplicate=False, qos_level=0, retain=False, topic_name="test", payload=b'{"kwargs": {"bar": "baz"}}').serialise())
         mqtt_pump.flush()
         pump.flush()
 
@@ -239,7 +239,7 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(
             session.events,
             [{"args": tuple(),
-              "kwargs": {u'bar': u'baz'}}])
+              "kwargs": {'bar': 'baz'}}])
 
     def _test_tls_auth(self):
         """
@@ -251,7 +251,7 @@ class MQTTAdapterTests(TestCase):
         logger = make_logger()
 
         session, pump = connect_application_session(
-            server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
+            server_factory, ObservingSession, component_config=ComponentConfig(realm="mqtt"))
 
         endpoint = create_listening_endpoint_from_config({
             "type": "tcp",
@@ -273,7 +273,7 @@ class MQTTAdapterTests(TestCase):
             "port": 1099,
             "tls": {
                 "certificate": "client.crt",
-                "hostname": u"localhost",
+                "hostname": "localhost",
                 "key": "client.key",
                 "ca_certificates": [
                     "ca.cert.pem",
@@ -304,11 +304,11 @@ class MQTTAdapterTests(TestCase):
                 p.append(proto)
 
                 proto.transport.write(
-                    Connect(client_id=u"test123",
+                    Connect(client_id="test123",
                             flags=ConnectFlags(clean_session=False)).serialise())
 
                 proto.transport.write(
-                    Publish(duplicate=False, qos_level=1, retain=False, topic_name=u"test", payload=b"{}", packet_identifier=1).serialise())
+                    Publish(duplicate=False, qos_level=1, retain=False, topic_name="test", payload=b"{}", packet_identifier=1).serialise())
 
         lc = LoopingCall(pump.flush)
         lc.clock = real_reactor
@@ -348,7 +348,7 @@ class MQTTAdapterTests(TestCase):
         logger = make_logger()
 
         session, pump = connect_application_session(
-            server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
+            server_factory, ObservingSession, component_config=ComponentConfig(realm="mqtt"))
 
         endpoint = create_listening_endpoint_from_config({
             "type": "tcp",
@@ -371,7 +371,7 @@ class MQTTAdapterTests(TestCase):
             "tls": {
                 # BAD key: trusted by the CA, but wrong ID
                 "certificate": "client_1.crt",
-                "hostname": u"localhost",
+                "hostname": "localhost",
                 "key": "client_1.key",
                 "ca_certificates": [
                     "ca.cert.pem",
@@ -403,11 +403,11 @@ class MQTTAdapterTests(TestCase):
                 p.append(proto)
 
                 proto.transport.write(
-                    Connect(client_id=u"test123",
+                    Connect(client_id="test123",
                             flags=ConnectFlags(clean_session=False)).serialise())
 
                 proto.transport.write(
-                    Publish(duplicate=False, qos_level=1, retain=False, topic_name=u"test", payload=b"{}", packet_identifier=1).serialise())
+                    Publish(duplicate=False, qos_level=1, retain=False, topic_name="test", payload=b"{}", packet_identifier=1).serialise())
 
         lc = LoopingCall(pump.flush)
         lc.clock = real_reactor
@@ -442,14 +442,14 @@ class MQTTAdapterTests(TestCase):
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         session, pump = connect_application_session(
-            server_factory, ApplicationSession, component_config=ComponentConfig(realm=u"mqtt"))
+            server_factory, ApplicationSession, component_config=ComponentConfig(realm="mqtt"))
 
         client_transport.write(
-            Connect(client_id=u"testclient", username=u"test123", password=u"password",
+            Connect(client_id="testclient", username="test123", password="password",
                     flags=ConnectFlags(clean_session=False, username=True, password=True)).serialise())
         client_transport.write(
             Subscribe(packet_identifier=1, topic_requests=[
-                SubscriptionTopicRequest(topic_filter=u"com/test/wamp", max_qos=0)
+                SubscriptionTopicRequest(topic_filter="com/test/wamp", max_qos=0)
             ]).serialise())
 
         mqtt_pump.flush()
@@ -459,7 +459,7 @@ class MQTTAdapterTests(TestCase):
             (ConnACK(session_present=False, return_code=0).serialise() + SubACK(packet_identifier=1, return_codes=[0]).serialise()))
         client_protocol.data = b""
 
-        session.publish(u"com.test.wamp", u"bar")
+        session.publish("com.test.wamp", "bar")
         pump.flush()
 
         reactor.advance(0.1)
@@ -468,7 +468,7 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(
             client_protocol.data,
             Publish(duplicate=False, qos_level=0, retain=False,
-                    topic_name=u"com/test/wamp",
+                    topic_name="com/test/wamp",
                     payload=b'{"args":["bar"]}').serialise()
         )
 
@@ -480,12 +480,12 @@ class MQTTAdapterTests(TestCase):
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         client_transport.write(
-            Connect(client_id=u"testclient", username=u"test123", password=u"password",
+            Connect(client_id="testclient", username="test123", password="password",
                     flags=ConnectFlags(clean_session=False, username=True, password=True)).serialise())
 
         client_transport.write(
             Publish(duplicate=False, qos_level=1, retain=True,
-                    topic_name=u"com/test/wamp", packet_identifier=123,
+                    topic_name="com/test/wamp", packet_identifier=123,
                     payload=b'{}').serialise())
 
         mqtt_pump.flush()
@@ -499,7 +499,7 @@ class MQTTAdapterTests(TestCase):
 
         client_transport.write(
             Subscribe(packet_identifier=1, topic_requests=[
-                SubscriptionTopicRequest(topic_filter=u"com/test/wamp", max_qos=0)
+                SubscriptionTopicRequest(topic_filter="com/test/wamp", max_qos=0)
             ]).serialise())
 
         mqtt_pump.flush()
@@ -516,7 +516,7 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(
             client_protocol.data,
             Publish(duplicate=False, qos_level=0, retain=True,
-                    topic_name=u"com/test/wamp",
+                    topic_name="com/test/wamp",
                     payload=json.dumps(
                         {},
                         sort_keys=True).encode('utf8')
@@ -532,12 +532,12 @@ class MQTTAdapterTests(TestCase):
         """
         reactor, router, server_factory, session_factory = build_mqtt_server()
         session, pump = connect_application_session(
-            server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
+            server_factory, ObservingSession, component_config=ComponentConfig(realm="mqtt"))
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         client_transport.write(
-            Connect(client_id=u"testclient", username=u"test123", password=u"password",
-                    will_topic=u"test", will_message=b'{"args":["foobar"]}',
+            Connect(client_id="testclient", username="test123", password="password",
+                    will_topic="test", will_message=b'{"args":["foobar"]}',
                     flags=ConnectFlags(clean_session=False, username=True,
                                        password=True, will=True)).serialise())
 
@@ -559,4 +559,4 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(len(session.events), 1)
         self.assertEqual(
             session.events,
-            [{"args": [u"foobar"]}])
+            [{"args": ["foobar"]}])

@@ -140,7 +140,7 @@ class WebSocketTesteeController(WorkerController):
     A native Crossbar.io worker that runs a WebSocket testee.
     """
     WORKER_TYPE = 'websocket-testee'
-    WORKER_TITLE = u'WebSocket Testee'
+    WORKER_TITLE = 'WebSocket Testee'
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
@@ -174,7 +174,7 @@ class WebSocketTesteeController(WorkerController):
         # if id in self.transports:
         #     emsg = "Could not start transport: a transport with ID '{}' is already running (or starting)".format(id)
         #     self.log.error(emsg)
-        #     raise ApplicationError(u'crossbar.error.already_running', emsg)
+        #     raise ApplicationError('crossbar.error.already_running', emsg)
 
         # check configuration
         #
@@ -183,7 +183,7 @@ class WebSocketTesteeController(WorkerController):
         except Exception as e:
             emsg = "Invalid WebSocket testee transport configuration: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
             self.log.debug("Starting {ttype}-transport on websocket-testee.", ttype=config['type'])
 
@@ -216,7 +216,7 @@ class WebSocketTesteeController(WorkerController):
         def fail(err):
             emsg = "Cannot listen on transport endpoint: {}".format(err.value)
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.cannot_listen", emsg)
+            raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
         d.addCallbacks(ok, fail)
         return d

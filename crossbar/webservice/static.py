@@ -61,7 +61,7 @@ class StaticResource(File):
 
     def render_GET(self, request):
         if self._cache_timeout is not None:
-            request.setHeader(b'cache-control', u'max-age={}, public'.format(self._cache_timeout).encode('utf8'))
+            request.setHeader(b'cache-control', 'max-age={}, public'.format(self._cache_timeout).encode('utf8'))
             request.setHeader(b'expires', http.datetimeToString(time.time() + self._cache_timeout))
 
         # set response headers for cross-origin requests
@@ -113,23 +113,23 @@ class RouterWebServiceStatic(RouterWebService):
         elif 'package' in config:
 
             if 'resource' not in config:
-                raise ApplicationError(u"crossbar.error.invalid_configuration", "missing resource")
+                raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
 
             try:
                 importlib.import_module(config['package'])
             except ImportError as e:
                 emsg = "Could not import resource {} from package {}: {}".format(config['resource'], config['package'], e)
-                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+                raise ApplicationError("crossbar.error.invalid_configuration", emsg)
             else:
                 try:
                     static_dir = os.path.abspath(pkg_resources.resource_filename(config['package'], config['resource']))
                 except Exception as e:
                     emsg = "Could not import resource {} from package {}: {}".format(config['resource'], config['package'], e)
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+                    raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         else:
 
-            raise ApplicationError(u"crossbar.error.invalid_configuration", "missing web spec")
+            raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
 
         static_dir = static_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
 
