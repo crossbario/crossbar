@@ -67,6 +67,7 @@ class InvocationRequest(object):
         'forward_for',
         'canceled',
         'error_msg',
+        'timeout_call',
     )
 
     def __init__(self, id, registration, caller, call, callee, forward_for):
@@ -78,6 +79,7 @@ class InvocationRequest(object):
         self.forward_for = forward_for
         self.canceled = False
         self.error_msg = None
+        self.timeout_call = None  # if we have a timeout pending, this is it
 
 
 class RegistrationExtra(object):
@@ -1051,7 +1053,7 @@ class Dealer(object):
                     )
                 )
                 self._remove_invoke_request(invoke_request)
-            self._cancel_timers.call_later(timeout, _cancel_both_sides)
+            invoke_request.timeout_call = self._cancel_timers.call_later(timeout, _cancel_both_sides)
 
         return invoke_request
 
@@ -1060,6 +1062,10 @@ class Dealer(object):
         Internal helper. Removes an InvocationRequest from both the
         _callee_to_invocations and _invocations maps.
         """
+        if invocation_request.timeout_call:
+            invocation_request.timeout_call.cancel()
+            invocation_request.timeout_call = None
+
         invokes = self._callee_to_invocations[invocation_request.callee]
         invokes.remove(invocation_request)
         if not invokes:
