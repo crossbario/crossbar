@@ -5,6 +5,11 @@
 Changelog
 =========
 
+20.2.1
+------
+
+* fix: depend on autobahn v20.2.1
+
 20.1.2
 ------
 
