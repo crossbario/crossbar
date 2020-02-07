@@ -5,6 +5,15 @@
 Changelog
 =========
 
+20.2.1
+------
+
+* fix: depend on autobahn (and xbr) v20.2.1 and refreeze all deps
+* fix: improve logging for router transport starts
+* fix: remove python 2 compatibility code / remove unicode strings (#1693)
+* fix: ticket #1567 mocks (#1692)
+* fix: use cpy3.7 docker base images (#1690)
+
 20.1.2
 ------
 
