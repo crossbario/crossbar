@@ -29,6 +29,8 @@
 #####################################################################################
 
 import os
+import importlib
+import pkg_resources
 
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import NotFound, MethodNotAllowed
@@ -42,6 +44,7 @@ from twisted.web import resource
 from twisted.web import server
 
 from autobahn.wamp.types import ComponentConfig
+from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.webservice.base import RouterWebService
@@ -93,10 +96,37 @@ class WapResource(resource.Resource):
         self._default_session = ApplicationSession(ComponentConfig(realm=self._realm_name, extra=None))
         worker._router_session_factory.add(self._default_session, router, authrole=self._authrole)
 
-        # Setup Jinja2 to point to our templates folder
+        # Setup Jinja2 to point to our templates folder or a package resource
         #
-        templates_dir = os.path.abspath(
-            os.path.join(self._worker.config.extra.cbdir, config.get("templates")))
+        templates_config = config.get("templates")
+
+        if type(templates_config) == str:
+            templates_dir = os.path.abspath(
+                os.path.join(self._worker.config.extra.cbdir, templates_config))
+
+        elif type(templates_config) == dict:
+
+            # in case we got a dict, that must contain a package + resource for us to import ..
+            if 'package' not in templates_config:
+                raise ApplicationError('crossbar.error.invalid_configuration', 'missing attribute "resource" in WAP web service configuration')
+
+            if 'resource' not in templates_config:
+                raise ApplicationError('crossbar.error.invalid_configuration', 'missing attribute "resource" in WAP web service configuration')
+
+            try:
+                importlib.import_module(templates_config['package'])
+            except ImportError as e:
+                emsg = 'Could not import resource {} from package {}: {}'.format(templates_config['resource'], templates_config['package'], e)
+                raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+            else:
+                try:
+                    templates_dir = os.path.abspath(pkg_resources.resource_filename(templates_config['package'], templates_config['resource']))
+                except Exception as e:
+                    emsg = 'Could not import resource {} from package {}: {}'.format(templates_config['resource'], templates_config['package'], e)
+                    raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+        else:
+            raise ApplicationError('crossbar.error.invalid_configuration', 'invalid type "{}" for attribute "templates" in WAP web service configuration'.format(type(templates_config)))
+
         env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
         self.log.info(
             'WapResource added on realm "{realm}" (authrole "{authrole}") using templates directory "{templates_dir}"',
@@ -136,6 +166,7 @@ class WapResource(resource.Resource):
         try:
             rendered_html = request.template.render(result)
         except Exception as e:
+            self.log.failure()
             emsg = 'WabResource render error for WAMP result of type "{}": {}'.format(type(result), e)
             self.log.warn(emsg)
             request.setResponseCode(500)
