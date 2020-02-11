@@ -8,7 +8,8 @@ Changelog
 master
 ------
 
-* new: extend WAP webb service: allow loading Jinja templates from Python package
+* new: extend WAP web service: allow loading Jinja templates from Python package,
+    check service configuration, allow running service on root path
 
 20.2.1
 ------
