@@ -32,11 +32,14 @@ import os
 import importlib
 import pkg_resources
 
+from collections.abc import Mapping, Sequence
+
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import NotFound, MethodNotAllowed
 from werkzeug.utils import escape
 
 from jinja2 import Environment, FileSystemLoader
+from jinja2.sandbox import SandboxedEnvironment
 
 from txaio import make_logger
 
@@ -48,7 +51,9 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.webservice.base import RouterWebService
-from crossbar._util import hlid
+from crossbar.common.checkconfig import InvalidConfigException, check_dict_args
+
+from crossbar._util import hlid, hltype
 
 __all__ = ('RouterWebServiceWap', )
 
@@ -57,9 +62,8 @@ class WapResource(resource.Resource):
     """
     Twisted Web resource for WAMP Application Page web service.
 
-    This resource uses templates loaded into jinja2.sandbox.SandboxedEnvironments
-    to render HTML pages with data retrieved from a WAMP procedure call, triggered
-    from the original Web request.
+    This resource uses templates loaded into a Jinja2 environment to render HTML pages with data retrieved
+    from a WAMP procedure call, triggered from the original Web request.
     """
 
     log = make_logger()
@@ -132,13 +136,21 @@ class WapResource(resource.Resource):
         else:
             raise ApplicationError('crossbar.error.invalid_configuration', 'invalid type "{}" for attribute "templates" in WAP web service configuration'.format(type(templates_config)))
 
-        env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
+        if config.get('sandbox', True):
+            # The sandboxed environment. It works like the regular environment but tells the compiler to
+            # generate sandboxed code.
+            # https://jinja.palletsprojects.com/en/2.11.x/sandbox/#jinja2.sandbox.SandboxedEnvironment
+            env = SandboxedEnvironment(loader=FileSystemLoader(templates_dir), autoescape=True)
+        else:
+            env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
+
         self.log.info(
-            'WapResource created (realm="{realm}", authrole="{authrole}", templates_dir="{templates_dir}", templates_source="{templates_source}")',
+            'WapResource created (realm="{realm}", authrole="{authrole}", templates_dir="{templates_dir}", templates_source="{templates_source}", jinja2_env={jinja2_env})',
             realm=hlid(self._realm_name),
             authrole=hlid(self._authrole),
             templates_dir=hlid(templates_dir),
-            templates_source=hlid(templates_source))
+            templates_source=hlid(templates_source),
+            jinja2_env=hltype(env.__class__))
 
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.Map
         map = Map()
@@ -299,7 +311,51 @@ class RouterWebServiceWap(RouterWebService):
         :param config: The Web service configuration item.
         :raises: crossbar.common.checkconfig.InvalidConfigException
         """
-        pass
+        if 'type' not in config:
+            raise InvalidConfigException("missing mandatory attribute 'type' in Web service configuration")
+
+        if config['type'] != 'wap':
+            raise InvalidConfigException('unexpected Web service type "{}"'.format(config['type']))
+
+        check_dict_args({
+            # ID of webservice (must be unique for the web transport)
+            'id': (False, [str]),
+
+            # must be equal to "wap"
+            'type': (True, [str]),
+
+            # local directory or package+resource
+            'templates': (True, [str, Mapping]),
+
+            # create sandboxed jinja2 environment
+            'sandbox': (False, [bool]),
+
+            # Web routes
+            'routes': (True, [Sequence]),
+
+            # WAMP connection configuration
+            'wamp': (True, [Mapping]),
+
+        }, config, "WAMP Application Page (WAP) service configuration".format(config))
+
+        if isinstance(config['templates'], Mapping):
+            check_dict_args({
+                'package': (True, [str]),
+                'resource': (True, [str]),
+            }, config['templates'], "templates in WAP service configuration")
+
+        for route in config['routes']:
+            check_dict_args({
+                'path': (True, [str]),
+                'method': (True, [str]),
+                'call': (False, [str]),
+                'render': (True, [str]),
+            }, route, "route in WAP service configuration")
+
+        check_dict_args({
+            'realm': (True, [str]),
+            'authrole': (True, [str]),
+        }, config['wamp'], "wamp in WAP service configuration")
 
     @staticmethod
     def create(transport, path, config):
