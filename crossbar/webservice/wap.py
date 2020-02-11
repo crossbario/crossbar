@@ -45,6 +45,7 @@ from txaio import make_logger
 
 from twisted.web import resource
 from twisted.web import server
+from twisted.internet.defer import succeed
 
 from autobahn.wamp.types import ComponentConfig
 from autobahn.wamp.exception import ApplicationError
@@ -184,15 +185,17 @@ class WapResource(resource.Resource):
         # Add all our routes into 'map', note each route endpoint is a tuple of the
         # topic to call, and the template to use when rendering the results.
         for route in config.get('routes', {}):
-            route_url = '/' + path + route.get('path')
+            route_url = route.get('path')
+            if route_url != '/':
+                route_url = path + route_url
             route_methods = [route.get('method')]
             route_endpoint = (route['call'], env.get_template(route['render']))
             map.add(Rule(route_url, methods=route_methods, endpoint=route_endpoint))
             self.log.info(
                 'WapResource route added (url={route_url}, methods={route_methods}, endpoint={route_endpoint})',
-                route_url=route_url,
-                route_methods=route_methods,
-                route_endpoint=route_endpoint)
+                route_url=hlid(route_url),
+                route_methods=hlid(route_methods),
+                route_endpoint=hltype(route_endpoint))
 
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter.match
@@ -292,11 +295,14 @@ class WapResource(resource.Resource):
                 full_path=full_path,
                 procedure=procedure)
 
-            # FIXME: how do we allow calling WAMP procedures with positional args?
-            if kwargs:
-                d = session.call(procedure, **kwargs)
+            if procedure:
+                # FIXME: how do we allow calling WAMP procedures with positional args?
+                if kwargs:
+                    d = session.call(procedure, **kwargs)
+                else:
+                    d = session.call(procedure)
             else:
-                d = session.call(procedure)
+                d = succeed({})
 
             # d.addCallback(self._after_call_success, request)
             # d.addErrback(self._after_call_error, request)
@@ -310,15 +316,15 @@ class WapResource(resource.Resource):
 
         except NotFound:
             request.setResponseCode(404)
-            return self._render_error('path not found [werkzeug.routing.MapAdapter.match]', request)
+            return self._render_error('Path "{full_path}" not found [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path), request)
 
         except MethodNotAllowed:
             request.setResponseCode(511)
-            return self._render_error('method not allowed [werkzeug.routing.MapAdapter.match]', request)
+            return self._render_error('Method not allowed on path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path), request)
 
         except Exception:
             request.setResponseCode(500)
-            request.write(self._render_error('unknown error [werkzeug.routing.MapAdapter.match]', request))
+            request.write(self._render_error('Unknown error with path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path), request))
             raise
 
 
@@ -374,7 +380,7 @@ class RouterWebServiceWap(RouterWebService):
             check_dict_args({
                 'path': (True, [str]),
                 'method': (True, [str]),
-                'call': (False, [str]),
+                'call': (False, [str, type(None)]),
                 'render': (True, [str]),
             }, route, "route in WAP service configuration")
 
