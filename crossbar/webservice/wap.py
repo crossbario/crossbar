@@ -101,12 +101,14 @@ class WapResource(resource.Resource):
         templates_config = config.get("templates")
 
         if type(templates_config) == str:
+            # resolve specified template directory path relative to node directory
             templates_dir = os.path.abspath(
                 os.path.join(self._worker.config.extra.cbdir, templates_config))
+            templates_source = 'directory'
 
         elif type(templates_config) == dict:
 
-            # in case we got a dict, that must contain a package + resource for us to import ..
+            # in case we got a dict, that must contain "package" and "resource" attributes
             if 'package' not in templates_config:
                 raise ApplicationError('crossbar.error.invalid_configuration', 'missing attribute "resource" in WAP web service configuration')
 
@@ -120,19 +122,23 @@ class WapResource(resource.Resource):
                 raise ApplicationError('crossbar.error.invalid_configuration', emsg)
             else:
                 try:
+                    # resolve template directory from package resource
                     templates_dir = os.path.abspath(pkg_resources.resource_filename(templates_config['package'], templates_config['resource']))
                 except Exception as e:
                     emsg = 'Could not import resource {} from package {}: {}'.format(templates_config['resource'], templates_config['package'], e)
                     raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+
+            templates_source = 'package'
         else:
             raise ApplicationError('crossbar.error.invalid_configuration', 'invalid type "{}" for attribute "templates" in WAP web service configuration'.format(type(templates_config)))
 
         env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
         self.log.info(
-            'WapResource added on realm "{realm}" (authrole "{authrole}") using templates directory "{templates_dir}"',
+            'WapResource created (realm="{realm}", authrole="{authrole}", templates_dir="{templates_dir}", templates_source="{templates_source}")',
             realm=hlid(self._realm_name),
             authrole=hlid(self._authrole),
-            templates_dir=hlid(templates_dir))
+            templates_dir=hlid(templates_dir),
+            templates_source=hlid(templates_source))
 
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.Map
         map = Map()

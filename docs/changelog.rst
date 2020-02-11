@@ -5,6 +5,11 @@
 Changelog
 =========
 
+master
+------
+
+* new: extend WAP webb service: allow loading Jinja templates from Python package
+
 20.2.1
 ------
 
