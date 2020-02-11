@@ -20,6 +20,7 @@ A Crossbar.io node runs from a :doc:`Node Configuration<Node-Configuration>` and
 
    -  :doc:`Router Realms <Router-Realms>`
    -  :doc:`Router Components <Router-Components>`
+   -  :doc:`Proxy Workers <Proxy-Workers>`
 
 -  :doc:`Container Configuration <Container-Configuration>`
 -  :doc:`Guest Configuration <Guest-Configuration>`
