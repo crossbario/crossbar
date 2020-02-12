@@ -53,7 +53,7 @@ def do_nothing(*args, **kw):
 
 
 def _check_proxy_config(personality, config):
-    print("_check_proxy_config: {}".format(config))
+    pass
 
 
 def default_native_workers():
