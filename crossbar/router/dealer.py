@@ -114,9 +114,9 @@ def _can_cancel(session, side='callee'):
     :returns: True if the session supports cancel
     """
     return (
-        side in session._session_roles and
-        session._session_roles[side] and
-        session._session_roles[side].call_canceling
+        side in session._session_roles
+        and session._session_roles[side]
+        and session._session_roles[side].call_canceling
     )
 
 
