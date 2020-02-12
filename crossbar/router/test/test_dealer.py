@@ -35,6 +35,7 @@ import mock
 from autobahn.wamp import message
 from autobahn.wamp import role
 from autobahn.wamp.exception import ProtocolError
+from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.worker.types import RouterRealm
 from crossbar.router.router import RouterFactory
@@ -330,6 +331,226 @@ class TestDealer(unittest.TestCase):
         # should NOT receive an INTERRUPT from the dealer now
         interrupt_msg = last_message['1']
         self.assertIsNone(interrupt_msg)
+
+    def test_call_timeout_without_callee_support(self):
+        messages = []
+
+        def session_send(msg):
+            messages.append(msg)
+
+        session = ApplicationSession()
+        session._transport = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {
+            'callee': role.RoleCalleeFeatures(call_canceling=False),
+            'caller': role.RoleCallerFeatures(call_canceling=True),
+        }
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+        dealer._cancel_timers.call_later = mock.Mock()
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = messages[-1]
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            [],
+            timeout=1,
+        ))
+
+        invocation_msg = messages[-1]
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        # induce a timeout
+        # get the last time-out that was added...
+        mc = dealer._cancel_timers.call_later.mock_calls[0]
+        timeout_fn = mc[1][1]
+        # ...and call it
+        timeout_fn()
+        # callee gets Interrupt (so we shouldn't see one, because it doesn't support)
+        # caller gets Error (should see it)
+        self.assertTrue(any(isinstance(msg, message.Error) for msg in messages))
+        self.assertFalse(any(isinstance(msg, message.Interrupt) for msg in messages))
+
+    def test_call_timeout_without_caller_support(self):
+        messages = []
+
+        def session_send(msg):
+            messages.append(msg)
+
+        session = ApplicationSession()
+        session._transport = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {
+            'callee': role.RoleCalleeFeatures(call_canceling=True),
+            'caller': role.RoleCallerFeatures(call_canceling=False),
+        }
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+        dealer._cancel_timers.call_later = mock.Mock()
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = messages[-1]
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            [],
+            timeout=1,
+        ))
+
+        invocation_msg = messages[-1]
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        # induce a timeout:
+        # get the last time-out that was added...
+        mc = dealer._cancel_timers.call_later.mock_calls[0]
+        timeout_fn = mc[1][1]
+        # ...and call it
+        timeout_fn()
+        # caller gets Error (shouldn't see it)
+        # callee gets Interrupt (should see it)
+        self.assertFalse(any(isinstance(msg, message.Error) for msg in messages))
+        self.assertTrue(any(isinstance(msg, message.Interrupt) for msg in messages))
+
+    def test_call_timeout_without_callee_or_caller_support(self):
+        messages = []
+
+        def session_send(msg):
+            messages.append(msg)
+
+        session = ApplicationSession()
+        session._transport = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {
+            'callee': role.RoleCalleeFeatures(call_canceling=False),
+            'caller': role.RoleCallerFeatures(call_canceling=False),
+        }
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+        dealer._cancel_timers.call_later = mock.Mock()
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = messages[-1]
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            [],
+            timeout=1,
+        ))
+
+        invocation_msg = messages[-1]
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        # induce a timeout
+        # get the last time-out that was added...
+        mc = dealer._cancel_timers.call_later.mock_calls[0]
+        timeout_fn = mc[1][1]
+        # ...and call it
+        timeout_fn()
+        # caller gets Error (shouldn't see it)
+        # callee gets Interrupt (shouldn't see it)
+        self.assertFalse(any(isinstance(msg, message.Error) for msg in messages))
+        self.assertFalse(any(isinstance(msg, message.Interrupt) for msg in messages))
+
+    def test_call_timeout_with_callee_and_caller_support(self):
+        messages = []
+
+        def session_send(msg):
+            messages.append(msg)
+
+        session = ApplicationSession()
+        session._transport = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {
+            'callee': role.RoleCalleeFeatures(call_canceling=True),
+            'caller': role.RoleCallerFeatures(call_canceling=True),
+        }
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+        dealer._cancel_timers.call_later = mock.Mock()
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = messages[-1]
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            [],
+            timeout=1,
+        ))
+
+        invocation_msg = messages[-1]
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        # induce a timeout
+        # get the last time-out that was added...
+        mc = dealer._cancel_timers.call_later.mock_calls[0]
+        timeout_fn = mc[1][1]
+        # ...and call it
+        timeout_fn()
+        # caller gets Error (should see it)
+        # callee gets Interrupt (should see it)
+        self.assertTrue(any(isinstance(msg, message.Error) for msg in messages))
+        self.assertTrue(any(isinstance(msg, message.Interrupt) for msg in messages))
 
     def test_force_reregister_kick(self):
         """
