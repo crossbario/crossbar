@@ -195,7 +195,7 @@ class WapResource(resource.Resource):
                 'WapResource route added (url={route_url}, methods={route_methods}, endpoint={route_endpoint})',
                 route_url=hlid(route_url),
                 route_methods=hlid(route_methods),
-                route_endpoint=hltype(route_endpoint))
+                route_endpoint=route_endpoint)
 
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter.match
