@@ -38,6 +38,8 @@ from twisted.web._responses import NOT_FOUND
 from twisted.web.resource import Resource
 from twisted.web.proxy import ReverseProxyResource
 from twisted.web.static import File
+from twisted.web.server import NOT_DONE_YET
+from twisted.python.compat import urllib_parse
 
 from autobahn.wamp.exception import ApplicationError
 
@@ -154,6 +156,49 @@ class RouterWebService(object):
         return self.config
 
 
+class ExtReverseProxyResource(ReverseProxyResource):
+
+    def render(self, request):
+        """
+        Render a request by forwarding it to the proxied server.
+        """
+        # IP of client of incoming HTTP request
+        client_ip, _ = request.getClientAddress()
+
+        # host request by client in incoming HTTP request
+        requested_host = request.requestHeaders['host']
+
+        # RFC 2616 tells us that we can omit the port if it's the default port,
+        # but we have to provide it otherwise
+        if self.port == 80:
+            host = self.host
+        else:
+            host = u"%s:%d" % (self.host, self.port)
+
+        # set reverse proxy originating http headers
+        #
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Host
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
+        #
+        request.requestHeaders.setRawHeaders(b'Host', [host.encode('utf8')])
+        request.requestHeaders.setRawHeaders(b'X-Forwarded-Host', [requested_host])
+        request.requestHeaders.setRawHeaders(b'X-Forwarded-For', [client_ip.encode('ascii')])
+        request.requestHeaders.setRawHeaders(b'X-Real-IP', [client_ip.encode('ascii')])
+
+        request.content.seek(0, 0)
+        qs = urllib_parse.urlparse(request.uri)[4]
+        if qs:
+            rest = self.path + b'?' + qs
+        else:
+            rest = self.path
+        clientFactory = self.proxyClientFactoryClass(
+            request.method, rest, request.clientproto,
+            request.getAllHeaders(), request.content.read(), request)
+        self.reactor.connectTCP(self.host, self.port, clientFactory)
+        return NOT_DONE_YET
+
+
 class RouterWebServiceReverseWeb(RouterWebService):
     """
     Reverse Web proxy service.
@@ -168,7 +213,7 @@ class RouterWebServiceReverseWeb(RouterWebService):
         port = int(config.get('port', 80))
         base_path = config.get('path', '').encode('utf-8')
 
-        resource = ReverseProxyResource(host, port, base_path)
+        resource = ExtReverseProxyResource(host, port, base_path)
 
         return RouterWebServiceReverseWeb(transport, base_path, config, resource)
 
