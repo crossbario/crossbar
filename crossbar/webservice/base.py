@@ -101,6 +101,32 @@ class Resource404(Resource):
         return s.encode('utf8')
 
 
+class RootResource(Resource):
+    """
+    Root resource when you want one specific resource be the default serving
+    resource for a Twisted Web site, but have sub-paths served by different
+    resources.
+    """
+
+    def __init__(self, rootResource, children):
+        """
+
+        :param rootResource: The resource to serve as root resource.
+        :type rootResource: `twisted.web.resource.Resource <http://twistedmatrix.com/documents/current/api/twisted.web.resource.Resource.html>`_
+
+        :param children: A dictionary with string keys constituting URL sub-paths, and Twisted Web resources as values.
+        :type children: dict
+        """
+        Resource.__init__(self)
+        self._rootResource = rootResource
+        self.children = children
+
+    def getChild(self, path, request):
+        request.prepath.pop()
+        request.postpath.insert(0, path)
+        return self._rootResource
+
+
 class RouterWebService(object):
     """
     A Web service configured on a URL path on a Web transport.
@@ -158,44 +184,70 @@ class RouterWebService(object):
 
 class ExtReverseProxyResource(ReverseProxyResource):
 
+    def __init__(self, host, port, path, forwarded_port=None, forwarded_proto=None):
+        # host:port/path => target server
+        self._forwarded_port = forwarded_port
+        self._forwarded_proto = forwarded_proto
+        ReverseProxyResource.__init__(host, port, path)
+
     def render(self, request):
         """
         Render a request by forwarding it to the proxied server.
         """
-        # IP of client of incoming HTTP request
-        client_ip, _ = request.getClientAddress()
-
         # host request by client in incoming HTTP request
-        requested_host = request.requestHeaders['host']
+        requested_host = request.requestHeaders['Host']
+
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
+        request.requestHeaders.setRawHeaders(b'X-Forwarded-Host', [requested_host.encode('ascii')])
+        # request.requestHeaders.setRawHeaders(b'X-Forwarded-Server', [requested_host.encode('ascii')])
+
+        # crossbar web transport listening IP/port
+        _, server_port = request.getHost()
+        server_port = '{}'.format(server_port).encode('ascii')
 
         # RFC 2616 tells us that we can omit the port if it's the default port,
         # but we have to provide it otherwise
         if self.port == 80:
             host = self.host
         else:
-            host = u"%s:%d" % (self.host, self.port)
-
-        # set reverse proxy originating http headers
-        #
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Host
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
-        #
+            host = '%s:%d' % (self.host, self.port)
         request.requestHeaders.setRawHeaders(b'Host', [host.encode('utf8')])
-        request.requestHeaders.setRawHeaders(b'X-Forwarded-Host', [requested_host])
-        request.requestHeaders.setRawHeaders(b'X-Forwarded-For', [client_ip.encode('ascii')])
-        request.requestHeaders.setRawHeaders(b'X-Real-IP', [client_ip.encode('ascii')])
 
+        # forward originating IP of incoming HTTP request
+        client_ip, _ = request.getClientAddress()
+        if client_ip:
+            client_ip = client_ip.encode('ascii')
+            request.requestHeaders.setRawHeaders(b'X-Forwarded-For', [client_ip])
+            request.requestHeaders.setRawHeaders(b'X-Real-IP', [client_ip])
+
+        # forward information of outside listening port and protocol (http vs https)
+        if self._forwarded_port:
+            request.requestHeaders.setRawHeaders(b'X-Forwarded-Port', [self._forwarded_port])
+        else:
+            request.requestHeaders.setRawHeaders(b'X-Forwarded-Port', [server_port])
+
+        if self._forwarded_proto:
+            request.requestHeaders.setRawHeaders(b'X-Forwarded-Proto', [self._forwarded_proto])
+        else:
+            request.requestHeaders.setRawHeaders(b'X-Forwarded-Proto', [('https' if server_port == 443 else 'http').encode('ascii')])
+
+        # rewind cursor to begin of request data
         request.content.seek(0, 0)
+
+        # reapply query strings to forwarding HTTP request
         qs = urllib_parse.urlparse(request.uri)[4]
         if qs:
             rest = self.path + b'?' + qs
         else:
             rest = self.path
+
+        # now issue the forwarded request to the HTTP server that is being reverse-proxied
         clientFactory = self.proxyClientFactoryClass(
             request.method, rest, request.clientproto,
             request.getAllHeaders(), request.content.read(), request)
         self.reactor.connectTCP(self.host, self.port, clientFactory)
+
+        # the proxy client request created ^ is taking care of actually finishing the request ..
         return NOT_DONE_YET
 
 
@@ -209,11 +261,25 @@ class RouterWebServiceReverseWeb(RouterWebService):
         personality = transport.worker.personality
         personality.WEB_SERVICE_CHECKERS['reverseproxy'](personality, config)
 
+        # target HTTP server to forward incoming HTTP requests to
         host = config['host']
         port = int(config.get('port', 80))
         base_path = config.get('path', '').encode('utf-8')
 
-        resource = ExtReverseProxyResource(host, port, base_path)
+        # public listening port and protocol (http vs https) the crossbar
+        # web transport is listening on. this might be used by the HTTP server
+        # the request is proxied to to construct correct HTTP links (which need
+        # to point to the _public_ listening web transport of crossbar)
+        forwarded_port = int(config.get('forwarded_port', 80))
+        forwarded_proto = config.get('forwarded_proto', 'http').encode('ascii')
+
+        resource = ExtReverseProxyResource(host,
+                                           port,
+                                           base_path,
+                                           forwarded_port=forwarded_port,
+                                           forwarded_proto=forwarded_proto)
+        if path == '/':
+            resource = RootResource(resource, {})
 
         return RouterWebServiceReverseWeb(transport, base_path, config, resource)
 

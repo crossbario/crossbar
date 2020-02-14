@@ -51,38 +51,12 @@ from autobahn.wamp.types import ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar.webservice.base import RouterWebService
+from crossbar.webservice.base import RootResource, RouterWebService
 from crossbar.common.checkconfig import InvalidConfigException, check_dict_args
 
 from crossbar._util import hlid, hltype
 
 __all__ = ('RouterWebServiceWap', )
-
-
-class WapRootResource(resource.Resource):
-    """
-    Root resource when you want a WapResource resource be the default serving
-    resource for a Twisted Web site, but have subpaths served by
-    different resources.
-    """
-
-    def __init__(self, wapResource, children):
-        """
-
-        :param wapResource: The WSGI to serve as root resource.
-        :type wapResource: Instance of `twisted.web.wsgi.WSGIResource <http://twistedmatrix.com/documents/current/api/twisted.web.wsgi.WSGIResource.html>`_.
-
-        :param children: A dictionary with string keys constituting URL subpaths, and Twisted Web resources as values.
-        :type children: dict
-        """
-        resource.Resource.__init__(self)
-        self._wapResource = wapResource
-        self.children = children
-
-    def getChild(self, path, request):
-        request.prepath.pop()
-        request.postpath.insert(0, path)
-        return self._wapResource
 
 
 class WapResource(resource.Resource):
@@ -404,6 +378,6 @@ class RouterWebServiceWap(RouterWebService):
 
         resource = WapResource(transport.worker, config, path)
         if path == '/':
-            resource = WapRootResource(resource, {})
+            resource = RootResource(resource, {})
 
         return RouterWebServiceWap(transport, path, config, resource)
