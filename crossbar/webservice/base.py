@@ -39,7 +39,7 @@ from twisted.web.resource import Resource
 from twisted.web.proxy import ReverseProxyResource
 from twisted.web.static import File
 from twisted.web.server import NOT_DONE_YET
-from twisted.python.compat import urllib_parse
+from twisted.python.compat import urllib_parse, urlquote
 
 from autobahn.wamp.exception import ApplicationError
 
@@ -184,6 +184,8 @@ class RouterWebService(object):
 
 class ExtReverseProxyResource(ReverseProxyResource):
 
+    log = txaio.make_logger()
+
     def __init__(self, host, port, path, forwarded_port=None, forwarded_proto=None):
         # host:port/path => target server
         self._forwarded_port = forwarded_port
@@ -194,15 +196,17 @@ class ExtReverseProxyResource(ReverseProxyResource):
         """
         Render a request by forwarding it to the proxied server.
         """
+        self.log.info('{klass}.render(): forwarding incoming HTTP request ..', klass=self.__class__.__name__)
+
         # host request by client in incoming HTTP request
-        requested_host = request.requestHeaders['Host']
+        requested_host = request.requestHeaders.getRawHeaders('Host')[0]
 
         # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
         request.requestHeaders.setRawHeaders(b'X-Forwarded-Host', [requested_host.encode('ascii')])
         # request.requestHeaders.setRawHeaders(b'X-Forwarded-Server', [requested_host.encode('ascii')])
 
         # crossbar web transport listening IP/port
-        _, server_port = request.getHost()
+        server_port = request.getHost().port
         server_port = '{}'.format(server_port).encode('ascii')
 
         # RFC 2616 tells us that we can omit the port if it's the default port,
@@ -214,7 +218,7 @@ class ExtReverseProxyResource(ReverseProxyResource):
         request.requestHeaders.setRawHeaders(b'Host', [host.encode('utf8')])
 
         # forward originating IP of incoming HTTP request
-        client_ip, _ = request.getClientAddress()
+        client_ip = request.getClientAddress().host
         if client_ip:
             client_ip = client_ip.encode('ascii')
             request.requestHeaders.setRawHeaders(b'X-Forwarded-For', [client_ip])
@@ -222,7 +226,7 @@ class ExtReverseProxyResource(ReverseProxyResource):
 
         # forward information of outside listening port and protocol (http vs https)
         if self._forwarded_port:
-            request.requestHeaders.setRawHeaders(b'X-Forwarded-Port', [self._forwarded_port])
+            request.requestHeaders.setRawHeaders(b'X-Forwarded-Port', ['{}'.format(self._forwarded_port).encode('ascii')])
         else:
             request.requestHeaders.setRawHeaders(b'X-Forwarded-Port', [server_port])
 
@@ -241,6 +245,9 @@ class ExtReverseProxyResource(ReverseProxyResource):
         else:
             rest = self.path
 
+        self.log.info('forwarding HTTP request to "{rest}" with HTTP request headers {headers}',
+                      rest=rest, headers=request.getAllHeaders())
+
         # now issue the forwarded request to the HTTP server that is being reverse-proxied
         clientFactory = self.proxyClientFactoryClass(
             request.method, rest, request.clientproto,
@@ -250,7 +257,12 @@ class ExtReverseProxyResource(ReverseProxyResource):
         # the proxy client request created ^ is taking care of actually finishing the request ..
         return NOT_DONE_YET
 
+    def getChild(self, path, request):
+        return ExtReverseProxyResource(
+            self.host, self.port, self.path + b'/' + urlquote(path, safe=b"").encode('utf-8'),
+            forwarded_port=self._forwarded_port, forwarded_proto=self._forwarded_proto)
 
+        
 class RouterWebServiceReverseWeb(RouterWebService):
     """
     Reverse Web proxy service.
@@ -280,7 +292,7 @@ class RouterWebServiceReverseWeb(RouterWebService):
                                            forwarded_proto=forwarded_proto)
         if path == '/':
             resource = RootResource(resource, {})
-
+    
         return RouterWebServiceReverseWeb(transport, base_path, config, resource)
 
 
