@@ -188,7 +188,7 @@ class ExtReverseProxyResource(ReverseProxyResource):
         # host:port/path => target server
         self._forwarded_port = forwarded_port
         self._forwarded_proto = forwarded_proto
-        ReverseProxyResource.__init__(host, port, path)
+        ReverseProxyResource.__init__(self, host, port, path)
 
     def render(self, request):
         """
