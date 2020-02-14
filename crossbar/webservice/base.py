@@ -262,7 +262,7 @@ class ExtReverseProxyResource(ReverseProxyResource):
             self.host, self.port, self.path + b'/' + urlquote(path, safe=b"").encode('utf-8'),
             forwarded_port=self._forwarded_port, forwarded_proto=self._forwarded_proto)
 
-        
+
 class RouterWebServiceReverseWeb(RouterWebService):
     """
     Reverse Web proxy service.
@@ -292,7 +292,7 @@ class RouterWebServiceReverseWeb(RouterWebService):
                                            forwarded_proto=forwarded_proto)
         if path == '/':
             resource = RootResource(resource, {})
-    
+
         return RouterWebServiceReverseWeb(transport, base_path, config, resource)
 
 
