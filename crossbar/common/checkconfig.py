@@ -1459,13 +1459,23 @@ def check_web_path_service_reverseproxy(personality, config):
     :param config: The path service configuration.
     :type config: dict
     """
+    message = "Web transport 'reverseproxy' path service"
     check_dict_args({
         'id': (False, [str]),
         'type': (True, [str]),
         'host': (True, [str]),
         'port': (False, [int]),
-        'path': (False, [str])
-    }, config, "Web transport 'reverseproxy' path service")
+        'path': (False, [str]),
+        'forwarded_port': (False, [int]),
+        'forwarded_proto': (False, [str]),
+    }, config, message)
+
+    check_endpoint_port(config['port'], message)
+    if 'forwarded_port' in config:
+        check_endpoint_port(config['forwarded_port'], message)
+    if 'forwarded_proto' in config:
+        if config['forwarded_proto'] not in ['http', 'https']:
+            raise InvalidConfigException('{}: invalid protocol "{}"'.format(message, config['forwarded_proto']))
 
 
 def check_web_path_service_json(personality, config):
