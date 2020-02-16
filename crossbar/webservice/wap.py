@@ -159,10 +159,18 @@ class WapResource(resource.Resource):
         # Add all our routes into 'map', note each route endpoint is a tuple of the
         # topic to call, and the template to use when rendering the results.
         for route in config.get('routes', {}):
-            route_url = route.get('path')
-            if route_url != '/':
-                route_url = path + route_url
+
+            # compute full absolute URL of route to be added - ending in Werkzeug/Routes URL pattern
+            rpath = route['path']
+            _rp = []
+            if path != '/':
+                _rp.append(path)
+            if rpath != '/':
+                _rp.append(rpath)
+            route_url = '/' + '/'.join(_rp)
             route_methods = [route.get('method')]
+
+            # note the WAMP procedure to call and the Jinja2 template to render as HTTP response
             route_endpoint = (route['call'], env.get_template(route['render']))
             map.add(Rule(route_url, methods=route_methods, endpoint=route_endpoint))
             self.log.info(
@@ -329,6 +337,9 @@ class RouterWebServiceWap(RouterWebService):
 
             # must be equal to "wap"
             'type': (True, [str]),
+
+            # path to prvide to Werkzeug/Routes (eg "/test" rather than "test")
+            'path': (False, [str]),
 
             # local directory or package+resource
             'templates': (True, [str, Mapping]),
