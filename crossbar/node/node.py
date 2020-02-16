@@ -195,6 +195,8 @@ class Node(object):
 
         IMPORTANT: this function is run _before_ start of Twisted reactor!
         """
+        self.log.debug('{klass}.load_config(configfile={configfile}, default={default}) ..',
+                       klass=self.__class__.__name__, configfile=configfile, default=default)
         if configfile:
             config_path = os.path.abspath(os.path.join(self._cbdir, configfile))
 
