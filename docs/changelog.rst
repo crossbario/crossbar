@@ -8,12 +8,15 @@ Changelog
 master
 ------
 
-* new: extend WAP web service: allow loading Jinja templates from Python package,
-    check service configuration, allow running service on root path
-
 20.2.1
 ------
 
+* new: allow running reverse web proxy service on root path ("/")
+* new: set reverse web proxy HTTP forwarding headers
+* new: extend WAP web service: allow loading Jinja templates from Python package,
+    check service configuration, allow running service on root path
+* new: first-cut dealer timeout/cancel implementation (#1694)
+* new: expand reverse WAMP proxy worker docs
 * fix: depend on autobahn (and xbr) v20.2.1 and refreeze all deps
 * fix: improve logging for router transport starts
 * fix: remove python 2 compatibility code / remove unicode strings (#1693)

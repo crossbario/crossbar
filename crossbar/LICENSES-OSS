@@ -20,13 +20,13 @@
  cbor              1.0.0       Apache Software License                              Brian Olson                                   
  cbor2             5.0.1       MIT License                                          Alex Grönholm                                 
  certifi           2019.11.28  Mozilla Public License 2.0 (MPL 2.0)                 Kenneth Reitz                                 
- cffi              1.13.2      UNKNOWN                                              Armin Rigo, Maciej Fijalkowski                
+ cffi              1.14.0      MIT License                                          Armin Rigo, Maciej Fijalkowski                
  chardet           3.0.4       GNU Library or Lesser General Public License (LGPL)  Daniel Blanchard                              
  colorama          0.4.3       BSD License                                          Jonathan Hartley                              
  constantly        15.1.0      MIT License                                          Twisted Matrix Labs Developers                
  cryptography      2.8         Apache Software License, BSD License                 The cryptography developers                   
  flatbuffers       1.11        UNKNOWN                                              FlatBuffers Contributors                      
- h2                3.1.1       MIT License                                          Cory Benfield                                 
+ h2                3.2.0       MIT License                                          Cory Benfield                                 
  hpack             3.0.0       MIT License                                          Cory Benfield                                 
  hyperframe        5.2.0       MIT License                                          Cory Benfield                                 
  hyperlink         19.0.0      UNKNOWN                                              Mahmoud Hashemi and Glyph Lefkowitz           
@@ -61,7 +61,7 @@
  ujson             1.35        BSD License                                          Jonas Tarnstrom                               
  urllib3           1.24.3      MIT License                                          Andrey Petrov                                 
  vmprof            0.4.15      MIT License                                          vmprof team                                   
- watchdog          0.10.1      Apache Software License                              Yesudeep Mangalapilly                         
+ watchdog          0.10.2      Apache Software License                              Yesudeep Mangalapilly                         
  wsaccel           0.6.2       UNKNOWN                                              UNKNOWN                                       
  zlmdb             20.1.1      MIT License                                          Crossbar.io Technologies GmbH                 
  zope.interface    4.7.1       Zope Public License                                  Zope Foundation and Contributors              
