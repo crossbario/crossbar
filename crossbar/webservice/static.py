@@ -39,7 +39,7 @@ from autobahn.wamp import ApplicationError
 from twisted.web import http
 from twisted.web.static import File
 
-from crossbar.webservice.base import RouterWebService, Resource404, ResourceFallback, set_cross_origin_headers
+from crossbar.webservice.base import RouterWebService, Resource404, set_cross_origin_headers
 
 DEFAULT_CACHE_TIMEOUT = 12 * 60 * 60
 
@@ -155,7 +155,7 @@ class RouterWebServiceStatic(RouterWebService):
         #
         fallback = static_options.get('default_file')
         if fallback:
-            resource.childNotFound = ResourceFallback(os.path.join(static_dir, fallback))
+            resource.childNotFound = File(os.path.join(static_dir, fallback))
         else:
             resource.childNotFound = Resource404(transport.templates, static_dir_enc)
 
