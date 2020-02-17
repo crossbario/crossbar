@@ -8,6 +8,8 @@ Changelog
 master
 ------
 
+* new: Support Fallback Resource from packages(1711)
+
 20.2.1
 ------
 
