@@ -37,7 +37,6 @@ from twisted.web import server
 from twisted.web._responses import NOT_FOUND
 from twisted.web.resource import Resource
 from twisted.web.proxy import ReverseProxyResource
-from twisted.web.static import File
 from twisted.web.server import NOT_DONE_YET
 from twisted.python.compat import urllib_parse, urlquote
 
@@ -56,17 +55,6 @@ def set_cross_origin_headers(request):
     headers = request.getHeader(b'access-control-request-headers')
     if headers is not None:
         request.setHeader(b'access-control-allow-headers', headers)
-
-
-class ResourceFallback(File):
-    """
-    Handle requests for non-existent URL's
-    """
-    def __init__(self, path, config, **kwargs):
-        File.__init__(self, path, **kwargs)
-        directory = config.get('directory', '')
-        file = config.get('options', {}).get('default_file')
-        self.path = os.path.join(directory, file)
 
 
 class Resource404(Resource):
