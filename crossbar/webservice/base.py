@@ -60,11 +60,8 @@ class ResourceFallback(File):
     """
     Handle requests for non-existent URL's
     """
-    def __init__(self, path, config, **kwargs):
+    def __init__(self, path, **kwargs):
         File.__init__(self, path, **kwargs)
-        directory = config.get('directory', '')
-        file = config.get('options', {}).get('default_file')
-        self.path = os.path.join(directory, file)
 
 
 class Resource404(Resource):

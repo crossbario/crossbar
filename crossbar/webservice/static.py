@@ -131,7 +131,7 @@ class RouterWebServiceStatic(RouterWebService):
 
             raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
 
-        static_dir = static_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+        static_dir_enc = static_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
 
         # create resource for file system hierarchy
         #
@@ -143,7 +143,7 @@ class RouterWebServiceStatic(RouterWebService):
         cache_timeout = static_options.get('cache_timeout', DEFAULT_CACHE_TIMEOUT)
         allow_cross_origin = static_options.get('allow_cross_origin', True)
 
-        resource = static_resource_class(static_dir, cache_timeout=cache_timeout, allow_cross_origin=allow_cross_origin)
+        resource = static_resource_class(static_dir_enc, cache_timeout=cache_timeout, allow_cross_origin=allow_cross_origin)
 
         # set extra MIME types
         #
@@ -155,8 +155,8 @@ class RouterWebServiceStatic(RouterWebService):
         #
         fallback = static_options.get('default_file')
         if fallback:
-            resource.childNotFound = ResourceFallback(path, config)
+            resource.childNotFound = ResourceFallback(os.path.join(static_dir, fallback))
         else:
-            resource.childNotFound = Resource404(transport.templates, static_dir)
+            resource.childNotFound = Resource404(transport.templates, static_dir_enc)
 
         return RouterWebServiceStatic(transport, path, config, resource)
