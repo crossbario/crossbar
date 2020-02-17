@@ -67,6 +67,7 @@ class InvocationRequest(object):
         'forward_for',
         'canceled',
         'error_msg',
+        'timeout_call',
     )
 
     def __init__(self, id, registration, caller, call, callee, forward_for):
@@ -78,6 +79,7 @@ class InvocationRequest(object):
         self.forward_for = forward_for
         self.canceled = False
         self.error_msg = None
+        self.timeout_call = None  # if we have a timeout pending, this is it
 
 
 class RegistrationExtra(object):
@@ -107,6 +109,17 @@ class RegistrationCalleeExtra(object):
         return '{}(concurrency={}, concurrency_current={})'.format(self.__class__.__name__, self.concurrency, self.concurrency_current)
 
 
+def _can_cancel(session, side='callee'):
+    """
+    :returns: True if the session supports cancel
+    """
+    return (
+        side in session._session_roles
+        and session._session_roles[side]
+        and session._session_roles[side].call_canceling
+    )
+
+
 class Dealer(object):
     """
     Basic WAMP dealer.
@@ -125,6 +138,7 @@ class Dealer(object):
         """
         self._router = router
         self._reactor = reactor
+        self._cancel_timers = txaio.make_batched_timer(1)  # timeouts have to be integers anyway
         self._options = options or RouterOptions()
 
         # generator for WAMP request IDs
@@ -1001,11 +1015,11 @@ class Dealer(object):
         invocation.correlation_is_anchor = False
         invocation.correlation_is_last = False
 
-        self._add_invoke_request(invocation_request_id, registration, session, call, callee, forward_for)
+        self._add_invoke_request(invocation_request_id, registration, session, call, callee, forward_for, timeout=call.timeout)
         self._router.send(callee, invocation)
         return True
 
-    def _add_invoke_request(self, invocation_request_id, registration, session, call, callee, forward_for):
+    def _add_invoke_request(self, invocation_request_id, registration, session, call, callee, forward_for, timeout=None):
         """
         Internal helper.  Adds an InvocationRequest to both the
         _callee_to_invocations and _invocations maps.
@@ -1022,6 +1036,38 @@ class Dealer(object):
         invokes.append(invoke_request)
         self._caller_to_invocations[session] = invokes
 
+        # deal with possible timeouts
+        # NB: timeouts can only be integers (check spec, but this is
+        # what Autobahn code says) so we can just have a bucket-based
+        # thing (and probably should?) instead of "straight" callLater
+        if timeout:
+
+            def _cancel_both_sides():
+                """
+                The timeout was reacted; send an ERROR to the caller and INTERRUPT
+                to the callee
+                """
+                if _can_cancel(invoke_request.caller, 'caller'):
+                    self._router.send(
+                        invoke_request.caller,
+                        message.Error(
+                            message.Call.MESSAGE_TYPE,
+                            call.request,
+                            ApplicationError.CANCELED,
+                            [u"timeout reached"],
+                        ),
+                    )
+                if _can_cancel(invoke_request.callee, 'callee'):
+                    self._router.send(
+                        invoke_request.callee,
+                        message.Interrupt(
+                            invoke_request.id,
+                            message.Cancel.KILLNOWAIT,  # or KILL ?
+                        )
+                    )
+                self._remove_invoke_request(invoke_request)
+            invoke_request.timeout_call = self._cancel_timers.call_later(timeout, _cancel_both_sides)
+
         return invoke_request
 
     def _remove_invoke_request(self, invocation_request):
@@ -1029,6 +1075,10 @@ class Dealer(object):
         Internal helper. Removes an InvocationRequest from both the
         _callee_to_invocations and _invocations maps.
         """
+        if invocation_request.timeout_call:
+            invocation_request.timeout_call.cancel()
+            invocation_request.timeout_call = None
+
         invokes = self._callee_to_invocations[invocation_request.callee]
         invokes.remove(invocation_request)
         if not invokes:
@@ -1071,13 +1121,11 @@ class Dealer(object):
             if invocation_request.canceled:
                 return
 
-            def can_cancel(session):
-                return ('callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].call_canceling)
-
             invocation_request.canceled = True
             # "skip" or "kill" or "killnowait" (see WAMP section.14.3.4)
             cancellation_mode = cancel.mode
-            if not can_cancel(invocation_request.callee):
+
+            if not _can_cancel(invocation_request.callee, 'callee'):
                 # callee can't deal with an "Interrupt"
                 cancellation_mode = message.Cancel.SKIP
 

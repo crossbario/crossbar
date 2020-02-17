@@ -426,16 +426,15 @@ def create_router_transport(worker, transport_id, config):
     :param config:
     :return:
     """
-    worker.log.info('Creating router transport for "{transport_id}" {factory}',
-                    transport_id=transport_id,
-                    factory=hltype(create_router_transport))
+    worker.log.info('Creating router transport for "{transport_id}" ..',
+                    transport_id=transport_id)
 
     if config['type'] == 'web' or (config['type'] == 'universal' and config.get('web', {})):
         transport = RouterWebTransport(worker, transport_id, config)
     else:
         transport = RouterTransport(worker, transport_id, config)
 
-    worker.log.info('Router transport created for "{transport_id}" {transport_class}',
+    worker.log.info('Router transport created for "{transport_id}" [transport_class={transport_class}]',
                     transport_id=transport_id,
                     transport_class=hltype(transport.__class__))
     return transport

@@ -29,23 +29,32 @@
 #####################################################################################
 
 import os
+import importlib
+import pkg_resources
+
+from collections.abc import Mapping, Sequence
 
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import NotFound, MethodNotAllowed
 from werkzeug.utils import escape
 
 from jinja2 import Environment, FileSystemLoader
+from jinja2.sandbox import SandboxedEnvironment
 
 from txaio import make_logger
 
 from twisted.web import resource
 from twisted.web import server
+from twisted.internet.defer import succeed
 
 from autobahn.wamp.types import ComponentConfig
+from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar.webservice.base import RouterWebService
-from crossbar._util import hlid
+from crossbar.webservice.base import RootResource, RouterWebService
+from crossbar.common.checkconfig import InvalidConfigException, check_dict_args
+
+from crossbar._util import hlid, hltype
 
 __all__ = ('RouterWebServiceWap', )
 
@@ -54,9 +63,8 @@ class WapResource(resource.Resource):
     """
     Twisted Web resource for WAMP Application Page web service.
 
-    This resource uses templates loaded into jinja2.sandbox.SandboxedEnvironments
-    to render HTML pages with data retrieved from a WAMP procedure call, triggered
-    from the original Web request.
+    This resource uses templates loaded into a Jinja2 environment to render HTML pages with data retrieved
+    from a WAMP procedure call, triggered from the original Web request.
     """
 
     log = make_logger()
@@ -93,16 +101,57 @@ class WapResource(resource.Resource):
         self._default_session = ApplicationSession(ComponentConfig(realm=self._realm_name, extra=None))
         worker._router_session_factory.add(self._default_session, router, authrole=self._authrole)
 
-        # Setup Jinja2 to point to our templates folder
+        # Setup Jinja2 to point to our templates folder or a package resource
         #
-        templates_dir = os.path.abspath(
-            os.path.join(self._worker.config.extra.cbdir, config.get("templates")))
-        env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
+        templates_config = config.get("templates")
+
+        if type(templates_config) == str:
+            # resolve specified template directory path relative to node directory
+            templates_dir = os.path.abspath(
+                os.path.join(self._worker.config.extra.cbdir, templates_config))
+            templates_source = 'directory'
+
+        elif type(templates_config) == dict:
+
+            # in case we got a dict, that must contain "package" and "resource" attributes
+            if 'package' not in templates_config:
+                raise ApplicationError('crossbar.error.invalid_configuration', 'missing attribute "resource" in WAP web service configuration')
+
+            if 'resource' not in templates_config:
+                raise ApplicationError('crossbar.error.invalid_configuration', 'missing attribute "resource" in WAP web service configuration')
+
+            try:
+                importlib.import_module(templates_config['package'])
+            except ImportError as e:
+                emsg = 'Could not import resource {} from package {}: {}'.format(templates_config['resource'], templates_config['package'], e)
+                raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+            else:
+                try:
+                    # resolve template directory from package resource
+                    templates_dir = os.path.abspath(pkg_resources.resource_filename(templates_config['package'], templates_config['resource']))
+                except Exception as e:
+                    emsg = 'Could not import resource {} from package {}: {}'.format(templates_config['resource'], templates_config['package'], e)
+                    raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+
+            templates_source = 'package'
+        else:
+            raise ApplicationError('crossbar.error.invalid_configuration', 'invalid type "{}" for attribute "templates" in WAP web service configuration'.format(type(templates_config)))
+
+        if config.get('sandbox', True):
+            # The sandboxed environment. It works like the regular environment but tells the compiler to
+            # generate sandboxed code.
+            # https://jinja.palletsprojects.com/en/2.11.x/sandbox/#jinja2.sandbox.SandboxedEnvironment
+            env = SandboxedEnvironment(loader=FileSystemLoader(templates_dir), autoescape=True)
+        else:
+            env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
+
         self.log.info(
-            'WapResource added on realm "{realm}" (authrole "{authrole}") using templates directory "{templates_dir}"',
+            'WapResource created (realm="{realm}", authrole="{authrole}", templates_dir="{templates_dir}", templates_source="{templates_source}", jinja2_env={jinja2_env})',
             realm=hlid(self._realm_name),
             authrole=hlid(self._authrole),
-            templates_dir=hlid(templates_dir))
+            templates_dir=hlid(templates_dir),
+            templates_source=hlid(templates_source),
+            jinja2_env=hltype(env.__class__))
 
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.Map
         map = Map()
@@ -110,14 +159,24 @@ class WapResource(resource.Resource):
         # Add all our routes into 'map', note each route endpoint is a tuple of the
         # topic to call, and the template to use when rendering the results.
         for route in config.get('routes', {}):
-            route_url = '/' + path + route.get('path')
+
+            # compute full absolute URL of route to be added - ending in Werkzeug/Routes URL pattern
+            rpath = route['path']
+            _rp = []
+            if path != '/':
+                _rp.append(path)
+            if rpath != '/':
+                _rp.append(rpath)
+            route_url = '/' + '/'.join(_rp)
             route_methods = [route.get('method')]
+
+            # note the WAMP procedure to call and the Jinja2 template to render as HTTP response
             route_endpoint = (route['call'], env.get_template(route['render']))
             map.add(Rule(route_url, methods=route_methods, endpoint=route_endpoint))
             self.log.info(
                 'WapResource route added (url={route_url}, methods={route_methods}, endpoint={route_endpoint})',
-                route_url=route_url,
-                route_methods=route_methods,
+                route_url=hlid(route_url),
+                route_methods=hlid(route_methods),
                 route_endpoint=route_endpoint)
 
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter
@@ -136,6 +195,7 @@ class WapResource(resource.Resource):
         try:
             rendered_html = request.template.render(result)
         except Exception as e:
+            self.log.failure()
             emsg = 'WabResource render error for WAMP result of type "{}": {}'.format(type(result), e)
             self.log.warn(emsg)
             request.setResponseCode(500)
@@ -217,11 +277,14 @@ class WapResource(resource.Resource):
                 full_path=full_path,
                 procedure=procedure)
 
-            # FIXME: how do we allow calling WAMP procedures with positional args?
-            if kwargs:
-                d = session.call(procedure, **kwargs)
+            if procedure:
+                # FIXME: how do we allow calling WAMP procedures with positional args?
+                if kwargs:
+                    d = session.call(procedure, **kwargs)
+                else:
+                    d = session.call(procedure)
             else:
-                d = session.call(procedure)
+                d = succeed({})
 
             # d.addCallback(self._after_call_success, request)
             # d.addErrback(self._after_call_error, request)
@@ -235,15 +298,15 @@ class WapResource(resource.Resource):
 
         except NotFound:
             request.setResponseCode(404)
-            return self._render_error('path not found [werkzeug.routing.MapAdapter.match]', request)
+            return self._render_error('Path "{full_path}" not found [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path), request)
 
         except MethodNotAllowed:
             request.setResponseCode(511)
-            return self._render_error('method not allowed [werkzeug.routing.MapAdapter.match]', request)
+            return self._render_error('Method not allowed on path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path), request)
 
         except Exception:
             request.setResponseCode(500)
-            request.write(self._render_error('unknown error [werkzeug.routing.MapAdapter.match]', request))
+            request.write(self._render_error('Unknown error with path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path), request))
             raise
 
 
@@ -262,7 +325,54 @@ class RouterWebServiceWap(RouterWebService):
         :param config: The Web service configuration item.
         :raises: crossbar.common.checkconfig.InvalidConfigException
         """
-        pass
+        if 'type' not in config:
+            raise InvalidConfigException("missing mandatory attribute 'type' in Web service configuration")
+
+        if config['type'] != 'wap':
+            raise InvalidConfigException('unexpected Web service type "{}"'.format(config['type']))
+
+        check_dict_args({
+            # ID of webservice (must be unique for the web transport)
+            'id': (False, [str]),
+
+            # must be equal to "wap"
+            'type': (True, [str]),
+
+            # path to prvide to Werkzeug/Routes (eg "/test" rather than "test")
+            'path': (False, [str]),
+
+            # local directory or package+resource
+            'templates': (True, [str, Mapping]),
+
+            # create sandboxed jinja2 environment
+            'sandbox': (False, [bool]),
+
+            # Web routes
+            'routes': (True, [Sequence]),
+
+            # WAMP connection configuration
+            'wamp': (True, [Mapping]),
+
+        }, config, "WAMP Application Page (WAP) service configuration".format(config))
+
+        if isinstance(config['templates'], Mapping):
+            check_dict_args({
+                'package': (True, [str]),
+                'resource': (True, [str]),
+            }, config['templates'], "templates in WAP service configuration")
+
+        for route in config['routes']:
+            check_dict_args({
+                'path': (True, [str]),
+                'method': (True, [str]),
+                'call': (False, [str, type(None)]),
+                'render': (True, [str]),
+            }, route, "route in WAP service configuration")
+
+        check_dict_args({
+            'realm': (True, [str]),
+            'authrole': (True, [str]),
+        }, config['wamp'], "wamp in WAP service configuration")
 
     @staticmethod
     def create(transport, path, config):
@@ -277,4 +387,8 @@ class RouterWebServiceWap(RouterWebService):
         personality = transport.worker.personality
         personality.WEB_SERVICE_CHECKERS['wap'](personality, config)
 
-        return RouterWebServiceWap(transport, path, config, WapResource(transport.worker, config, path))
+        resource = WapResource(transport.worker, config, path)
+        if path == '/':
+            resource = RootResource(resource, {})
+
+        return RouterWebServiceWap(transport, path, config, resource)
