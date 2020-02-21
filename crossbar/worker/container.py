@@ -38,6 +38,7 @@ from twisted.python.failure import Failure
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, PublishOptions
+from autobahn.exception import Disconnected
 from autobahn import wamp
 
 from crossbar.worker import _appsession_loader
@@ -489,7 +490,10 @@ class ContainerController(WorkerController):
         if self.is_connected():
             topic = self._uri_prefix + '.container.on_component_stop'
             # XXX just ignoring a Deferred here...
-            self.publish(topic, event)
+            try:
+                self.publish(topic, event)
+            except Disconnected:
+                self.log.debug("publish '{topic}' failed; disconnected already", topic=topic)
         return event
 
     @wamp.register(None)
