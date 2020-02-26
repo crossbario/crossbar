@@ -295,7 +295,7 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
                     proto.is_open.addCallback(_connected)
 
                     def _closed(*arg, **kw):
-                        self.close()
+                        self.sendClose()
                     proto.is_closed.addCallback(_closed)
             else:
                 self._backend_transport.send(hello_msg)
