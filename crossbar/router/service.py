@@ -192,6 +192,30 @@ class RouterServiceAgent(ApplicationSession):
         if not isinstance(failure.value, ApplicationError):
             super(RouterServiceAgent, self).onUserError(failure, msg)
 
+    @wamp.register('wamp.session.summary')
+    def session_summary(self, filter_authroles=None, details=None):
+        """
+        Get summary of sessions currently joined on the router grouped by authroles.
+
+        :param filter_authroles: If provided, only return sessions counts for authroles from this list.
+        :type filter_authroles: None or list
+
+        :returns: Summary of WAMP session counts (associative array role -> count, order undefined).
+        :rtype: list
+        """
+        assert (filter_authroles is None or type(filter_authroles) == list)
+        session_counts = {}
+        for session in self._router._session_id_to_session.values():
+            if not is_restricted_session(session):
+                if filter_authroles is None or (hasattr(session, '_session_details') and session._session_details.authrole in filter_authroles):
+                    auth_role = session._session_details.authrole
+                    if auth_role in session_counts:
+                        session_counts[auth_role] += 1
+                    else:
+                        session_counts[auth_role] = 1
+
+        return session_counts
+
     @wamp.register('wamp.session.list')
     def session_list(self, filter_authroles=None, details=None):
         """
@@ -211,7 +235,7 @@ class RouterServiceAgent(ApplicationSession):
         session_ids = []
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                if filter_authroles is None or session._session_details.authrole in filter_authroles:
+                if filter_authroles is None or (hasattr(session, '_session_details') and session._session_details.authrole in filter_authroles):
                     session_ids.append(session._session_id)
         return session_ids
 
@@ -231,7 +255,7 @@ class RouterServiceAgent(ApplicationSession):
         session_count = 0
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                if filter_authroles is None or session._session_details.authrole in filter_authroles:
+                if filter_authroles is None or (hasattr(session, '_session_details') and session._session_details.authrole in filter_authroles):
                     session_count += 1
         return session_count
 
