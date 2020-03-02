@@ -152,6 +152,15 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
             except TransportLost:
                 self.transport = None
 
+    def close(self):
+        """
+        We are shutting down; close both sides of our connection (however,
+        note that either or both sides may already be closed, depening upon why
+        we're closing here).
+        """
+        if self._backend_transport.is_open():
+            self._backend_transport.close()
+
     def onConnect(self, request):
         """
         We have a connection! However, we want to wait until the client
@@ -285,6 +294,10 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
                         self._backend_transport.send(hello_msg)
                         return x
                     proto._on_handshake_complete = _connected
+
+                    def _closed(*arg, **kw):
+                        self.close()
+                    proto.is_closed.addCallback(_closed)
 
                 # XXX websocket-specific
                 else:
