@@ -159,8 +159,7 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
         note that either or both sides may already be closed, depening upon why
         we're closing here).
         """
-        if self._backend_transport.is_open():
-            self._backend_transport.close()
+        self._backend_transport.close()
 
     def onConnect(self, request):
         """
