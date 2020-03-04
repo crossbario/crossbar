@@ -31,6 +31,7 @@
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
 from autobahn import wamp
+from autobahn.exception import Disconnected
 from autobahn.wamp.exception import ApplicationError, TransportLost
 from autobahn.wamp.message import Goodbye
 from autobahn.wamp.component import _create_transport
@@ -158,8 +159,7 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
         note that either or both sides may already be closed, depening upon why
         we're closing here).
         """
-        if self._backend_transport.is_open():
-            self._backend_transport.close()
+        self._backend_transport.close()
 
     def onConnect(self, request):
         """
@@ -230,8 +230,14 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
             # re-serialization here if we know the backend is using
             # the same serializer .. right? (or, are there
             # edge-cases?)
-            for msg in messages:
-                self._backend_transport.send(msg)
+            try:
+                for msg in messages:
+                    self._backend_transport.send(msg)
+            except Disconnected:
+                self.log.info(
+                    'Disconnected while trying to forward {msgs} messages',
+                    msgs=len(messages),
+                )
 
     def forward_message(self, msg):
         """
