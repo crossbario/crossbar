@@ -470,6 +470,7 @@ class Router(object):
                        payload_type=payload_type, uri=uri, cb_level="trace")
 
 
+# implements IRouterContainer
 class RouterFactory(object):
     """
     Crossbar.io core router factory.
@@ -508,11 +509,20 @@ class RouterFactory(object):
         """
         return self._routers.get(realm, None)
 
+    def has_realm(self, realm):
+        return realm in self._routers
+
+    def has_role(self, realm, role):
+        return self._routers[realm].has_role(role)
+
+    def get_service_session(self, realm):
+        return self._routers[realm]._realm.session
+
     def __getitem__(self, realm):
         return self._routers[realm]
 
     def __contains__(self, realm):
-        return realm in self._routers
+        return self.has_realm(realm)
 
     def on_last_detach(self, router):
         if router.realm in self._routers:
@@ -563,7 +573,7 @@ class RouterFactory(object):
             if arg in realm.config.get('options', {}):
                 setattr(options, arg, realm.config['options'][arg])
 
-        router = Router(self, realm, options, store=store)
+        router = self.router(self, realm, options, store=store)
 
         self._routers[uri] = router
         self.log.info('{klass}.start_realm: router created for realm "{uri}"',

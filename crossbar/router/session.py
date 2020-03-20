@@ -751,7 +751,12 @@ class RouterSession(BaseSession):
                         PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
                     except KeyError:
                         PendingAuthKlass = extra_auth_methods[authmethod]
-                    self._pending_auth = PendingAuthKlass(self, {'type': 'static', 'authrole': 'anonymous', 'authid': authid})
+                    self._pending_auth = PendingAuthKlass(
+                        self._pending_session_id,
+                        self._transport._transport_info,
+                        self._router_factory,
+                        {'type': 'static', 'authrole': 'anonymous', 'authid': authid}
+                    )
                     return self._pending_auth.hello(realm, details)
 
                 else:
@@ -784,7 +789,12 @@ class RouterSession(BaseSession):
                                 PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
                             except KeyError:
                                 PendingAuthKlass = extra_auth_methods[authmethod]
-                            self._pending_auth = PendingAuthKlass(self, auth_config[authmethod])
+                            self._pending_auth = PendingAuthKlass(
+                                self._pending_session_id,
+                                self._transport._transport_info,
+                                self._router_factory,
+                                auth_config[authmethod],
+                            )
                             return self._pending_auth.hello(realm, details)
 
                         # WAMP-Cookie authentication

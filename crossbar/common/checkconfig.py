@@ -2357,7 +2357,7 @@ def check_router_transport(personality, transport, ignore=[]):
         'mqtt',
         'flashpolicy',
         'websocket.testee',
-        'stream.testee'
+        'stream.testee',
     ] + ignore:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
