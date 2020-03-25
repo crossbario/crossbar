@@ -8,7 +8,12 @@ Changelog
 master
 ------
 
-* new: Support Fallback Resource from packages(1711)
+* new: support forwarding of options.extra to native workers
+* fix: error in wamp.session.list and wamp.session.count (#1721)
+* fix: ticket #1725 log on disconnect; don't bother checking before close (#1726)
+* fix: close not propagated properly from backend (for websocket and rawsocket) (#1723)
+* fix: handle disconnected transport during stop notification (#1716)
+* new: Support Fallback Resource from packages (#1711)
 
 20.2.1
 ------

@@ -2885,7 +2885,7 @@ def check_native_worker_options(personality, options, ignore=[]):
         raise InvalidConfigException("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
     for k in options:
-        if k not in ['title', 'python', 'pythonpath', 'cpu_affinity',
+        if k not in ['extra', 'title', 'python', 'pythonpath', 'cpu_affinity',
                      'env', 'expose_controller', 'expose_shared', 'disabled'] + ignore:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in 'options' in worker"
