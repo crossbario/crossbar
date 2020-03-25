@@ -32,9 +32,12 @@ import os
 import sys
 import signal
 import threading
+import binascii
 from datetime import datetime
 from shutil import which
 from collections import namedtuple
+
+import cbor2
 
 from twisted.python.reflect import qual
 from twisted.internet.error import ReactorNotRunning
@@ -437,6 +440,11 @@ class NodeController(NativeProcess):
         # check worker options
         #
         options = worker_options or {}
+        if 'extra' in options:
+            worker_options_extra = binascii.b2a_hex(cbor2.dumps(dict(options['extra'])))
+        else:
+            worker_options_extra = None
+
         try:
             if worker_type in self._node._native_workers:
                 if self._node._native_workers[worker_type]['checkconfig_options']:
@@ -513,6 +521,8 @@ class NodeController(NativeProcess):
             args.extend(["--shutdown", options["shutdown"]])
         if "restart" in options:
             args.extend(["--restart", options["restart"]])
+        if worker_options_extra:
+            args.extend(["--extra", worker_options_extra])
 
         # Node-level callback to inject worker arguments
         #
