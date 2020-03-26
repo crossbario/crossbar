@@ -113,9 +113,6 @@ class ProxySession(object):
         # print("ProxySession.onOpen: {}".format(transport))
         self.transport = transport
 
-    from functools import singledispatchmethod
-
-    @singledispatchmethod
     def onMessage(self, msg):
         """
         Callback fired when a WAMP message was received. May run asynchronously. The callback
@@ -126,14 +123,28 @@ class ProxySession(object):
         :type msg: object implementing :class:`autobahn.wamp.interfaces.IMessage`
         """
         # print("ProxySession.onMessage: {}".format(msg))
-        if self._backend_session is None:
-            print("message to relay, but no backend")
-        else:
-            if self._backend_session._transport is not None:
-                self._backend_session._transport.send(msg)
 
-    @onMessage.register(message.Hello)
+        if isinstance(msg, message.Hello):
+            self._hello_received(msg)
+
+        else:
+            if self._backend_session is None:
+                raise RuntimeError(
+                    "Expected to relay message of type {} but backend is gone".format(
+                        msg.__class__.__name__,
+                    )
+                )
+            else:
+                if self._backend_session._transport is not None:
+                    self._backend_session._transport.send(msg)
+
     def _hello_received(self, msg):
+        """
+        We have received a Hello from the frontend client.
+
+        Now we do any authentication necessary with them and connect
+        to our backend.
+        """
         if self._session_id is not None:
             raise ProtocolError("Hello received but session established already")
 
