@@ -72,7 +72,7 @@ class RouterApplicationSession(object):
 
     log = make_logger()
 
-    def __init__(self, session, router, authid=None, authrole=None, authextra=None):
+    def __init__(self, session, router, authid=None, authrole=None, authextra=None, store=None):
         """
         Wrap an application session and add it to the given broker and dealer.
 
@@ -108,11 +108,22 @@ class RouterApplicationSession(object):
         self._trusted_authrole = authrole
         self._trusted_authextra = authextra
 
+        # FIXME: assemble synthetic session info for the router-embedded application session
+        self._session_details = None
+
+        # if a realm store was configured for this session, remember a reference
+        self._store = store
+        if self._store:
+            self._store.event_store.store_session_joined(self._session, self._session_details)
+
         # set fake transport on session ("pass-through transport")
         #
         self._session._transport = self
 
+        # now start firing "connect" observers on the session ..
         self._session.fire('connect', self._session, self)
+
+        # .. as well as the old-school "onConnect" callback the session.
         self._session.onConnect()
 
     def _swallow_error(self, fail, msg):
@@ -169,6 +180,11 @@ class RouterApplicationSession(object):
         else:
             self.log.warn('{klass}.close: router already none (skipping)',
                           klass=self.__class__.__name__,)
+
+        if self._store:
+            # FIXME
+            close_details = None
+            self._store.event_store.store_session_left(self._session, self._session_details, close_details)
 
     def abort(self):
         """
@@ -1039,7 +1055,7 @@ class RouterSessionFactory(object):
         assert authextra is None or type(authextra) == dict
 
         if session not in self._app_sessions:
-            router_session = RouterApplicationSession(session, router, authid, authrole, authextra)
+            router_session = RouterApplicationSession(session, router, authid, authrole, authextra, store=router._store)
 
             self._app_sessions[session] = router_session
 

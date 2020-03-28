@@ -36,6 +36,7 @@ from twisted.python.reflect import qual
 
 from txaio import make_logger
 
+from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import CallOptions, ComponentConfig
 
 from crossbar._util import hltype, hlid, hluserid, hl
@@ -485,11 +486,11 @@ class Node(object):
                                 "A native worker of type '{}' is configured but "
                                 "there is no method '{}' on {}".format(worker_type, method_name, type(self))
                             )
-                        yield config_fn(worker_logname, worker_id, worker)
-                        self.log.info(
-                            "Ok, {worker_logname} configured",
-                            worker_logname=worker_logname,
-                        )
+                        try:
+                            yield config_fn(worker_logname, worker_id, worker)
+                        except ApplicationError as e:
+                            if e.error != 'wamp.error.canceled':
+                                raise
 
                     d.addCallback(configure_worker, worker_logname, worker_type, worker_id, worker)
 
@@ -512,7 +513,7 @@ class Node(object):
 
         yield gatherResults(dl)
 
-        self.log.info(hl('Ok, local node configuration booted successfully!', color='green', bold=True))
+        self.log.info(hl('Ok, local node configuration ran successfully.', color='green', bold=True))
 
     @inlineCallbacks
     def _configure_native_worker_common(self, worker_logname, worker_id, worker):
