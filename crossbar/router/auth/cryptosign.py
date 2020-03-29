@@ -42,7 +42,10 @@ from txaio import make_logger
 
 from crossbar.router.auth.pending import PendingAuth
 
-__all__ = ('PendingAuthCryptosign',)
+__all__ = (
+    'PendingAuthCryptosign',
+    'PendingAuthCryptosignProxy',
+)
 
 
 class PendingAuthCryptosign(PendingAuth):
@@ -231,3 +234,26 @@ class PendingAuthCryptosign(PendingAuth):
 
             # should not arrive here .. but who knows
             return types.Deny(message='internal error: {}'.format(e))
+
+
+class PendingAuthCryptosignProxy(PendingAuthCryptosign):
+    """
+    Pending Cryptosign authentication with additions for proxy
+    """
+
+    log = make_logger()
+    AUTHMETHOD = 'cryptosign-proxy'
+
+    def hello(self, realm, details):
+        # now, check anything we got in the authextra
+        extra = details.authextra or {}
+        if extra.get('cb_proxy_authid', None):
+            details.authid = extra['cb_proxy_authid']
+
+        if extra.get('cb_proxy_authrole', None):
+            details.authrole = extra['cb_proxy_authrole']
+
+        if extra.get('cb_proxy_authrealm', None):
+            realm = extra['cb_proxy_authrealm']
+
+        return super(PendingAuthCryptosignProxy, self).hello(realm, details)

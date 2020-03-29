@@ -234,7 +234,7 @@ class PendingAuth:
         :param details: The details of the client provided for HELLO.
         :type details: dict
         """
-        raise Exception("not implemented")
+        raise Exception("not implemented {})".format(self.__class__.__name__))
 
     def authenticate(self, signature):
         """

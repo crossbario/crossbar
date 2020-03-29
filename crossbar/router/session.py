@@ -781,8 +781,8 @@ class RouterSession(BaseSession):
                         # WAMP-Anonymous, WAMP-Ticket, WAMP-CRA, WAMP-TLS, WAMP-Cryptosign
                         # WAMP-SCRAM
                         pending_auth_methods = [
-                            'anonymous', 'ticket', 'wampcra', 'tls',
-                            'cryptosign', 'scram',
+                            'anonymous', 'anonymous-proxy', 'ticket', 'wampcra', 'tls',
+                            'cryptosign', 'cryptosign-proxy', 'scram',
                         ] + list(extra_auth_methods.keys())
                         if authmethod in pending_auth_methods:
                             try:
@@ -832,6 +832,7 @@ class RouterSession(BaseSession):
             if isinstance(self._pending_auth, PendingAuthTicket) or \
                isinstance(self._pending_auth, PendingAuthWampCra) or \
                isinstance(self._pending_auth, PendingAuthCryptosign) or \
+               isinstance(self._pending_auth, PendingAuthCryptosignProxy) or \
                isinstance(self._pending_auth, PendingAuthScram):
                 return self._pending_auth.authenticate(signature)
 

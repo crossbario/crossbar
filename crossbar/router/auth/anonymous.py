@@ -106,3 +106,26 @@ class PendingAuthAnonymous(PendingAuth):
         else:
             # should not arrive here, as config errors should be caught earlier
             return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+
+
+class PendingAuthAnonymousProxy(PendingAuthAnonymous):
+    """
+    Pending Anonymous authentication with additions for proxy
+    """
+
+    log = make_logger()
+    AUTHMETHOD = 'anonymous-proxy'
+
+    def hello(self, realm, details):
+        # now, check anything we got in the authextra
+        extra = details.authextra or {}
+        if extra.get('cb_proxy_authid', None):
+            details.authid = extra['cb_proxy_authid']
+
+        if extra.get('cb_proxy_authrole', None):
+            details.authrole = extra['cb_proxy_authrole']
+
+        if extra.get('cb_proxy_authrealm', None):
+            realm = extra['cb_proxy_authrealm']
+
+        return super(PendingAuthAnonymousProxy, self).hello(realm, details)

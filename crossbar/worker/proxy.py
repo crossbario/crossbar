@@ -29,11 +29,13 @@
 #####################################################################################
 
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
+from twisted.internet.endpoints import UNIXClientEndpoint
 
 from autobahn import wamp
 from autobahn import util
 from autobahn.wamp import types
 from autobahn.wamp import message
+from autobahn.wamp.auth import create_authenticator
 from autobahn.wamp.exception import ApplicationError, ProtocolError, Error
 from autobahn.wamp.role import RoleDealerFeatures, RoleBrokerFeatures
 from autobahn.wamp.component import _create_transport
@@ -44,6 +46,7 @@ from autobahn.twisted.component import _create_transport_factory, _create_transp
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
 from crossbar.worker.router import RouterController
+from crossbar.common.key import _read_node_key
 
 
 __all__ = (
@@ -86,6 +89,7 @@ class ProxySession(object):
         # if we have a backend connection, it'll be here (and be a
         # Session instance)
         self._backend_session = None
+        self._established = False
 
         # in _transport_info are (possibly) the following keys (gleaned from router/session.py):
         # client_cert
@@ -126,6 +130,9 @@ class ProxySession(object):
 
         if isinstance(msg, message.Hello):
             self._hello_received(msg)
+
+        elif isinstance(msg, message.Welcome):
+            self._established = True
 
         else:
             if self._backend_session is None:
@@ -229,6 +236,7 @@ class ProxySession(object):
 
         if isinstance(msg, message.Welcome):
 
+            @inlineCallbacks
             def _backend_connected(backend_session):
                 """
                 we have done authentication with the client; now we can connect to
@@ -237,27 +245,40 @@ class ProxySession(object):
                 backend).
                 """
 
+                yield backend_session._on_connect
+                self._backend_session = backend_session
+
                 def welcome(session, details):
                     """
                     finally pass our Welcome to the frontend once we've Joined on the
                     backend
                     """
                     self.transport.send(msg)
-                backend_session.on('join', welcome)
+                self._backend_session.on('join', welcome)
 
-                self._backend_session = backend_session
+                key = _read_node_key(self._controller._cbdir, private=False)
+                authmethods = [
+                    '{}-proxy'.format(x)
+                    for x in self._backend_session._authenticators.keys()
+                ]
+
                 self._backend_session.join(
                     self._realm,
-                    authmethods=None,
-                    authid=self._controller._worker_id,  # ..or something else?
+                    authmethods=authmethods,
+                    authid=None,
                     authrole=self._authrole,  # same role as front-end?
                     authextra={
                         "cb_proxy_authid": self._authid,
+                        "cb_proxy_authrealm": self._realm,
+                        "cb_proxy_authrole": self._authrole,
+                        "cb_proxy_authextra": msg.authextra,
+                        "pubkey": key['hex'],
                     }
                 )
                 return backend_session
 
             def _backend_failed(fail):
+                # print("_backend_failed", fail)
                 self.transport.send(
                     message.Abort(
                         "wamp.error.runtime_error",
@@ -287,7 +308,7 @@ class ProxySession(object):
         if not self._controller.has_realm(realm):
             return types.Deny(
                 ApplicationError.NO_SUCH_REALM,
-                message='no realm "{}" exists on this router'.format(realm),
+                message='no realm "{}" exists on this proxy'.format(realm),
             )
         if not self._controller.can_map_backend(details.pending_session, realm, details.authid, details.authrole):
             # XXX maybe want better errors here? maybe can_map should return a Deny?
@@ -363,6 +384,7 @@ class BackendProxySession(Session):
     def onOpen(self, transport):
         # instance of Frontend
         self._frontend = transport._proxy_other_side
+        self._on_connect = Deferred()
         return Session.onOpen(self, transport)
 
     def onConnect(self):
@@ -371,11 +393,34 @@ class BackendProxySession(Session):
         instead we await the frontend sending its hello and forward
         that along.
         """
-        pass
+        self._on_connect.callback(None)
+
+    def onChallenge(self, challenge):
+        if challenge.method == "cryptosign-proxy":
+            return super(BackendProxySession, self).onChallenge(
+                types.Challenge("cryptosign", extra=challenge.extra)
+            )
+
+        return super(BackendProxySession, self).onChallenge(challenge)
+
+    def onWelcome(self, msg):
+        if msg.authmethod == "cryptosign-proxy":
+            msg.authmethod = "cryptosign"
+        return super(BackendProxySession, self).onWelcome(msg)
 
     def onClose(self, wasClean):
         if self._frontend:
-            self._frontend.transport.send(message.Goodbye())
+            if self._frontend._established:
+                self._frontend.transport.send(message.Goodbye())
+            else:
+                # print("FAILED:", self, "closed", wasClean)
+                self._frontend.transport.send(
+                    message.Abort(
+                        "wamp.error.runtime_error",
+                        "Failed to connect to backend",
+                    )
+                )
+                #self._frontend.transport.close()
         self._frontend = None
         super(BackendProxySession, self).onClose(wasClean)
 
@@ -390,7 +435,7 @@ class BackendProxySession(Session):
             self._frontend.forward_message(msg)
 
 
-def make_backend_connection(backend_config, frontend_session):
+def make_backend_connection(backend_config, frontend_session, cbdir):
     """
     Connects to a 'backend' session with the given config; returns a
     transport that is definitely connected (e.g. you can send a Hello
@@ -401,9 +446,28 @@ def make_backend_connection(backend_config, frontend_session):
 
     connected_d = Deferred()
     backend = _create_transport(0, backend_config['transport'])
+    key = _read_node_key(cbdir, private=True)
 
     def create_session():
         session = BackendProxySession()
+        # we allow anonymous authentication to just unix-sockets
+        # currently. I don't think it's a good idea to allow any
+        # anonymous auth to "real" backends over TCP due to
+        # cross-protocol hijinks (and if a Web browser is running on
+        # that machine, any website can try to access the "real"
+        # backend)
+        if isinstance(endpoint, UNIXClientEndpoint):
+            # print("local unix endpoint; anonymous auth permitted")
+            session.add_authenticator(create_authenticator("anonymous"))
+
+        # we will do cryptosign authentication to any backend
+        session.add_authenticator(
+            create_authenticator(
+                "cryptosign",
+                privkey=key['hex'],
+            )
+        )
+
         def connected(session, transport):
             connected_d.callback(session)
         session.on('connect', connected)
@@ -497,7 +561,7 @@ class ProxyController(RouterController):
                 )
             self._routes.get(realm, {}).values()[0]
 
-        backend_proto = yield make_backend_connection(backend_config, frontend_session)
+        backend_proto = yield make_backend_connection(backend_config, frontend_session, self._cbdir)
 
         returnValue(backend_proto)
 
