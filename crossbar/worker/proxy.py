@@ -406,6 +406,8 @@ class BackendProxySession(Session):
     def onWelcome(self, msg):
         if msg.authmethod == "cryptosign-proxy":
             msg.authmethod = "cryptosign"
+        elif msg.authmethod == "anonymous-proxy":
+            msg.authmethod = "anonymous"
         return super(BackendProxySession, self).onWelcome(msg)
 
     def onClose(self, wasClean):
