@@ -28,6 +28,7 @@
 #
 #####################################################################################
 
+import binascii
 from autobahn.wamp import types
 
 from crossbar.router.auth.pending import PendingAuth
@@ -42,10 +43,19 @@ class PendingAuthTLS(PendingAuth):
 
     AUTHMETHOD = 'tls'
 
-    def __init__(self, session, config):
-        PendingAuth.__init__(self, session, config)
+    def __init__(self, pending_session_id, transport_info, realm_container, config):
+        super(PendingAuthTLS, self).__init__(
+            pending_session_id, transport_info, realm_container, config,
+        )
 
-        self._transport = session._transport
+        # https://tools.ietf.org/html/rfc5056
+        # https://tools.ietf.org/html/rfc5929
+        # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
+        channel_id_hex = transport_info.get('channel_id', None)
+        if channel_id_hex:
+            self._channel_id = binascii.a2b_hex(channel_id_hex)
+        else:
+            self._channel_id = None
 
         # for static-mode, the config has principals as a dict indexed
         # by authid, but we need the reverse map: cert-sha1 -> principal
@@ -111,11 +121,11 @@ class PendingAuthTLS(PendingAuth):
                     return error
 
                 # FIXME: not sure about this .. TLS is a transport-level auth mechanism .. so forward
-                self._transport._authid = self._authid
-                self._transport._authrole = self._authrole
-                self._transport._authmethod = self._authmethod
-                self._transport._authprovider = self._authprovider
-                self._transport._authextra = self._authextra
+                # self._transport._authid = self._authid
+                # self._transport._authrole = self._authrole
+                # self._transport._authmethod = self._authmethod
+                # self._transport._authprovider = self._authprovider
+                # self._transport._authextra = self._authextra
 
                 return self._accept()
 

@@ -47,8 +47,10 @@ class PendingAuthTicket(PendingAuth):
 
     AUTHMETHOD = 'ticket'
 
-    def __init__(self, session, config):
-        PendingAuth.__init__(self, session, config)
+    def __init__(self, pending_session_id, transport_info, realm_container, config):
+        super(PendingAuthTicket, self).__init__(
+            pending_session_id, transport_info, realm_container, config,
+        )
 
         # The secret/ticket the authenticating principal will need to provide (filled only in static mode).
         self._signature = None

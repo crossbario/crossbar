@@ -30,6 +30,7 @@
 
 import abc
 from autobahn.wamp import types
+from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.exception import ApplicationError
 
 __all__ = ('PendingAuth',)
@@ -42,19 +43,19 @@ class IRealmContainer(abc.ABC):
     """
 
     @abc.abstractmethod
-    def has_realm(self, realm):
+    def has_realm(self, realm: str) -> bool:
         """
         :returns: True if the given realm exists
         """
 
     @abc.abstractmethod
-    def has_role(self, realm, role):
+    def has_role(self, realm: str, role: str) -> bool:
         """
         :returns: True if the given role exists inside the realm
         """
 
     @abc.abstractmethod
-    def get_service_session(self):
+    def get_service_session(self, realm: str) -> ISession:
         """
         :returns: ApplicationSession suitable for use by dynamic
             authenticators
@@ -76,12 +77,11 @@ class PendingAuth:
         """
         :param int pending_session_id: the Session ID if this succeeds
 
-        :param dict transport_info: information about the session's rtansport
+        :param dict transport_info: information about the session's transport
 
         :param IRealmContainer realm_container: access configured realms / roles
 
-        :param config: Authentication configuration to apply for the pending auth.
-        :type config: dict
+        :param dict config: Authentication configuration to apply for the pending auth.
         """
 
         # Details about the authenticating session

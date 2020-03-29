@@ -55,13 +55,15 @@ class PendingAuthScram(PendingAuth):
 
     AUTHMETHOD = 'scram'
 
-    def __init__(self, session, config):
-        PendingAuth.__init__(self, session, config)
+    def __init__(self, pending_session_id, transport_info, realm_container, config):
+        super(PendingAuthScram, self).__init__(
+            pending_session_id, transport_info, realm_container, config,
+        )
 
         # https://tools.ietf.org/html/rfc5056
         # https://tools.ietf.org/html/rfc5929
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
-        channel_id_hex = session._transport._transport_info.get('channel_id', None)
+        channel_id_hex = transport_info.get('channel_id', None)
         if channel_id_hex:
             self._channel_id = binascii.a2b_hex(channel_id_hex)
         else:

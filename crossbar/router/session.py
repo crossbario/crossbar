@@ -57,9 +57,10 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
 try:
-    from crossbar.router.auth import PendingAuthCryptosign
+    from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
 except ImportError:
     PendingAuthCryptosign = None
+    PendingAuthCryptosignProxy = None
 
 
 __all__ = ('RouterSessionFactory',)

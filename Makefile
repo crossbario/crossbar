@@ -155,6 +155,12 @@ test_router:
 test_testament:
 	trial crossbar.router.test.test_testament
 
+test_auth_ticket:
+	trial crossbar.router.test.test_authorize.TestDynamicAuth.test_authextra_ticket
+
+test_auth:
+	trial crossbar.router.test.test_authorize
+
 test_reactors:
 	clear
 	-crossbar version --loglevel=debug

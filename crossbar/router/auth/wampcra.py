@@ -46,8 +46,10 @@ class PendingAuthWampCra(PendingAuth):
 
     AUTHMETHOD = 'wampcra'
 
-    def __init__(self, session, config):
-        PendingAuth.__init__(self, session, config)
+    def __init__(self, pending_session_id, transport_info, realm_container, config):
+        super(PendingAuthWampCra, self).__init__(
+            pending_session_id, transport_info, realm_container, config,
+        )
 
         # The signature we expect the client to send in AUTHENTICATE.
         self._signature = None

@@ -420,7 +420,7 @@ class BackendProxySession(Session):
                         "Failed to connect to backend",
                     )
                 )
-                #self._frontend.transport.close()
+                # self._frontend.transport.close()
         self._frontend = None
         super(BackendProxySession, self).onClose(wasClean)
 
@@ -644,4 +644,3 @@ class ProxyController(RouterController):
                 "Already have a connection named '{}'".format(name)
             )
         self._backend_configs[name] = options
-
