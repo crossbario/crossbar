@@ -31,12 +31,32 @@
 from twisted.trial import unittest
 from twisted.internet import defer
 
+import txaio
+txaio.use_twisted()  # noqa
+
 from crossbar.router.role import RouterRoleStaticAuth
 from crossbar.router.auth import cryptosign, wampcra, ticket, tls, anonymous
 
 from autobahn.wamp import types
 
 from mock import Mock
+
+
+class MockRealmContainer(object):
+    def __init__(self, realm, roles, session):
+        self._realm = realm
+        self._roles = roles
+        self._session = session
+
+    def has_realm(self, realm):
+        return realm == self._realm
+
+    def has_role(self, realm, role):
+        return realm == self._realm and role in self._roles
+
+    def get_service_session(self, realm):
+        assert realm == self._realm, 'realm must be "{}", but was "{}"'.format(self._realm, realm)
+        return self._session
 
 
 class TestDynamicAuth(unittest.TestCase):
@@ -77,7 +97,11 @@ class TestDynamicAuth(unittest.TestCase):
         details = Mock()
         details.authextra = extra
 
-        auth = cryptosign.PendingAuthCryptosign(session, config)
+        pending_session_id = 1
+        transport_info = {}
+        realm_container = MockRealmContainer("realm", ["some_role"], session)
+
+        auth = cryptosign.PendingAuthCryptosign(pending_session_id, transport_info, realm_container, config)
         reply = auth.hello("realm", details)
 
         val = reply.result
@@ -124,7 +148,11 @@ class TestDynamicAuth(unittest.TestCase):
         details.authid = 'alice'
         details.authextra = extra
 
-        auth = wampcra.PendingAuthWampCra(session, config)
+        pending_session_id = 1
+        transport_info = {}
+        realm_container = MockRealmContainer("realm", ["some_role"], session)
+
+        auth = wampcra.PendingAuthWampCra(pending_session_id, transport_info, realm_container, config)
         reply = auth.hello("realm", details)
 
         val = reply.result
@@ -171,7 +199,11 @@ class TestDynamicAuth(unittest.TestCase):
         details.authid = 'alice'
         details.authextra = extra
 
-        auth = tls.PendingAuthTLS(session, config)
+        pending_session_id = 1
+        transport_info = {}
+        realm_container = MockRealmContainer("realm", ["some_role"], session)
+
+        auth = tls.PendingAuthTLS(pending_session_id, transport_info, realm_container, config)
         reply = auth.hello("realm", details)
 
         val = reply.result
@@ -217,7 +249,11 @@ class TestDynamicAuth(unittest.TestCase):
         details.authid = 'alice'
         details.authextra = extra
 
-        auth = anonymous.PendingAuthAnonymous(session, config)
+        pending_session_id = 1
+        transport_info = {}
+        realm_container = MockRealmContainer("realm", ["some_role"], session)
+
+        auth = anonymous.PendingAuthAnonymous(pending_session_id, transport_info, realm_container, config)
         reply = auth.hello("realm", details)
 
         val = reply.result
@@ -263,7 +299,11 @@ class TestDynamicAuth(unittest.TestCase):
         details.authid = 'alice'
         details.authextra = extra
 
-        auth = ticket.PendingAuthTicket(session, config)
+        pending_session_id = 1
+        transport_info = {}
+        realm_container = MockRealmContainer("realm", ["some_role"], session)
+
+        auth = ticket.PendingAuthTicket(pending_session_id, transport_info, realm_container, config)
         val = auth.hello("realm", details)
 
         self.assertTrue(isinstance(val, types.Challenge))
