@@ -609,6 +609,7 @@ def check_transport_auth(personality, auth, ignore=[], checks=None):
         'tls': check_transport_auth_tls,
         'cookie': check_transport_auth_cookie,
         'cryptosign': check_transport_auth_cryptosign,
+        'cryptosign-proxy': check_transport_auth_cryptosign,
         'scram': check_transport_auth_scram,
 
         # FIXME: these are actually not the same as corresponding non-proxied configuration items
