@@ -643,7 +643,7 @@ class Node(object):
 
                 if transport['type'] == 'web':
                     paths = transport.get('paths', {})
-                elif transport['type'] in ('universal', 'proxy'):
+                elif transport['type'] in ('universal'):
                     paths = transport.get('web', {}).get('paths', {})
                 else:
                     paths = None
@@ -775,8 +775,68 @@ class Node(object):
                                         transport_id,
                                         transport,
                                         options=CallOptions())
+
+            if transport['type'] == 'web':
+                paths = transport.get('paths', {})
+            elif transport['type'] in ('universal'):
+                paths = transport.get('web', {}).get('paths', {})
+            else:
+                paths = None
+
+            # Web service paths
+            if paths:
+                for path in sorted(paths):
+                    if path != '/':
+                        webservice = paths[path]
+
+                        if 'id' in webservice:
+                            webservice_id = webservice['id']
+                        else:
+                            webservice_id = 'webservice{:03d}'.format(self._webservice_no)
+                            webservice['id'] = webservice_id
+                            self._webservice_no += 1
+
+                        self.log.info(
+                            "Order Transport {transport_id} to start Web Service {webservice_id}",
+                            transport_id=hlid(transport_id),
+                            webservice_id=hlid(webservice_id),
+                            path=hluserid(path),
+                        )
+
+                        yield self._controller.call('crossbar.worker.{}.start_web_transport_service'.format(worker_id),
+                                                    transport_id,
+                                                    path,
+                                                    webservice,
+                                                    options=CallOptions())
+                        self.log.info(
+                            "Ok, Transport {transport_id} has started Web Service {webservice_id}",
+                            transport_id=hlid(transport_id),
+                            webservice_id=hlid(webservice_id),
+                            path=hluserid(path),
+                        )
+
             self.log.info(
                 "Ok, {worker_logname} has started Transport {transport_id}",
                 worker_logname=worker_logname,
                 transport_id=hlid(transport_id),
+            )
+
+        # set up backend connections on the proxy
+
+        for i, connection_name in enumerate(worker.get('connections', {})):
+            print(i, connection_name)
+            yield self._controller.call(
+                'crossbar.worker.{}.start_proxy_connection'.format(worker_id),
+                connection_name,
+                worker['connections'].get(connection_name, {}),
+            )
+
+        # set up realms and roles on the proxy
+
+        for i, realm_name in enumerate(worker.get('routes', {})):
+            print(i, realm_name)
+            yield self._controller.call(
+                'crossbar.worker.{}.start_proxy_route'.format(worker_id),
+                realm_name,
+                worker['routes'].get(realm_name, {}),
             )

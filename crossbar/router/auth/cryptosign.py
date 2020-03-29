@@ -42,7 +42,10 @@ from txaio import make_logger
 
 from crossbar.router.auth.pending import PendingAuth
 
-__all__ = ('PendingAuthCryptosign',)
+__all__ = (
+    'PendingAuthCryptosign',
+    'PendingAuthCryptosignProxy',
+)
 
 
 class PendingAuthCryptosign(PendingAuth):
@@ -54,14 +57,16 @@ class PendingAuthCryptosign(PendingAuth):
 
     AUTHMETHOD = 'cryptosign'
 
-    def __init__(self, session, config):
-        PendingAuth.__init__(self, session, config)
+    def __init__(self, pending_session_id, transport_info, realm_container, config):
+        super(PendingAuthCryptosign, self).__init__(
+            pending_session_id, transport_info, realm_container, config,
+        )
         self._verify_key = None
 
         # https://tools.ietf.org/html/rfc5056
         # https://tools.ietf.org/html/rfc5929
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
-        channel_id_hex = session._transport._transport_info.get('channel_id', None)
+        channel_id_hex = transport_info.get('channel_id', None)
         if channel_id_hex:
             self._channel_id = binascii.a2b_hex(channel_id_hex)
         else:
@@ -229,3 +234,26 @@ class PendingAuthCryptosign(PendingAuth):
 
             # should not arrive here .. but who knows
             return types.Deny(message='internal error: {}'.format(e))
+
+
+class PendingAuthCryptosignProxy(PendingAuthCryptosign):
+    """
+    Pending Cryptosign authentication with additions for proxy
+    """
+
+    log = make_logger()
+    AUTHMETHOD = 'cryptosign-proxy'
+
+    def hello(self, realm, details):
+        # now, check anything we got in the authextra
+        extra = details.authextra or {}
+        if extra.get('cb_proxy_authid', None):
+            details.authid = extra['cb_proxy_authid']
+
+        if extra.get('cb_proxy_authrole', None):
+            details.authrole = extra['cb_proxy_authrole']
+
+        if extra.get('cb_proxy_authrealm', None):
+            realm = extra['cb_proxy_authrealm']
+
+        return super(PendingAuthCryptosignProxy, self).hello(realm, details)

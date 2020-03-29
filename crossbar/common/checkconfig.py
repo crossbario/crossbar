@@ -609,6 +609,7 @@ def check_transport_auth(personality, auth, ignore=[], checks=None):
         'tls': check_transport_auth_tls,
         'cookie': check_transport_auth_cookie,
         'cryptosign': check_transport_auth_cryptosign,
+        'cryptosign-proxy': check_transport_auth_cryptosign,
         'scram': check_transport_auth_scram,
     }
     for k in auth:
@@ -2357,7 +2358,7 @@ def check_router_transport(personality, transport, ignore=[]):
         'mqtt',
         'flashpolicy',
         'websocket.testee',
-        'stream.testee'
+        'stream.testee',
     ] + ignore:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 

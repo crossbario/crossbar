@@ -29,6 +29,7 @@
 #####################################################################################
 
 from crossbar.router.auth.anonymous import PendingAuthAnonymous  # noqa
+from crossbar.router.auth.anonymous import PendingAuthAnonymousProxy  # noqa
 from crossbar.router.auth.wampcra import PendingAuthWampCra  # noqa
 from crossbar.router.auth.ticket import PendingAuthTicket  # noqa
 from crossbar.router.auth.tls import PendingAuthTLS  # noqa
@@ -40,8 +41,10 @@ AUTHMETHODS = set([
     'wampcra',
     'tls',
     'cryptosign',
+    'cryptosign-proxy',
     'cookie',
     'anonymous',
+    'anonymous-proxy',
     'scram',
 ])
 
@@ -50,6 +53,7 @@ AUTHMETHODS = set([
 # entry here .. eg when dependencies are missing
 AUTHMETHOD_MAP = {
     'anonymous': PendingAuthAnonymous,
+    'anonymous-proxy': PendingAuthAnonymousProxy,
     'ticket': PendingAuthTicket,
     'wampcra': PendingAuthWampCra,
     'tls': PendingAuthTLS,
@@ -74,5 +78,8 @@ __all__ = [
 
 if HAS_CRYPTOSIGN:
     from crossbar.router.auth.cryptosign import PendingAuthCryptosign  # noqa
+    from crossbar.router.auth.cryptosign import PendingAuthCryptosignProxy  # noqa
     __all__.append('PendingAuthCryptosign')
+    __all__.append('PendingAuthCryptosignProxy')
     AUTHMETHOD_MAP['cryptosign'] = PendingAuthCryptosign
+    AUTHMETHOD_MAP['cryptosign-proxy'] = PendingAuthCryptosignProxy

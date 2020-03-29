@@ -767,7 +767,12 @@ class RouterSession(BaseSession):
                         PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
                     except KeyError:
                         PendingAuthKlass = extra_auth_methods[authmethod]
-                    self._pending_auth = PendingAuthKlass(self, {'type': 'static', 'authrole': 'anonymous', 'authid': authid})
+                    self._pending_auth = PendingAuthKlass(
+                        self._pending_session_id,
+                        self._transport._transport_info,
+                        self._router_factory,
+                        {'type': 'static', 'authrole': 'anonymous', 'authid': authid}
+                    )
                     return self._pending_auth.hello(realm, details)
 
                 else:
@@ -792,15 +797,20 @@ class RouterSession(BaseSession):
                         # WAMP-Anonymous, WAMP-Ticket, WAMP-CRA, WAMP-TLS, WAMP-Cryptosign
                         # WAMP-SCRAM
                         pending_auth_methods = [
-                            'anonymous', 'ticket', 'wampcra', 'tls',
-                            'cryptosign', 'scram',
+                            'anonymous', 'anonymous-proxy', 'ticket', 'wampcra', 'tls',
+                            'cryptosign', 'cryptosign-proxy', 'scram',
                         ] + list(extra_auth_methods.keys())
                         if authmethod in pending_auth_methods:
                             try:
                                 PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
                             except KeyError:
                                 PendingAuthKlass = extra_auth_methods[authmethod]
-                            self._pending_auth = PendingAuthKlass(self, auth_config[authmethod])
+                            self._pending_auth = PendingAuthKlass(
+                                self._pending_session_id,
+                                self._transport._transport_info,
+                                self._router_factory,
+                                auth_config[authmethod],
+                            )
                             return self._pending_auth.hello(realm, details)
 
                         # WAMP-Cookie authentication
@@ -838,6 +848,7 @@ class RouterSession(BaseSession):
             if isinstance(self._pending_auth, PendingAuthTicket) or \
                isinstance(self._pending_auth, PendingAuthWampCra) or \
                isinstance(self._pending_auth, PendingAuthCryptosign) or \
+               isinstance(self._pending_auth, PendingAuthCryptosignProxy) or \
                isinstance(self._pending_auth, PendingAuthScram):
                 return self._pending_auth.authenticate(signature)
 

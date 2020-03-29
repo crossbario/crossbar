@@ -28,10 +28,37 @@
 #
 #####################################################################################
 
+import abc
 from autobahn.wamp import types
 from autobahn.wamp.exception import ApplicationError
 
 __all__ = ('PendingAuth',)
+
+
+class IRealmContainer(abc.ABC):
+    """
+    An object the authentication system can query about the existince
+    of realms and roles.
+    """
+
+    @abc.abstractmethod
+    def has_realm(self, realm):
+        """
+        :returns: True if the given realm exists
+        """
+
+    @abc.abstractmethod
+    def has_role(self, realm, role):
+        """
+        :returns: True if the given role exists inside the realm
+        """
+
+    @abc.abstractmethod
+    def get_service_session(self):
+        """
+        :returns: ApplicationSession suitable for use by dynamic
+            authenticators
+        """
 
 
 class PendingAuth:
@@ -45,27 +72,28 @@ class PendingAuth:
 
     AUTHMETHOD = 'abstract'
 
-    def __init__(self, session, config):
+    def __init__(self, pending_session_id, transport_info, realm_container, config):
         """
+        :param int pending_session_id: the Session ID if this succeeds
 
-        :param session: The authenticating session.
-        :type session: obj
+        :param dict transport_info: information about the session's rtansport
+
+        :param IRealmContainer realm_container: access configured realms / roles
+
         :param config: Authentication configuration to apply for the pending auth.
         :type config: dict
         """
-        # The session that is authenticating
-        self._session = session
 
         # Details about the authenticating session
         self._session_details = {
-            'transport': session._transport._transport_info,
-            'session': session._pending_session_id,
+            'transport': transport_info,
+            'session': pending_session_id,
             'authmethod': None,
             'authextra': None
         }
 
         # The router factory we are working for
-        self._router_factory = session._router_factory
+        self._realm_container = realm_container
 
         # WAMP-Ticket configuration to apply for the pending auth
         self._config = config
@@ -142,12 +170,18 @@ class PendingAuth:
             return types.Deny(ApplicationError.NO_SUCH_ROLE, message='no authrole assigned')
 
         # if realm is not started on router, bail out now!
-        if self._realm not in self._router_factory:
-            return types.Deny(ApplicationError.NO_SUCH_REALM, message='no realm "{}" exists on this router'.format(self._realm))
+        if not self._realm_container.has_realm(self._realm):
+            return types.Deny(
+                ApplicationError.NO_SUCH_REALM,
+                message='no realm "{}" exists on this router'.format(self._realm)
+            )
 
         # if role is not running on realm, bail out now!
-        if self._authrole and not self._router_factory[self._realm].has_role(self._authrole):
-            return types.Deny(ApplicationError.NO_SUCH_ROLE, message='realm "{}" has no role "{}"'.format(self._realm, self._authrole))
+        if self._authrole and not self._realm_container.has_role(self._realm, self._authrole):
+            return types.Deny(
+                ApplicationError.NO_SUCH_ROLE,
+                message='realm "{}" has no role "{}"'.format(self._realm, self._authrole)
+            )
 
     def _init_dynamic_authenticator(self):
         self._authenticator = self._config['authenticator']
@@ -155,14 +189,20 @@ class PendingAuth:
         authenticator_realm = None
         if 'authenticator-realm' in self._config:
             authenticator_realm = self._config['authenticator-realm']
-            if authenticator_realm not in self._router_factory:
-                return types.Deny(ApplicationError.NO_SUCH_REALM, message="explicit realm <{}> configured for dynamic authenticator does not exist".format(authenticator_realm))
+            if not self._realm_container.has_realm(authenticator_realm):
+                return types.Deny(
+                    ApplicationError.NO_SUCH_REALM,
+                    message="explicit realm <{}> configured for dynamic authenticator does not exist".format(authenticator_realm)
+                )
         else:
             if not self._realm:
-                return types.Deny(ApplicationError.NO_SUCH_REALM, message="client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)")
+                return types.Deny(
+                    ApplicationError.NO_SUCH_REALM,
+                    message="client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)"
+                )
             authenticator_realm = self._realm
 
-        self._authenticator_session = self._router_factory.get(authenticator_realm)._realm.session
+        self._authenticator_session = self._realm_container.get_service_session(authenticator_realm)
 
     def _marshal_dynamic_authenticator_error(self, err):
         if isinstance(err.value, ApplicationError):
@@ -194,7 +234,7 @@ class PendingAuth:
         :param details: The details of the client provided for HELLO.
         :type details: dict
         """
-        raise Exception("not implemented")
+        raise Exception("not implemented {})".format(self.__class__.__name__))
 
     def authenticate(self, signature):
         """
