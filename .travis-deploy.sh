@@ -2,7 +2,7 @@
 
 set +o verbose -o errexit
 
-# crossbar_VERSION             : must be set in travis.yml!
+# CROSSBAR_VERSION             : must be set in travis.yml!
 export AWS_DEFAULT_REGION=eu-central-1
 export AWS_S3_BUCKET_NAME=crossbarbuilder
 # AWS_ACCESS_KEY_ID         : must be set in Travis CI build context!
@@ -50,14 +50,14 @@ ls -la ./dist
 # upload to S3: https://s3.eu-central-1.amazonaws.com/crossbarbuilder/wheels/
 echo 'uploading package ..'
 # aws s3 cp --recursive ./dist s3://${AWS_S3_BUCKET_NAME}/wheels
-aws s3 rm s3://${AWS_S3_BUCKET_NAME}/wheels/crossbar-${crossbar_VERSION}-py2.py3-none-any.whl
+aws s3 rm s3://${AWS_S3_BUCKET_NAME}/wheels/crossbar-${CROSSBAR_VERSION}-py2.py3-none-any.whl
 aws s3 rm s3://${AWS_S3_BUCKET_NAME}/wheels/crossbar-latest-py2.py3-none-any.whl
 
-aws s3 cp --acl public-read ./dist/crossbar-${crossbar_VERSION}-py2.py3-none-any.whl s3://${AWS_S3_BUCKET_NAME}/wheels/crossbar-${crossbar_VERSION}-py2.py3-none-any.whl
-aws s3 cp --acl public-read ./dist/crossbar-${crossbar_VERSION}-py2.py3-none-any.whl s3://${AWS_S3_BUCKET_NAME}/wheels/crossbar-latest-py2.py3-none-any.whl
+aws s3 cp --acl public-read ./dist/crossbar-${CROSSBAR_VERSION}-py2.py3-none-any.whl s3://${AWS_S3_BUCKET_NAME}/wheels/crossbar-${CROSSBAR_VERSION}-py2.py3-none-any.whl
+aws s3 cp --acl public-read ./dist/crossbar-${CROSSBAR_VERSION}-py2.py3-none-any.whl s3://${AWS_S3_BUCKET_NAME}/wheels/crossbar-latest-py2.py3-none-any.whl
 
 #aws s3api copy-object --acl public-read \
-#    --copy-source wheels/crossbar-${crossbar_VERSION}-py2.py3-none-any.whl --bucket ${AWS_S3_BUCKET_NAME} \
+#    --copy-source wheels/crossbar-${CROSSBAR_VERSION}-py2.py3-none-any.whl --bucket ${AWS_S3_BUCKET_NAME} \
 #    --key wheels/crossbar-latest-py2.py3-none-any.whl
 
 aws s3 ls ${AWS_S3_BUCKET_NAME}/wheels/crossbar-
