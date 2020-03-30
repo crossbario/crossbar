@@ -28,6 +28,9 @@ before_install:
 
   # build ID (eg, "20180513-28114a1")
   - export CROSSBAR_BUILD_ID="$(date --utc "+%Y%m%d")-$(git rev-parse --short ${TRAVIS_COMMIT})"
+  - export CROSSBAR_VERSION=$(grep -E '^(__version__)' ./crossbar/_version.py | cut -d ' ' -f3 | sed -e 's|[u"'\'']||g')
+  - export CROSSBAR_VCS_REF=`git --git-dir="./.git" rev-list -n 1 v${CROSSBAR_VERSION} --abbrev-commit`
+  - export BUILD_DATE=`date -u +"%Y-%m-%d"`
 
   # https://docs.travis-ci.com/user/multi-os/#example-multi-os-build-matrix
   # Error: python 3.7.5_1 is already installed
