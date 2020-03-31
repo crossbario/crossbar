@@ -604,6 +604,7 @@ def check_transport_auth(personality, auth, ignore=[], checks=None):
         raise InvalidConfigException("invalid type {} for authentication configuration item (dict expected)".format(type(auth)))
     CHECKS = checks or {
         'anonymous': check_transport_auth_anonymous,
+        'anonymous-proxy': check_transport_auth_anonymous,
         'ticket': check_transport_auth_ticket,
         'wampcra': check_transport_auth_wampcra,
         'tls': check_transport_auth_tls,
