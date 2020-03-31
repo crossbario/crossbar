@@ -412,17 +412,13 @@ class BackendProxySession(Session):
 
     def onClose(self, wasClean):
         if self._frontend:
-            if self._frontend._established:
+            try:
                 self._frontend.transport.send(message.Goodbye())
-            else:
-                # print("FAILED:", self, "closed", wasClean)
-                self._frontend.transport.send(
-                    message.Abort(
-                        "wamp.error.runtime_error",
-                        "Failed to connect to backend",
-                    )
+            except Exception as e:
+                self.log.info(
+                    "Backend closed, Goodbye to frontend failed: {fail}",
+                    fail=e,
                 )
-                # self._frontend.transport.close()
         self._frontend = None
         super(BackendProxySession, self).onClose(wasClean)
 
