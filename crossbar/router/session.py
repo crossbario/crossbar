@@ -538,7 +538,7 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
-                # raise ProtocolError("PReceived {0} message while session is not joined".format(msg.__class__))
+                # raise ProtocolError("Received {0} message while session is not joined".format(msg.__class__))
                 # self.log.warn('Protocol state error - received {message} while session is not joined')
                 # swallow all noise like still getting PUBLISH messages from log event forwarding - maybe FIXME
                 pass

@@ -61,6 +61,10 @@ AUTHMETHOD_MAP = {
     'scram': PendingAuthScram,
 }
 
+AUTHMETHOD_PROXY_MAP = {
+    'anonymous-proxy': PendingAuthAnonymousProxy,
+}
+
 try:
     import nacl  # noqa
     HAS_CRYPTOSIGN = True
@@ -83,3 +87,4 @@ if HAS_CRYPTOSIGN:
     __all__.append('PendingAuthCryptosignProxy')
     AUTHMETHOD_MAP['cryptosign'] = PendingAuthCryptosign
     AUTHMETHOD_MAP['cryptosign-proxy'] = PendingAuthCryptosignProxy
+    AUTHMETHOD_PROXY_MAP['cryptosign-proxy'] = PendingAuthCryptosignProxy

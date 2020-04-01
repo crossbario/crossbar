@@ -36,7 +36,7 @@ from autobahn import util
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.auth import create_authenticator
-from autobahn.wamp.exception import ApplicationError, ProtocolError, Error
+from autobahn.wamp.exception import ApplicationError, TransportLost, ProtocolError, Error
 from autobahn.wamp.role import RoleDealerFeatures, RoleBrokerFeatures
 from autobahn.wamp.component import _create_transport
 from autobahn.wamp.interfaces import ITransportHandler
@@ -47,6 +47,14 @@ from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
 from crossbar.worker.router import RouterController
 from crossbar.common.key import _read_node_key
+from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
+from crossbar.router.auth import AUTHMETHOD_MAP, AUTHMETHOD_PROXY_MAP
+
+try:
+    from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
+except ImportError:
+    PendingAuthCryptosign = None
+    PendingAuthCryptosignProxy = None
 
 
 __all__ = (
@@ -65,6 +73,34 @@ class ProxySession(object):
     A router-side proxy session that handles incoming client
     connections.
     """
+    # Note: "roles" come from self._router.attach() in non-proxy code
+    ROLES = {
+        'broker': RoleBrokerFeatures(
+            publisher_identification=True,
+            pattern_based_subscription=True,
+            session_meta_api=True,
+            subscription_meta_api=True,
+            subscriber_blackwhite_listing=True,
+            publisher_exclusion=True,
+            subscription_revocation=True,
+            event_retention=True,
+            payload_transparency=True,
+            payload_encryption_cryptobox=True,
+        ),
+        'dealer': RoleDealerFeatures(
+            caller_identification=True,
+            pattern_based_registration=True,
+            session_meta_api=True,
+            registration_meta_api=True,
+            shared_registration=True,
+            progressive_call_results=True,
+            registration_revocation=True,
+            payload_transparency=True,
+            testament_meta_api=True,
+            payload_encryption_cryptobox=True,
+            call_canceling=True,
+        )
+    }
 
     def __init__(self, router_factory):
         self.transport = None
@@ -72,38 +108,12 @@ class ProxySession(object):
 
         # basic session information
         self._pending_session_id = None
-        self._realm = None
         self._session_id = None
-        self._session_roles = None
-        self._session_details = None
-
-        # session authentication information
-        self._pending_auth = None
-        self._authid = None
-        self._authrole = None
-        self._authmethod = None
-        self._authprovider = None
-        self._authextra = None
         self._controller = router_factory._proxy_controller
 
         # if we have a backend connection, it'll be here (and be a
         # Session instance)
         self._backend_session = None
-        self._established = False
-
-        # in _transport_info are (possibly) the following keys (gleaned from router/session.py):
-        # client_cert
-        # channel_id
-        # type (websocket, etc)
-        # protocol (websocket subprotocol?) None for rawsocket
-        # peer
-        # http_headers_received
-        # http_headers_sent
-        # http_response_lines
-        # websocket_extensions_in_use
-        # cbtid
-
-        # for rawsocket, it's type, protocol=None and peer
 
     def onOpen(self, transport):
         """
@@ -114,7 +124,6 @@ class ProxySession(object):
         :param transport: The WAMP transport.
         :type transport: object implementing :class:`autobahn.wamp.interfaces.ITransport`
         """
-        # print("ProxySession.onOpen: {}".format(transport))
         self.transport = transport
 
     def onMessage(self, msg):
@@ -126,223 +135,186 @@ class ProxySession(object):
         :param msg: The WAMP message received.
         :type msg: object implementing :class:`autobahn.wamp.interfaces.IMessage`
         """
-        # print("ProxySession.onMessage: {}".format(msg))
+        if self._session_id is None:
 
-        if isinstance(msg, message.Hello):
-            self._hello_received(msg)
+            # https://wamp-proto.org/_static/gen/wamp_latest.html#session-establishment
+            if isinstance(msg, message.Hello):
+                self._process_Hello(msg)
 
-        elif isinstance(msg, message.Welcome):
-            self._established = True
+            elif isinstance(msg, message.Abort):
+                pass
+
+            # https://wamp-proto.org/_static/gen/wamp_latest.html#wamp-level-authentication
+            elif isinstance(msg, message.Authenticate):
+                pass
+
+            else:
+                raise ProtocolError("Received {} message while proxy frontend session is not joined".format(msg.__class__.__name__))
 
         else:
-            if self._backend_session is None:
-                raise RuntimeError(
-                    "Expected to relay message of type {} but backend is gone".format(
-                        msg.__class__.__name__,
-                    )
-                )
+            if isinstance(msg, message.Hello) or isinstance(msg, message.Abort) or isinstance(msg, message.Authenticate):
+                raise ProtocolError("Received {} message while proxy frontend session is already joined".format(msg.__class__.__name__))
+
+            # https://wamp-proto.org/_static/gen/wamp_latest.html#session-closing
+            elif isinstance(msg, message.Goodbye):
+                pass
+
             else:
-                if self._backend_session._transport is not None:
+                if self._backend_session is None or self._backend_session._transport is None:
+                    raise TransportLost(
+                        "Expected to relay {} message, but proxy backend session or transport is gone".format(
+                            msg.__class__.__name__,
+                        )
+                    )
+                else:
                     self._backend_session._transport.send(msg)
 
-    def _hello_received(self, msg):
+    @inlineCallbacks
+    def _accept(self, accept):
+        # we have done authentication with the client; now we can connect to
+        # the backend (and we wait to tell the client they're
+        # welcome until we have actually connected to the
+        # backend).
+
+        @inlineCallbacks
+        def _backend_connected(backend_session):
+            self._session_id = self._pending_session_id
+
+            yield backend_session._on_connect
+            self._backend_session = backend_session
+
+            def welcome(session, details):
+                # finally pass our Welcome to the frontend once we've Joined on the
+                # backend
+                self.transport.send(message.Welcome(self._session_id, ProxySession.ROLES, realm=accept.realm,
+                                                    authid=accept.authrole, authrole=accept.authrole,
+                                                    authmethod=accept.authmethod,
+                                                    authprovider=accept.authprovider,
+                                                    authextra=accept.authextra))
+
+            self._backend_session.on('join', welcome)
+
+            key = _read_node_key(self._controller._cbdir, private=False)
+            authmethods = [
+                '{}-proxy'.format(x)
+                for x in self._backend_session._authenticators.keys()
+            ]
+
+            self._backend_session.join(
+                accept.realm,
+                authmethods=authmethods,
+                authid=None,
+                authrole=None,
+                authextra={
+                    # for WAMP-cryptosign authentication of the proxy frontend
+                    # to the backend router
+                    "pubkey": key['hex'],
+
+                    # forward authentication credentials of the connecting client
+                    #
+                    # the following are the effective (realm, authid, authrole) under
+                    # which the client (proxy frontend connection) was successfully
+                    # authenticated (using the authmethod+authprovider)
+                    "proxy_realm": accept.realm,
+                    "proxy_authid": accept.authid,
+                    "proxy_authrole": accept.authrole,
+                    "proxy_authmethod": accept.authmethod,
+                    "proxy_authprovider": accept.authprovider,
+
+                    # this is the authextra returned from the frontend authenticator, which
+                    # would normally be returned to the client
+                    "proxy_authextra": accept.authextra,
+                }
+            )
+            return backend_session
+
+        def _backend_failed(fail):
+            self.transport.send(message.Abort("Failed to establish proxy backend session: {}".format(fail)))
+
+        backend_d = self._controller.map_backend(
+            self,
+            accept.realm,
+            accept.authid,
+            accept.authmethod,
+        )
+        backend_d.addCallback(_backend_connected)
+        backend_d.addErrback(_backend_failed)
+
+    def _process_Hello(self, msg):
         """
         We have received a Hello from the frontend client.
 
         Now we do any authentication necessary with them and connect
         to our backend.
         """
-        if self._session_id is not None:
-            raise ProtocolError("Hello received but session established already")
-
-        self._realm = msg.realm
-        self._session_id = util.id()
+        self._pending_session_id = util.id()
         self._goodbye_sent = False
 
-        authid = msg.authid
-        authrole = msg.authrole or 'anonymous'
-        # XXX x_cb_node_id, x_cb_peer, x_cb_pid
-
         details = types.HelloDetails(
-            realm=self._realm,
+            realm=msg.realm,
             authmethods=msg.authmethods,
-            authid=authid,
-            authrole=authrole or 'anonymous',
+            authid=msg.authid,
+            authrole=msg.authrole,
             authextra=msg.authextra,
             session_roles=msg.roles,
             pending_session=self._pending_session_id
         )
+        for authmethod in msg.authmethods:
+            if authmethod in AUTHMETHOD_MAP and authmethod not in AUTHMETHOD_PROXY_MAP:
 
-        res = self._do_authentication(self._realm, details)
-
-        # Note: "roles" come from self._router.attach() in non-proxy
-        # code
-        roles = {
-            'broker': RoleBrokerFeatures(
-                publisher_identification=True,
-                pattern_based_subscription=True,
-                session_meta_api=True,
-                subscription_meta_api=True,
-                subscriber_blackwhite_listing=True,
-                publisher_exclusion=True,
-                subscription_revocation=True,
-                event_retention=True,
-                payload_transparency=True,
-                payload_encryption_cryptobox=True,
-            ),
-            'dealer': RoleDealerFeatures(
-                caller_identification=True,
-                pattern_based_registration=True,
-                session_meta_api=True,
-                registration_meta_api=True,
-                shared_registration=True,
-                progressive_call_results=True,
-                registration_revocation=True,
-                payload_transparency=True,
-                testament_meta_api=True,
-                payload_encryption_cryptobox=True,
-                call_canceling=True,
-            )
-        }
-
-        msg = None
-        if isinstance(res, types.Accept):
-            msg = message.Welcome(
-                self._session_id,
-                roles,
-                realm=self._realm,
-                authid=self._authid,
-                authrole=self._authrole,
-                authmethod=self._authmethod,
-                authprovider=self._authprovider,
-                authextra=self._authextra,
-                #  custom=custom,
-            )
-
-        elif isinstance(res, types.Challenge):
-            msg = message.Challenge(
-                res.method,
-                res.extra,
-            )
-
-        elif isinstance(res, types.Deny):
-            msg = message.Abort(
-                res.reason,
-                res.message,
-            )
-
-        else:
-            msg = message.Abort("wamp.error.runtime_error", "Internal logic error")
-
-        if isinstance(msg, message.Welcome):
-
-            @inlineCallbacks
-            def _backend_connected(backend_session):
-                """
-                we have done authentication with the client; now we can connect to
-                the backend (and we wait to tell the client they're
-                welcome until we have actually connected to the
-                backend).
-                """
-
-                yield backend_session._on_connect
-                self._backend_session = backend_session
-
-                def welcome(session, details):
-                    """
-                    finally pass our Welcome to the frontend once we've Joined on the
-                    backend
-                    """
-                    self.transport.send(msg)
-                self._backend_session.on('join', welcome)
-
-                key = _read_node_key(self._controller._cbdir, private=False)
-                authmethods = [
-                    '{}-proxy'.format(x)
-                    for x in self._backend_session._authenticators.keys()
-                ]
-
-                self._backend_session.join(
-                    self._realm,
-                    authmethods=authmethods,
-                    authid=None,
-                    authrole=self._authrole,  # same role as front-end?
-                    authextra={
-                        "cb_proxy_authid": self._authid,
-                        "cb_proxy_authrealm": self._realm,
-                        "cb_proxy_authrole": self._authrole,
-                        "cb_proxy_authextra": msg.authextra,
-                        "pubkey": key['hex'],
+                PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
+                self._pending_auth = PendingAuthKlass(
+                    details.pending_session,
+                    {"type": "proxy"},  # what else goes in _transport_info
+                    self._controller,
+                    {
+                        'type': 'static',
+                        'role': details.authrole,
+                        'authid': util.generate_serial_number(),
                     }
                 )
-                return backend_session
+                res = self._pending_auth.hello(msg.realm, details)
 
-            def _backend_failed(fail):
-                # print("_backend_failed", fail)
-                self.transport.send(
-                    message.Abort(
-                        "wamp.error.runtime_error",
-                        "Failed to connect to backend: {}".format(fail),
-                    )
-                )
+                if isinstance(res, types.Accept):
+                    self._session_id = self._pending_session_id
+                    self.transport.send(message.Welcome(self._session_id, ProxySession.ROLES, realm=res.realm,
+                                                        authid=res.authrole, authrole=res.authrole,
+                                                        authmethod=res.authmethod, authprovider=res.authprovider,
+                                                        authextra=res.authextra))
+                elif isinstance(res, types.Challenge):
+                    self.transport.send(message.Challenge(res.method, extra=res.extra))
 
-            backend_d = self._controller.map_backend(
-                self,
-                self._realm,
-                self._authid,
-                self._authrole,
-            )
-            backend_d.addCallback(_backend_connected)
-            backend_d.addErrback(_backend_failed)
+                elif isinstance(res, types.Deny):
+                    self.transport.send(message.Abort(reason=res.reason, message=res.message))
+
+                else:
+                    # should not arrive here: logic error
+                    self.transport.send(message.Abort(message='internal error: unexpected authenticator return type {}'.format(type(res))))
+
+    def _process_Authenticate(self, msg):
+        if self._pending_auth:
+            if isinstance(self._pending_auth, PendingAuthTicket) or \
+               isinstance(self._pending_auth, PendingAuthWampCra) or \
+               isinstance(self._pending_auth, PendingAuthCryptosign) or \
+               isinstance(self._pending_auth, PendingAuthScram):
+                res = self._pending_auth.authenticate(msg.signature)
+                if isinstance(res, types.Accept):
+                    self._session_id = self._pending_session_id
+                    self.transport.send(message.Welcome(self._session_id, ProxySession.ROLES, realm=res.realm,
+                                                        authid=res.authrole, authrole=res.authrole,
+                                                        authmethod=res.authmethod, authprovider=res.authprovider,
+                                                        authextra=res.authextra))
+                elif isinstance(res, types.Deny):
+                    self.transport.send(message.Abort(reason=res.reason, message=res.message))
+                else:
+                    # should not arrive here: logic error
+                    self.transport.send(message.Abort(message='internal error: unexpected authenticator return type {}'.format(type(res))))
+            else:
+                # should not arrive here: logic error
+                self.transport.send(message.Abort(message='internal error: unexpected pending authentication'))
         else:
-            # 'msg' is a Deny or a Challenge, so communicate that to
-            # the client before we try connecting to the backend
-            self.transport.send(msg)
-
-    def _do_authentication(self, realm, details):
-        if not realm:
-            return types.Deny(
-                ApplicationError.NO_SUCH_REALM,
-                message='no realm requested',
-            )
-        if not self._controller.has_realm(realm):
-            return types.Deny(
-                ApplicationError.NO_SUCH_REALM,
-                message='no realm "{}" exists on this proxy'.format(realm),
-            )
-        if not self._controller.can_map_backend(details.pending_session, realm, details.authid, details.authrole):
-            # XXX maybe want better errors here? maybe can_map should return a Deny?
-            return types.Deny(
-                "wamp.error.runtime_error",
-                message='Proxy cannot map session to a backend (realm="{}" role="{}")'.format(
-                    realm,
-                    details.authrole,
-                )
-            )
-
-        if details.authmethods and 'anonymous' not in details.authmethods:
-            return types.Deny(
-                ApplicationError.NO_AUTH_METHOD,
-                message='cannot authenticate using any of the offered authmethods {}'.format(details.authmethods),
-            )
-
-        from crossbar.router.auth import AUTHMETHOD_MAP
-        PendingAuthKlass = AUTHMETHOD_MAP['anonymous']
-        self._pending_auth = PendingAuthKlass(
-            details.pending_session,
-            {"type": "proxy"},  # what else goes in _transport_info
-            self._controller,
-            {
-                'type': 'static',
-                'role': details.authrole,
-                'authid': util.generate_serial_number(),
-            }
-        )
-        self._authrole = details.authrole
-        self._authprovider = 'anonymous'
-        self._authextra = details.authextra
-
-        return self._pending_auth.hello(realm, details)
+            # should not arrive here: client misbehaving!
+            self.transport.send(message.Abort(message='no pending authentication'))
 
     def forward_message(self, msg):
         self.transport.send(msg)
@@ -535,7 +507,7 @@ class ProxyController(RouterController):
         """
         return self
 
-    def can_map_backend(self, session_id, realm, authid, authrole):
+    def can_map_backend(self, session_id, realm, authid, authrole, authextra):
         """
         :returns: True only-if map_backend() can succeed later for the
         same args (essentially, if the realm + role exist).
@@ -543,7 +515,7 @@ class ProxyController(RouterController):
         return self.has_realm(realm) and self.has_role(realm, authrole)
 
     @inlineCallbacks
-    def map_backend(self, frontend_session, realm, authid, authrole):
+    def map_backend(self, frontend_session, realm, authid, authrole, authextra):
         """
         :returns: a protocol instance connected to the backend
         """
