@@ -411,7 +411,7 @@ class BackendProxySession(Session):
         return super(BackendProxySession, self).onWelcome(msg)
 
     def onClose(self, wasClean):
-        if self._frontend:
+        if self._frontend is not None and self._frontend.transport is not None:
             try:
                 self._frontend.transport.send(message.Goodbye())
             except Exception as e:
