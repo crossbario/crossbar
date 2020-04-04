@@ -538,7 +538,6 @@ class ProxyBackendSession(Session):
         # 'msg' is a real WAMP message that our backend WAMP protocol
         # has deserialized -- so now we re-serialize it for whatever
         # the frontend is speaking
-        # print("ProxyBackendSession.onMessage: {}".format(msg))
         if isinstance(msg, (message.Welcome, message.Challenge, message.Abort, message.Goodbye)):
             super(ProxyBackendSession, self).onMessage(msg)
         else:
@@ -567,7 +566,6 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
         # that machine, any website can try to access the "real"
         # backend)
         if isinstance(endpoint, UNIXClientEndpoint):
-            # print("local unix endpoint; anonymous auth permitted")
             session.add_authenticator(create_authenticator("anonymous"))
 
         # we will do cryptosign authentication to any backend
