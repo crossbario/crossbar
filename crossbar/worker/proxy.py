@@ -197,7 +197,7 @@ class ProxySession(object):
             # https://wamp-proto.org/_static/gen/wamp_latest.html#session-closing
             elif isinstance(msg, message.Goodbye):
                 if self._backend_session:
-                    yield self._controller.unmap_backend(self._backend_session)
+                    yield self._controller.unmap_backend(self, self._backend_session)
                     self._backend_session = None
                 else:
                     self.log.warn('Frontend session left, but no active backend session to close')
@@ -533,6 +533,9 @@ class ProxyController(RouterController):
         # override RouterSession
         self._router_session_factory.session = ProxySession
 
+        # currently mapped session: map of frontend_session => backend_session
+        self._backends_by_frontend = {}
+
     def has_realm(self, realm):
         """
         IRealmContainer
@@ -559,10 +562,16 @@ class ProxyController(RouterController):
         return self.has_realm(realm) and self.has_role(realm, authrole)
 
     @inlineCallbacks
-    def map_backend(self, frontend_session, realm, authid, authrole, authextra):
+    def map_backend(self, frontend, realm, authid, authrole, authextra):
         """
+        Map the given frontend session to a backend session under the given
+        authentication credentials.
+
         :returns: a protocol instance connected to the backend
         """
+        if frontend in self._backends_by_frontend:
+            return self._backends_by_frontend[frontend]
+
         backend_config = self.get_backend_config(realm, authrole)
 
         # if auth uses cryptosign but has no privkey, we'd ideally
@@ -575,9 +584,27 @@ class ProxyController(RouterController):
                 )
             self._routes.get(realm, {}).values()[0]
 
-        backend_proto = yield make_backend_connection(backend_config, frontend_session, self._cbdir)
+        backend_proto = yield make_backend_connection(backend_config, frontend, self._cbdir)
+
+        self._backends_by_frontend[frontend] = backend_proto
 
         returnValue(backend_proto)
+
+    def unmap_backend(self, frontend, backend):
+        """
+        Unmap the backend session from the given frontend session it is currently mapped to.
+        """
+        if frontend in self._backends_by_frontend:
+            if self._backends_by_frontend[frontend] == backend:
+                # alright, the given frontend is indeed currently mapped to the given backend session: delete it
+                del self._backends_by_frontend[frontend]
+            else:
+                raise RuntimeError(
+                    'frontend session {} currently mapped to backend {} - NOT to specified backend {}'.format(
+                        frontend._session_id, self._backends_by_frontend[frontend]._session_id, backend._session_id))
+        else:
+            raise RuntimeError(
+                'frontend session {} not currently mapped to any backend'.format(frontend._session_id))
 
     def get_backend_config(self, realm_name, role_name):
         """
