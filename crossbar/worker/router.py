@@ -68,7 +68,7 @@ class RouterController(WorkerController):
         WorkerController.__init__(self, config=config, reactor=reactor, personality=personality)
 
         # factory for producing (per-realm) routers
-        self._router_factory = self.router_factory_class(None, self)
+        self._router_factory = self.router_factory_class(self.config.extra.node, self.config.extra.worker, self)
 
         # factory for producing router sessions
         self._router_session_factory = RouterSessionFactory(self._router_factory)

@@ -30,6 +30,7 @@
 
 import txaio
 import uuid
+from typing import Optional
 
 from txaio import make_logger
 
@@ -481,13 +482,16 @@ class RouterFactory(object):
     The router class this factory will create router instances from.
     """
 
-    def __init__(self, node_id, worker, options=None):
+    def __init__(self, node_id: str, worker_id: str, worker, options: Optional[RouterOptions] = None):
         """
 
+        :param node_id: Node (management) ID.
+        :param worker_id: (Router) worker (management) ID.
+        :param worker: Router worker.
         :param options: Default router options.
-        :type options: Instance of :class:`crossbar.router.RouterOptions`.
         """
         self._node_id = node_id
+        self._worker_id = worker_id
         self._worker = worker
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)

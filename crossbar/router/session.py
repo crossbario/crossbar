@@ -343,6 +343,7 @@ class RouterSession(BaseSession):
         self._goodbye_sent = False
         self._transport_is_closing = False
         self._session_details = None
+        self._service_session = None
 
     def onOpen(self, transport):
         """
@@ -352,7 +353,7 @@ class RouterSession(BaseSession):
         self._transport = transport
 
         # WampLongPollResourceSession instance has no attribute '_transport_info'
-        if not hasattr(self._transport, '_transport_info'):
+        if not hasattr(self._transport, '_transport_info') or self._transport._transport_info is None:
             self._transport._transport_info = {}
 
         # transport configuration
@@ -427,9 +428,10 @@ class RouterSession(BaseSession):
                 self._authprovider = authprovider
                 self._authextra = authextra or {}
 
-                self._authextra['x_cb_node_id'] = self._router_factory._node_id
-                self._authextra['x_cb_peer'] = str(self._transport.peer)
-                self._authextra['x_cb_pid'] = os.getpid()
+                self._authextra['x_cb_node'] = custom.get('x_cb_node', None)
+                self._authextra['x_cb_worker'] = custom.get('x_cb_worker', None)
+                self._authextra['x_cb_peer'] = custom.get('x_cb_peer', None)
+                self._authextra['x_cb_pid'] = custom.get('x_cb_pid', None)
 
                 roles = self._router.attach(self)
 
@@ -473,7 +475,10 @@ class RouterSession(BaseSession):
 
                     if isinstance(res, types.Accept):
                         custom = {
-                            'x_cb_node_id': self._router_factory._node_id
+                            'x_cb_node': self._router_factory._node_id,
+                            'x_cb_worker': self._router_factory._worker_id,
+                            'x_cb_peer': str(self._transport.peer),
+                            'x_cb_pid': os.getpid(),
                         }
                         welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
@@ -512,7 +517,10 @@ class RouterSession(BaseSession):
 
                     if isinstance(res, types.Accept):
                         custom = {
-                            'x_cb_node_id': self._router_factory._node_id
+                            'x_cb_node': self._router_factory._node_id,
+                            'x_cb_worker': self._router_factory._worker_id,
+                            'x_cb_peer': str(self._transport.peer),
+                            'x_cb_pid': os.getpid(),
                         }
                         welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 

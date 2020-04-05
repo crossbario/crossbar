@@ -92,7 +92,8 @@ class PendingAuthCryptosign(PendingAuth):
             self._expected_signed_message = self._challenge
 
         extra = {
-            'challenge': binascii.b2a_hex(self._challenge).decode('ascii')
+            'challenge': binascii.b2a_hex(self._challenge).decode('ascii'),
+            'channel_binding': channel_binding,
         }
         return extra
 
