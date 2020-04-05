@@ -1,3 +1,10 @@
+# docs
+sphinx==2.4.4
+sphinxcontrib-images==0.9.1
+sphinx-rtd-theme>=0.4.2
+sphinxcontrib-spelling>=4.2.0
+sphinxcontrib-websupport>=1.1.0
+
 # test/build
 tox
 flake8
@@ -8,13 +15,6 @@ coverage
 bandit
 towncrier
 pip-licenses
-
-# docs
 pyenchant>=2.0.0
 pygments>=2.2.0
 scour>=0.37
-sphinx>=1.8.1<3
-sphinx-rtd-theme>=0.4.2
-sphinxcontrib-images>=0.8.0
-sphinxcontrib-spelling>=4.2.0
-sphinxcontrib-websupport>=1.1.0
