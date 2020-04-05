@@ -28,6 +28,7 @@
 #
 #####################################################################################
 
+import os
 import binascii
 
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
@@ -47,6 +48,7 @@ from autobahn.wamp.interfaces import ITransportHandler
 from autobahn.twisted.wamp import Session
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 
+from crossbar._util import hlid
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
 from crossbar.worker.router import RouterController
@@ -133,7 +135,9 @@ class ProxyFrontendSession(object):
         self._authrole = None
         self._authmethod = None
         self._authprovider = None
-        self._aauthextra = None
+        self._authextra = None
+
+        self._custom_authextra = {}
 
     def onOpen(self, transport):
         """
@@ -173,6 +177,13 @@ class ProxyFrontendSession(object):
             channel_id = self.transport.get_channel_id()
         if channel_id:
             self.transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
+
+        self._custom_authextra = {
+            'x_cb_proxy_node': self._router_factory._node_id,
+            'x_cb_proxy_worker': self._router_factory._worker_id,
+            'x_cb_proxy_peer': str(self.transport.peer),
+            'x_cb_proxy_pid': os.getpid(),
+        }
 
         self.log.info("Proxy frontend session connected - transport: {transport_info}",
                       transport_info=self.transport._transport_info)
@@ -303,21 +314,33 @@ class ProxyFrontendSession(object):
                     }
                 )
 
-                def on_backend_joined(session, details):
+                def _on_backend_joined(session, details):
+                    self.log.info('Proxy backend session JOINED: session_id={backend_session_id} session={backend_session}, details={details}',
+                                  backend_session_id=hlid(details.session), backend_session=session,
+                                  pending_session_id=self._pending_session_id, details=details)
                     # we're ready now! store and return the backend session
                     self._backend_session = session
-                    self._session_id = self._pending_session_id
-                    self._realm = accept.realm
-                    self._authid = accept.authid
-                    self._authrole = accept.authrole
+
+                    # we set the frontend session ID to that of the backend session mapped for our frontend session ..
+                    self._session_id = details.session
+                    # .. NOT our (fake) pending session ID (generated in the proxy worker)
+                    # self._session_id = self._pending_session_id
+
+                    # credentials of the backend session mapped for our frontend session
+                    self._realm = details.realm
+                    self._authid = details.authid
+                    self._authrole = details.authrole
+
+                    # this is the authextra returned for the backend session mapped for our frontend session
+                    self._authextra = details.authextra
+
+                    # authentication method & provider are the requested (and succeeding) ones
                     self._authmethod = accept.authmethod
                     self._authprovider = accept.authprovider
-                    self._authextra = accept.authextra
 
-                    self.log.info('Proxy backend session joined, details={details}', details=details)
                     result.callback(session)
 
-                backend_session.on('join', on_backend_joined)
+                backend_session.on('join', _on_backend_joined)
                 return backend_session
             except:
                 self.log.failure()
@@ -397,40 +420,43 @@ class ProxyFrontendSession(object):
                 self._controller,
                 auth_config[authmethod],
             )
-            res = self._pending_auth.hello(msg.realm, details)
-            self.log.info('{klass}._process_Hello() processed authmethod "{authmethod}" using {authklass}: {authresult}',
+            hello_result = self._pending_auth.hello(msg.realm, details)
+            self.log.info('{klass}._process_Hello() processed authmethod "{authmethod}" using {authklass}: {hello_result}',
                           klass=self.__class__.__name__, authmethod=authmethod, authklass=PendingAuthKlass,
-                          authresult=res)
+                          hello_result=hello_result)
 
-            if isinstance(res, types.Accept):
+            if isinstance(hello_result, types.Accept):
                 try:
-                    session = yield self._accept(res)
+                    session = yield self._accept(hello_result)
                 except Exception as e:
                     self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                                       message='Frontend connection accept failed ({})'.format(e)))
                 else:
-                    def on_backend_joined(session, details):
-                        self.log.info('Backend session joined, details={details}', details=details)
+                    def _on_backend_joined(session, details):
+                        msg = message.Welcome(self._session_id,
+                                              ProxyFrontendSession.ROLES,
+                                              realm=details.realm,
+                                              authid=details.authid,
+                                              authrole=details.authrole,
+                                              authmethod=hello_result.authmethod,
+                                              authprovider=hello_result.authprovider,
+                                              authextra=dict(details.authextra or {}, **self._custom_authextra))
                         self._backend_session = session
-                        self.transport.send(message.Welcome(self._session_id,
-                                                            ProxyFrontendSession.ROLES,
-                                                            realm=res.realm,
-                                                            authid=res.authrole,
-                                                            authrole=res.authrole,
-                                                            authmethod=res.authmethod,
-                                                            authprovider=res.authprovider,
-                                                            authextra=res.authextra))
-                    session.on('join', on_backend_joined)
-            elif isinstance(res, types.Challenge):
-                self.transport.send(message.Challenge(res.method, extra=res.extra))
+                        self.transport.send(msg)
+                        self.log.info('Proxy frontend session WELCOME: session_id={session}, session={session}, session_details={details}',
+                                      session_id=hlid(self._session_id), session=self, details=details)
 
-            elif isinstance(res, types.Deny):
-                self.transport.send(message.Abort(res.reason, message=res.message))
+                    session.on('join', _on_backend_joined)
+            elif isinstance(hello_result, types.Challenge):
+                self.transport.send(message.Challenge(hello_result.method, extra=hello_result.extra))
+
+            elif isinstance(hello_result, types.Deny):
+                self.transport.send(message.Abort(hello_result.reason, message=hello_result.message))
 
             else:
                 # should not arrive here: logic error
                 self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
-                                                  message='internal error: unexpected authenticator return type {}'.format(type(res))))
+                                                  message='internal error: unexpected authenticator return type {}'.format(type(hello_result))))
             return
 
         self.transport.send(message.Abort(ApplicationError.NO_AUTH_METHOD, message='no suitable authmethod found'))
@@ -443,26 +469,38 @@ class ProxyFrontendSession(object):
                isinstance(self._pending_auth, PendingAuthWampCra) or \
                isinstance(self._pending_auth, PendingAuthCryptosign) or \
                isinstance(self._pending_auth, PendingAuthScram):
-                res = self._pending_auth.authenticate(msg.signature)
+                auth_result = self._pending_auth.authenticate(msg.signature)
                 self.log.info(
                     '{klass}._process_Authenticate() processed pending authentication {pending_auth}: {authresult}',
-                    klass=self.__class__.__name__, pending_auth=self._pending_auth, authresult=res)
-                if isinstance(res, types.Accept):
+                    klass=self.__class__.__name__, pending_auth=self._pending_auth, authresult=auth_result)
+                if isinstance(auth_result, types.Accept):
                     try:
-                        yield self._accept(res)
-                    except:
-                        self.log.failure()
-                        raise
-                    self.transport.send(message.Welcome(self._session_id, ProxyFrontendSession.ROLES, realm=res.realm,
-                                                        authid=res.authrole, authrole=res.authrole,
-                                                        authmethod=res.authmethod, authprovider=res.authprovider,
-                                                        authextra=res.authextra))
-                elif isinstance(res, types.Deny):
-                    self.transport.send(message.Abort(res.reason, message=res.message))
+                        session = yield self._accept(auth_result)
+                    except Exception as e:
+                        self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
+                                                          message='Frontend connection accept failed ({})'.format(e)))
+                    else:
+                        def _on_backend_joined(session, details):
+                            msg = message.Welcome(self._session_id,
+                                                  ProxyFrontendSession.ROLES,
+                                                  realm=details.realm,
+                                                  authid=details.authid,
+                                                  authrole=details.authrole,
+                                                  authmethod=auth_result.authmethod,
+                                                  authprovider=auth_result.authprovider,
+                                                  authextra=dict(details.authextra or {}, **self._custom_authextra))
+                            self._backend_session = session
+                            self.transport.send(msg)
+                            self.log.info('Proxy frontend session WELCOME: session_id={session_id}, session={session}, msg={msg}',
+                                          session_id=hlid(self._session_id), session=self, msg=msg)
+
+                        session.on('join', _on_backend_joined)
+                elif isinstance(auth_result, types.Deny):
+                    self.transport.send(message.Abort(auth_result.reason, message=auth_result.message))
                 else:
                     # should not arrive here: logic error
                     self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
-                                                      message='internal error: unexpected authenticator return type {}'.format(type(res))))
+                                                      message='internal error: unexpected authenticator return type {}'.format(type(auth_result))))
             else:
                 # should not arrive here: logic error
                 self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
