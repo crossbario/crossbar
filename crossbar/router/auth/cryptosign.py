@@ -246,8 +246,8 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
     AUTHMETHOD = 'cryptosign-proxy'
 
     def hello(self, realm, details):
-        self.log.info('{klass}.hello(realm={realm}, details={details}) ...',
-                      klass=self.__class__.__name__, realm=realm, details=details)
+        self.log.debug('{klass}.hello(realm={realm}, details={details}) ...',
+                       klass=self.__class__.__name__, realm=realm, details=details)
         extra = details.authextra or {}
 
         for attr in ['proxy_authid', 'proxy_authrole', 'proxy_realm']:
@@ -259,8 +259,8 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
         details.authrole = extra['proxy_authrole']
         details.authextra = extra.get('proxy_authextra', None)
 
-        self.log.info('{klass}.hello(realm={realm}, details={details}) -> realm={realm}, authid={authid}, authrole={authrole}, authextra={authextra}',
-                      klass=self.__class__.__name__, realm=realm, details=details, authid=details.authid,
-                      authrole=details.authrole, authextra=details.authextra)
+        self.log.debug('{klass}.hello(realm={realm}, details={details}) -> realm={realm}, authid={authid}, authrole={authrole}, authextra={authextra}',
+                       klass=self.__class__.__name__, realm=realm, details=details, authid=details.authid,
+                       authrole=details.authrole, authextra=details.authextra)
 
         return super(PendingAuthCryptosignProxy, self).hello(realm, details)

@@ -30,9 +30,9 @@
 
 import os
 import binascii
+from pprint import pformat
 
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
-from twisted.internet.endpoints import UNIXClientEndpoint
 
 from txaio import make_logger
 
@@ -342,9 +342,12 @@ class ProxyFrontendSession(object):
 
                 backend_session.on('join', _on_backend_joined)
                 return backend_session
-            except:
+            except Exception as e:
                 self.log.failure()
-                raise
+                result.errback(e)
+
+        def _backend_failed(fail):
+            result.errback(fail)
 
         backend_d = self._controller.map_backend(
             self,
@@ -354,6 +357,7 @@ class ProxyFrontendSession(object):
             accept.authextra,
         )
         backend_d.addCallback(_backend_connected)
+        backend_d.addErrback(_backend_failed)
 
         return result
 
@@ -420,7 +424,13 @@ class ProxyFrontendSession(object):
                 self._controller,
                 auth_config[authmethod],
             )
-            hello_result = self._pending_auth.hello(msg.realm, details)
+            try:
+                hello_result = self._pending_auth.hello(msg.realm, details)
+            except Exception as e:
+                self.log.failure()
+                self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
+                                                  message='Frontend connection accept failed ({})'.format(e)))
+                return
             self.log.info('{klass}._process_Hello() processed authmethod "{authmethod}" using {authklass}: {hello_result}',
                           klass=self.__class__.__name__, authmethod=authmethod, authklass=PendingAuthKlass,
                           hello_result=hello_result)
@@ -429,24 +439,26 @@ class ProxyFrontendSession(object):
                 try:
                     session = yield self._accept(hello_result)
                 except Exception as e:
+                    self.log.failure()
                     self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                                       message='Frontend connection accept failed ({})'.format(e)))
-                else:
-                    def _on_backend_joined(session, details):
-                        msg = message.Welcome(self._session_id,
-                                              ProxyFrontendSession.ROLES,
-                                              realm=details.realm,
-                                              authid=details.authid,
-                                              authrole=details.authrole,
-                                              authmethod=hello_result.authmethod,
-                                              authprovider=hello_result.authprovider,
-                                              authextra=dict(details.authextra or {}, **self._custom_authextra))
-                        self._backend_session = session
-                        self.transport.send(msg)
-                        self.log.info('Proxy frontend session WELCOME: session_id={session}, session={session}, session_details={details}',
-                                      session_id=hlid(self._session_id), session=self, details=details)
+                    return
 
-                    session.on('join', _on_backend_joined)
+                def _on_backend_joined(session, details):
+                    msg = message.Welcome(self._session_id,
+                                          ProxyFrontendSession.ROLES,
+                                          realm=details.realm,
+                                          authid=details.authid,
+                                          authrole=details.authrole,
+                                          authmethod=hello_result.authmethod,
+                                          authprovider=hello_result.authprovider,
+                                          authextra=dict(details.authextra or {}, **self._custom_authextra))
+                    self._backend_session = session
+                    self.transport.send(msg)
+                    self.log.info('Proxy frontend session WELCOME: session_id={session}, session={session}, session_details={details}',
+                                  session_id=hlid(self._session_id), session=self, details=details)
+
+                session.on('join', _on_backend_joined)
             elif isinstance(hello_result, types.Challenge):
                 self.transport.send(message.Challenge(hello_result.method, extra=hello_result.extra))
 
@@ -477,6 +489,7 @@ class ProxyFrontendSession(object):
                     try:
                         session = yield self._accept(auth_result)
                     except Exception as e:
+                        self.log.failure()
                         self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                                           message='Frontend connection accept failed ({})'.format(e)))
                     else:
@@ -587,6 +600,31 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
     Connects to a 'backend' session with the given config; returns a
     transport that is definitely connected (e.g. you can send a Hello
     right away).
+
+    :param backend_config: Backend connection configuration, for example:
+
+        .. code-block:: json
+            {
+                'auth': {
+                    'cryptosign-proxy': {
+                        'type': 'static'
+                    }
+                },
+                'transport': {
+                    'type': 'rawsocket',
+                    'endpoint': {
+                        'type': 'tcp',
+                        'host': '127.0.0.1',
+                        'port': 8442
+                    },
+                    'serializer': 'cbor',
+                    'url': 'rs://localhost'
+                }
+            }
+
+    :param frontend_session: The frontend proxy session for which to create a mapped backend connection.
+
+    :param cbdir: The node directory.
     """
 
     from twisted.internet import reactor
@@ -597,22 +635,22 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
 
     def create_session():
         session = ProxyBackendSession()
+
+        # we will do cryptosign authentication to any backend
+        if 'auth' in backend_config and 'cryptosign-proxy' in backend_config['auth']:
+            session.add_authenticator(create_authenticator("cryptosign", privkey=key['hex']))
+
         # we allow anonymous authentication to just unix-sockets
         # currently. I don't think it's a good idea to allow any
         # anonymous auth to "real" backends over TCP due to
         # cross-protocol hijinks (and if a Web browser is running on
         # that machine, any website can try to access the "real"
         # backend)
-        if isinstance(endpoint, UNIXClientEndpoint):
-            session.add_authenticator(create_authenticator("anonymous"))
-
-        # we will do cryptosign authentication to any backend
-        session.add_authenticator(
-            create_authenticator(
-                "cryptosign",
-                privkey=key['hex'],
-            )
-        )
+        if 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
+            if backend_config['transport']['endpoint']['type'] == 'unix':
+                session.add_authenticator(create_authenticator("anonymous"))
+            else:
+                raise RuntimeError('anonymous-proxy authenticator only allowed on Unix domain socket based transports, not type "{}"'.format(backend_config['transport']['endpoint']['type']))
 
         def connected(session, transport):
             connected_d.callback(session)
@@ -702,7 +740,7 @@ class ProxyController(RouterController):
         :returns: a protocol instance connected to the backend
         """
         self.log.info('{klass}.map_backend(frontend={frontend}, realm="{realm}", authid="{authid}", authrole="{authrole}", authextra={authextra})',
-                      klass=self.__class__.__name__, frontend=frontend, realm=realm, authid=authid, authrole=authrole,
+                      klass=self.__class__.__name__, frontend=frontend, realm=hlid(realm), authid=hlid(authid), authrole=hlid(authrole),
                       authextra=authextra)
         if frontend in self._backends_by_frontend:
             return self._backends_by_frontend[frontend]
@@ -718,6 +756,9 @@ class ProxyController(RouterController):
                     "Cannot select default role unless realm has exactly 1"
                 )
             self._routes.get(realm, {}).values()[0]
+
+        self.log.info('{klass}.map_backend(): opening backend connection for realm="{realm}", authrole="{authrole}" using backend_config=\n{backend_config}',
+                      klass=self.__class__.__name__, backend_config=pformat(backend_config), realm=hlid(realm), authrole=hlid(authrole))
 
         backend_proto = yield make_backend_connection(backend_config, frontend, self._cbdir)
 
