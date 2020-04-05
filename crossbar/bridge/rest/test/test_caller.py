@@ -111,7 +111,7 @@ class CallerTestCase(TestCase):
     def setUp(self):
 
         # create a router factory
-        self.router_factory = RouterFactory(None, None)
+        self.router_factory = RouterFactory('node1', 'worker1', None)
 
         # start a realm
         self.realm = RouterRealm(None, None, {'name': 'realm1'})

@@ -13,7 +13,7 @@ pip-licenses
 pyenchant>=2.0.0
 pygments>=2.2.0
 scour>=0.37
-sphinx>=1.8.1
+sphinx>=1.8.1<3
 sphinx-rtd-theme>=0.4.2
 sphinxcontrib-images>=0.8.0
 sphinxcontrib-spelling>=4.2.0
