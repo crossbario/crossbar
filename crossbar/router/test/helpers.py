@@ -48,7 +48,7 @@ def make_router():
     Make a router, and return it and a RawSocket factory.
     """
     # create a router factory
-    router_factory = RouterFactory(None, None)
+    router_factory = RouterFactory('node1', 'worker1', None)
 
     # create a router session factory
     session_factory = RouterSessionFactory(router_factory)

@@ -56,7 +56,7 @@ class TestDealer(unittest.TestCase):
         """
 
         # create a router factory
-        self.router_factory = RouterFactory(None, None)
+        self.router_factory = RouterFactory('node1', 'router1', None)
 
         # start a realm
         self.realm = RouterRealm(None, 'realm-001', {'name': 'realm1'})

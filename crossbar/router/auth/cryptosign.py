@@ -92,7 +92,8 @@ class PendingAuthCryptosign(PendingAuth):
             self._expected_signed_message = self._challenge
 
         extra = {
-            'challenge': binascii.b2a_hex(self._challenge).decode('ascii')
+            'challenge': binascii.b2a_hex(self._challenge).decode('ascii'),
+            'channel_binding': channel_binding,
         }
         return extra
 
@@ -245,15 +246,21 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
     AUTHMETHOD = 'cryptosign-proxy'
 
     def hello(self, realm, details):
-        # now, check anything we got in the authextra
+        self.log.debug('{klass}.hello(realm={realm}, details={details}) ...',
+                       klass=self.__class__.__name__, realm=realm, details=details)
         extra = details.authextra or {}
-        if extra.get('cb_proxy_authid', None):
-            details.authid = extra['cb_proxy_authid']
 
-        if extra.get('cb_proxy_authrole', None):
-            details.authrole = extra['cb_proxy_authrole']
+        for attr in ['proxy_authid', 'proxy_authrole', 'proxy_realm']:
+            if attr not in extra:
+                return types.Deny(message='missing required attribute {}'.format(attr))
 
-        if extra.get('cb_proxy_authrealm', None):
-            realm = extra['cb_proxy_authrealm']
+        realm = extra['proxy_realm']
+        details.authid = extra['proxy_authid']
+        details.authrole = extra['proxy_authrole']
+        details.authextra = extra.get('proxy_authextra', None)
+
+        self.log.debug('{klass}.hello(realm={realm}, details={details}) -> realm={realm}, authid={authid}, authrole={authrole}, authextra={authextra}',
+                       klass=self.__class__.__name__, realm=realm, details=details, authid=details.authid,
+                       authrole=details.authrole, authextra=details.authextra)
 
         return super(PendingAuthCryptosignProxy, self).hello(realm, details)

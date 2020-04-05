@@ -117,15 +117,42 @@ class PendingAuthAnonymousProxy(PendingAuthAnonymous):
     AUTHMETHOD = 'anonymous-proxy'
 
     def hello(self, realm, details):
-        # now, check anything we got in the authextra
+        self.log.info('{klass}.hello(realm={realm}, details={details}) ...',
+                      klass=self.__class__.__name__, realm=realm, details=details)
         extra = details.authextra or {}
-        if extra.get('cb_proxy_authid', None):
-            details.authid = extra['cb_proxy_authid']
 
-        if extra.get('cb_proxy_authrole', None):
-            details.authrole = extra['cb_proxy_authrole']
+        for attr in ['proxy_authid', 'proxy_authrole', 'proxy_realm']:
+            if attr not in extra:
+                return types.Deny(message='missing required attribute {}'.format(attr))
 
-        if extra.get('cb_proxy_authrealm', None):
-            realm = extra['cb_proxy_authrealm']
+        realm = extra['proxy_realm']
+        details.authid = extra['proxy_authid']
+        details.authrole = extra['proxy_authrole']
+        details.authextra = extra.get('proxy_authextra', None)
 
-        return super(PendingAuthAnonymousProxy, self).hello(realm, details)
+        self.log.info('{klass}.hello(realm={realm}, details={details}) -> realm={realm}, authid={authid}, authrole={authrole}, authextra={authextra}',
+                      klass=self.__class__.__name__, realm=realm, details=details, authid=details.authid,
+                      authrole=details.authrole, authextra=details.authextra)
+
+        # remember the realm the client requested to join (if any)
+        self._realm = realm
+        self._authid = details.authid
+        self._session_details['authmethod'] = 'anonymous'
+        self._session_details['authextra'] = details.authextra
+        self._authprovider = 'static'
+
+        # FIXME: if cookie tracking is enabled, set authid to cookie value
+        # self._authid = self._transport._cbtid
+
+        principal = {
+            'realm': realm,
+            'authid': details.authid,
+            'role': details.authrole,
+            'extra': details.authextra
+        }
+
+        error = self._assign_principal(principal)
+        if error:
+            return error
+
+        return self._accept()

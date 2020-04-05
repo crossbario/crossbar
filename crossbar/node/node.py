@@ -342,7 +342,7 @@ class Node(object):
         self._controller = self.NODE_CONTROLLER(self)
 
         # local node management router
-        self._router_factory = RouterFactory(self._node_id, None)
+        self._router_factory = RouterFactory(self._node_id, None, None)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
         rlm_config = {
             'name': self._realm

@@ -503,7 +503,7 @@ def check_transport_auth_cryptosign(config):
         for authid, principal in config['principals'].items():
             check_dict_args({
                 'authorized_keys': (True, [Sequence]),
-                'role': (True, [str]),
+                'role': (False, [str]),
                 'realm': (False, [str]),
             }, principal, "WAMP-Cryptosign - principal '{}' configuration".format(authid))
             for pubkey in principal['authorized_keys']:
