@@ -254,10 +254,8 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
             if attr not in extra:
                 return types.Deny(message='missing required attribute {}'.format(attr))
 
+        # enforce the backend to be on the same realm as actual client
         realm = extra['proxy_realm']
-        details.authid = extra['proxy_authid']
-        details.authrole = extra['proxy_authrole']
-        details.authextra = extra.get('proxy_authextra', None)
 
         self.log.debug('{klass}.hello(realm={realm}, details={details}) -> realm={realm}, authid={authid}, authrole={authrole}, authextra={authextra}',
                        klass=self.__class__.__name__, realm=realm, details=details, authid=details.authid,
