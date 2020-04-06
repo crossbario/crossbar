@@ -377,7 +377,31 @@ class ProxyFrontendSession(object):
         self._pending_session_id = util.id()
         self._goodbye_sent = False
 
-        authmethods = msg.authmethods or ['anonymous']
+        extra_auth_methods = self._controller.personality.EXTRA_AUTH_METHODS
+
+        # allow "Personality" classes to add authmethods
+        authmethods = list(extra_auth_methods.keys()) + (msg.authmethods or ['anonymous'])
+
+        # if the client had a reassigned realm during authentication, restore it from the cookie
+        if hasattr(self.transport, '_authrealm') and self.transport._authrealm:
+            if 'cookie' in authmethods:
+                realm = self.transport._authrealm  # noqa
+                authextra = self.transport._authextra  # noqa
+            elif self.transport._authprovider == 'cookie':
+                # revoke authentication and invalidate cookie (will be revalidated if following auth is successful)
+                self.transport._authmethod = None
+                self.transport._authrealm = None
+                self.transport._authid = None
+                if hasattr(self.transport, '_cbtid'):
+                    self.transport.factory._cookiestore.setAuth(self.transport._cbtid, None, None, None, None, None)
+            else:
+                pass  # TLS authentication is not revoked here
+
+        # already authenticated, eg via HTTP-cookie or TLS-client-certificate authentication
+        if self.transport._authid is not None and (self.transport._authmethod == 'trusted' or self.transport._authprovider in authmethods):
+            msg.realm = self.transport._realm
+            msg.authid = self.transport._authid
+            msg.authrole = self.transport._authrole
 
         details = types.HelloDetails(
             realm=msg.realm,
@@ -390,11 +414,24 @@ class ProxyFrontendSession(object):
         )
         auth_config = self._transport_config.get('auth', None)
 
-        # allow "Personality" classes to add authmethods
-        extra_auth_methods = dict()
-        # if self._router_factory._worker:
-        #     personality = self._router_factory._worker.personality
-        #     extra_auth_methods = personality.EXTRA_AUTH_METHODS
+        # if authentication is _not_ configured, allow anyone to join as "anonymous"!
+        if not auth_config:
+            # we ignore any details.authid the client might have announced, and use
+            # a cookie value or a random value
+            if hasattr(self.transport, "_cbtid") and self.transport._cbtid:
+                # if cookie tracking is enabled, set authid to cookie value
+                authid = self.transport._cbtid
+            else:
+                # if no cookie tracking, generate a random value for authid
+                authid = util.generate_serial_number()
+            auth_config = {
+                'anonymous': {
+                    'type': 'static',
+                    'authrole': 'anonymous',
+                    'authid': authid,
+                }
+            }
+            self.log.warn('No authentication configured for proxy frontend: using default anonymous access policy for incoming proxy frontend session')
 
         for authmethod in authmethods:
             # invalid authmethod
@@ -413,18 +450,16 @@ class ProxyFrontendSession(object):
                                authmethod=authmethod)
                 continue
 
-            PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
-
-            # pending_session_id, transport_info, realm_container, config
-            self._pending_auth = PendingAuthKlass(
+            # create instance of authenticator using authenticator class for the respective authmethod
+            authklass = extra_auth_methods[authmethod] if authmethod in extra_auth_methods else AUTHMETHOD_MAP[authmethod]
+            self._pending_auth = authklass(
                 self._pending_session_id,
                 self.transport._transport_info,
-
-                # FIXME * no_such_role
                 self._controller,
                 auth_config[authmethod],
             )
             try:
+                # call into authenticator for processing the HELLO message
                 hello_result = self._pending_auth.hello(msg.realm, details)
             except Exception as e:
                 self.log.failure()
@@ -432,11 +467,14 @@ class ProxyFrontendSession(object):
                                                   message='Frontend connection accept failed ({})'.format(e)))
                 return
             self.log.info('{klass}._process_Hello() processed authmethod "{authmethod}" using {authklass}: {hello_result}',
-                          klass=self.__class__.__name__, authmethod=authmethod, authklass=PendingAuthKlass,
+                          klass=self.__class__.__name__, authmethod=authmethod, authklass=authklass,
                           hello_result=hello_result)
 
+            # if the frontend session is accepted right away (eg when doing "anonymous" authentication), process the
+            # frontend accept ..
             if isinstance(hello_result, types.Accept):
                 try:
+                    # get a backend session mapped to the incoming frontend session
                     session = yield self._accept(hello_result)
                 except Exception as e:
                     self.log.failure()
@@ -445,6 +483,7 @@ class ProxyFrontendSession(object):
                     return
 
                 def _on_backend_joined(session, details):
+                    # we now got everything! the frontend is authenticated, and a backend session is associated.
                     msg = message.Welcome(self._session_id,
                                           ProxyFrontendSession.ROLES,
                                           realm=details.realm,
@@ -459,14 +498,17 @@ class ProxyFrontendSession(object):
                                   session_id=hlid(self._session_id), session=self, details=details)
 
                 session.on('join', _on_backend_joined)
+
+            # if the client is required to do an authentication message exchange, answer sending a CHALLENGE message
             elif isinstance(hello_result, types.Challenge):
                 self.transport.send(message.Challenge(hello_result.method, extra=hello_result.extra))
 
+            # if the client is denied right away, answer by sending an ABORT message
             elif isinstance(hello_result, types.Deny):
                 self.transport.send(message.Abort(hello_result.reason, message=hello_result.message))
 
+            # should not arrive here: internal (logic) error
             else:
-                # should not arrive here: logic error
                 self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                                   message='internal error: unexpected authenticator return type {}'.format(type(hello_result))))
             return
