@@ -5,7 +5,7 @@
 Changelog
 =========
 
-2.4.1
+20.4.1
 -----
 
 * new: support forwarding of options.extra to native workers
