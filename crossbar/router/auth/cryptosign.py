@@ -248,19 +248,26 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
     def hello(self, realm, details):
         self.log.debug('{klass}.hello(realm={realm}, details={details}) ...',
                        klass=self.__class__.__name__, realm=realm, details=details)
-        extra = details.authextra or {}
-
+        if details.authextra:
+            return types.Deny(message='missing required details.authextra')
         for attr in ['proxy_authid', 'proxy_authrole', 'proxy_realm']:
-            if attr not in extra:
-                return types.Deny(message='missing required attribute {}'.format(attr))
+            if attr not in details.authextra:
+                return types.Deny(message='missing required attribute {} in details.authextra'.format(attr))
 
-        realm = extra['proxy_realm']
-        details.authid = extra['proxy_authid']
-        details.authrole = extra['proxy_authrole']
-        details.authextra = extra.get('proxy_authextra', None)
+        # with authentictors of type "*-proxy", the principal returned in authenticating the
+        # incoming backend connection is ignored ..
+        _ = super(PendingAuthCryptosignProxy, self).hello(realm, details)
 
-        self.log.debug('{klass}.hello(realm={realm}, details={details}) -> realm={realm}, authid={authid}, authrole={authrole}, authextra={authextra}',
-                       klass=self.__class__.__name__, realm=realm, details=details, authid=details.authid,
-                       authrole=details.authrole, authextra=details.authextra)
+        # .. and the incoming backend connection from the proxy frontend is authenticated as the principal
+        # the frontend proxy has _already_ authenticated the actual client (before even connecting and
+        # authenticating to the backend here)
+        principal = {}
+        principal['realm'] = details.authextra['proxy_realm']
+        principal['authid'] = details.authextra['proxy_authid']
+        principal['role'] = details.authextra['proxy_authrole']
+        principal['extra'] = details.authextra.get('proxy_authextra', None)
+        self._assign_principal(principal)
 
-        return super(PendingAuthCryptosignProxy, self).hello(realm, details)
+        self.log.debug('{klass}.hello(realm={realm}, details={details}) -> principal={principal}',
+                       klass=self.__class__.__name__, realm=realm, details=details, principal=principal)
+        return principal
