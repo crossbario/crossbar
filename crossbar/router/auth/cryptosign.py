@@ -256,8 +256,6 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
 
         # enforce the backend to be on the same realm as actual client
         realm = extra['proxy_realm']
-        if details.authid is None:
-            details.authid = extra['proxy_authid']
         if details.authrole is None:
             details.authrole = extra['proxy_authrole']
         self.log.debug('{klass}.hello(realm={realm}, details={details}) -> realm={realm}, authid={authid}, authrole={authrole}, authextra={authextra}',
