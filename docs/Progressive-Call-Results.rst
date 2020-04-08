@@ -15,7 +15,7 @@ transfer of the user list is still in progress.
 
 In WAMP, this is possible via **Progressive Call Results**. With these,
 a call can return a series of partial results, with a final result which
-signals that the series has endeded.
+signals that the series has ended.
 
 For example, call which requests progressive call results in a
 JavaScript component using Autobahn\|JS could be
