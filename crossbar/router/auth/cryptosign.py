@@ -248,7 +248,7 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
     def hello(self, realm, details):
         self.log.debug('{klass}.hello(realm={realm}, details={details}) ...',
                        klass=self.__class__.__name__, realm=realm, details=details)
-        if details.authextra:
+        if not details.authextra:
             return types.Deny(message='missing required details.authextra')
         for attr in ['proxy_authid', 'proxy_authrole', 'proxy_realm']:
             if attr not in details.authextra:
@@ -270,4 +270,4 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
 
         self.log.debug('{klass}.hello(realm={realm}, details={details}) -> principal={principal}',
                        klass=self.__class__.__name__, realm=realm, details=details, principal=principal)
-        return principal
+        return self._accept()
