@@ -38,7 +38,7 @@ from nacl.exceptions import BadSignatureError
 from autobahn import util
 from autobahn.wamp import types
 
-from txaio import make_logger
+import txaio
 
 from crossbar.router.auth.pending import PendingAuth
 
@@ -53,7 +53,7 @@ class PendingAuthCryptosign(PendingAuth):
     Pending Cryptosign authentication.
     """
 
-    log = make_logger()
+    log = txaio.make_logger()
 
     AUTHMETHOD = 'cryptosign'
 
@@ -242,7 +242,7 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
     Pending Cryptosign authentication with additions for proxy
     """
 
-    log = make_logger()
+    log = txaio.make_logger()
     AUTHMETHOD = 'cryptosign-proxy'
 
     def hello(self, realm, details):
@@ -254,20 +254,44 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
             if attr not in details.authextra:
                 return types.Deny(message='missing required attribute {} in details.authextra'.format(attr))
 
+        if details.authrole is None:
+            details.authrole = details.authextra.get('proxy_authrole', None)
+        if details.authid is None:
+            details.authid = details.authextra.get('proxy_authid', None)
+
         # with authentictors of type "*-proxy", the principal returned in authenticating the
         # incoming backend connection is ignored ..
-        _ = super(PendingAuthCryptosignProxy, self).hello(realm, details)
+        f = super(PendingAuthCryptosignProxy, self).hello(realm, details)
 
-        # .. and the incoming backend connection from the proxy frontend is authenticated as the principal
-        # the frontend proxy has _already_ authenticated the actual client (before even connecting and
-        # authenticating to the backend here)
-        principal = {}
-        principal['realm'] = details.authextra['proxy_realm']
-        principal['authid'] = details.authextra['proxy_authid']
-        principal['role'] = details.authextra['proxy_authrole']
-        principal['extra'] = details.authextra.get('proxy_authextra', None)
-        self._assign_principal(principal)
+        def assign(res):
+            """
+            .. and the incoming backend connection from the proxy frontend is authenticated as the principal
+            the frontend proxy has _already_ authenticated the actual client (before even connecting and
+            authenticating to the backend here)
+            """
+            if isinstance(res, types.Deny):
+                return res
 
-        self.log.debug('{klass}.hello(realm={realm}, details={details}) -> principal={principal}',
-                       klass=self.__class__.__name__, realm=realm, details=details, principal=principal)
-        return self._accept()
+            principal = {}
+            principal['realm'] = details.authextra['proxy_realm']
+            principal['authid'] = details.authextra['proxy_authid']
+            principal['role'] = details.authextra['proxy_authrole']
+            principal['extra'] = details.authextra.get('proxy_authextra', None)
+            self._assign_principal(principal)
+
+            self.log.debug(
+                '{klass}.hello(realm={realm}, details={details}) -> principal={principal}',
+                klass=self.__class__.__name__,
+                realm=realm,
+                details=details,
+                principal=principal,
+            )
+            return self._accept()
+
+        def error(f):
+            return types.Deny(
+                "Internal error: {}".format(f)
+            )
+
+        txaio.add_callbacks(f, assign, error)
+        return f
