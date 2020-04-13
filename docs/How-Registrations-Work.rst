@@ -27,7 +27,7 @@ time.
 
 As a default, exact matching is used for RPCs, i.e. a call is only
 accepted (and routed to a callee) if a callee has registered for the
-exact URI used by a caller. Additionally, patter-based registrations are
+exact URI used by a caller. Additionally, pattern-based registrations are
 possible, e.g. a callee could register a URI which is prefix-matched, so
 that a registration for "com.myapp.create" would lead to calls for both
 "com.myapp.create.user" and "com.myapp.create.device" to be accepted and
