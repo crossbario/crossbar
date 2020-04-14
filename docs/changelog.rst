@@ -5,11 +5,12 @@
 Changelog
 =========
 
-master
+20.4.2
 ------
 
 * new: proxy worker backends support wamp-cryptosign backend authentication using node key
 * new: proxy workers fully support all authentication methods for frontend session
+* fix: rectify proxy worker glitches and refactor proxy worker code
 
 20.4.1
 ------
