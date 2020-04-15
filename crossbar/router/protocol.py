@@ -265,7 +265,6 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
                             headers['Set-Cookie'] = headers['Set-Cookie'] if headers['Set-Cookie'].endswith(';') else headers['Set-Cookie'] + ';'
 
-
                     self.log.debug("Setting new cookie: {cookie}",
                                    cookie=headers['Set-Cookie'])
                 else:
