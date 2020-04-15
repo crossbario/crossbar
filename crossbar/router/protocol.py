@@ -251,6 +251,21 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
                     self._cbtid, headers['Set-Cookie'] = self.factory._cookiestore.create()
 
+                    if 'cookie' in self.factory._config and 'headers' in self.factory._config['cookie']:
+                        headers['Set-Cookie'] = headers['Set-Cookie'] if headers['Set-Cookie'].endswith(';') else headers['Set-Cookie'] + ';'
+
+                        for header in self.factory._config['cookie']['headers']:
+                            if isinstance(self.factory._config['cookie']['headers'][header], bool):
+                                headers['Set-Cookie'] += header
+                            elif isinstance(self.factory._config['cookie']['headers'][header], str):
+                                headers['Set-Cookie'] += header + "=" + self.factory._config['cookie']['headers'][header]
+                            else:
+                                self.log.debug("Unknown cookie header value for " + header)
+                                continue
+
+                            headers['Set-Cookie'] = headers['Set-Cookie'] if headers['Set-Cookie'].endswith(';') else headers['Set-Cookie'] + ';'
+
+
                     self.log.debug("Setting new cookie: {cookie}",
                                    cookie=headers['Set-Cookie'])
                 else:

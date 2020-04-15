@@ -662,7 +662,8 @@ def check_transport_cookie(personality, cookie, ignore=[]):
         'name': (False, [str]),
         'length': (False, [int]),
         'max_age': (False, [int]),
-        'store': (False, [Mapping])
+        'store': (False, [Mapping]),
+        'headers': (False, [Mapping])
     }, cookie, "WebSocket cookie configuration")
 
     if 'name' in cookie:
