@@ -251,6 +251,14 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
                     self._cbtid, headers['Set-Cookie'] = self.factory._cookiestore.create()
 
+                    if 'cookie' in self.factory._config:
+                        if 'secure' in self.factory._config['cookie'] and self.factory._config['cookie']['secure'] is True:
+                            headers['Set-Cookie'] += ';Secure'
+                        if 'http_strict' in self.factory._config['cookie'] and self.factory._config['cookie']['http_strict'] is True:
+                            headers['Set-Cookie'] += ';HttpOnly'
+                        if 'same_site' in self.factory._config['cookie']:
+                            headers['Set-Cookie'] += ';SameSite=' + self.factory._config['cookie']['same_site']
+
                     self.log.debug("Setting new cookie: {cookie}",
                                    cookie=headers['Set-Cookie'])
                 else:

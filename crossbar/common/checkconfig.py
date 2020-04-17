@@ -662,7 +662,10 @@ def check_transport_cookie(personality, cookie, ignore=[]):
         'name': (False, [str]),
         'length': (False, [int]),
         'max_age': (False, [int]),
-        'store': (False, [Mapping])
+        'store': (False, [Mapping]),
+        'secure': (False, [bool]),
+        'http_strict': (False, [bool]),
+        'same_site': (False, [str])
     }, cookie, "WebSocket cookie configuration")
 
     if 'name' in cookie:
@@ -698,6 +701,11 @@ def check_transport_cookie(personality, cookie, ignore=[]):
             pass
         else:
             raise InvalidConfigException('logic error')
+
+    if 'same_site' in cookie:
+        same_site = cookie['same_site']
+        if same_site not in ["Strict", "Lax", "None"]:
+            raise InvalidConfigException("invalid attribute value '{}' for attribute 'same_site' - must be one of 'Strict', 'Lax', 'None'".format(same_site))
 
 
 def check_endpoint_backlog(backlog):
