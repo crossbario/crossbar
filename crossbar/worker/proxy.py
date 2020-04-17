@@ -225,7 +225,7 @@ class ProxyFrontendSession(object):
             # https://wamp-proto.org/_static/gen/wamp_latest.html#session-closing
             elif isinstance(msg, message.Abort):
                 self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
-                                                  message='Client aborted the session opening handshake'))
+                                                  message='Proxy authentication failed'))
 
             # https://wamp-proto.org/_static/gen/wamp_latest.html#wamp-level-authentication
             elif isinstance(msg, message.Authenticate):
@@ -249,7 +249,7 @@ class ProxyFrontendSession(object):
                     self.log.warn('Frontend session left, but no active backend session to close!')
 
                 # complete the closing handshake (initiated by the client in this case) by replying with GOODBYE
-                self.transport.send(message.Goodbye(message='Client aborted the session opening handshake'))
+                self.transport.send(message.Goodbye(message="Proxy session closing"))
             else:
                 if self._backend_session is None or self._backend_session._transport is None:
                     raise TransportLost(
