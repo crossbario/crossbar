@@ -41,7 +41,7 @@ from autobahn import util
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.auth import create_authenticator
-from autobahn.wamp.exception import ApplicationError, TransportLost, ProtocolError, Error
+from autobahn.wamp.exception import ApplicationError, TransportLost, ProtocolError
 from autobahn.wamp.role import RoleDealerFeatures, RoleBrokerFeatures
 from autobahn.wamp.component import _create_transport
 from autobahn.wamp.interfaces import ITransportHandler
@@ -196,12 +196,13 @@ class ProxyFrontendSession(object):
         :type wasClean: bool
         """
         self.log.info('{klass}.onClose(wasClean={wasClean})', klass=self.__class__.__name__, wasClean=wasClean)
-        if self._backend_session is not None:
-            try:
-                self._backend_session.leave()
-            except Error:
-                pass
+
+        # actually, at this point, the backend session should already be gone .. but better check!
+        if self._backend_session:
+            self._controller.unmap_backend(self, self._backend_session)
             self._backend_session = None
+
+        # reset everything (even though this frontend protocol instance should not be reused anyways)
         self._reset()
 
     @inlineCallbacks
@@ -242,10 +243,10 @@ class ProxyFrontendSession(object):
             # https://wamp-proto.org/_static/gen/wamp_latest.html#session-closing
             elif isinstance(msg, message.Goodbye):
                 if self._backend_session:
-                    yield self._controller.unmap_backend(self, self._backend_session)
+                    self._controller.unmap_backend(self, self._backend_session)
                     self._backend_session = None
                 else:
-                    self.log.warn('Frontend session left, but no active backend session to close')
+                    self.log.warn('Frontend session left, but no active backend session to close!')
 
                 # complete the closing handshake (initiated by the client in this case) by replying with GOODBYE
                 self.transport.send(message.Goodbye(message='Client aborted the session opening handshake'))
@@ -363,7 +364,10 @@ class ProxyFrontendSession(object):
 
     def _forward(self, msg):
         # we received a message on the backend connection: forward to client over frontend connection
-        self.transport.send(msg)
+        if self.transport:
+            self.transport.send(msg)
+        else:
+            self.log.warn('Trying to forward a message to the client, but no frontend transport! [{msg}]', msg=msg)
 
     @inlineCallbacks
     def _process_Hello(self, msg):
@@ -812,17 +816,25 @@ class ProxyController(RouterController):
         """
         Unmap the backend session from the given frontend session it is currently mapped to.
         """
+        self.log.info('{klass}.unmap_backend(frontend={frontend}, backend={backend})', klass=self.__class__.__name__,
+                      frontend=frontend, backend=backend)
         if frontend in self._backends_by_frontend:
             if self._backends_by_frontend[frontend] == backend:
-                # alright, the given frontend is indeed currently mapped to the given backend session: delete it
+                # alright, the given frontend is indeed currently mapped to the given backend session: close the
+                # session and delete it
+                backend.leave()
                 del self._backends_by_frontend[frontend]
+                self.log.info('{klass}.unmap_backend: ok, unmapped frontend session {frontend_session_id} from backend session {backend_session_id}',
+                              klass=self.__class__.__name__, frontend_session_id=frontend._session_id,
+                              backend_session_id=backend._session_id)
             else:
-                raise RuntimeError(
-                    'frontend session {} currently mapped to backend {} - NOT to specified backend {}'.format(
-                        frontend._session_id, self._backends_by_frontend[frontend]._session_id, backend._session_id))
+                self.log.warn('{klass}.unmap_backend: frontend session {frontend_session_id} currently mapped to backend session {backend_session_id} - NOT to specified backend {specified_session_id}'.format(
+                    klass=self.__class__.__name__, frontend_session_id=frontend._session_id,
+                    backend_session_id=self._backends_by_frontend[frontend]._session_id,
+                    specified_session_id=backend._session_id))
         else:
-            raise RuntimeError(
-                'frontend session {} not currently mapped to any backend'.format(frontend._session_id))
+            self.log.warn('{klass}.unmap_backend: frontend session {session_id} not currently mapped to any backend',
+                          klass=self.__class__.__name__, session_id=frontend._session_id)
 
     def get_backend_config(self, realm_name, role_name):
         """
