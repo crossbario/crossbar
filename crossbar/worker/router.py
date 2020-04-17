@@ -51,8 +51,170 @@ from crossbar.worker.rlink import RLinkConfig
 
 __all__ = ('RouterController',)
 
+class _TransportController(WorkerController):
+    """
+    Services shared between RouterController and ProxyController
+    """
 
-class RouterController(WorkerController):
+    @wamp.register(None)
+    @inlineCallbacks
+    def start_web_transport_service(self, transport_id, path, config, details=None):
+        """
+        Start a service on a Web transport.
+
+        :param transport_id: The ID of the transport to start the Web transport service on.
+        :type transport_id: str
+
+        :param path: The path (absolute URL, eg "/myservice1") on which to start the service.
+        :type path: str
+
+        :param config: The Web service configuration.
+        :type config: dict
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+        """
+        if not isinstance(config, dict) or 'type' not in config:
+            raise ApplicationError('crossbar.invalid_argument', 'config parameter must be dict with type attribute')
+
+        self.log.info('Starting "{service_type}" Web service on path "{path}" of transport "{transport_id}" {method}',
+                      service_type=config.get('type', None),
+                      path=path,
+                      transport_id=transport_id,
+                      method=hltype(self.start_web_transport_service))
+
+        transport = self.transports.get(transport_id, None)
+        if not transport:
+            emsg = 'Cannot start service on transport: no transport with ID "{}"'.format(transport_id)
+            self.log.error(emsg)
+            raise ApplicationError('crossbar.error.not_running', emsg)
+
+        if not isinstance(transport, self.personality.RouterWebTransport):
+            emsg = 'Cannot start service on transport: transport is not a Web transport (transport_type={})'.format(hltype(transport.__class__))
+            self.log.error(emsg)
+            raise ApplicationError('crossbar.error.not_running', emsg)
+
+        if transport.state != self.personality.RouterTransport.STATE_STARTED:
+            emsg = 'Cannot start service on Web transport service: transport is not running (transport_state={})'.format(
+                transport_id, self.personality.RouterWebTransport.STATES.get(transport.state, None))
+            self.log.error(emsg)
+            raise ApplicationError('crossbar.error.not_running', emsg)
+
+        if path in transport.root:
+            emsg = 'Cannot start service on Web transport "{}": a service is already running on path "{}"'.format(transport_id, path)
+            self.log.error(emsg)
+            raise ApplicationError('crossbar.error.already_running', emsg)
+
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + '.on_web_transport_service_starting',
+                     transport_id,
+                     path,
+                     options=PublishOptions(exclude=caller))
+
+        # now actually add the web service ..
+        # note: currently this is NOT async, but direct/sync.
+        webservice_factory = self.personality.WEB_SERVICE_FACTORIES[config['type']]
+
+        webservice = yield maybeDeferred(webservice_factory.create, transport, path, config)
+        transport.root[path] = webservice
+
+        on_web_transport_service_started = {
+            'transport_id': transport_id,
+            'path': path,
+            'config': config
+        }
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + '.on_web_transport_service_started',
+                     transport_id,
+                     path,
+                     on_web_transport_service_started,
+                     options=PublishOptions(exclude=caller))
+
+        returnValue(on_web_transport_service_started)
+
+    @wamp.register(None)
+    def stop_web_transport_service(self, transport_id, path, details=None):
+        """
+        Stop a service on a Web transport.
+
+        :param transport_id: The ID of the transport to stop the Web transport service on.
+        :type transport_id: str
+
+        :param path: The path (absolute URL, eg "/myservice1") of the service to stop.
+        :type path: str
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+        """
+        self.log.info("{name}.stop_web_transport_service(transport_id={transport_id}, path={path})",
+                      name=self.__class__.__name__,
+                      transport_id=transport_id,
+                      path=path)
+
+        transport = self.transports.get(transport_id, None)
+        if not transport or \
+           not isinstance(transport, self.personality.RouterWebTransport) or \
+           transport.state != self.personality.RouterTransport.STATE_STARTED:
+            emsg = "Cannot stop service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
+            self.log.error(emsg)
+            raise ApplicationError('crossbar.error.not_running', emsg)
+
+        if path not in transport.root:
+            emsg = "Cannot stop service on Web transport {}: no service running on path '{}'".format(transport_id, path)
+            self.log.error(emsg)
+            raise ApplicationError('crossbar.error.not_running', emsg)
+
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + '.on_web_transport_service_stopping',
+                     transport_id,
+                     path,
+                     options=PublishOptions(exclude=caller))
+
+        # now actually remove the web service. note: currently this is NOT async, but direct/sync.
+        # FIXME: check that the underlying Twisted Web resource doesn't need any stopping too!
+        del transport.root[path]
+
+        on_web_transport_service_stopped = {
+            'transport_id': transport_id,
+            'path': path,
+        }
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + '.on_web_transport_service_stopped',
+                     transport_id,
+                     path,
+                     on_web_transport_service_stopped,
+                     options=PublishOptions(exclude=caller))
+
+        return on_web_transport_service_stopped
+
+    @wamp.register(None)
+    def get_web_transport_service(self, transport_id, path, details=None):
+        self.log.info("{name}.get_web_transport_service(transport_id={transport_id}, path={path})",
+                      name=self.__class__.__name__,
+                      transport_id=transport_id,
+                      path=path)
+
+        transport = self.transports.get(transport_id, None)
+        if not transport or \
+           not isinstance(transport, self.personality.RouterWebTransport) or \
+           transport.state != self.personality.RouterTransport.STATE_STARTED:
+            emsg = "No transport with ID '{}' or transport is not a Web transport".format(transport_id)
+            self.log.debug(emsg)
+            raise ApplicationError('crossbar.error.not_running', emsg)
+
+        if path not in transport.root:
+            emsg = "Web transport {}: no service running on path '{}'".format(transport_id, path)
+            self.log.debug(emsg)
+            raise ApplicationError('crossbar.error.not_running', emsg)
+
+        obj = {
+            'path': transport.path,
+            'config': transport.config,
+        }
+        return obj
+
+
+class RouterController(_TransportController):
     """
     A native Crossbar.io worker that runs a WAMP router which can manage
     multiple realms, run multiple transports and links, as well as host
@@ -64,8 +226,11 @@ class RouterController(WorkerController):
     router_factory_class = RouterFactory
 
     def __init__(self, config=None, reactor=None, personality=None):
-        # base ctor
-        WorkerController.__init__(self, config=config, reactor=reactor, personality=personality)
+        super(RouterController, self).__init__(
+            config=config,
+            reactor=reactor,
+            personality=personality,
+        )
 
         # factory for producing (per-realm) routers
         self._router_factory = self.router_factory_class(self.config.extra.node, self.config.extra.worker, self)
@@ -868,163 +1033,6 @@ class RouterController(WorkerController):
 
         d.addCallbacks(ok, fail)
         return d
-
-    @wamp.register(None)
-    @inlineCallbacks
-    def start_web_transport_service(self, transport_id, path, config, details=None):
-        """
-        Start a service on a Web transport.
-
-        :param transport_id: The ID of the transport to start the Web transport service on.
-        :type transport_id: str
-
-        :param path: The path (absolute URL, eg "/myservice1") on which to start the service.
-        :type path: str
-
-        :param config: The Web service configuration.
-        :type config: dict
-
-        :param details: Call details.
-        :type details: :class:`autobahn.wamp.types.CallDetails`
-        """
-        if not isinstance(config, dict) or 'type' not in config:
-            raise ApplicationError('crossbar.invalid_argument', 'config parameter must be dict with type attribute')
-
-        self.log.info('Starting "{service_type}" Web service on path "{path}" of transport "{transport_id}" {method}',
-                      service_type=config.get('type', None),
-                      path=path,
-                      transport_id=transport_id,
-                      method=hltype(self.start_web_transport_service))
-
-        transport = self.transports.get(transport_id, None)
-        if not transport:
-            emsg = 'Cannot start service on transport: no transport with ID "{}"'.format(transport_id)
-            self.log.error(emsg)
-            raise ApplicationError('crossbar.error.not_running', emsg)
-
-        if not isinstance(transport, self.personality.RouterWebTransport):
-            emsg = 'Cannot start service on transport: transport is not a Web transport (transport_type={})'.format(hltype(transport.__class__))
-            self.log.error(emsg)
-            raise ApplicationError('crossbar.error.not_running', emsg)
-
-        if transport.state != self.personality.RouterTransport.STATE_STARTED:
-            emsg = 'Cannot start service on Web transport service: transport is not running (transport_state={})'.format(
-                transport_id, self.personality.RouterWebTransport.STATES.get(transport.state, None))
-            self.log.error(emsg)
-            raise ApplicationError('crossbar.error.not_running', emsg)
-
-        if path in transport.root:
-            emsg = 'Cannot start service on Web transport "{}": a service is already running on path "{}"'.format(transport_id, path)
-            self.log.error(emsg)
-            raise ApplicationError('crossbar.error.already_running', emsg)
-
-        caller = details.caller if details else None
-        self.publish(self._uri_prefix + '.on_web_transport_service_starting',
-                     transport_id,
-                     path,
-                     options=PublishOptions(exclude=caller))
-
-        # now actually add the web service ..
-        # note: currently this is NOT async, but direct/sync.
-        webservice_factory = self.personality.WEB_SERVICE_FACTORIES[config['type']]
-
-        webservice = yield maybeDeferred(webservice_factory.create, transport, path, config)
-        transport.root[path] = webservice
-
-        on_web_transport_service_started = {
-            'transport_id': transport_id,
-            'path': path,
-            'config': config
-        }
-        caller = details.caller if details else None
-        self.publish(self._uri_prefix + '.on_web_transport_service_started',
-                     transport_id,
-                     path,
-                     on_web_transport_service_started,
-                     options=PublishOptions(exclude=caller))
-
-        returnValue(on_web_transport_service_started)
-
-    @wamp.register(None)
-    def stop_web_transport_service(self, transport_id, path, details=None):
-        """
-        Stop a service on a Web transport.
-
-        :param transport_id: The ID of the transport to stop the Web transport service on.
-        :type transport_id: str
-
-        :param path: The path (absolute URL, eg "/myservice1") of the service to stop.
-        :type path: str
-
-        :param details: Call details.
-        :type details: :class:`autobahn.wamp.types.CallDetails`
-        """
-        self.log.info("{name}.stop_web_transport_service(transport_id={transport_id}, path={path})",
-                      name=self.__class__.__name__,
-                      transport_id=transport_id,
-                      path=path)
-
-        transport = self.transports.get(transport_id, None)
-        if not transport or \
-           not isinstance(transport, self.personality.RouterWebTransport) or \
-           transport.state != self.personality.RouterTransport.STATE_STARTED:
-            emsg = "Cannot stop service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
-            self.log.error(emsg)
-            raise ApplicationError('crossbar.error.not_running', emsg)
-
-        if path not in transport.root:
-            emsg = "Cannot stop service on Web transport {}: no service running on path '{}'".format(transport_id, path)
-            self.log.error(emsg)
-            raise ApplicationError('crossbar.error.not_running', emsg)
-
-        caller = details.caller if details else None
-        self.publish(self._uri_prefix + '.on_web_transport_service_stopping',
-                     transport_id,
-                     path,
-                     options=PublishOptions(exclude=caller))
-
-        # now actually remove the web service. note: currently this is NOT async, but direct/sync.
-        # FIXME: check that the underlying Twisted Web resource doesn't need any stopping too!
-        del transport.root[path]
-
-        on_web_transport_service_stopped = {
-            'transport_id': transport_id,
-            'path': path,
-        }
-        caller = details.caller if details else None
-        self.publish(self._uri_prefix + '.on_web_transport_service_stopped',
-                     transport_id,
-                     path,
-                     on_web_transport_service_stopped,
-                     options=PublishOptions(exclude=caller))
-
-        return on_web_transport_service_stopped
-
-    @wamp.register(None)
-    def get_web_transport_service(self, transport_id, path, details=None):
-        self.log.info("{name}.get_web_transport_service(transport_id={transport_id}, path={path})",
-                      name=self.__class__.__name__,
-                      transport_id=transport_id,
-                      path=path)
-
-        transport = self.transports.get(transport_id, None)
-        if not transport or \
-           not isinstance(transport, self.personality.RouterWebTransport) or \
-           transport.state != self.personality.RouterTransport.STATE_STARTED:
-            emsg = "No transport with ID '{}' or transport is not a Web transport".format(transport_id)
-            self.log.debug(emsg)
-            raise ApplicationError('crossbar.error.not_running', emsg)
-
-        if path not in transport.root:
-            emsg = "Web transport {}: no service running on path '{}'".format(transport_id, path)
-            self.log.debug(emsg)
-            raise ApplicationError('crossbar.error.not_running', emsg)
-
-        obj = {
-            'path': transport.path,
-            'config': transport.config,
-        }
-        return obj
 
     @wamp.register(None)
     def kill_by_authid(self, realm_id, authid, reason, message=None, details=None):
