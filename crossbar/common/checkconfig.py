@@ -663,6 +663,7 @@ def check_transport_cookie(personality, cookie, ignore=[]):
         'length': (False, [int]),
         'max_age': (False, [int]),
         'store': (False, [Mapping]),
+        'secure': (False, [bool]),
         'http_strict': (False, [bool]),
         'same_site': (False, [str])
     }, cookie, "WebSocket cookie configuration")
