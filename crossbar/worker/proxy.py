@@ -369,7 +369,10 @@ class ProxyFrontendSession(object):
         if self.transport:
             self.transport.send(msg)
         else:
-            self.log.warn('Trying to forward a message to the client, but no frontend transport! [{msg}]', msg=msg)
+            # FIXME: can we improve this?
+            # eg when the frontend client connection has closed before we had a chance to stop the backend and we still
+            # receive eg a Result(request=23033, args=[] ..) from the backend.
+            self.log.debug('Trying to forward a message to the client, but no frontend transport! [{msg}]', msg=msg)
 
     @inlineCallbacks
     def _process_Hello(self, msg):

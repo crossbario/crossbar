@@ -51,6 +51,7 @@ from crossbar.worker.rlink import RLinkConfig
 
 __all__ = ('RouterController',)
 
+
 class _TransportController(WorkerController):
     """
     Services shared between RouterController and ProxyController
