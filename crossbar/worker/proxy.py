@@ -51,11 +51,13 @@ from autobahn.twisted.component import _create_transport_factory, _create_transp
 from crossbar._util import hlid
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
-from crossbar.worker.router import RouterController
+from crossbar.worker.router import _TransportController
 from crossbar.common.key import _read_node_key
 from crossbar.common.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
 from crossbar.router.auth import AUTHMETHOD_MAP
+from crossbar.router.session import RouterSessionFactory
+from crossbar.router.session import RouterFactory
 
 try:
     from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
@@ -113,7 +115,7 @@ class ProxyFrontendSession(object):
 
     def __init__(self, router_factory):
         self._router_factory = router_factory
-        self._controller = router_factory._proxy_controller
+        self._controller = router_factory.worker
         self._reset()
 
     def _reset(self):
@@ -225,7 +227,7 @@ class ProxyFrontendSession(object):
             # https://wamp-proto.org/_static/gen/wamp_latest.html#session-closing
             elif isinstance(msg, message.Abort):
                 self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
-                                                  message='Client aborted the session opening handshake'))
+                                                  message='Proxy authentication failed'))
 
             # https://wamp-proto.org/_static/gen/wamp_latest.html#wamp-level-authentication
             elif isinstance(msg, message.Authenticate):
@@ -249,7 +251,7 @@ class ProxyFrontendSession(object):
                     self.log.warn('Frontend session left, but no active backend session to close!')
 
                 # complete the closing handshake (initiated by the client in this case) by replying with GOODBYE
-                self.transport.send(message.Goodbye(message='Client aborted the session opening handshake'))
+                self.transport.send(message.Goodbye(message="Proxy session closing"))
             else:
                 if self._backend_session is None or self._backend_session._transport is None:
                     raise TransportLost(
@@ -722,7 +724,7 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
 
 
 # implements IRealmContainer
-class ProxyController(RouterController):
+class ProxyController(_TransportController):
     WORKER_TYPE = 'proxy'
     WORKER_TITLE = 'WAMP proxy'
 
@@ -738,16 +740,25 @@ class ProxyController(RouterController):
         self._transports = dict()
         self._routes = dict()  # realm -> dict
 
+        # map: transport ID -> RouterTransport
+        self.transports = {}
+
         # superclass sets up:
         # self._router_factory
         # self._router_session_factory
 
         # will be set up via Node by start_proxy_connection et al.
         self._backend_configs = dict()
-        # this lets ProxyFrontendSession get back to the controller
-        self._router_factory._proxy_controller = self
-        # override RouterSession
-        self._router_session_factory.session = ProxyFrontendSession
+
+        # since we share some functionality with RouterController we
+        # need to have a router_session_factory
+        self._router_factory = RouterFactory(
+            self.config.extra.node,
+            self.config.extra.worker,
+            self,  # ProxySession get to ProxyController via .worker here
+        )
+        self.router_session_factory = RouterSessionFactory(self._router_factory)
+        self.router_session_factory.session = ProxyFrontendSession
 
         # currently mapped session: map of frontend_session => backend_session
         self._backends_by_frontend = {}
@@ -872,7 +883,49 @@ class ProxyController(RouterController):
             transport_id=transport_id,
         )
 
-        yield self.start_router_transport(transport_id, config, create_paths=False)
+        self.log.info(
+            'Starting proxy transport "{transport_id}" {method}',
+            transport_id=transport_id,
+            method=self.start_proxy_transport,
+        )
+
+        # prohibit starting a transport twice
+        if transport_id in self.transports:
+            _emsg = 'Could not start transport: a transport with ID "{}" is already running (or starting)'.format(transport_id)
+            self.log.error(_emsg)
+            raise ApplicationError('crossbar.error.already_running', _emsg)
+
+        # create a transport and parse the transport configuration
+        # (NOTE: yes, this is re-using create_router_transport so we
+        # can proxy every sevice a 'real' router can)
+        proxy_transport = self.personality.create_router_transport(self, transport_id, config)
+
+        caller = details.caller if details else None
+        event = {
+            'id': transport_id
+        }
+        topic = '{}.on_proxy_transport_starting'.format(self._uri_prefix)
+        self.publish(topic, event, options=types.PublishOptions(exclude=caller))
+
+        # start listening ..
+        try:
+            yield proxy_transport.start(False)
+        except Exception as err:
+            _emsg = "Cannot listen on transport endpoint: {log_failure}"
+            self.log.error(_emsg, log_failure=err)
+
+            topic = '{}.on_proxy_transport_stopped'.format(self._uri_prefix)
+            self.publish(topic, event, options=types.PublishOptions(exclude=caller))
+
+            raise ApplicationError("crossbar.error.cannot_listen", _emsg.format(log_failure=err))
+
+        self.transports[transport_id] = proxy_transport
+        self.log.debug('Router transport "{transport_id}" started and listening', transport_id=transport_id)
+
+        topic = '{}.on_proxy_transport_started'.format(self._uri_prefix)
+        self.publish(topic, event, options=types.PublishOptions(exclude=caller))
+
+        return proxy_transport.marshal()
 
     @wamp.register(None)
     @inlineCallbacks
