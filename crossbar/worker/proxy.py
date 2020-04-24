@@ -746,10 +746,6 @@ class ProxyController(_TransportController):
         # map: transport ID -> RouterTransport
         self.transports = {}
 
-        # superclass sets up:
-        # self._router_factory
-        # self._router_session_factory
-
         # will be set up via Node by start_proxy_connection et al.
         self._backend_configs = dict()
 
@@ -760,8 +756,8 @@ class ProxyController(_TransportController):
             self.config.extra.worker,
             self,  # ProxySession get to ProxyController via .worker here
         )
-        self.router_session_factory = RouterSessionFactory(self._router_factory)
-        self.router_session_factory.session = ProxyFrontendSession
+        self._router_session_factory = RouterSessionFactory(self._router_factory)
+        self._router_session_factory.session = ProxyFrontendSession
 
         # currently mapped session: map of frontend_session => backend_session
         self._backends_by_frontend = {}
