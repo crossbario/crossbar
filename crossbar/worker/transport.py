@@ -255,14 +255,14 @@ class RouterTransport(object):
         # standalone WAMP-RawSocket transport
         #
         if self._config['type'] == 'rawsocket':
-            transport_factory = WampRawSocketServerFactory(self._worker.router_session_factory, self._config)
+            transport_factory = WampRawSocketServerFactory(self._worker._router_session_factory, self._config)
             transport_factory.noisy = False
 
         # standalone WAMP-WebSocket transport
         #
         elif self._config['type'] == 'websocket':
             assert (self._templates)
-            transport_factory = WampWebSocketServerFactory(self._worker.router_session_factory, self._cbdir, self._config,
+            transport_factory = WampWebSocketServerFactory(self._worker._router_session_factory, self._cbdir, self._config,
                                                            self._templates)
             transport_factory.noisy = False
 
@@ -287,7 +287,7 @@ class RouterTransport(object):
         #
         elif self._config['type'] == 'mqtt':
             transport_factory = WampMQTTServerFactory(
-                self._worker.router_session_factory, self._config, self._worker._reactor)
+                self._worker._router_session_factory, self._config, self._worker._reactor)
             transport_factory.noisy = False
 
         # Twisted Web based transport
@@ -306,14 +306,14 @@ class RouterTransport(object):
                 web_factory, root_webservice = None, None
 
             if 'rawsocket' in self._config:
-                rawsocket_factory = WampRawSocketServerFactory(self._worker.router_session_factory, self._config['rawsocket'])
+                rawsocket_factory = WampRawSocketServerFactory(self._worker._router_session_factory, self._config['rawsocket'])
                 rawsocket_factory.noisy = False
             else:
                 rawsocket_factory = None
 
             if 'mqtt' in self._config:
                 mqtt_factory = WampMQTTServerFactory(
-                    self._worker.router_session_factory, self._config['mqtt'], self._worker._reactor)
+                    self._worker._router_session_factory, self._config['mqtt'], self._worker._reactor)
                 mqtt_factory.noisy = False
             else:
                 mqtt_factory = None
@@ -322,7 +322,7 @@ class RouterTransport(object):
                 assert (self._templates)
                 websocket_factory_map = {}
                 for websocket_url_first_component, websocket_config in self._config['websocket'].items():
-                    websocket_transport_factory = WampWebSocketServerFactory(self._worker.router_session_factory, self._cbdir,
+                    websocket_transport_factory = WampWebSocketServerFactory(self._worker._router_session_factory, self._cbdir,
                                                                              websocket_config, self._templates)
                     websocket_transport_factory.noisy = False
                     websocket_factory_map[websocket_url_first_component] = websocket_transport_factory

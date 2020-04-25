@@ -846,7 +846,7 @@ class RLinkManager(object):
         try:
             # connect the local session
             #
-            self._realm.controller.router_session_factory.add(
+            self._realm.controller._router_session_factory.add(
                 local_session, self._realm.router, authid=local_authid, authrole=local_authrole, authextra=local_extra)
 
             yield local_extra['on_ready']
