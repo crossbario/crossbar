@@ -271,7 +271,7 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
     AUTHMETHOD = 'cryptosign-proxy'
 
     def hello(self, realm, details):
-        self.log.info('{klass}.hello(realm={realm}, details={details}) ...',
+        self.log.debug('{klass}.hello(realm={realm}, details={details}) ...',
                        klass=self.__class__.__name__, realm=realm, details=details)
         if not details.authextra:
             return types.Deny(message='missing required details.authextra')

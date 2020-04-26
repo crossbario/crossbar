@@ -223,8 +223,6 @@ class ProxyFrontendSession(object):
         :param msg: The WAMP message received.
         :type msg: object implementing :class:`autobahn.wamp.interfaces.IMessage`
         """
-        from twisted.internet import reactor
-
         self.log.debug('{klass}.onMessage(msg={msg})', klass=self.__class__.__name__, msg=msg)
         if self._session_id is None:
             # no frontend session established yet, so we expect one of HELLO, ABORT, AUTHENTICATE
@@ -826,9 +824,10 @@ def make_authenticator_session(backend_config, cbdir, realm, extra=None, reactor
 
         if False:
             session = Session()
-            session.add_authenticator(create_authenticator("cryptosign", privkey=key['hex']))
+            session.add_authenticator(create_authenticator("cryptosign", privkey=extra['hex']))
         else:
-            connecting_endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'], cbdir, reactor, log)
+            connecting_endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'], cbdir, reactor,
+                                                                         log)
             runner = ApplicationRunner(url=transport_config['url'], realm=realm, extra=extra,
                                        serializers=[CBORSerializer()])
             session = AuthenticatorSession(types.ComponentConfig(realm=realm, extra=extra, runner=runner))
