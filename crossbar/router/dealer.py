@@ -760,7 +760,9 @@ class Dealer(object):
                     message.Call.MESSAGE_TYPE,
                     call.request,
                     ApplicationError.NOT_AUTHORIZED,
-                    ["session is not authorized to call procedure '{0}'".format(call.procedure)]
+                    ["session with role {0} is not authorized to call procedure '{1}' on realm '{2}'".format(call.caller_authrole,
+                                                                                                             call.procedure,
+                                                                                                             self._router.realm)]
                 )
                 reply.correlation_id = call.correlation_id
                 reply.correlation_uri = call.procedure
