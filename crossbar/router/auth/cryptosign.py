@@ -171,7 +171,7 @@ class PendingAuthCryptosign(PendingAuth):
 
             d = Deferred()
 
-            d1 = self._init_dynamic_authenticator()
+            d1 = txaio.as_future(self._init_dynamic_authenticator)
 
             def initialized(error=None):
                 if error:
