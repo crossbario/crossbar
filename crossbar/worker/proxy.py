@@ -34,7 +34,7 @@ from pprint import pformat
 
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 
-from txaio import make_logger
+from txaio import make_logger, as_future
 
 from autobahn.wamp import cryptosign
 
@@ -477,8 +477,7 @@ class ProxyFrontendSession(object):
             )
             try:
                 # call into authenticator for processing the HELLO message
-                # hello_result = yield maybeDeferred(self._pending_auth.hello, msg.realm, details)
-                hello_result = yield self._pending_auth.hello(msg.realm, details)
+                hello_result = yield as_future(self._pending_auth.hello, msg.realm, details)
             except Exception as e:
                 self.log.failure()
                 self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,

@@ -222,13 +222,17 @@ class PendingAuth:
         d_connected = self._realm_container.get_service_session(self._authenticator_realm, self._authenticator_role)
         d_ready = Deferred()
 
-        def connected(session):
+        def connect_success(session):
             self.log.info('Dynamic authenticator session {session_id} connected with authrole "{authrole}" on realm "{realm}"',
                           session_id=session._session_id, authrole=session._authrole, realm=session._realm)
             self._authenticator_session = session
             d_ready.callback(None)
 
-        d_connected.addCallback(connected)
+        def connect_error(err):
+            self.log.failure()
+            d_ready.callback(err)
+
+        d_connected.addCallbacks(connect_success, connect_error)
         return d_ready
 
     def _marshal_dynamic_authenticator_error(self, err):
