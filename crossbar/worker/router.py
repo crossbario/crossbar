@@ -346,6 +346,9 @@ class RouterController(_TransportController):
         """
         Return realm detail information.
 
+        :param realm_id: Realm ID within router worker.
+        :type realm_id: str
+
         :param details: Call details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
 
@@ -358,6 +361,28 @@ class RouterController(_TransportController):
             raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         return self.realms[realm_id].marshal()
+
+    @wamp.register(None)
+    def get_router_realm_by_name(self, realm_name, details=None):
+        """
+        Return realm detail information.
+
+        :param realm_name: Realm name.
+        :type realm_name: str
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: realm information object
+        :rtype: dict
+        """
+        self.log.debug('{klass}.get_router_realm_by_name(realm_name="{realm_name}")',
+                       klass=self.__class__.__name__, realm_name=realm_name)
+
+        if realm_name not in self.realm_to_id:
+            raise ApplicationError('crossbar.error.no_such_object', 'No realm with name "{}"'.format(realm_name))
+
+        return self.realms[self.realm_to_id[realm_name]].marshal()
 
     @wamp.register(None)
     def get_router_realm_stats(self, realm_id=None, details=None):
