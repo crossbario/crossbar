@@ -215,7 +215,7 @@ class PendingAuth:
         if not self._realm_container.has_role(self._authenticator_realm, self._authenticator_role):
             return types.Deny(
                 ApplicationError.NO_SUCH_ROLE,
-                message="explicit role <{}> on realm <{}> configured for dynamic authenticator does not exist".format(self._authenticator_realm, self._authenticator_role)
+                message="explicit role <{}> on realm <{}> configured for dynamic authenticator does not exist".format(self._authenticator_role, self._authenticator_realm)
             )
 
         # authenticator session (where the authenticator procedure is registered and called)
