@@ -50,6 +50,7 @@ from autobahn.wamp.interfaces import ITransportHandler
 from autobahn.wamp.serializer import CBORSerializer
 from autobahn.twisted.wamp import Session, ApplicationRunner, ApplicationSession
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
+from autobahn.twisted.component import Component
 
 from crossbar._util import hlid
 from crossbar.node import worker
@@ -811,34 +812,40 @@ def make_authenticator_session(backend_config, cbdir, realm, extra=None, reactor
     # retry_delay_growth: The growth factor applied to the retry delay between reconnection attempts (Default 1.5).
     # retry_delay_jitter: A 0-argument callable that introduces nose into the delay. (Default random.random)
     #
+    log = make_logger()
+
     try:
         if not reactor:
             from twisted.internet import reactor
 
         extra = {
             'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
-            'ready': Deferred()
         }
-        transport_config = backend_config['transport']
+        comp = Component(
+            transports=[backend_config['transport']],
+            realm=realm,
+            extra=extra,
+            authentication={
+                "cryptosign": {
+                    "privkey": _read_node_key(cbdir, private=True)['hex'],
+                    "authid": "cosmotron-authenticator"
+                }
+            },
+        )
+        ready = Deferred()
 
-        if False:
-            session = Session()
-            session.add_authenticator(create_authenticator("cryptosign", privkey=extra['hex']))
-        else:
-            connecting_endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'], cbdir, reactor,
-                                                                         log)
-            runner = ApplicationRunner(url=transport_config['url'], realm=realm, extra=extra,
-                                       serializers=[CBORSerializer()])
-            session = AuthenticatorSession(types.ComponentConfig(realm=realm, extra=extra, runner=runner))
-            runner.run(
-                session,
-                start_reactor=False,
-                auto_reconnect=False,
-                endpoint=connecting_endpoint,
-                reactor=reactor)
+        @comp.on_join
+        def joined(session, details):
+            ready.callback(session)
 
-            return extra['ready']
-    except:
+        @comp.on_disconnect
+        def disconnect(session, was_clean=False):
+            if not ready.called:
+                ready.errback(Exception("Disconnected unexpectedly"))
+
+        comp.start(reactor)
+        return ready
+    except Exception:
         log.failure()
         raise
 
