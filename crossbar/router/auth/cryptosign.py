@@ -175,7 +175,7 @@ class PendingAuthCryptosign(PendingAuth):
 
             def initialized(error=None):
                 if error:
-                    d.callback(error)
+                    d.errback(error)
                     return
 
                 self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
