@@ -32,6 +32,8 @@ import binascii
 from autobahn.wamp import types
 
 from crossbar.router.auth.pending import PendingAuth
+import txaio
+
 
 __all__ = ('PendingAuthTLS',)
 
@@ -106,34 +108,38 @@ class PendingAuthTLS(PendingAuth):
 
             self._authprovider = 'dynamic'
 
-            error = self._init_dynamic_authenticator()
-            if error:
-                return error
+            init_d = txaio.as_future(self._init_dynamic_authenticator)
 
-            self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details['authextra'] = details.authextra
+            def init(result):
+                if result:
+                    return result
 
-            d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
+                self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+                self._session_details['authextra'] = details.authextra
 
-            def on_authenticate_ok(principal):
-                error = self._assign_principal(principal)
-                if error:
-                    return error
+                d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
-                # FIXME: not sure about this .. TLS is a transport-level auth mechanism .. so forward
-                # self._transport._authid = self._authid
-                # self._transport._authrole = self._authrole
-                # self._transport._authmethod = self._authmethod
-                # self._transport._authprovider = self._authprovider
-                # self._transport._authextra = self._authextra
+                def on_authenticate_ok(principal):
+                    error = self._assign_principal(principal)
+                    if error:
+                        return error
 
-                return self._accept()
+                    # FIXME: not sure about this .. TLS is a transport-level auth mechanism .. so forward
+                    # self._transport._authid = self._authid
+                    # self._transport._authrole = self._authrole
+                    # self._transport._authmethod = self._authmethod
+                    # self._transport._authprovider = self._authprovider
+                    # self._transport._authextra = self._authextra
 
-            def on_authenticate_error(err):
-                return self._marshal_dynamic_authenticator_error(err)
+                    return self._accept()
 
-            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
-            return d
+                def on_authenticate_error(err):
+                    return self._marshal_dynamic_authenticator_error(err)
+
+                d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+                return d
+            init_d.addBoth(init)
+            return init_d
 
         else:
             # should not arrive here, as config errors should be caught earlier

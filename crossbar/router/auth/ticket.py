@@ -30,7 +30,7 @@
 
 from autobahn.wamp import types
 
-from txaio import make_logger
+from txaio import make_logger, as_future
 
 from crossbar.router.auth.pending import PendingAuth
 
@@ -89,14 +89,18 @@ class PendingAuthTicket(PendingAuth):
 
             self._authprovider = 'dynamic'
 
-            error = self._init_dynamic_authenticator()
-            if error:
-                return error
+            init_d = as_future(self._init_dynamic_authenticator)
 
-            self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details['authextra'] = details.authextra
+            def init(result):
+                if result:
+                    return result
 
-            return types.Challenge(self._authmethod)
+                self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+                self._session_details['authextra'] = details.authextra
+
+                return types.Challenge(self._authmethod)
+            init_d.addBoth(init)
+            return init_d
 
         else:
             # should not arrive here, as config errors should be caught earlier

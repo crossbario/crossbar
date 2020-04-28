@@ -29,9 +29,12 @@
 #####################################################################################
 
 import abc
+
 from autobahn.wamp import types
 from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.exception import ApplicationError
+from txaio import make_logger
+from twisted.internet.defer import Deferred
 
 __all__ = ('PendingAuth',)
 
@@ -55,7 +58,7 @@ class IRealmContainer(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_service_session(self, realm: str) -> ISession:
+    def get_service_session(self, realm: str, role: str) -> ISession:
         """
         :returns: ApplicationSession suitable for use by dynamic
             authenticators
@@ -70,6 +73,7 @@ class PendingAuth:
     After creating a pending authentication first call ``open()`` and
     then ``verify()`` (each should be called exactly once, and in this order).
     """
+    log = make_logger()
 
     AUTHMETHOD = 'abstract'
 
@@ -116,6 +120,9 @@ class PendingAuth:
 
         # The URI of the authenticator procedure to call (filled only in dynamic mode).
         self._authenticator = None
+
+        # The realm the (dynamic) authenticator itself is joined to
+        self._authenticator_realm = None
 
         # The session over which to issue the call to the authenticator (filled only in dynamic mode).
         self._authenticator_session = None
@@ -184,25 +191,55 @@ class PendingAuth:
             )
 
     def _init_dynamic_authenticator(self):
+        self.log.info('{klass}._init_dynamic_authenticator', klass=self.__class__.__name__)
+
+        # procedure URI to call
         self._authenticator = self._config['authenticator']
 
-        authenticator_realm = None
+        # authenticator realm
         if 'authenticator-realm' in self._config:
-            authenticator_realm = self._config['authenticator-realm']
-            if not self._realm_container.has_realm(authenticator_realm):
+            self._authenticator_realm = self._config['authenticator-realm']
+            if not self._realm_container.has_realm(self._authenticator_realm):
                 return types.Deny(
                     ApplicationError.NO_SUCH_REALM,
-                    message="explicit realm <{}> configured for dynamic authenticator does not exist".format(authenticator_realm)
+                    message=("explicit realm <{}> configured for dynamic "
+                             "authenticator does not exist".format(self._authenticator_realm))
                 )
         else:
-            if not self._realm:
-                return types.Deny(
-                    ApplicationError.NO_SUCH_REALM,
-                    message="client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)"
-                )
-            authenticator_realm = self._realm
+            self._authenticator_realm = self._realm
 
-        self._authenticator_session = self._realm_container.get_service_session(authenticator_realm)
+        # authenticator role
+        if 'authenticator-role' in self._config:
+            self._authenticator_role = self._config['authenticator-role']
+            if self._authenticator_realm is None:
+                return types.Deny(
+                    ApplicationError.NO_SUCH_ROLE,
+                    message="role <{}> configured, but no realm".format(self._authenticator_role),
+                )
+            if not self._realm_container.has_role(self._authenticator_realm, self._authenticator_role):
+                return types.Deny(
+                    ApplicationError.NO_SUCH_ROLE,
+                    message="explicit role <{}> on realm <{}> configured for dynamic authenticator does not exist".format(self._authenticator_role, self._authenticator_realm)
+                )
+        else:
+            self._authenticator_role = self._authrole
+
+        # authenticator session (where the authenticator procedure is registered and called)
+        d_connected = self._realm_container.get_service_session(self._authenticator_realm, self._authenticator_role)
+        d_ready = Deferred()
+
+        def connect_success(session):
+            self.log.info('Dynamic authenticator session {session_id} connected with authrole "{authrole}" on realm "{realm}"',
+                          session_id=session._session_id, authrole=session._authrole, realm=session._realm)
+            self._authenticator_session = session
+            d_ready.callback(None)
+
+        def connect_error(err):
+            self.log.failure()
+            d_ready.callback(err)
+
+        d_connected.addCallbacks(connect_success, connect_error)
+        return d_ready
 
     def _marshal_dynamic_authenticator_error(self, err):
         if isinstance(err.value, ApplicationError):

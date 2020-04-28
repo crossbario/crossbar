@@ -37,6 +37,7 @@ from nacl.exceptions import BadSignatureError
 
 from autobahn import util
 from autobahn.wamp import types
+from twisted.internet.defer import Deferred
 
 import txaio
 
@@ -168,31 +169,56 @@ class PendingAuthCryptosign(PendingAuth):
 
             self._authprovider = 'dynamic'
 
-            error = self._init_dynamic_authenticator()
-            if error:
-                return error
+            d = Deferred()
 
-            self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details['authid'] = details.authid
-            self._session_details['authrole'] = details.authrole
-            self._session_details['authextra'] = details.authextra
+            d1 = txaio.as_future(self._init_dynamic_authenticator)
 
-            d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
-
-            def on_authenticate_ok(principal):
-                error = self._assign_principal(principal)
+            def initialized(error=None):
                 if error:
-                    return error
+                    d.callback(error)
+                    return
 
-                self._verify_key = VerifyKey(principal['pubkey'], encoder=nacl.encoding.HexEncoder)
+                self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+                self._session_details['authid'] = details.authid
+                self._session_details['authrole'] = details.authrole
+                self._session_details['authextra'] = details.authextra
 
-                extra = self._compute_challenge(channel_binding)
-                return types.Challenge(self._authmethod, extra)
+                self.log.info('Calling dynamic authenticator [proc="{proc}", realm="{realm}", session={session}, authid="{authid}", authrole="{authrole}"]',
+                              proc=self._authenticator,
+                              realm=self._authenticator_session._realm,
+                              session=self._authenticator_session._session_id,
+                              authid=self._authenticator_session._authid,
+                              authrole=self._authenticator_session._authrole)
 
-            def on_authenticate_error(err):
-                return self._marshal_dynamic_authenticator_error(err)
+                d2 = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
-            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+                def on_authenticate_ok(principal):
+                    self.log.info('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_ok(principal={principal})',
+                                  klass=self.__class__.__name__, realm=realm, details=details, principal=principal)
+                    error = self._assign_principal(principal)
+                    if error:
+                        d.callback(error)
+                        return
+
+                    self._verify_key = VerifyKey(principal['pubkey'], encoder=nacl.encoding.HexEncoder)
+
+                    extra = self._compute_challenge(channel_binding)
+                    d.callback(types.Challenge(self._authmethod, extra))
+
+                def on_authenticate_error(err):
+                    self.log.info('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
+                                  klass=self.__class__.__name__, realm=realm, details=details, err=err)
+                    try:
+                        d.callback(self._marshal_dynamic_authenticator_error(err))
+                    except:
+                        self.log.failure()
+                        d.callback(error)
+
+                d2.addCallbacks(on_authenticate_ok, on_authenticate_error)
+                return d2
+
+            d1.addCallback(initialized)
+
             return d
 
         else:

@@ -32,9 +32,11 @@ import os
 import binascii
 from pprint import pformat
 
-from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
+from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 
-from txaio import make_logger
+from txaio import make_logger, as_future
+
+from autobahn.wamp import cryptosign
 
 from autobahn import wamp
 from autobahn import util
@@ -45,8 +47,9 @@ from autobahn.wamp.exception import ApplicationError, TransportLost, ProtocolErr
 from autobahn.wamp.role import RoleDealerFeatures, RoleBrokerFeatures
 from autobahn.wamp.component import _create_transport
 from autobahn.wamp.interfaces import ITransportHandler
-from autobahn.twisted.wamp import Session
+from autobahn.twisted.wamp import Session, ApplicationSession
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
+from autobahn.twisted.component import Component
 
 from crossbar._util import hlid
 from crossbar.node import worker
@@ -69,6 +72,8 @@ except ImportError:
 __all__ = (
     'ProxyWorkerProcess',
 )
+
+log = make_logger()
 
 
 class ProxyWorkerProcess(worker.NativeWorkerProcess):
@@ -217,6 +222,7 @@ class ProxyFrontendSession(object):
         :param msg: The WAMP message received.
         :type msg: object implementing :class:`autobahn.wamp.interfaces.IMessage`
         """
+        self.log.debug('{klass}.onMessage(msg={msg})', klass=self.__class__.__name__, msg=msg)
         if self._session_id is None:
             # no frontend session established yet, so we expect one of HELLO, ABORT, AUTHENTICATE
 
@@ -231,7 +237,7 @@ class ProxyFrontendSession(object):
 
             # https://wamp-proto.org/_static/gen/wamp_latest.html#wamp-level-authentication
             elif isinstance(msg, message.Authenticate):
-                yield self._process_Authenticate(msg)
+                self._process_Authenticate(msg)
 
             else:
                 raise ProtocolError("Received {} message while proxy frontend session is not joined".format(msg.__class__.__name__))
@@ -344,6 +350,7 @@ class ProxyFrontendSession(object):
                     result.callback(session)
 
                 backend_session.on('join', _on_backend_joined)
+                yield backend_session._on_ready
                 return backend_session
             except Exception as e:
                 self.log.failure()
@@ -469,7 +476,7 @@ class ProxyFrontendSession(object):
             )
             try:
                 # call into authenticator for processing the HELLO message
-                hello_result = self._pending_auth.hello(msg.realm, details)
+                hello_result = yield as_future(self._pending_auth.hello, msg.realm, details)
             except Exception as e:
                 self.log.failure()
                 self.transport.send(message.Abort(ApplicationError.AUTHENTICATION_FAILED,
@@ -596,6 +603,7 @@ class ProxyBackendSession(Session):
         # instance of Frontend
         self._frontend = transport._proxy_other_side
         self._on_connect = Deferred()
+        self._on_ready = Deferred()
         return Session.onOpen(self, transport)
 
     def onConnect(self):
@@ -620,6 +628,10 @@ class ProxyBackendSession(Session):
         elif msg.authmethod == "anonymous-proxy":
             msg.authmethod = "anonymous"
         return super(ProxyBackendSession, self).onWelcome(msg)
+
+    def onJoin(self, details):
+        if not self._on_ready.called:
+            self._on_ready.callback(self)
 
     def onClose(self, wasClean):
         if self._frontend is not None and self._frontend.transport is not None:
@@ -726,6 +738,116 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
     return connected_d
 
 
+class AuthenticatorSession(ApplicationSession):
+
+    # when running over TLS, require TLS channel binding
+    # CHANNEL_BINDING = 'tls-unique'
+    CHANNEL_BINDING = None
+
+    def __init__(self, config=None):
+        self.log.info("initializing component: {config}", config=config)
+        ApplicationSession.__init__(self, config)
+
+        # load the client private key (raw format)
+        try:
+            self._key = cryptosign.SigningKey.from_key_bytes(config.extra['key'])
+        except:
+            self.log.failure()
+            if self.is_attached():
+                self.leave()
+        else:
+            self.log.info("client public key loaded: {}".format(
+                self._key.public_key()))
+
+    def onConnect(self):
+        self.log.info("connected to router")
+        extra = {
+            'pubkey': self._key.public_key(),
+        }
+        self.join(self.config.realm,
+                  authmethods=['cryptosign'],
+                  authid=self.config.extra.get('authid', None),
+                  authextra=extra)
+
+    async def onChallenge(self, challenge):
+        self.log.info(
+            "authentication challenge received: {challenge}", challenge=challenge)
+        try:
+            signed_challenge = await self._key.sign_challenge(self, challenge, channel_id_type=self.CHANNEL_BINDING)
+            return signed_challenge
+        except:
+            self.log.failure()
+            raise
+
+    def onJoin(self, details):
+        self.log.info('session joined: {details}', details=details)
+        if self.config.extra['ready']:
+            self.config.extra['ready'].callback(self)
+            self.config.extra['ready'] = None
+
+    def onLeave(self, details):
+        self.log.info("session closed: {details}", details=details)
+
+    def onDisconnect(self):
+        self.log.info("connection to router closed")
+
+
+def make_authenticator_session(backend_config, cbdir, realm, extra=None, reactor=None):
+    # connect the remote session
+    #
+    # remote connection parameters to ApplicationRunner:
+    #
+    # url: The WebSocket URL of the WAMP router to connect to (e.g. ws://somehost.com:8090/somepath)
+    # realm: The WAMP realm to join the application session to.
+    # extra: Optional extra configuration to forward to the application component.
+    # serializers: List of :class:`autobahn.wamp.interfaces.ISerializer` (or None for default serializers).
+    # ssl: None or :class:`twisted.internet.ssl.CertificateOptions`
+    # proxy: Explicit proxy server to use; a dict with ``host`` and ``port`` keys
+    # headers: Additional headers to send (only applies to WAMP-over-WebSocket).
+    # max_retries: Maximum number of reconnection attempts. Unlimited if set to -1.
+    # initial_retry_delay: Initial delay for reconnection attempt in seconds (Default: 1.0s).
+    # max_retry_delay: Maximum delay for reconnection attempts in seconds (Default: 60s).
+    # retry_delay_growth: The growth factor applied to the retry delay between reconnection attempts (Default 1.5).
+    # retry_delay_jitter: A 0-argument callable that introduces nose into the delay. (Default random.random)
+    #
+    log = make_logger()
+
+    try:
+        if not reactor:
+            from twisted.internet import reactor
+
+        extra = {
+            'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
+        }
+        comp = Component(
+            transports=[backend_config['transport']],
+            realm=realm,
+            extra=extra,
+            authentication={
+                "cryptosign": {
+                    "privkey": _read_node_key(cbdir, private=True)['hex'],
+                    "authid": "cosmotron-authenticator"
+                }
+            },
+        )
+        ready = Deferred()
+
+        @comp.on_join
+        def joined(session, details):
+            ready.callback(session)
+
+        @comp.on_disconnect
+        def disconnect(session, was_clean=False):
+            if not ready.called:
+                ready.errback(Exception("Disconnected unexpectedly"))
+
+        comp.start(reactor)
+        return ready
+    except Exception:
+        log.failure()
+        raise
+
+
 # implements IRealmContainer
 class ProxyController(_TransportController):
     WORKER_TYPE = 'proxy'
@@ -762,6 +884,8 @@ class ProxyController(_TransportController):
         # currently mapped session: map of frontend_session => backend_session
         self._backends_by_frontend = {}
 
+        self._service_sessions = {}
+
     def has_realm(self, realm):
         """
         IRealmContainer
@@ -774,11 +898,36 @@ class ProxyController(_TransportController):
         """
         return role in self._routes.get(realm, {})
 
-    def get_service_session(self, realm):
+    @inlineCallbacks
+    def get_service_session(self, realm, authrole):
         """
         IRealmContainer (this is used by dynamic authenticators)
         """
-        return self
+        try:
+            self.log.info('{klass}.get_service_session(realm="{realm}", authrole="{authrole}")',
+                          klass=self.__class__.__name__, realm=realm, authrole=authrole)
+            if realm not in self._service_sessions:
+                if self.has_realm(realm):
+                    self.log.info('{klass}.get_service_session(realm="{realm}") -> not cached, creating new session ..',
+                                  klass=self.__class__.__name__, realm=realm)
+                    # self._service_sessions[realm] = yield self.map_backend(None, realm, None, 'authenticator', None)
+                    backend_config = self.get_backend_config(realm, authrole)
+                    self._service_sessions[realm] = yield make_authenticator_session(backend_config, self._cbdir, realm)
+                else:
+                    # mark as non-existing!
+                    self._service_sessions[realm] = None
+
+            if self._service_sessions[realm]:
+                self.log.info('{klass}.get_service_session(realm="{realm}") -> cached service session {session}',
+                              klass=self.__class__.__name__, realm=realm, session=self._service_sessions[realm]._session_id)
+                return self._service_sessions[realm]
+            else:
+                self.log.info('{klass}.get_service_session(realm="{realm}") -> no such realm!',
+                              klass=self.__class__.__name__, realm=realm)
+                return None
+        except:
+            self.log.failure()
+            raise
 
     def can_map_backend(self, session_id, realm, authid, authrole, authextra):
         """
@@ -811,14 +960,18 @@ class ProxyController(_TransportController):
                 raise RuntimeError(
                     "Cannot select default role unless realm has exactly 1"
                 )
-            self._routes.get(realm, {}).values()[0]
 
-        self.log.info('{klass}.map_backend(): opening backend connection for realm="{realm}", authrole="{authrole}" using backend_config=\n{backend_config}',
+        self.log.info('{klass}.map_backend(): opening backend connection for realm "{realm}", authrole "{authrole}" using backend_config\n{backend_config}',
                       klass=self.__class__.__name__, backend_config=pformat(backend_config), realm=hlid(realm), authrole=hlid(authrole))
 
         backend_proto = yield make_backend_connection(backend_config, frontend, self._cbdir)
 
-        self._backends_by_frontend[frontend] = backend_proto
+        if frontend:
+            self._backends_by_frontend[frontend] = backend_proto
+
+        self.log.info('{klass}.map_backend(): ok, backend session {session_id} opened for realm "{realm}", authrole "{authrole}"',
+                      klass=self.__class__.__name__, backend_config=pformat(backend_config), realm=hlid(realm),
+                      authrole=hlid(authrole), session_id=backend_proto._session_id)
 
         returnValue(backend_proto)
 
@@ -843,8 +996,9 @@ class ProxyController(_TransportController):
                     backend_session_id=self._backends_by_frontend[frontend]._session_id,
                     specified_session_id=backend._session_id))
         else:
-            self.log.warn('{klass}.unmap_backend: frontend session {session_id} not currently mapped to any backend',
-                          klass=self.__class__.__name__, session_id=frontend._session_id)
+            if frontend:
+                self.log.warn('{klass}.unmap_backend: frontend session {session_id} not currently mapped to any backend',
+                              klass=self.__class__.__name__, session_id=frontend._session_id)
 
     def get_backend_config(self, realm_name, role_name):
         """
@@ -869,8 +1023,8 @@ class ProxyController(_TransportController):
 
         yield self.publish_ready()
 
-    @wamp.register(None)
     @inlineCallbacks
+    @wamp.register(None)
     def start_proxy_transport(self, transport_id, config, details=None):
         self.log.debug(
             "start_proxy_transport: transport_id={transport_id}, config={config}",
@@ -924,10 +1078,10 @@ class ProxyController(_TransportController):
         topic = '{}.on_proxy_transport_started'.format(self._uri_prefix)
         self.publish(topic, event, options=types.PublishOptions(exclude=caller))
 
-        return proxy_transport.marshal()
+        returnValue(proxy_transport.marshal())
 
-    @wamp.register(None)
     @inlineCallbacks
+    @wamp.register(None)
     def stop_proxy_transport(self, name, details=None):
         if name not in self._transports:
             raise ApplicationError(
