@@ -31,7 +31,7 @@
 from autobahn import util
 from autobahn.wamp import types
 
-from txaio import make_logger
+from txaio import make_logger, as_future
 
 from crossbar.router.auth.pending import PendingAuth
 
@@ -83,25 +83,29 @@ class PendingAuthAnonymous(PendingAuth):
 
             self._authprovider = 'dynamic'
 
-            error = self._init_dynamic_authenticator()
-            if error:
-                return error
+            init_d = as_future(self._init_dynamic_authenticator)
 
-            d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
+            def init(result):
+                if result:
+                    return result
 
-            def on_authenticate_ok(principal):
-                error = self._assign_principal(principal)
-                if error:
-                    return error
+                d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
 
-                return self._accept()
+                def on_authenticate_ok(principal):
+                    error = self._assign_principal(principal)
+                    if error:
+                        return error
 
-            def on_authenticate_error(err):
-                return self._marshal_dynamic_authenticator_error(err)
+                    return self._accept()
 
-            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+                def on_authenticate_error(err):
+                    return self._marshal_dynamic_authenticator_error(err)
 
-            return d
+                d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+                return d
+            init_d.addBoth(init)
+            return init_d
 
         else:
             # should not arrive here, as config errors should be caught earlier

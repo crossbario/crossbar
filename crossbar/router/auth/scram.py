@@ -131,18 +131,22 @@ class PendingAuthScram(PendingAuth):
 
         elif self._config['type'] == 'dynamic':
 
-            error = self._init_dynamic_authenticator()
-            if error:
-                return error
+            init_d = txaio.as_future(self._init_dynamic_authenticator)
 
-            d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
+            def init(error):
+                if error:
+                    return error
 
-            def on_authenticate_error(err):
-                return self._marshal_dynamic_authenticator_error(err)
+                d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
-            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+                def on_authenticate_error(err):
+                    return self._marshal_dynamic_authenticator_error(err)
 
-            return d
+                d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+                return d
+            init_d.addBoth(init)
+            return init_d
 
         else:
             # should not arrive here, as config errors should be caught earlier

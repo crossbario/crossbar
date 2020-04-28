@@ -54,19 +54,21 @@ class MockRealmContainer(object):
     def has_role(self, realm, role):
         return realm == self._realm and role in self._roles
 
-    def get_service_session(self, realm):
+    def get_service_session(self, realm, role):
         assert realm == self._realm, 'realm must be "{}", but was "{}"'.format(self._realm, realm)
-        return self._session
+        return defer.succeed(self._session)
 
 
 class TestDynamicAuth(unittest.TestCase):
 
+    @defer.inlineCallbacks
     def test_authextra_wampcryptosign(self):
         """
         We pass along the authextra to a dynamic authenticator
         """
         session = Mock()
         session._transport._transport_info = {}
+        session
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
@@ -102,14 +104,14 @@ class TestDynamicAuth(unittest.TestCase):
         realm_container = MockRealmContainer("realm", ["some_role"], session)
 
         auth = cryptosign.PendingAuthCryptosign(pending_session_id, transport_info, realm_container, config)
-        reply = auth.hello("realm", details)
+        val = yield auth.hello("realm", details)
 
-        val = reply.result
         self.assertTrue(isinstance(val, types.Challenge))
         self.assertEqual("cryptosign", val.method)
         self.assertTrue("challenge" in val.extra)
         self.assertEqual(auth._authextra, {"what": "authenticator-supplied authextra"})
 
+    @defer.inlineCallbacks
     def test_authextra_wampcra(self):
         """
         We pass along the authextra to a dynamic authenticator
@@ -153,14 +155,14 @@ class TestDynamicAuth(unittest.TestCase):
         realm_container = MockRealmContainer("realm", ["some_role"], session)
 
         auth = wampcra.PendingAuthWampCra(pending_session_id, transport_info, realm_container, config)
-        reply = auth.hello("realm", details)
+        val = yield auth.hello("realm", details)
 
-        val = reply.result
         self.assertTrue(isinstance(val, types.Challenge))
         self.assertEqual("wampcra", val.method)
         self.assertTrue("challenge" in val.extra)
         self.assertEqual(auth._authextra, {"what": "authenticator-supplied authextra"})
 
+    @defer.inlineCallbacks
     def test_authextra_tls(self):
         """
         We pass along the authextra to a dynamic authenticator
@@ -204,13 +206,13 @@ class TestDynamicAuth(unittest.TestCase):
         realm_container = MockRealmContainer("realm", ["some_role"], session)
 
         auth = tls.PendingAuthTLS(pending_session_id, transport_info, realm_container, config)
-        reply = auth.hello("realm", details)
+        val = yield auth.hello("realm", details)
 
-        val = reply.result
         self.assertTrue(isinstance(val, types.Accept))
         self.assertEqual(val.authmethod, "tls")
         self.assertEqual(val.authextra, {"what": "authenticator-supplied authextra"})
 
+    @defer.inlineCallbacks
     def test_authextra_anonymous(self):
         """
         We pass along the authextra to a dynamic authenticator
@@ -254,13 +256,13 @@ class TestDynamicAuth(unittest.TestCase):
         realm_container = MockRealmContainer("realm", ["some_role"], session)
 
         auth = anonymous.PendingAuthAnonymous(pending_session_id, transport_info, realm_container, config)
-        reply = auth.hello("realm", details)
+        val = yield auth.hello("realm", details)
 
-        val = reply.result
         self.assertTrue(isinstance(val, types.Accept))
         self.assertEqual(val.authmethod, "anonymous")
         self.assertEqual(val.authextra, {"what": "authenticator-supplied authextra"})
 
+    @defer.inlineCallbacks
     def test_authextra_ticket(self):
         """
         We pass along the authextra to a dynamic authenticator
@@ -304,7 +306,7 @@ class TestDynamicAuth(unittest.TestCase):
         realm_container = MockRealmContainer("realm", ["some_role"], session)
 
         auth = ticket.PendingAuthTicket(pending_session_id, transport_info, realm_container, config)
-        val = auth.hello("realm", details)
+        val = yield auth.hello("realm", details)
 
         self.assertTrue(isinstance(val, types.Challenge))
         self.assertEqual("ticket", val.method)

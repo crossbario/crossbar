@@ -521,7 +521,7 @@ class RouterFactory(object):
     def has_role(self, realm, role):
         return self._routers[realm].has_role(role)
 
-    def get_service_session(self, realm):
+    def get_service_session(self, realm, role):
         return succeed(self._routers[realm]._realm.session)
 
     def __getitem__(self, realm):

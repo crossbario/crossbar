@@ -58,7 +58,7 @@ class IRealmContainer(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_service_session(self, realm: str) -> ISession:
+    def get_service_session(self, realm: str, role: str) -> ISession:
         """
         :returns: ApplicationSession suitable for use by dynamic
             authenticators
@@ -199,24 +199,30 @@ class PendingAuth:
         # authenticator realm
         if 'authenticator-realm' in self._config:
             self._authenticator_realm = self._config['authenticator-realm']
+            if not self._realm_container.has_realm(self._authenticator_realm):
+                return types.Deny(
+                    ApplicationError.NO_SUCH_REALM,
+                    message=("explicit realm <{}> configured for dynamic "
+                             "authenticator does not exist".format(self._authenticator_realm))
+                )
         else:
             self._authenticator_realm = self._realm
-        if not self._realm_container.has_realm(self._authenticator_realm):
-            return types.Deny(
-                ApplicationError.NO_SUCH_REALM,
-                message="explicit realm <{}> configured for dynamic authenticator does not exist".format(self._authenticator_realm)
-            )
 
-        # authenticator realm
+        # authenticator role
         if 'authenticator-role' in self._config:
             self._authenticator_role = self._config['authenticator-role']
+            if self._authenticator_realm is None:
+                return types.Deny(
+                    ApplicationError.NO_SUCH_ROLE,
+                    message="role <{}> configured, but no realm".format(self._authenticator_role),
+                )
+            if not self._realm_container.has_role(self._authenticator_realm, self._authenticator_role):
+                return types.Deny(
+                    ApplicationError.NO_SUCH_ROLE,
+                    message="explicit role <{}> on realm <{}> configured for dynamic authenticator does not exist".format(self._authenticator_role, self._authenticator_realm)
+                )
         else:
             self._authenticator_role = self._authrole
-        if not self._realm_container.has_role(self._authenticator_realm, self._authenticator_role):
-            return types.Deny(
-                ApplicationError.NO_SUCH_ROLE,
-                message="explicit role <{}> on realm <{}> configured for dynamic authenticator does not exist".format(self._authenticator_role, self._authenticator_realm)
-            )
 
         # authenticator session (where the authenticator procedure is registered and called)
         d_connected = self._realm_container.get_service_session(self._authenticator_realm, self._authenticator_role)

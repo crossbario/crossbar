@@ -36,6 +36,9 @@ from autobahn.wamp import types
 
 from crossbar.router.auth.pending import PendingAuth
 
+import txaio
+
+
 __all__ = ('PendingAuthWampCra',)
 
 
@@ -125,29 +128,33 @@ class PendingAuthWampCra(PendingAuth):
 
             self._authprovider = 'dynamic'
 
-            error = self._init_dynamic_authenticator()
-            if error:
-                return error
+            init_d = txaio.as_future(self._init_dynamic_authenticator)
 
-            self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details['authextra'] = details.authextra
+            def init(result):
+                if result:
+                    return result
 
-            d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
+                self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+                self._session_details['authextra'] = details.authextra
 
-            def on_authenticate_ok(principal):
-                error = self._assign_principal(principal)
-                if error:
-                    return error
+                d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
-                # now compute CHALLENGE.Extra and signature expected
-                extra, self._signature = self._compute_challenge(principal)
-                return types.Challenge(self._authmethod, extra)
+                def on_authenticate_ok(principal):
+                    error = self._assign_principal(principal)
+                    if error:
+                        return error
 
-            def on_authenticate_error(err):
-                return self._marshal_dynamic_authenticator_error(err)
+                    # now compute CHALLENGE.Extra and signature expected
+                    extra, self._signature = self._compute_challenge(principal)
+                    return types.Challenge(self._authmethod, extra)
 
-            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
-            return d
+                def on_authenticate_error(err):
+                    return self._marshal_dynamic_authenticator_error(err)
+
+                d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+                return d
+            init_d.addBoth(init)
+            return init_d
 
         else:
             # should not arrive here, as config errors should be caught earlier
