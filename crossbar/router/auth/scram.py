@@ -39,7 +39,7 @@ from autobahn.wamp import types
 
 from passlib.utils import saslprep
 
-from txaio import make_logger
+from txaio import make_logger, as_future
 
 from crossbar.router.auth.pending import PendingAuth
 
@@ -131,7 +131,7 @@ class PendingAuthScram(PendingAuth):
 
         elif self._config['type'] == 'dynamic':
 
-            init_d = txaio.as_future(self._init_dynamic_authenticator)
+            init_d = as_future(self._init_dynamic_authenticator)
 
             def init(error):
                 if error:

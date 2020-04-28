@@ -47,8 +47,7 @@ from autobahn.wamp.exception import ApplicationError, TransportLost, ProtocolErr
 from autobahn.wamp.role import RoleDealerFeatures, RoleBrokerFeatures
 from autobahn.wamp.component import _create_transport
 from autobahn.wamp.interfaces import ITransportHandler
-from autobahn.wamp.serializer import CBORSerializer
-from autobahn.twisted.wamp import Session, ApplicationRunner, ApplicationSession
+from autobahn.twisted.wamp import Session, ApplicationSession
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 from autobahn.twisted.component import Component
 
@@ -62,7 +61,6 @@ from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingA
 from crossbar.router.auth import AUTHMETHOD_MAP
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.session import RouterFactory
-from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
 try:
     from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
