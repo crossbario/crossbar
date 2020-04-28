@@ -492,8 +492,14 @@ def check_transport_auth_cryptosign(config):
     if 'type' not in config:
         raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-Cryptosign configuration")
 
-    if config['type'] not in ['static', 'dynamic']:
-        raise InvalidConfigException("invalid type '{}' in WAMP-Cryptosign configuration - must be one of 'static', 'dynamic'".format(config['type']))
+    valid_types = ['static', 'dynamic', 'function']
+    if config['type'] not in valid_types:
+        raise InvalidConfigException(
+            "invalid type '{}' in WAMP-Cryptosign configuration - must be one of {}".format(
+                config['type'],
+                ", ".join("'{}'".format(t) for t in valid_types),
+            )
+        )
 
     if config['type'] == 'static':
         if 'principals' not in config:
@@ -514,6 +520,13 @@ def check_transport_auth_cryptosign(config):
         if 'authenticator' not in config:
             raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-Cryptosign configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-Cryptosign configuration".format(config['authenticator']))
+
+    elif config['type'] == 'function':
+        if 'create' not in config:
+            raise InvalidConfigException(
+                "missing mandatory attribute 'create' in function WAMP-Cryptosign configuration"
+            )
+        # can also have optional 'config' item
     else:
         raise InvalidConfigException('logic error')
 

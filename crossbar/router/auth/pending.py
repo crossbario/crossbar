@@ -29,12 +29,16 @@
 #####################################################################################
 
 import abc
+import importlib
 
 from autobahn.wamp import types
 from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.exception import ApplicationError
 from txaio import make_logger
 from twisted.internet.defer import Deferred
+
+import txaio
+
 
 __all__ = ('PendingAuth',)
 
@@ -261,6 +265,32 @@ class PendingAuth:
                             authmethod=self._authmethod,
                             authprovider=self._authprovider,
                             authextra=self._authextra)
+
+    def _init_function_authenticator(self):
+        self.log.info('{klass}._init_function_authenticator', klass=self.__class__.__name__)
+
+        # import the module for the function
+        create_fqn = self._config['create']
+        if '.' not in create_fqn:
+            return types.Deny(
+                ApplicationError.NO_SUCH_PROCEDURE,
+                "'function' authenticator has no module: '{}'".format(create_fqn)
+            )
+
+        create_module, create_name = create_fqn.rsplit('.', 1)
+        _mod = importlib.import_module(create_module)
+        try:
+            create_authenticator = getattr(_mod, create_name)
+        except AttributeError as e:
+            raise RuntimeError(
+                "No function '{}' in module '{}'".format(create_name, create_module)
+            )
+        create_d = txaio.as_future(create_authenticator, self._config.get('config', {}))
+
+        def got_authenticator(authenticator):
+            self._authenticator = authenticator
+        create_d.addCallback(got_authenticator)
+        return create_d
 
     def hello(self, realm, details):
         """
