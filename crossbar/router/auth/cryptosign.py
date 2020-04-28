@@ -198,6 +198,7 @@ class PendingAuthCryptosign(PendingAuth):
                     error = self._assign_principal(principal)
                     if error:
                         d.callback(error)
+                        return
 
                     self._verify_key = VerifyKey(principal['pubkey'], encoder=nacl.encoding.HexEncoder)
 
