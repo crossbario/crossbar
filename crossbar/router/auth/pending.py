@@ -306,7 +306,9 @@ class PendingAuth:
 
 # helpers for "type=function" authenticators
 
+
 _authenticators = dict()
+
 
 def _authenticator_for_name(config):
     """
