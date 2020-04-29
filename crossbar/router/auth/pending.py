@@ -277,7 +277,19 @@ class PendingAuth:
                 "'function' authenticator has no module: '{}'".format(create_fqn)
             )
 
-        create_d = txaio.as_future(_authenticator_for_name, self._config)
+        if self._config.get('expose_controller', None):
+            from crossbar.worker.controller import WorkerController
+            if not isinstance(self._realm_container, WorkerController):
+                raise Exception(
+                    "Internal Error: Our container '{}' is not a WorkerController".format(
+                        self._realm_container,
+                    )
+                )
+            controller = self._realm_container
+        else:
+            controller = None
+
+        create_d = txaio.as_future(_authenticator_for_name, self._config, controller=controller)
 
         def got_authenticator(authenticator):
             self._authenticator = authenticator
@@ -310,7 +322,7 @@ class PendingAuth:
 _authenticators = dict()
 
 
-def _authenticator_for_name(config):
+def _authenticator_for_name(config, controller=None):
     """
     :returns: a future which fires with an authenticator function
         (possibly freshly created)
@@ -328,7 +340,7 @@ def _authenticator_for_name(config):
             raise RuntimeError(
                 "No function '{}' in module '{}'".format(create_name, create_module)
             )
-        create_d = txaio.as_future(create_authenticator, config.get('config', dict()))
+        create_d = txaio.as_future(create_authenticator, config.get('config', dict()), controller)
 
         def got_authenticator(authenticator):
             _authenticators[create_fqn] = authenticator
