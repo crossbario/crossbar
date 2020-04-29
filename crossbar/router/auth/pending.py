@@ -277,15 +277,7 @@ class PendingAuth:
                 "'function' authenticator has no module: '{}'".format(create_fqn)
             )
 
-        create_module, create_name = create_fqn.rsplit('.', 1)
-        _mod = importlib.import_module(create_module)
-        try:
-            create_authenticator = getattr(_mod, create_name)
-        except AttributeError as e:
-            raise RuntimeError(
-                "No function '{}' in module '{}'".format(create_name, create_module)
-            )
-        create_d = txaio.as_future(create_authenticator, self._config.get('config', {}))
+        create_d = txaio.as_future(_authenticator_for_name, self._config)
 
         def got_authenticator(authenticator):
             self._authenticator = authenticator
@@ -309,3 +301,39 @@ class PendingAuth:
         return `types.Accept` or `types.Deny`.
         """
         raise Exception("not implemented")
+
+
+
+# helpers for "type=function" authenticators
+
+_authenticators = dict()
+
+def _authenticator_for_name(config):
+    """
+    :returns: a future which fires with an authenticator function
+        (possibly freshly created)
+    """
+
+    create_fqn = config['create']
+    create_function = _authenticators.get(create_fqn, None)
+
+    if create_function is None:
+        create_module, create_name = create_fqn.rsplit('.', 1)
+        _mod = importlib.import_module(create_module)
+        try:
+            create_authenticator = getattr(_mod, create_name)
+        except AttributeError as e:
+            raise RuntimeError(
+                "No function '{}' in module '{}'".format(create_name, create_module)
+            )
+        create_d = txaio.as_future(create_authenticator, config.get('config', dict()))
+
+        def got_authenticator(authenticator):
+            _authenticators[create_fqn] = authenticator
+            return authenticator
+        create_d.addCallback(got_authenticator)
+
+    else:
+        create_d = Deferred()
+        create_d.callback(create_function)
+    return create_d
