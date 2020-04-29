@@ -37,6 +37,8 @@ from nacl.exceptions import BadSignatureError
 
 from autobahn import util
 from autobahn.wamp import types
+from autobahn.wamp.exception import ApplicationError
+
 from twisted.internet.defer import Deferred
 
 import txaio
@@ -175,7 +177,7 @@ class PendingAuthCryptosign(PendingAuth):
 
             def initialized(error=None):
                 if error:
-                    d.callback(error)
+                    d.errback(error)
                     return
 
                 self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
@@ -220,6 +222,51 @@ class PendingAuthCryptosign(PendingAuth):
             d1.addCallback(initialized)
 
             return d
+
+        elif self._config['type'] == 'function':
+            self._authprovider = 'function'
+
+            init_d = txaio.as_future(self._init_function_authenticator)
+
+            def init(error):
+                if error:
+                    return error
+
+                self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+                self._session_details['authid'] = details.authid
+                self._session_details['authrole'] = details.authrole
+                self._session_details['authextra'] = details.authextra
+
+                auth_d = txaio.as_future(self._authenticator, realm, details.authid, self._session_details)
+
+                def on_authenticate_ok(principal):
+                    self.log.info('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_ok(principal={principal})',
+                                  klass=self.__class__.__name__, realm=realm, details=details, principal=principal)
+                    error = self._assign_principal(principal)
+                    if error:
+                        return error
+
+                    self._verify_key = VerifyKey(principal['pubkey'], encoder=nacl.encoding.HexEncoder)
+
+                    extra = self._compute_challenge(channel_binding)
+                    return types.Challenge(self._authmethod, extra)
+
+                def on_authenticate_error(err):
+                    self.log.info('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
+                                  klass=self.__class__.__name__, realm=realm, details=details, err=err)
+                    try:
+                        return self._marshal_dynamic_authenticator_error(err)
+                    except Exception as e:
+                        error = ApplicationError.AUTHENTICATION_FAILED
+                        message = 'marshalling of function-based authenticator error return failed: {}'.format(e)
+                        self.log.warn('{klass}.hello.on_authenticate_error() - {msg}', msg=message)
+                        return types.Deny(error, message)
+
+                auth_d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+                return auth_d
+
+            init_d.addBoth(init)
+            return init_d
 
         else:
             # should not arrive here, as config errors should be caught earlier

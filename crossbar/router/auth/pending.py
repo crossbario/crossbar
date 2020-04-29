@@ -29,6 +29,7 @@
 #####################################################################################
 
 import abc
+import importlib
 
 from autobahn.wamp import types
 from autobahn.wamp.interfaces import ISession
@@ -36,7 +37,12 @@ from autobahn.wamp.exception import ApplicationError
 from txaio import make_logger
 from twisted.internet.defer import Deferred
 
+import txaio
+
+
 __all__ = ('PendingAuth',)
+
+_authenticators = dict()
 
 
 class IRealmContainer(abc.ABC):
@@ -262,6 +268,36 @@ class PendingAuth:
                             authprovider=self._authprovider,
                             authextra=self._authextra)
 
+    def _init_function_authenticator(self):
+        self.log.info('{klass}._init_function_authenticator', klass=self.__class__.__name__)
+
+        # import the module for the function
+        create_fqn = self._config['create']
+        if '.' not in create_fqn:
+            return types.Deny(
+                ApplicationError.NO_SUCH_PROCEDURE,
+                "'function' authenticator has no module: '{}'".format(create_fqn)
+            )
+
+        if self._config.get('expose_controller', None):
+            from crossbar.worker.controller import WorkerController
+            if not isinstance(self._realm_container, WorkerController):
+                raise Exception(
+                    "Internal Error: Our container '{}' is not a WorkerController".format(
+                        self._realm_container,
+                    )
+                )
+            controller = self._realm_container
+        else:
+            controller = None
+
+        create_d = txaio.as_future(_authenticator_for_name, self._config, controller=controller)
+
+        def got_authenticator(authenticator):
+            self._authenticator = authenticator
+        create_d.addCallback(got_authenticator)
+        return create_d
+
     def hello(self, realm, details):
         """
         When a HELLO message is received, this gets called to open the pending authentication.
@@ -279,3 +315,34 @@ class PendingAuth:
         return `types.Accept` or `types.Deny`.
         """
         raise Exception("not implemented")
+
+
+def _authenticator_for_name(config, controller=None):
+    """
+    :returns: a future which fires with an authenticator function
+        (possibly freshly created)
+    """
+
+    create_fqn = config['create']
+    create_function = _authenticators.get(create_fqn, None)
+
+    if create_function is None:
+        create_module, create_name = create_fqn.rsplit('.', 1)
+        _mod = importlib.import_module(create_module)
+        try:
+            create_authenticator = getattr(_mod, create_name)
+        except AttributeError:
+            raise RuntimeError(
+                "No function '{}' in module '{}'".format(create_name, create_module)
+            )
+        create_d = txaio.as_future(create_authenticator, config.get('config', dict()), controller)
+
+        def got_authenticator(authenticator):
+            _authenticators[create_fqn] = authenticator
+            return authenticator
+        create_d.addCallback(got_authenticator)
+
+    else:
+        create_d = Deferred()
+        create_d.callback(create_function)
+    return create_d
