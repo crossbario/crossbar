@@ -42,6 +42,8 @@ import txaio
 
 __all__ = ('PendingAuth',)
 
+_authenticators = dict()
+
 
 class IRealmContainer(abc.ABC):
     """
@@ -315,13 +317,6 @@ class PendingAuth:
         raise Exception("not implemented")
 
 
-
-# helpers for "type=function" authenticators
-
-
-_authenticators = dict()
-
-
 def _authenticator_for_name(config, controller=None):
     """
     :returns: a future which fires with an authenticator function
@@ -336,7 +331,7 @@ def _authenticator_for_name(config, controller=None):
         _mod = importlib.import_module(create_module)
         try:
             create_authenticator = getattr(_mod, create_name)
-        except AttributeError as e:
+        except AttributeError:
             raise RuntimeError(
                 "No function '{}' in module '{}'".format(create_name, create_module)
             )

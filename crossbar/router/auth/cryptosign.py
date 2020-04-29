@@ -37,7 +37,9 @@ from nacl.exceptions import BadSignatureError
 
 from autobahn import util
 from autobahn.wamp import types
-from twisted.internet.defer import Deferred, maybeDeferred
+from autobahn.wamp.exception import ApplicationError
+
+from twisted.internet.defer import Deferred
 
 import txaio
 
@@ -254,9 +256,11 @@ class PendingAuthCryptosign(PendingAuth):
                                   klass=self.__class__.__name__, realm=realm, details=details, err=err)
                     try:
                         return self._marshal_dynamic_authenticator_error(err)
-                    except:
-                        self.log.failure()
-                        return Failure()
+                    except Exception as e:
+                        error = ApplicationError.AUTHENTICATION_FAILED
+                        message = 'marshalling of function-based authenticator error return failed: {}'.format(e)
+                        self.log.warn('{klass}.hello.on_authenticate_error() - {msg}', msg=message)
+                        return types.Deny(error, message)
 
                 auth_d.addCallbacks(on_authenticate_ok, on_authenticate_error)
                 return auth_d
