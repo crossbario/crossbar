@@ -29,6 +29,8 @@
 #####################################################################################
 
 import random
+from pprint import pformat
+
 import txaio
 
 from autobahn import util
@@ -769,6 +771,11 @@ class Dealer(object):
                 reply.correlation_is_anchor = False
                 reply.correlation_is_last = True
                 self._router.send(session, reply)
+                self.log.warn('authorize CALL action on procedure "{procedure}" for session on realm "{realm}" with authrole "{authrole}" denied:\n{authorization}',
+                              authorization=pformat(authorization),
+                              authrole=call.caller_authrole,
+                              procedure=call.procedure,
+                              realm=self._router.realm)
 
             else:
                 # get registrations active on the procedure called
