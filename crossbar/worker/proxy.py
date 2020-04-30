@@ -826,7 +826,6 @@ def make_authenticator_session(backend_config, cbdir, realm, extra=None, reactor
             authentication={
                 "cryptosign": {
                     "privkey": _read_node_key(cbdir, private=True)['hex'],
-                    "authid": "cosmotron-authenticator"
                 }
             },
         )
