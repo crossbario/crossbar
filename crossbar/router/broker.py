@@ -398,11 +398,11 @@ class Broker(object):
                     '{func}::on_authorize_success() - authorization {result} for PUBLISH to topic "{topic}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
                     func=hltype(self.processPublish),
                     result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
-                    topic=publish.topic,
-                    realm=session._realm,
-                    session_id=session._session_id,
-                    authid=session._authid,
-                    authrole=session._authrole)
+                    topic=hlid(publish.topic),
+                    realm=hlid(session._realm),
+                    session_id=hlid(session._session_id),
+                    authid=hlid(session._authid),
+                    authrole=hlid(session._authrole))
 
                 if not authorization['allow']:
 

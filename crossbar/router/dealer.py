@@ -48,7 +48,7 @@ from autobahn.wamp.message import \
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
 from crossbar.worker import rlink
-from crossbar._util import hlflag, hltype
+from crossbar._util import hlid, hlflag, hltype
 
 from txaio import make_logger
 
@@ -378,11 +378,11 @@ class Dealer(object):
                 '{func}::on_authorize_success() - authorization {result} for REGISTER of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
                 func=hltype(self.processRegister),
                 result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
-                procedure=register.procedure,
-                realm=session._realm,
-                session_id=session._session_id,
-                authid=session._authid,
-                authrole=session._authrole)
+                procedure=hlid(register.procedure),
+                realm=hlid(session._realm),
+                session_id=hlid(session._session_id),
+                authid=hlid(session._authid),
+                authrole=hlid(session._authrole))
             if not authorization['allow']:
                 # error reply since session is not authorized to register
                 #
@@ -769,11 +769,11 @@ class Dealer(object):
                 '{func}::on_authorize_success() - authorization {result} for CALL of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
                 func=hltype(self.processCall),
                 result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
-                procedure=call.procedure,
-                realm=session._realm,
-                session_id=session._session_id,
-                authid=session._authid,
-                authrole=session._authrole)
+                procedure=hlid(call.procedure),
+                realm=hlid(session._realm),
+                session_id=hlid(session._session_id),
+                authid=hlid(session._authid),
+                authrole=hlid(session._authrole))
 
             if not authorization['allow']:
                 reply = message.Error(
