@@ -1,4 +1,4 @@
-# py3.7/travis:
+# py3.8/travis:
 # https://github.com/travis-ci/travis-ci/issues/9815#issue-336465122
 # https://github.com/travis-ci/travis-ci/issues/9069#issuecomment-425720905
 language: python
@@ -59,21 +59,21 @@ matrix:
   fast_finish: true
 
   include:
-    - python: "3.7"
+    - python: "3.8"
       env: TOX_ENV=flake8
 
-    - python: "3.7"
+    - python: "3.8"
       env: TOX_ENV=sphinx
 
-    - python: "3.7"
+    - python: "3.8"
       env: TOX_ENV=bandit
 
-    - python: "3.7"
+    - python: "3.8"
       env: TOX_ENV=coverage
 
     # linux/cli
-    - python: "3.7"
-      env: TOX_ENV=py37-cli
+    - python: "3.8"
+      env: TOX_ENV=py38-cli
 
     - python: "pypy3.5"
       env: TOX_ENV=pypy3-cli
@@ -82,11 +82,11 @@ matrix:
     - os: osx
       osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
       language: shell         # 'language: python' is an error on Travis CI macOS
-      env: TOX_ENV=py37-cli
+      env: TOX_ENV=py38-cli
 
     # linux/examples
-    - python: "3.7"
-      env: TOX_ENV=py37-examples
+    - python: "3.8"
+      env: TOX_ENV=py38-examples
 
     - python: "pypy3.5"
       env: TOX_ENV=pypy3-examples
@@ -95,17 +95,17 @@ matrix:
     - os: osx
       osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
       language: shell         # 'language: python' is an error on Travis CI macOS
-      env: TOX_ENV=py37-examples
+      env: TOX_ENV=py38-examples
 
     # linux/trial/python3
-    - python: "3.7"
-      env: TOX_ENV=py37-unpinned-trial
+    - python: "3.8"
+      env: TOX_ENV=py38-unpinned-trial
 
-    - python: "3.7"
-      env: TOX_ENV=py37-pinned-trial
+    - python: "3.8"
+      env: TOX_ENV=py38-pinned-trial
 
-    - python: "3.7"
-      env: TOX_ENV=py37-abtrunk-trial
+    - python: "3.8"
+      env: TOX_ENV=py38-abtrunk-trial
 
     # linux/trial/pypy3
     - python: "pypy3.5"
@@ -122,21 +122,21 @@ matrix:
     - os: osx
       osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
       language: shell         # 'language: python' is an error on Travis CI macOS
-      env: TOX_ENV=py37-unpinned-trial
+      env: TOX_ENV=py38-unpinned-trial
 
     - os: osx
       osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
       language: shell         # 'language: python' is an error on Travis CI macOS
-      env: TOX_ENV=py37-pinned-trial
+      env: TOX_ENV=py38-pinned-trial
 
     - os: osx
       osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
       language: shell         # 'language: python' is an error on Travis CI macOS
-      env: TOX_ENV=py37-abtrunk-trial
+      env: TOX_ENV=py38-abtrunk-trial
 
     # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
     - stage: deploy
-      python: "3.7"
+      python: "3.8"
       if: repo = crossbario/crossbar AND branch = master AND type != pull_request
       #on:
       #  repo: crossbario/crossbar
@@ -156,8 +156,8 @@ matrix:
   # we allow failures when not using autobahn trunk, for cases
   # where we depend on a new feature in autobahn here in crossbar
   allow_failures:
-    - env: TOX_ENV=py37-unpinned-trial
-    - env: TOX_ENV=py37-pinned-trial
+    - env: TOX_ENV=py38-unpinned-trial
+    - env: TOX_ENV=py38-pinned-trial
     - env: TOX_ENV=pypy3-unpinned-trial
     - env: TOX_ENV=pypy3-pinned-trial
     - os: osx

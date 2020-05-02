@@ -182,21 +182,19 @@ class PendingAuth:
         if not self._authrole:
             return types.Deny(ApplicationError.NO_SUCH_ROLE, message='no authrole assigned')
 
-        # FIXME
-        if True:
-            # if realm is not started on router, bail out now!
-            if not self._realm_container.has_realm(self._realm):
-                return types.Deny(
-                    ApplicationError.NO_SUCH_REALM,
-                    message='no realm "{}" exists on this router'.format(self._realm)
-                )
+        # if realm is not started on router, bail out now!
+        if not self._realm_container.has_realm(self._realm):
+            return types.Deny(
+                ApplicationError.NO_SUCH_REALM,
+                message='no realm "{}" exists on this router'.format(self._realm)
+            )
 
-            # if role is not running on realm, bail out now!
-            if self._authrole and not self._realm_container.has_role(self._realm, self._authrole):
-                return types.Deny(
-                    ApplicationError.NO_SUCH_ROLE,
-                    message='realm "{}" has no role "{}"'.format(self._realm, self._authrole)
-                )
+        # if role is not running on realm, bail out now!
+        if self._authrole and not self._realm_container.has_role(self._realm, self._authrole):
+            return types.Deny(
+                ApplicationError.NO_SUCH_ROLE,
+                message='realm "{}" has no role "{}"'.format(self._realm, self._authrole)
+            )
 
     def _init_dynamic_authenticator(self):
         self.log.info('{klass}._init_dynamic_authenticator', klass=self.__class__.__name__)

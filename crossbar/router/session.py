@@ -247,8 +247,8 @@ class RouterApplicationSession(object):
             d.addCallback(lambda _: txaio.as_future(self._session.onJoin, details))
             d.addErrback(lambda fail: self._swallow_error(fail, "While firing onJoin"))
 
-            # d.addCallback(lambda _: self._session.fire('ready', self._session))
-            # d.addErrback(lambda fail: self._log_error(fail, "While notifying 'ready'"))
+            d.addCallback(lambda _: self._session.fire('ready', self._session))
+            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'ready'"))
 
             d.addCallback(lambda _: self.log.info('{func} fired {session} "join" and "ready" events with details={details})',
                                                   session=self._session, details=details,
