@@ -44,7 +44,7 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
-from crossbar._util import hl, hltype
+from crossbar._util import hlid, hltype, hlflag
 
 from txaio import make_logger
 
@@ -397,7 +397,7 @@ class Broker(object):
                 self.log.info(
                     '{func}::on_authorize_success() - authorization {result} for PUBLISH to topic "{topic}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
                     func=hltype(self.processPublish),
-                    result=hl('GRANTED' if authorization['allow'] else 'DENIED'),
+                    result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
                     topic=publish.topic,
                     realm=session._realm,
                     session_id=session._session_id,
@@ -791,12 +791,12 @@ class Broker(object):
             self.log.info(
                 '{func}::on_authorize_success() - authorization {result} for SUBSCRIBE to topic "{topic}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
                 func=hltype(self.processSubscribe),
-                result=hl('GRANTED' if authorization['allow'] else 'DENIED'),
-                topic=subscribe.topic,
-                realm=session._realm,
-                session_id=session._session_id,
-                authid=session._authid,
-                authrole=session._authrole)
+                result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
+                topic=hlid(subscribe.topic),
+                realm=hlid(session._realm),
+                session_id=hlid(session._session_id),
+                authid=hlid(session._authid),
+                authrole=hlid(session._authrole))
 
             if not authorization['allow']:
                 # error reply since session is not authorized to subscribe

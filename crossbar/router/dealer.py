@@ -48,7 +48,7 @@ from autobahn.wamp.message import \
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
 from crossbar.worker import rlink
-from crossbar._util import hl, hltype
+from crossbar._util import hlflag, hltype
 
 from txaio import make_logger
 
@@ -377,7 +377,7 @@ class Dealer(object):
             self.log.info(
                 '{func}::on_authorize_success() - authorization {result} for REGISTER of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
                 func=hltype(self.processRegister),
-                result=hl('GRANTED' if authorization['allow'] else 'DENIED'),
+                result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
                 procedure=register.procedure,
                 realm=session._realm,
                 session_id=session._session_id,
@@ -768,7 +768,7 @@ class Dealer(object):
             self.log.info(
                 '{func}::on_authorize_success() - authorization {result} for CALL of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
                 func=hltype(self.processCall),
-                result=hl('GRANTED' if authorization['allow'] else 'DENIED'),
+                result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
                 procedure=call.procedure,
                 realm=session._realm,
                 session_id=session._session_id,
