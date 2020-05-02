@@ -182,19 +182,21 @@ class PendingAuth:
         if not self._authrole:
             return types.Deny(ApplicationError.NO_SUCH_ROLE, message='no authrole assigned')
 
-        # if realm is not started on router, bail out now!
-        if not self._realm_container.has_realm(self._realm):
-            return types.Deny(
-                ApplicationError.NO_SUCH_REALM,
-                message='no realm "{}" exists on this router'.format(self._realm)
-            )
+        # FIXME
+        if True:
+            # if realm is not started on router, bail out now!
+            if not self._realm_container.has_realm(self._realm):
+                return types.Deny(
+                    ApplicationError.NO_SUCH_REALM,
+                    message='no realm "{}" exists on this router'.format(self._realm)
+                )
 
-        # if role is not running on realm, bail out now!
-        if self._authrole and not self._realm_container.has_role(self._realm, self._authrole):
-            return types.Deny(
-                ApplicationError.NO_SUCH_ROLE,
-                message='realm "{}" has no role "{}"'.format(self._realm, self._authrole)
-            )
+            # if role is not running on realm, bail out now!
+            if self._authrole and not self._realm_container.has_role(self._realm, self._authrole):
+                return types.Deny(
+                    ApplicationError.NO_SUCH_ROLE,
+                    message='realm "{}" has no role "{}"'.format(self._realm, self._authrole)
+                )
 
     def _init_dynamic_authenticator(self):
         self.log.info('{klass}._init_dynamic_authenticator', klass=self.__class__.__name__)
@@ -282,11 +284,14 @@ class PendingAuth:
         if self._config.get('expose_controller', None):
             from crossbar.worker.controller import WorkerController
             if not isinstance(self._realm_container, WorkerController):
-                raise Exception(
+                excp = Exception(
                     "Internal Error: Our container '{}' is not a WorkerController".format(
                         self._realm_container,
                     )
                 )
+                self.log.failure('{klass} could not expose controller',
+                                 klass=self.__class__.__name__, failure=excp)
+                raise excp
             controller = self._realm_container
         else:
             controller = None

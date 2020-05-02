@@ -51,7 +51,7 @@ from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingA
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 from crossbar.router.router import Router, RouterFactory
 from crossbar.router import NotAttached
-from crossbar._util import hl
+from crossbar._util import hl, hlid, hltype
 
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
@@ -95,6 +95,10 @@ class RouterApplicationSession(object):
         assert(authrole is None or isinstance(authrole, str))
         assert(authextra is None or type(authextra) == dict)
 
+        self.log.info('{func}(session={session}, router={router}, authid="{authid}", authrole="{authrole}", authextra={authextra}, store={store})',
+                      func=hltype(RouterApplicationSession.__init__), session=session, router=router,
+                      authid=hlid(authid), authrole=hlid(authrole), authextra=authextra, store=store)
+
         # remember router we are wrapping the app session for
         #
         self._router = router
@@ -109,6 +113,10 @@ class RouterApplicationSession(object):
         self._trusted_authrole = authrole
         self._trusted_authextra = authextra
 
+        self._realm = router._realm
+        self._authid = authid
+        self._authrole = authrole
+
         # FIXME: assemble synthetic session info for the router-embedded application session
         self._session_details = None
 
@@ -120,6 +128,9 @@ class RouterApplicationSession(object):
         # set fake transport on session ("pass-through transport")
         #
         self._session._transport = self
+
+        self.log.info('{func} firing {session}.onConnect() ..', session=self._session,
+                      func=hltype(RouterApplicationSession.__init__))
 
         # now start firing "connect" observers on the session ..
         self._session.fire('connect', self._session, self)
@@ -213,6 +224,11 @@ class RouterApplicationSession(object):
             # add app session to router
             self._router.attach(self._session)
 
+            self.log.info('{func} attached {session} to realm={realm} with credentials session_id={session_id}, authid={authid}, authrole={authrole} using authmethod={authmethod}',
+                          session=self._session, session_id=self._session._session_id, realm=self._session._realm,
+                          authid=hlid(self._session._authid), authrole=hlid(self._session._authrole),
+                          authmethod=hl(self._session._authmethod), func=hltype(RouterApplicationSession.send))
+
             # fake app session open
             details = SessionDetails(self._session._realm,
                                      self._session._session_id,
@@ -230,8 +246,13 @@ class RouterApplicationSession(object):
             # back in the callback chain even on errors from 'join'
             d.addCallback(lambda _: txaio.as_future(self._session.onJoin, details))
             d.addErrback(lambda fail: self._swallow_error(fail, "While firing onJoin"))
-            d.addCallback(lambda _: self._session.fire('ready', self._session))
-            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'ready'"))
+
+            # d.addCallback(lambda _: self._session.fire('ready', self._session))
+            # d.addErrback(lambda fail: self._log_error(fail, "While notifying 'ready'"))
+
+            d.addCallback(lambda _: self.log.info('{func} fired {session} "join" and "ready" events with details={details})',
+                                                  session=self._session, details=details,
+                                                  func=hltype(RouterApplicationSession.send)))
 
         # app-to-router
         #
@@ -464,6 +485,7 @@ class RouterSession(BaseSession):
                 d = txaio.as_future(self.onHello, msg.realm, details)
 
                 def _on_success(res):
+                    self.log.info('{func}::_on_success(res={res})', func=hltype(self.onMessage), res=res)
                     msg = None
                     # it is possible this session has disconnected
                     # while onHello was taking place
@@ -776,10 +798,11 @@ class RouterSession(BaseSession):
                         PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
                     except KeyError:
                         PendingAuthKlass = extra_auth_methods[authmethod]
+
                     self._pending_auth = PendingAuthKlass(
                         self._pending_session_id,
                         self._transport._transport_info,
-                        self._router_factory,
+                        self._router_factory._worker,
                         {'type': 'static', 'authrole': 'anonymous', 'authid': authid}
                     )
                     return self._pending_auth.hello(realm, details)
@@ -814,10 +837,11 @@ class RouterSession(BaseSession):
                                 PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
                             except KeyError:
                                 PendingAuthKlass = extra_auth_methods[authmethod]
+
                             self._pending_auth = PendingAuthKlass(
                                 self._pending_session_id,
                                 self._transport._transport_info,
-                                self._router_factory,
+                                self._router_factory._worker,
                                 auth_config[authmethod],
                             )
                             return self._pending_auth.hello(realm, details)

@@ -39,6 +39,7 @@ from twisted.internet.defer import succeed
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
+from crossbar._util import hltype, hlid
 from crossbar.router import RouterOptions
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
@@ -496,6 +497,7 @@ class RouterFactory(object):
         self._worker_id = worker_id
         self._worker = worker
         self._routers = {}
+        self._router_service_sessions = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         # XXX this should get passed in from .. somewhere
         from twisted.internet import reactor
@@ -515,20 +517,38 @@ class RouterFactory(object):
         """
         return self._routers.get(realm, None)
 
-    def has_realm(self, realm):
+    def _has_realm(self, realm):
+        self.log.info('{func}(realm={realm})', func=self.has_realm, realm=hlid(realm))
         return realm in self._routers
 
-    def has_role(self, realm, role):
-        return self._routers[realm].has_role(role)
+    def _has_role(self, realm, authrole):
+        self.log.info('{func}(realm={realm}, authrole={authrole})',
+                      func=self.has_role, realm=hlid(realm), authrole=hlid(authrole))
+        return self._routers[realm].has_role(authrole)
 
-    def get_service_session(self, realm, role):
-        return succeed(self._routers[realm]._realm.session)
+    def set_service_session(self, session, realm, authrole=None):
+        self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
+                      func=hltype(self.set_service_session), session=session,
+                      realm=hlid(realm), authrole=hlid(authrole))
+        if realm not in self._router_service_sessions:
+            self._router_service_sessions[realm] = {}
+        self._router_service_sessions[realm][authrole] = session
+
+    def get_service_session(self, realm, authrole=None):
+        if realm in self._router_service_sessions:
+            if authrole in self._router_service_sessions[realm]:
+                session = self._router_service_sessions[realm][authrole]
+                self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
+                              func=hltype(self.get_service_session), session=session,
+                              realm=hlid(realm), authrole=hlid(authrole))
+                return succeed(session)
+        return succeed(None)
 
     def __getitem__(self, realm):
         return self._routers[realm]
 
     def __contains__(self, realm):
-        return self.has_realm(realm)
+        return realm in self._routers
 
     def on_last_detach(self, router):
         if router.realm in self._routers:
@@ -566,8 +586,7 @@ class RouterFactory(object):
         if 'store' in realm.config:
             psn = self._worker.personality
             store = psn.create_realm_store(psn, self, realm.config['store'])
-            self.log.info('Initialized realm store {rsk} for realm "{realm}"',
-                          rsk=store.__class__, realm=uri)
+            self.log.info('Initialized realm store {rsk} for realm "{realm}"', rsk=store.__class__, realm=uri)
 
         # now create a router for the realm
         #

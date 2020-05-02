@@ -30,6 +30,7 @@
 
 import os
 import socket
+from pprint import pformat
 
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue, gatherResults
 from twisted.python.reflect import qual
@@ -224,7 +225,30 @@ class Node(object):
         return config_source, config_path
 
     def _add_global_roles(self):
-        self.log.info('No extra node router roles')
+        controller_role_config = {
+            "name": "controller",
+            "permissions": [
+                {
+                    "uri": "crossbar.",
+                    "match": "prefix",
+                    "allow": {
+                        "call": True,
+                        "register": True,
+                        "publish": True,
+                        "subscribe": True
+                    },
+                    "disclose": {
+                        "caller": True,
+                        "publisher": True
+                    },
+                    "cache": True
+                }
+            ]
+        }
+        self._router_factory.add_role(self._realm, controller_role_config)
+        self.log.info('{func} node-wide role "{authrole}" added on node management router realm "{realm}":\n{role_config}',
+                      func=hltype(self._add_global_roles), authrole=hlid(controller_role_config['name']),
+                      realm=hlid(self._realm), role_config=pformat(controller_role_config))
 
     def _add_worker_role(self, worker_auth_role, options):
         worker_role_config = {
@@ -261,10 +285,45 @@ class Node(object):
                         "publisher": False
                     },
                     "cache": True
+                },
+                {
+                    "uri": "crossbar.",
+                    "match": "prefix",
+                    "allow": {
+                        "call": True,
+                        "register": False,
+                        "publish": False,
+                        "subscribe": True
+                    },
+                    "disclose": {
+                        "caller": True,
+                        "publisher": True
+                    },
+                    "cache": True
                 }
             ]
         }
+        if options.get('expose_controller', False):
+            vendor_permissions = {
+                u"uri": u"crossbar.",
+                u"match": u"prefix",
+                u"allow": {
+                    u"call": True,
+                    u"register": False,
+                    u"publish": False,
+                    u"subscribe": True
+                },
+                u"disclose": {
+                    u"caller": False,
+                    u"publisher": False
+                },
+                u"cache": True
+            }
+            worker_role_config[u"permissions"].append(vendor_permissions)
         self._router_factory.add_role(self._realm, worker_role_config)
+        self.log.info('{func} worker-specific role "{authrole}" added on node management router realm "{realm}":\n{role_config}',
+                      func=hltype(self._add_worker_role), authrole=hlid(worker_role_config['name']),
+                      realm=hlid(self._realm), role_config=pformat(worker_role_config))
 
     def _drop_worker_role(self, worker_auth_role):
         self._router_factory.drop_role(self._realm, worker_auth_role)
@@ -344,6 +403,8 @@ class Node(object):
         # local node management router
         self._router_factory = RouterFactory(self._node_id, None, None)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
+
+        # start node-wide realm on node management router
         rlm_config = {
             'name': self._realm
         }
@@ -365,7 +426,8 @@ class Node(object):
         self._router_session_factory.add(self._controller,
                                          router,
                                          authid='nodecontroller',
-                                         authrole='trusted')
+                                         authrole='controller')
+        self._router_factory.set_service_session(self._controller, self._realm)
         self.log.debug('Node controller session attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
 
         # add extra node controller components
@@ -461,7 +523,7 @@ class Node(object):
                     # start the (native) worker
                     self.log.info(
                         'Order node to start "{worker_logname}" ..',
-                        worker_logname=worker_logname,
+                        worker_logname=hlid(worker_logname),
                     )
 
                     d = self._controller.call('crossbar.start_worker', worker_id, worker_type, worker_options, options=CallOptions())
@@ -491,6 +553,11 @@ class Node(object):
                         except ApplicationError as e:
                             if e.error != 'wamp.error.canceled':
                                 raise
+
+                        self.log.info(
+                            'Ok, worker "{worker_logname}" configured and ready!',
+                            worker_logname=hlid(worker_logname),
+                        )
 
                     d.addCallback(configure_worker, worker_logname, worker_type, worker_id, worker)
 

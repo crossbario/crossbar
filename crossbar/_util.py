@@ -141,6 +141,10 @@ def hlid(oid):
     return hl('{}'.format(oid), color='blue', bold=True)
 
 
+def hlval(val, color='white'):
+    return hl('{}'.format(val), color=color, bold=True)
+
+
 def hluserid(oid):
     """
     Returns highlighted text.

@@ -110,7 +110,12 @@ class RouterRealm(object):
         self.rlink_manager = RLinkManager(self, controller)
 
         self.created = datetime.utcnow()
+
+        # Crossbar.io role run-time ID -> RouterRealmRole
         self.roles = {}
+
+        # role WAMP name -> Crossbar.io role run-time ID
+        self.role_to_id = {}
 
     def marshal(self):
         marshalled = {
