@@ -134,7 +134,8 @@ class NodeController(NativeProcess):
 
         from autobahn.wamp.types import SubscribeOptions
 
-        self.log.info("Joined realm '{realm}' on node management router", realm=details.realm)
+        self.log.info('{func}: joined realm="{realm}" on local node management router [authid="{authid}", authrole="{authrole}"]',
+                      func=hltype(self.onJoin), authid=hlid(details.authid), authrole=hlid(details.authrole), realm=hlid(details.realm))
 
         # When a (native) worker process has connected back to the router of
         # the node controller, the worker will publish this event
