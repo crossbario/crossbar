@@ -44,6 +44,7 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
+from crossbar._util import hl, hltype
 
 from txaio import make_logger
 
@@ -391,10 +392,18 @@ class Broker(object):
             d = self._router.authorize(session, publish.topic, 'publish', options=publish.marshal_options())
 
             def on_authorize_success(authorization):
-
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not ..
-                #
+                self.log.info(
+                    '{func}::on_authorize_success() - authorization {result} for PUBLISH to topic "{topic}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
+                    func=hltype(self.processPublish),
+                    result=hl('GRANTED' if authorization['allow'] else 'DENIED'),
+                    topic=publish.topic,
+                    realm=session._realm,
+                    session_id=session._session_id,
+                    authid=session._authid,
+                    authrole=session._authrole)
+
                 if not authorization['allow']:
 
                     if publish.acknowledge:
@@ -779,10 +788,26 @@ class Broker(object):
         d = self._router.authorize(session, subscribe.topic, 'subscribe', options=subscribe.marshal_options())
 
         def on_authorize_success(authorization):
+            self.log.info(
+                '{func}::on_authorize_success() - authorization {result} for SUBSCRIBE to topic "{topic}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
+                func=hltype(self.processSubscribe),
+                result=hl('GRANTED' if authorization['allow'] else 'DENIED'),
+                topic=subscribe.topic,
+                realm=session._realm,
+                session_id=session._session_id,
+                authid=session._authid,
+                authrole=session._authrole)
+
             if not authorization['allow']:
                 # error reply since session is not authorized to subscribe
-                #
-                replies = [message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])]
+                replies = [
+                    message.Error(
+                        message.Subscribe.MESSAGE_TYPE,
+                        subscribe.request,
+                        ApplicationError.NOT_AUTHORIZED,
+                        ['session (session_id={}, authid="{}", authrole="{}") is not authorized to subscribe to topic "{}" on realm "{}"'.format(
+                            session._session_id, session._authid, session._authrole, subscribe.topic, session._realm)])
+                ]
                 replies[0].correlation_id = subscribe.correlation_id
                 replies[0].correlation_uri = subscribe.topic
                 replies[0].correlation_is_anchor = False
