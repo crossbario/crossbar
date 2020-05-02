@@ -226,9 +226,11 @@ class Node(object):
 
     def _add_global_roles(self):
         controller_role_config = {
+            # there is exactly 1 WAMP component authenticated under authrole "controller": the node controller
             "name": "controller",
             "permissions": [
                 {
+                    # the node controller can (locally) do "anything"
                     "uri": "crossbar.",
                     "match": "prefix",
                     "allow": {
@@ -252,11 +254,14 @@ class Node(object):
 
     def _add_worker_role(self, worker_auth_role, options):
         worker_role_config = {
+            # each (native) worker is authenticated under a worker-specific authrole
             "name": worker_auth_role,
             "permissions": [
                 # the worker requires these permissions to work:
                 {
-                    # worker_auth_role: "crossbar.worker.worker-001"
+                    # management API provided by the worker. note that the worker management API is provided under
+                    # the URI prefix "crossbar.worker.<worker_id>". note that the worker is also authenticated
+                    # under authrole <worker_auth_role> on realm "crossbar"
                     "uri": worker_auth_role,
                     "match": "prefix",
                     "allow": {
@@ -272,6 +277,7 @@ class Node(object):
                     "cache": True
                 },
                 {
+                    # controller procedure called by the worker (to check for controller status)
                     "uri": "crossbar.get_status",
                     "match": "exact",
                     "allow": {
@@ -285,41 +291,29 @@ class Node(object):
                         "publisher": False
                     },
                     "cache": True
-                },
-                {
-                    "uri": "crossbar.",
-                    "match": "prefix",
-                    "allow": {
-                        "call": True,
-                        "register": False,
-                        "publish": False,
-                        "subscribe": True
-                    },
-                    "disclose": {
-                        "caller": True,
-                        "publisher": True
-                    },
-                    "cache": True
                 }
             ]
         }
+        # if configured to expose the controller connection within the worker (to make it available
+        # in user code such as dynamic authenticators and router/container components), also add
+        # permissions to actually use the (local) node management API
         if options.get('expose_controller', False):
             vendor_permissions = {
-                u"uri": u"crossbar.",
-                u"match": u"prefix",
-                u"allow": {
-                    u"call": True,
-                    u"register": False,
-                    u"publish": False,
-                    u"subscribe": True
+                "uri": "crossbar.",
+                "match": "prefix",
+                "allow": {
+                    "call": True,
+                    "register": False,
+                    "publish": False,
+                    "subscribe": True
                 },
-                u"disclose": {
-                    u"caller": True,
-                    u"publisher": True
+                "disclose": {
+                    "caller": True,
+                    "publisher": True
                 },
-                u"cache": True
+                "cache": True
             }
-            worker_role_config[u"permissions"].append(vendor_permissions)
+            worker_role_config["permissions"].append(vendor_permissions)
         self._router_factory.add_role(self._realm, worker_role_config)
         self.log.debug('{func} worker-specific role "{authrole}" added on node management router realm "{realm}":\n{role_config}',
                        func=hltype(self._add_worker_role), authrole=hlid(worker_role_config['name']),

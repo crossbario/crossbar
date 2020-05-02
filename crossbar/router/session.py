@@ -95,9 +95,9 @@ class RouterApplicationSession(object):
         assert(authrole is None or isinstance(authrole, str))
         assert(authextra is None or type(authextra) == dict)
 
-        self.log.info('{func}(session={session}, router={router}, authid="{authid}", authrole="{authrole}", authextra={authextra}, store={store})',
-                      func=hltype(RouterApplicationSession.__init__), session=session, router=router,
-                      authid=hlid(authid), authrole=hlid(authrole), authextra=authextra, store=store)
+        self.log.debug('{func}(session={session}, router={router}, authid="{authid}", authrole="{authrole}", authextra={authextra}, store={store})',
+                       func=hltype(RouterApplicationSession.__init__), session=session, router=router,
+                       authid=hlid(authid), authrole=hlid(authrole), authextra=authextra, store=store)
 
         # remember router we are wrapping the app session for
         #
@@ -129,8 +129,8 @@ class RouterApplicationSession(object):
         #
         self._session._transport = self
 
-        self.log.info('{func} firing {session}.onConnect() ..', session=self._session,
-                      func=hltype(RouterApplicationSession.__init__))
+        self.log.debug('{func} firing {session}.onConnect() ..', session=self._session,
+                       func=hltype(RouterApplicationSession.__init__))
 
         # now start firing "connect" observers on the session ..
         self._session.fire('connect', self._session, self)
@@ -250,9 +250,9 @@ class RouterApplicationSession(object):
             d.addCallback(lambda _: self._session.fire('ready', self._session))
             d.addErrback(lambda fail: self._log_error(fail, "While notifying 'ready'"))
 
-            d.addCallback(lambda _: self.log.info('{func} fired {session} "join" and "ready" events with details={details})',
-                                                  session=self._session, details=details,
-                                                  func=hltype(RouterApplicationSession.send)))
+            d.addCallback(lambda _: self.log.debug('{func} fired {session} "join" and "ready" events with details={details})',
+                                                   session=self._session, details=details,
+                                                   func=hltype(RouterApplicationSession.send)))
 
         # app-to-router
         #
