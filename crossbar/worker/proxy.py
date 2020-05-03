@@ -34,7 +34,7 @@ from pprint import pformat
 
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 
-from txaio import make_logger, as_future
+from txaio import make_logger, as_future, time_ns
 
 from autobahn.wamp import cryptosign
 
@@ -1123,12 +1123,20 @@ class ProxyController(_TransportController):
             raise Exception("Already have realm '{}'".format(realm_name))
 
         route_role = dict()
-        self._routes[realm_name] = route_role
-
         for role_name in config:
             route_role[role_name] = {
                 "backend_name": config[role_name],
             }
+        self._routes[realm_name] = route_role
+
+        # FIXME: publish event; store in local metadata object
+
+        route_started = {
+            'started': time_ns(),
+            'realm': realm_name,
+            'route': route_role
+        }
+        return route_started
 
     @wamp.register(None)
     def start_proxy_connection(self, name, options, details=None):

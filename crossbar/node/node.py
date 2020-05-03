@@ -272,8 +272,8 @@ class Node(object):
                         "subscribe": False
                     },
                     "disclose": {
-                        "caller": False,
-                        "publisher": False
+                        "caller": True,
+                        "publisher": True
                     },
                     "cache": True
                 },
@@ -288,8 +288,8 @@ class Node(object):
                         "subscribe": False
                     },
                     "disclose": {
-                        "caller": False,
-                        "publisher": False
+                        "caller": True,
+                        "publisher": True
                     },
                     "cache": True
                 }
@@ -298,7 +298,7 @@ class Node(object):
         # if configured to expose the controller connection within the worker (to make it available
         # in user code such as dynamic authenticators and router/container components), also add
         # permissions to actually use the (local) node management API
-        if options.get('expose_controller', False):
+        if options.get('expose_controller', True):
             vendor_permissions = {
                 "uri": "crossbar.",
                 "match": "prefix",
@@ -315,10 +315,12 @@ class Node(object):
                 "cache": True
             }
             worker_role_config["permissions"].append(vendor_permissions)
+
         self._router_factory.add_role(self._realm, worker_role_config)
-        self.log.debug('{func} worker-specific role "{authrole}" added on node management router realm "{realm}":\n{role_config}',
-                       func=hltype(self._add_worker_role), authrole=hlid(worker_role_config['name']),
-                       realm=hlid(self._realm), role_config=pformat(worker_role_config))
+
+        self.log.info('worker-specific role "{authrole}" added on node management router realm "{realm}": {role_config} {func}',
+                      func=hltype(self._add_worker_role), authrole=hlid(worker_role_config['name']),
+                      realm=hlid(self._realm), role_config=pformat(worker_role_config))
 
     def _drop_worker_role(self, worker_auth_role):
         self._router_factory.drop_role(self._realm, worker_auth_role)
