@@ -205,12 +205,12 @@ class PendingAuth:
         # authenticator realm
         if 'authenticator-realm' in self._config:
             self._authenticator_realm = self._config['authenticator-realm']
-            self.log.info('{func} authenticator realm "{realm}" set from authenticator configuration',
-                          func=hltype(self._init_function_authenticator), realm=hlid(self._authenticator_realm))
+            self.log.debug('{func} authenticator realm "{realm}" set from authenticator configuration',
+                           func=hltype(self._init_function_authenticator), realm=hlid(self._authenticator_realm))
         else:
             self._authenticator_realm = self._realm
-            self.log.info('{func} authenticator realm "{realm}" set from session',
-                          func=hltype(self._init_function_authenticator), realm=hlid(self._authenticator_realm))
+            self.log.debug('{func} authenticator realm "{realm}" set from session',
+                           func=hltype(self._init_function_authenticator), realm=hlid(self._authenticator_realm))
 
         if not self._realm_container.has_realm(self._authenticator_realm):
             return types.Deny(
@@ -222,12 +222,12 @@ class PendingAuth:
         # authenticator role
         if 'authenticator-role' in self._config:
             self._authenticator_role = self._config['authenticator-role']
-            self.log.info('{func} authenticator role "{authrole}" set from authenticator configuration',
-                          func=hltype(self._init_function_authenticator), authrole=hlid(self._authenticator_role))
+            self.log.debug('{func} authenticator role "{authrole}" set from authenticator configuration',
+                           func=hltype(self._init_function_authenticator), authrole=hlid(self._authenticator_role))
         else:
             self._authenticator_role = self._authrole
-            self.log.info('{func} authenticator role "{authrole}" set from session',
-                          func=hltype(self._init_function_authenticator), authrole=hlid(self._authenticator_role))
+            self.log.debug('{func} authenticator role "{authrole}" set from session',
+                           func=hltype(self._init_function_authenticator), authrole=hlid(self._authenticator_role))
 
         if self._authenticator_realm is None:
             return types.Deny(
@@ -251,9 +251,9 @@ class PendingAuth:
         d_ready = Deferred()
 
         def connect_success(session):
-            self.log.info('authenticator service session {session_id} attached to realm "{realm}" with authrole "{authrole}" {func}',
-                          func=hltype(self._init_dynamic_authenticator), session_id=hlid(session._session_id),
-                          authrole=hlid(session._authrole), realm=hlid(session._realm))
+            self.log.debug('authenticator service session {session_id} attached to realm "{realm}" with authrole "{authrole}" {func}',
+                           func=hltype(self._init_dynamic_authenticator), session_id=hlid(session._session_id),
+                           authrole=hlid(session._authrole), realm=hlid(session._realm))
             self._authenticator_session = session
             d_ready.callback(None)
 
@@ -286,7 +286,7 @@ class PendingAuth:
                             authextra=self._authextra)
 
     def _init_function_authenticator(self):
-        self.log.info('{klass}._init_function_authenticator', klass=self.__class__.__name__)
+        self.log.debug('{klass}._init_function_authenticator', klass=self.__class__.__name__)
 
         # import the module for the function
         create_fqn = self._config['create']

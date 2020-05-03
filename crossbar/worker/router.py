@@ -570,8 +570,8 @@ class RouterController(_TransportController):
         :rtype: bool
         """
         result = realm in self.realm_to_id and self.realm_to_id[realm] in self.realms
-        self.log.info('{func}(realm="{realm}") -> {result}', func=hltype(RouterController.has_realm),
-                      realm=hlid(realm), result=hlval(result))
+        self.log.debug('{func}(realm="{realm}") -> {result}', func=hltype(RouterController.has_realm),
+                       realm=hlid(realm), result=hlval(result))
         return result
 
     def has_role(self, realm: str, authrole: str) -> bool:
@@ -591,27 +591,27 @@ class RouterController(_TransportController):
         if result:
             realm_id = self.realm_to_id[realm]
             result = (authrole in self.realms[realm_id].role_to_id and self.realms[realm_id].role_to_id[authrole] in self.realms[realm_id].roles)
-        self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
-                      func=hltype(RouterController.has_role), realm=hlid(realm), authrole=hlid(authrole),
-                      result=hlval(result))
+        self.log.debug('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
+                       func=hltype(RouterController.has_role), realm=hlid(realm), authrole=hlid(authrole),
+                       result=hlval(result))
         return result
 
     def set_service_session(self, session, realm, authrole=None):
         if realm not in self._service_sessions:
             self._service_sessions[realm] = {}
         self._service_sessions[realm][authrole] = session
-        self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
-                      func=hltype(self.set_service_session), session=session,
-                      realm=hlid(realm), authrole=hlid(authrole))
+        self.log.debug('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
+                       func=hltype(self.set_service_session), session=session,
+                       realm=hlid(realm), authrole=hlid(authrole))
 
     def get_service_session(self, realm, authrole=None):
         session = None
         if realm in self._service_sessions:
             if authrole in self._service_sessions[realm]:
                 session = self._service_sessions[realm][authrole]
-        self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {session}',
-                      func=hltype(self.get_service_session), session=session,
-                      realm=hlid(realm), authrole=hlid(authrole))
+        self.log.debug('{func}(realm="{realm}", authrole="{authrole}") -> {session}',
+                       func=hltype(self.get_service_session), session=session,
+                       realm=hlid(realm), authrole=hlid(authrole))
         return succeed(session)
 
     @wamp.register(None)

@@ -39,7 +39,7 @@ from twisted.internet.defer import succeed
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
-from crossbar._util import hltype, hlid
+from crossbar._util import hltype, hlid, hlval
 from crossbar.router import RouterOptions
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
@@ -182,7 +182,7 @@ class Router(object):
 
         self._attached += 1
 
-        self.log.info('{func} session {session} attached to realm "{realm}"',
+        self.log.info('session {session} attached to realm "{realm}" {func}',
                       func=hltype(self.attach),
                       session=hlid(session._session_id) if session else None,
                       realm=hlid(self.realm))
@@ -250,10 +250,10 @@ class Router(object):
             self._detach(session)
             detached_session_ids.append(session._session_id)
 
-        self.log.info('{func} session {session} detached from realm "{realm}" (detached sessions {detached_session_ids})',
-                      func=hltype(self.attach),
+        self.log.info('session {session} detached from realm "{realm}" (detached {detached_session_ids} sessions total) {func}',
+                      func=hltype(self.detach),
                       session=hlid(session._session_id) if session else None,
-                      detached_session_ids=detached_session_ids,
+                      detached_session_ids=hlval(len(detached_session_ids)),
                       realm=hlid(self.realm))
 
         return detached_session_ids

@@ -485,7 +485,7 @@ class RouterSession(BaseSession):
                 d = txaio.as_future(self.onHello, msg.realm, details)
 
                 def onHello_success(res):
-                    self.log.info('{func}::_on_success(res={res})', func=hltype(self.onMessage), res=res)
+                    self.log.debug('{func}::_on_success(res={res})', func=hltype(self.onMessage), res=res)
                     msg = None
                     # it is possible this session has disconnected
                     # while onHello was taking place
@@ -740,8 +740,8 @@ class RouterSession(BaseSession):
             authmethods = details.authmethods or ['anonymous']
             authextra = details.authextra
 
-            self.log.info('{func} processing authmethods={authmethods}, authextra={authextra}',
-                          func=hltype(self.onHello), authextra=authextra, authmethods=authmethods)
+            self.log.debug('{func} processing authmethods={authmethods}, authextra={authextra}',
+                           func=hltype(self.onHello), authextra=authextra, authmethods=authmethods)
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
