@@ -51,6 +51,7 @@ from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcess
 from crossbar.common.profiler import PROFILERS
 from crossbar.common.key import _read_node_key, _read_release_key
+from crossbar._util import term_print
 
 __all__ = ('WorkerController',)
 
@@ -161,6 +162,7 @@ class WorkerController(NativeProcess):
 
         self.log.debug("Worker '{worker}' running as PID {pid}",
                        worker=self.config.extra.worker, pid=os.getpid())
+        term_print('CROSSBAR[{}]:WORKER_STARTED'.format(self.config.extra.worker))
 
     @wamp.register(None)
     @inlineCallbacks

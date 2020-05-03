@@ -42,7 +42,7 @@ from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.protocol import BaseSession, ApplicationSession
-from autobahn.wamp.exception import ProtocolError, SessionNotReady
+from autobahn.wamp.exception import SessionNotReady
 from autobahn.wamp.types import SessionDetails
 from autobahn.wamp.interfaces import ITransportHandler
 
@@ -224,10 +224,10 @@ class RouterApplicationSession(object):
             # add app session to router
             self._router.attach(self._session)
 
-            self.log.info('{func} attached {session} to realm={realm} with credentials session_id={session_id}, authid={authid}, authrole={authrole} using authmethod={authmethod}',
-                          session=self._session, session_id=self._session._session_id, realm=self._session._realm,
-                          authid=hlid(self._session._authid), authrole=hlid(self._session._authrole),
-                          authmethod=hl(self._session._authmethod), func=hltype(RouterApplicationSession.send))
+            self.log.debug('{func} attached {session} to realm={realm} with credentials session_id={session_id}, authid={authid}, authrole={authrole} using authmethod={authmethod}',
+                           session=self._session, session_id=self._session._session_id, realm=self._session._realm,
+                           authid=hlid(self._session._authid), authrole=hlid(self._session._authrole),
+                           authmethod=hl(self._session._authmethod), func=hltype(RouterApplicationSession.send))
 
             # fake app session open
             details = SessionDetails(self._session._realm,
@@ -484,7 +484,7 @@ class RouterSession(BaseSession):
 
                 d = txaio.as_future(self.onHello, msg.realm, details)
 
-                def _on_success(res):
+                def onHello_success(res):
                     self.log.info('{func}::_on_success(res={res})', func=hltype(self.onMessage), res=res)
                     msg = None
                     # it is possible this session has disconnected
@@ -516,18 +516,18 @@ class RouterSession(BaseSession):
                     if msg:
                         self._transport.send(msg)
 
-                def _on_error(err):
-                    self.log.warn('{klass}.onMessage(msg={msg}) -> callback user onHello raised {err}',
-                                  klass=self.__class__.__name__, msg=msg, err=err)
+                def onHello_error(err):
+                    self.log.warn('{func}.onMessage(..)::onHello(realm="{realm}", details={details}) failed with {err}',
+                                  func=hltype(self.onMessage), realm=msg.realm, details=details, err=err)
                     return self._swallow_error_and_abort(err)
 
-                txaio.add_callbacks(d, _on_success, _on_error)
+                txaio.add_callbacks(d, onHello_success, onHello_error)
 
             elif isinstance(msg, message.Authenticate):
 
                 d = txaio.as_future(self.onAuthenticate, msg.signature, {})
 
-                def success(res):
+                def onAuthenticate_success(res):
                     msg = None
                     # it is possible this session has disconnected
                     # while authentication was taking place
@@ -555,7 +555,13 @@ class RouterSession(BaseSession):
                     if msg:
                         self._transport.send(msg)
 
-                txaio.add_callbacks(d, success, self._swallow_error_and_abort)
+                def onAuthenticate_error(err):
+                    self.log.warn('{func}.onMessage(..)::onAuthenticate(..) failed with {err}',
+                                  func=hltype(self.onMessage), err=err)
+                    self.log.failure(err)
+                    return self._swallow_error_and_abort(err)
+
+                txaio.add_callbacks(d, onAuthenticate_success, onAuthenticate_error)
 
             elif isinstance(msg, message.Abort):
 
@@ -568,15 +574,16 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
-                # raise ProtocolError("Received {0} message while session is not joined".format(msg.__class__))
-                # self.log.warn('Protocol state error - received {message} while session is not joined')
-                # swallow all noise like still getting PUBLISH messages from log event forwarding - maybe FIXME
-                pass
+                msg = "{} message received while session is not yet joined".format(str(msg.__class__.__name__).upper())
+                self.log.warn('{func} {msg}', func=hltype(self.onMessage), msg=msg)
+                # raise ProtocolError(msg)
 
         else:
 
             if isinstance(msg, message.Hello):
-                raise ProtocolError("HELLO message received, while session is already established")
+                msg = "HELLO message received while session {} is already joined".format(self._session_id)
+                self.log.warn('{func} {msg}', func=hltype(self.onMessage), msg=msg)
+                # raise ProtocolError(msg)
 
             elif isinstance(msg, message.Goodbye):
                 if not self._goodbye_sent:
@@ -628,6 +635,7 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
+                # let the actual wamp router handle all other wamp messages ..
                 self._router.process(self, msg)
 
     # noinspection PyUnusedLocal
@@ -703,7 +711,7 @@ class RouterSession(BaseSession):
 
         DO NOT attach to Deferreds that are returned to calling code.
         """
-        self.log.failure("Internal error (2): {log_failure.value}", failure=fail)
+        self.log.failure("Internal error (5): {log_failure.value}", failure=fail)
 
         # tell other side we're done
         reply = message.Abort("wamp.error.authorization_failed", "Internal server error")
@@ -732,7 +740,8 @@ class RouterSession(BaseSession):
             authmethods = details.authmethods or ['anonymous']
             authextra = details.authextra
 
-            self.log.debug('onHello: {methods} {authextra}', authextra=authextra, methods=authmethods)
+            self.log.info('{func} processing authmethods={authmethods}, authextra={authextra}',
+                          func=hltype(self.onHello), authextra=authextra, authmethods=authmethods)
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
@@ -863,6 +872,7 @@ class RouterSession(BaseSession):
                     return types.Deny(ApplicationError.NO_AUTH_METHOD, message='cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
+            self.log.failure()
             self.log.failure('internal error: {log_failure.value}')
             self.log.critical("internal error: {msg}", msg=str(e))
             return types.Deny(message='internal error: {}'.format(e))
@@ -873,26 +883,30 @@ class RouterSession(BaseSession):
         """
         self.log.debug("onAuthenticate: {signature} {extra}", signature=signature, extra=extra)
 
-        # if there is a pending auth, check the challenge response. The specifics
-        # of how to check depend on the authentication method
-        if self._pending_auth:
+        try:
+            # if there is a pending auth, check the challenge response. The specifics
+            # of how to check depend on the authentication method
+            if self._pending_auth:
 
-            # WAMP-Ticket, WAMP-CRA, WAMP-Cryptosign
-            if isinstance(self._pending_auth, PendingAuthTicket) or \
-               isinstance(self._pending_auth, PendingAuthWampCra) or \
-               isinstance(self._pending_auth, PendingAuthCryptosign) or \
-               isinstance(self._pending_auth, PendingAuthCryptosignProxy) or \
-               isinstance(self._pending_auth, PendingAuthScram):
-                return self._pending_auth.authenticate(signature)
+                # WAMP-Ticket, WAMP-CRA, WAMP-Cryptosign
+                if isinstance(self._pending_auth, PendingAuthTicket) or \
+                   isinstance(self._pending_auth, PendingAuthWampCra) or \
+                   isinstance(self._pending_auth, PendingAuthCryptosign) or \
+                   isinstance(self._pending_auth, PendingAuthCryptosignProxy) or \
+                   isinstance(self._pending_auth, PendingAuthScram):
+                    return self._pending_auth.authenticate(signature)
 
-            # should not arrive here: logic error
+                # should not arrive here: logic error
+                else:
+                    self.log.warn('unexpected pending authentication {pending_auth}', pending_auth=self._pending_auth)
+                    return types.Deny(message='internal error: unexpected pending authentication')
+
+            # should not arrive here: client misbehaving!
             else:
-                self.log.warn('unexpected pending authentication {pending_auth}', pending_auth=self._pending_auth)
-                return types.Deny(message='internal error: unexpected pending authentication')
-
-        # should not arrive here: client misbehaving!
-        else:
-            return types.Deny(message='no pending authentication')
+                return types.Deny(message='no pending authentication')
+        except Exception as e:
+            self.log.failure()
+            return types.Deny(message='internal error: {}'.format(e))
 
     def onJoin(self, details):
 
@@ -986,7 +1000,7 @@ class RouterSession(BaseSession):
 
             else:
                 self._stats_enabled = False
-                self.log.info('WAMP session statistics {mode}', mode=hl('DISABLED'))
+                self.log.debug('WAMP session statistics {mode}', mode=hl('DISABLED'))
 
     def onWelcome(self, msg):
         # this is a hook for authentication methods to deny the

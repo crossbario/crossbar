@@ -102,8 +102,8 @@ class NativeWorkerClientFactory(WampWebSocketClientFactory):
     log = make_logger()
 
     def __init__(self, *args, **kwargs):
-        self.log.info('{func}(*args={_args}, **kwargs={_kwargs})', _args=args, _kwargs=kwargs,
-                      func=hltype(NativeWorkerClientFactory.__init__))
+        self.log.debug('{func}(*args={_args}, **kwargs={_kwargs})', _args=args, _kwargs=kwargs,
+                       func=hltype(NativeWorkerClientFactory.__init__))
         self._authrole = kwargs.pop('authrole')
         WampWebSocketClientFactory.__init__(self, *args, **kwargs)
         self.proto = None

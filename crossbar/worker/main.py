@@ -36,7 +36,7 @@ import cbor2
 
 from twisted.internet.error import ReactorNotRunning
 
-from crossbar._util import hl, hltype, _add_debug_options, term_print
+from crossbar._util import hl, hlid, hltype, _add_debug_options, term_print
 
 try:
     import vmprof
@@ -184,6 +184,8 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     flo = make_JSON_observer(sys.__stderr__)
     globalLogPublisher.addObserver(flo)
 
+    term_print('CROSSBAR[{}]:WORKER_STARTING'.format(options.worker))
+
     # Ignore SIGINT so we get consistent behavior on control-C versus
     # sending SIGINT to the controller process. When the controller is
     # shutting down, it sends TERM to all its children but ctrl-C
@@ -216,11 +218,12 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     klass = getattr(_mod, worker_klass)
 
     log.info(
-        'Starting worker "{worker_id}" for node "{node_id}" on realm "{realm}" with personality "{personality}" {worker_class}',
-        worker_id=options.worker,
-        node_id=options.node,
-        realm=options.realm,
-        personality=Personality.NAME,
+        'Starting {worker_type}-worker "{worker_id}" on node "{node_id}" (personality "{personality}") and local node management realm "{realm}" .. {worker_class}',
+        worker_type=hl(klass.WORKER_TYPE),
+        worker_id=hlid(options.worker),
+        node_id=hlid(options.node),
+        realm=hlid(options.realm),
+        personality=hl(Personality.NAME),
         worker_class=hltype(klass),
     )
     log.info(

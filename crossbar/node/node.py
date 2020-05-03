@@ -33,7 +33,7 @@ import socket
 from pprint import pformat
 
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue, gatherResults
-from twisted.python.reflect import qual
+from twisted.internet.defer import succeed
 
 from txaio import make_logger
 
@@ -141,6 +141,7 @@ class Node(object):
         # node controller session (a singleton ApplicationSession embedded
         # in the local node router)
         self._controller = None
+        self._service_sessions = {}
 
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
         self._node_shutdown_triggers = [NODE_SHUTDOWN_ON_WORKER_EXIT]
@@ -338,6 +339,24 @@ class Node(object):
             self._node_shutdown_triggers = [NODE_SHUTDOWN_ON_WORKER_EXIT]
             self.log.info("Using default node shutdown triggers {triggers}", triggers=self._node_shutdown_triggers)
 
+    def set_service_session(self, session, realm, authrole=None):
+        self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
+                      func=hltype(self.set_service_session), session=session,
+                      realm=hlid(realm), authrole=hlid(authrole))
+        if realm not in self._service_sessions:
+            self._service_sessions[realm] = {}
+        self._service_sessions[realm][authrole] = session
+
+    def get_service_session(self, realm, authrole=None):
+        if realm in self._service_sessions:
+            if authrole in self._service_sessions[realm]:
+                session = self._service_sessions[realm][authrole]
+                self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
+                              func=hltype(self.get_service_session), session=session,
+                              realm=hlid(realm), authrole=hlid(authrole))
+                return succeed(session)
+        return succeed(None)
+
     def stop(self):
         self._controller._shutdown_was_clean = True
         return self._controller.shutdown()
@@ -353,8 +372,8 @@ class Node(object):
 
         This is the _third_ function being called after the Node has been instantiated.
         """
-        self.log.info('Starting {personality} node {method}',
-                      personality=self.personality.NAME,
+        self.log.info('{note} [{method}]',
+                      note=hl('Starting node ..', color='green', bold=True),
                       method=hltype(Node.start))
 
         # a configuration must have been loaded before
@@ -409,20 +428,22 @@ class Node(object):
         self._add_global_roles()
 
         # always add a realm service session
-        cfg = ComponentConfig(self._realm)
+        cfg = ComponentConfig(self._realm, controller=self._controller)
         rlm.session = (self.ROUTER_SERVICE)(cfg, router)
         self._router_session_factory.add(rlm.session,
                                          router,
-                                         authid='nodecontroller-serviceagent',
+                                         authid='serviceagent',
                                          authrole='trusted')
-        self.log.debug('Router service agent session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
+        self.log.info('{func} router service agent session attached [{router_service}]',
+                      func=hltype(self.start), router_service=hltype(self.ROUTER_SERVICE))
 
         self._router_session_factory.add(self._controller,
                                          router,
                                          authid='nodecontroller',
                                          authrole='controller')
-        self._router_factory.set_service_session(self._controller, self._realm)
-        self.log.debug('Node controller session attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
+        self._service_sessions[self._realm] = self._controller
+        self.log.info('{func} node controller session attached [{node_controller}]',
+                      func=hltype(self.start), node_controller=hltype(self.NODE_CONTROLLER))
 
         # add extra node controller components
         self._add_extra_controller_components(controller_config)
@@ -434,7 +455,9 @@ class Node(object):
         self._shutdown_complete = Deferred()
 
         # startup the node personality ..
+        self.log.info('{func}::NODE_BOOT_BEGIN', func=hltype(self.personality.Node.boot))
         yield self.personality.Node.boot(self)
+        self.log.info('{func}::NODE_BOOT_COMPLETE', func=hltype(self.personality.Node.boot))
 
         # notify systemd that we are fully up and running
         try:

@@ -375,7 +375,7 @@ class Dealer(object):
             # check the authorization before ANYTHING else, otherwise
             # we may leak information about already-registered URIs etc.
             self.log.debug(
-                '{func}::on_authorize_success() - authorization {result} for REGISTER of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
+                '{func}::on_authorize_success() - permission {result} for REGISTER of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
                 func=hltype(self.processRegister),
                 result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
                 procedure=hlid(register.procedure),
@@ -766,7 +766,7 @@ class Dealer(object):
             # the call to authorize the action _itself_ succeeded. now go on depending on whether
             # the action was actually authorized or not ..
             self.log.debug(
-                '{func}::on_authorize_success() - authorization {result} for CALL of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
+                '{func}::on_authorize_success() - permission {result} for CALL of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
                 func=hltype(self.processCall),
                 result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
                 procedure=hlid(call.procedure),

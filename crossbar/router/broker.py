@@ -395,7 +395,7 @@ class Broker(object):
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not ..
                 self.log.debug(
-                    '{func}::on_authorize_success() - authorization {result} for PUBLISH to topic "{topic}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
+                    '{func}::on_authorize_success() - permission {result} for PUBLISH to topic "{topic}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
                     func=hltype(self.processPublish),
                     result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
                     topic=hlid(publish.topic),
@@ -789,7 +789,7 @@ class Broker(object):
 
         def on_authorize_success(authorization):
             self.log.debug(
-                '{func}::on_authorize_success() - authorization {result} for SUBSCRIBE to topic "{topic}" [realm="{realm}", session_id={session_id}, authid={authid}, authrole="{authrole}"]',
+                '{func}::on_authorize_success() - permission {result} for SUBSCRIBE to topic "{topic}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
                 func=hltype(self.processSubscribe),
                 result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
                 topic=hlid(subscribe.topic),

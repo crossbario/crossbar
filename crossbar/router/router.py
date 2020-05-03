@@ -170,9 +170,7 @@ class Router(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.attach`
         """
-        self.log.info('{klass}.attach(session={session})',
-                      klass=self.__class__.__name__,
-                      session=session._session_id if session else None)
+        self.log.debug('{func}(session={session})', func=hltype(self.attach), session=session)
 
         if session._session_id not in self._session_id_to_session:
             self._session_id_to_session[session._session_id] = session
@@ -184,10 +182,10 @@ class Router(object):
 
         self._attached += 1
 
-        self.log.info('{klass}.attach(session={session}): attached session {session} to router realm "{realm}"',
-                      klass=self.__class__.__name__,
-                      session=session._session_id if session else None,
-                      realm=self.realm)
+        self.log.info('{func} session {session} attached to realm "{realm}"',
+                      func=hltype(self.attach),
+                      session=hlid(session._session_id) if session else None,
+                      realm=hlid(self.realm))
 
         return {'broker': self._broker._role_features, 'dealer': self._dealer._role_features}
 
@@ -239,9 +237,7 @@ class Router(object):
             self.log.trace('{details}', details=session_details)
 
     def detach(self, session=None):
-        self.log.info('{klass}.detach(session={session})',
-                      klass=self.__class__.__name__,
-                      session=session._session_id if session else None)
+        self.log.debug('{func}(session={session})', func=hltype(self.detach), session=session)
 
         detached_session_ids = []
         if session is None:
@@ -254,11 +250,11 @@ class Router(object):
             self._detach(session)
             detached_session_ids.append(session._session_id)
 
-        self.log.info('{klass}.detach(session={session}): detached sessions {detached_session_ids} from router realm "{realm}"',
-                      klass=self.__class__.__name__,
-                      session=session._session_id if session else None,
+        self.log.info('{func} session {session} detached from realm "{realm}" (detached sessions {detached_session_ids})',
+                      func=hltype(self.attach),
+                      session=hlid(session._session_id) if session else None,
                       detached_session_ids=detached_session_ids,
-                      realm=self.realm)
+                      realm=hlid(self.realm))
 
         return detached_session_ids
 
@@ -517,32 +513,23 @@ class RouterFactory(object):
         """
         return self._routers.get(realm, None)
 
-    def _has_realm(self, realm):
-        self.log.info('{func}(realm={realm})', func=self.has_realm, realm=hlid(realm))
-        return realm in self._routers
-
-    def _has_role(self, realm, authrole):
-        self.log.info('{func}(realm={realm}, authrole={authrole})',
-                      func=self.has_role, realm=hlid(realm), authrole=hlid(authrole))
-        return self._routers[realm].has_role(authrole)
-
-    def set_service_session(self, session, realm, authrole=None):
-        self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
-                      func=hltype(self.set_service_session), session=session,
-                      realm=hlid(realm), authrole=hlid(authrole))
+    def _set_service_session(self, session, realm, authrole=None):
         if realm not in self._router_service_sessions:
             self._router_service_sessions[realm] = {}
         self._router_service_sessions[realm][authrole] = session
+        self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
+                      func=hltype(self.set_service_session), session=session,
+                      realm=hlid(realm), authrole=hlid(authrole))
 
-    def get_service_session(self, realm, authrole=None):
+    def _get_service_session(self, realm, authrole=None):
+        session = None
         if realm in self._router_service_sessions:
             if authrole in self._router_service_sessions[realm]:
                 session = self._router_service_sessions[realm][authrole]
-                self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
-                              func=hltype(self.get_service_session), session=session,
-                              realm=hlid(realm), authrole=hlid(authrole))
-                return succeed(session)
-        return succeed(None)
+        self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {session}',
+                      func=hltype(self.get_service_session), session=session,
+                      realm=hlid(realm), authrole=hlid(authrole))
+        return succeed(session)
 
     def __getitem__(self, realm):
         return self._routers[realm]

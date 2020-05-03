@@ -49,9 +49,10 @@ class PendingAuthAnonymous(PendingAuth):
 
     AUTHMETHOD = 'anonymous'
 
-    def hello(self, realm, details):
-        self.log.info('{func}(realm={realm}, details={details}) [config={config}]',
-                      func=hltype(self.hello), realm=hlid(realm), details=details, config=self._config)
+    def hello(self, realm: str, details: types.SessionDetails):
+        self.log.info('{func}(realm={realm}, details.realm={authrealm}, details.authid={authid}, details.authrole={authrole}) [config={config}]',
+                      func=hltype(self.hello), realm=hlid(realm), authrealm=hlid(details.realm),
+                      authid=hlid(details.authid), authrole=hlid(details.authrole), config=self._config)
 
         # remember the realm the client requested to join (if any)
         self._realm = realm

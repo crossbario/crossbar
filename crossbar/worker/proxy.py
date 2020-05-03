@@ -51,7 +51,7 @@ from autobahn.twisted.wamp import Session, ApplicationSession
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 from autobahn.twisted.component import Component
 
-from crossbar._util import hlid
+from crossbar._util import hltype, hlid, hlval
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
 from crossbar.worker.router import _TransportController
@@ -885,17 +885,39 @@ class ProxyController(_TransportController):
 
         self._service_sessions = {}
 
-    def has_realm(self, realm):
+    def has_realm(self, realm: str) -> bool:
         """
-        IRealmContainer
-        """
-        return realm in self._routes
+        Check if a route to a realm with the given name is currently running.
 
-    def has_role(self, realm, role):
+        :param realm: Realm name (_not_ ID).
+        :type realm: str
+
+        :returns: True if a route to the realm exists.
+        :rtype: bool
         """
-        IRealmContainer
+        result = realm in self._routes
+        self.log.info('{func}(realm="{realm}") -> {result}', func=hltype(ProxyController.has_realm),
+                      realm=hlid(realm), result=hlval(result))
+        return result
+
+    def has_role(self, realm: str, authrole: str) -> bool:
         """
-        return role in self._routes.get(realm, {})
+        Check if a role with the given name is currently running in the given realm.
+
+        :param realm: WAMP realm (name, _not_ run-time ID).
+        :type realm: str
+
+        :param authrole: WAMP authentication role (URI, _not_ run-time ID).
+        :type authrole: str
+
+        :returns: True if realm is running.
+        :rtype: bool
+        """
+        result = authrole in self._routes.get(realm, {})
+        self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
+                      func=hltype(ProxyController.has_role), realm=hlid(realm), authrole=hlid(authrole),
+                      result=hlval(result))
+        return result
 
     @inlineCallbacks
     def get_service_session(self, realm, authrole):
