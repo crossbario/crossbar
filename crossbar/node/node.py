@@ -30,7 +30,6 @@
 
 import os
 import socket
-from pprint import pformat
 
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue, gatherResults
 from twisted.internet.defer import succeed
@@ -249,9 +248,9 @@ class Node(object):
             ]
         }
         self._router_factory.add_role(self._realm, controller_role_config)
-        self.log.debug('{func} node-wide role "{authrole}" added on node management router realm "{realm}":\n{role_config}',
-                       func=hltype(self._add_global_roles), authrole=hlid(controller_role_config['name']),
-                       realm=hlid(self._realm), role_config=pformat(controller_role_config))
+        self.log.info('{func} node-wide role "{authrole}" added on node management router realm "{realm}"',
+                      func=hltype(self._add_global_roles), authrole=hlid(controller_role_config['name']),
+                      realm=hlid(self._realm))
 
     def _add_worker_role(self, worker_auth_role, options):
         worker_role_config = {
@@ -266,10 +265,10 @@ class Node(object):
                     "uri": worker_auth_role,
                     "match": "prefix",
                     "allow": {
-                        "call": False,
+                        "call": True,
                         "register": True,
                         "publish": True,
-                        "subscribe": False
+                        "subscribe": True
                     },
                     "disclose": {
                         "caller": True,
@@ -318,9 +317,9 @@ class Node(object):
 
         self._router_factory.add_role(self._realm, worker_role_config)
 
-        self.log.info('worker-specific role "{authrole}" added on node management router realm "{realm}": {role_config} {func}',
+        self.log.info('worker-specific role "{authrole}" added on node management router realm "{realm}" {func}',
                       func=hltype(self._add_worker_role), authrole=hlid(worker_role_config['name']),
-                      realm=hlid(self._realm), role_config=pformat(worker_role_config))
+                      realm=hlid(self._realm))
 
     def _drop_worker_role(self, worker_auth_role):
         self._router_factory.drop_role(self._realm, worker_auth_role)

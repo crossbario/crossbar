@@ -374,15 +374,16 @@ class Dealer(object):
         def on_authorize_success(authorization):
             # check the authorization before ANYTHING else, otherwise
             # we may leak information about already-registered URIs etc.
-            self.log.info(
-                '{func}::on_authorize_success() - permission {result} for REGISTER of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
-                func=hltype(self.processRegister),
-                result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
-                procedure=hlid(register.procedure),
-                realm=hlid(session._realm),
-                session_id=hlid(session._session_id),
-                authid=hlid(session._authid),
-                authrole=hlid(session._authrole))
+            if not register.procedure.endswith('.on_log'):
+                self.log.debug(
+                    '{func}::on_authorize_success() - permission {result} for REGISTER of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
+                    func=hltype(self.processRegister),
+                    result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
+                    procedure=hlid(register.procedure),
+                    realm=hlid(session._realm),
+                    session_id=hlid(session._session_id),
+                    authid=hlid(session._authid),
+                    authrole=hlid(session._authrole))
             if not authorization['allow']:
                 # error reply since session is not authorized to register
                 #
@@ -765,15 +766,16 @@ class Dealer(object):
         def on_authorize_success(authorization):
             # the call to authorize the action _itself_ succeeded. now go on depending on whether
             # the action was actually authorized or not ..
-            self.log.info(
-                '{func}::on_authorize_success() - permission {result} for CALL of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
-                func=hltype(self.processCall),
-                result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
-                procedure=hlid(call.procedure),
-                realm=hlid(session._realm),
-                session_id=hlid(session._session_id),
-                authid=hlid(session._authid),
-                authrole=hlid(session._authrole))
+            if not call.procedure.endswith('.on_log'):
+                self.log.debug(
+                    '{func}::on_authorize_success() - permission {result} for CALL of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
+                    func=hltype(self.processCall),
+                    result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
+                    procedure=hlid(call.procedure),
+                    realm=hlid(session._realm),
+                    session_id=hlid(session._session_id),
+                    authid=hlid(session._authid),
+                    authrole=hlid(session._authrole))
 
             if not authorization['allow']:
                 reply = message.Error(
