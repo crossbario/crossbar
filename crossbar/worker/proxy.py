@@ -913,6 +913,7 @@ class ProxyController(_TransportController):
         :returns: True if realm is running.
         :rtype: bool
         """
+        authrole = authrole or 'trusted'
         result = authrole in self._routes.get(realm, {})
         self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
                       func=hltype(ProxyController.has_role), realm=hlid(realm), authrole=hlid(authrole),

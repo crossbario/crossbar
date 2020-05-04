@@ -182,10 +182,12 @@ class Router(object):
 
         self._attached += 1
 
-        self.log.info('session {session} attached to realm "{realm}" {func}',
+        self.log.info('attached session {session} to realm "{realm}" (authid="{authid}", authrole="{authrole}") {func}',
                       func=hltype(self.attach),
-                      session=hlid(session._session_id) if session else None,
-                      realm=hlid(self.realm))
+                      session=hlid(session._session_id) if session else '',
+                      authid=hlid(session._authid),
+                      authrole=hlid(session._authrole),
+                      realm=hlid(session._realm))
 
         return {'broker': self._broker._role_features, 'dealer': self._dealer._role_features}
 
@@ -250,11 +252,13 @@ class Router(object):
             self._detach(session)
             detached_session_ids.append(session._session_id)
 
-        self.log.info('session {session} detached from realm "{realm}" (detached {detached_session_ids} sessions total) {func}',
+        self.log.info('detached session {session} from realm "{realm}" (authid="{authid}", authrole="{authrole}", detached {detached_session_ids} sessions total) {func}',
                       func=hltype(self.detach),
-                      session=hlid(session._session_id) if session else None,
+                      session=hlid(session._session_id) if session else '',
+                      authid=hlid(session._authid),
+                      authrole=hlid(session._authrole),
                       detached_session_ids=hlval(len(detached_session_ids)),
-                      realm=hlid(self.realm))
+                      realm=hlid(session._realm))
 
         return detached_session_ids
 
