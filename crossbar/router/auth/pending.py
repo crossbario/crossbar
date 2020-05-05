@@ -225,7 +225,7 @@ class PendingAuth:
             self.log.debug('{func} authenticator role "{authrole}" set from authenticator configuration',
                            func=hltype(self._init_function_authenticator), authrole=hlid(self._authenticator_role))
         else:
-            self._authenticator_role = self._authrole
+            self._authenticator_role = self._authrole or 'trusted'
             self.log.debug('{func} authenticator role "{authrole}" set from session',
                            func=hltype(self._init_function_authenticator), authrole=hlid(self._authenticator_role))
 
