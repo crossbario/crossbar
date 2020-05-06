@@ -113,6 +113,7 @@ class RouterApplicationSession(object):
         self._trusted_authrole = authrole
         self._trusted_authextra = authextra
 
+        # FIXME: do we need / should we do this?
         self._realm = router._realm
         self._authid = authid
         self._authrole = authrole

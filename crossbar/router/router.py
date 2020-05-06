@@ -34,8 +34,6 @@ from typing import Optional
 
 from txaio import make_logger
 
-from twisted.internet.defer import succeed
-
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
@@ -497,7 +495,6 @@ class RouterFactory(object):
         self._worker_id = worker_id
         self._worker = worker
         self._routers = {}
-        self._router_service_sessions = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         # XXX this should get passed in from .. somewhere
         from twisted.internet import reactor
@@ -516,24 +513,6 @@ class RouterFactory(object):
         Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
         """
         return self._routers.get(realm, None)
-
-    def _set_service_session(self, session, realm, authrole=None):
-        if realm not in self._router_service_sessions:
-            self._router_service_sessions[realm] = {}
-        self._router_service_sessions[realm][authrole] = session
-        self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
-                      func=hltype(self.set_service_session), session=session,
-                      realm=hlid(realm), authrole=hlid(authrole))
-
-    def _get_service_session(self, realm, authrole=None):
-        session = None
-        if realm in self._router_service_sessions:
-            if authrole in self._router_service_sessions[realm]:
-                session = self._router_service_sessions[realm][authrole]
-        self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {session}',
-                      func=hltype(self.get_service_session), session=session,
-                      realm=hlid(realm), authrole=hlid(authrole))
-        return succeed(session)
 
     def __getitem__(self, realm):
         return self._routers[realm]
