@@ -29,7 +29,6 @@
 #####################################################################################
 
 import random
-from pprint import pformat
 
 import txaio
 
@@ -49,6 +48,7 @@ from autobahn.wamp.message import \
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
 from crossbar.worker import rlink
+from crossbar._util import hlid, hlflag, hltype
 
 from txaio import make_logger
 
@@ -373,8 +373,17 @@ class Dealer(object):
 
         def on_authorize_success(authorization):
             # check the authorization before ANYTHING else, otherwise
-            # we may leak information about already-registered URIs
-            # etc.
+            # we may leak information about already-registered URIs etc.
+            if not register.procedure.endswith('.on_log'):
+                self.log.debug(
+                    '{func}::on_authorize_success() - permission {result} for REGISTER of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
+                    func=hltype(self.processRegister),
+                    result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
+                    procedure=hlid(register.procedure),
+                    realm=hlid(session._realm),
+                    session_id=hlid(session._session_id),
+                    authid=hlid(session._authid),
+                    authrole=hlid(session._authrole))
             if not authorization['allow']:
                 # error reply since session is not authorized to register
                 #
@@ -382,7 +391,8 @@ class Dealer(object):
                     message.Register.MESSAGE_TYPE,
                     register.request,
                     ApplicationError.NOT_AUTHORIZED,
-                    ["session is not authorized to register procedure '{0}'".format(register.procedure)],
+                    ['session (session_id={}, authid="{}", authrole="{}") is not authorized to register procedure "{}" on realm "{}"'.format(
+                        session._session_id, session._authid, session._authrole, register.procedure, session._realm)],
                 )
 
             # get existing registration for procedure / matching strategy - if any
@@ -756,26 +766,30 @@ class Dealer(object):
         def on_authorize_success(authorization):
             # the call to authorize the action _itself_ succeeded. now go on depending on whether
             # the action was actually authorized or not ..
-            #
+            if not call.procedure.endswith('.on_log'):
+                self.log.debug(
+                    '{func}::on_authorize_success() - permission {result} for CALL of procedure "{procedure}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
+                    func=hltype(self.processCall),
+                    result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
+                    procedure=hlid(call.procedure),
+                    realm=hlid(session._realm),
+                    session_id=hlid(session._session_id),
+                    authid=hlid(session._authid),
+                    authrole=hlid(session._authrole))
+
             if not authorization['allow']:
                 reply = message.Error(
                     message.Call.MESSAGE_TYPE,
                     call.request,
                     ApplicationError.NOT_AUTHORIZED,
-                    ["session with role {0} is not authorized to call procedure '{1}' on realm '{2}'".format(call.caller_authrole,
-                                                                                                             call.procedure,
-                                                                                                             self._router.realm)]
+                    ['session (session_id={}, authid="{}", authrole="{}") is not authorized to call procedure "{}" on realm "{}"'.format(
+                        session._session_id, session._authid, session._authrole, call.procedure, session._realm)]
                 )
                 reply.correlation_id = call.correlation_id
                 reply.correlation_uri = call.procedure
                 reply.correlation_is_anchor = False
                 reply.correlation_is_last = True
                 self._router.send(session, reply)
-                self.log.warn('authorize CALL action on procedure "{procedure}" for session on realm "{realm}" with authrole "{authrole}" denied:\n{authorization}',
-                              authorization=pformat(authorization),
-                              authrole=call.caller_authrole,
-                              procedure=call.procedure,
-                              realm=self._router.realm)
 
             else:
                 # get registrations active on the procedure called

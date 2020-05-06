@@ -65,6 +65,7 @@ from txaio import make_logger
 
 from twisted.cred import portal
 
+from crossbar._util import hlid, hl, hlval
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.common.processinfo import _HAS_PSUTIL
@@ -203,13 +204,13 @@ class NativeProcess(ApplicationSession):
             options=RegisterOptions(details_arg='details'),
         )
 
-        self.log.info('Registered {len_reg} management procedures on realm "{realm}"',
-                      len_reg=len(regs), realm=self.realm)
+        self.log.info('Ok, registered {len_reg} management procedures on realm "{realm}".',
+                      len_reg=hlval(len(regs)), realm=hl(self.realm))
         for reg in regs:
             if isinstance(reg, Failure):
                 self.log.error("Failed to register: {f}", f=reg, log_failure=reg)
             else:
-                self.log.info('  {proc}', proc=reg.procedure)
+                self.log.debug('  {proc}', proc=hlid(reg.procedure))
         returnValue(regs)
 
     @wamp.register(None)

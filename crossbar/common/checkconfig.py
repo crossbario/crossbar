@@ -3151,11 +3151,19 @@ def check_controller_options(personality, options, ignore=[]):
             raise InvalidConfigException("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
 
     if 'shutdown' in options:
-        if not isinstance(options['shutdown'], Sequence) or isinstance(options['shutdown'], str):
-            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown'])))
-        for shutdown_mode in options['shutdown']:
-            if shutdown_mode not in NODE_SHUTDOWN_MODES:
-                raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
+        if isinstance(options['shutdown'], str):
+            if options['shutdown'] not in NODE_SHUTDOWN_MODES:
+                raise InvalidConfigException(
+                    "invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(
+                        options['shutdown'], ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
+        elif isinstance(options['shutdown'], Sequence):
+            for shutdown_mode in options['shutdown']:
+                if shutdown_mode not in NODE_SHUTDOWN_MODES:
+                    raise InvalidConfigException(
+                        "invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(
+                            shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
+        else:
+            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a string or a list of strings)".format(type(options['shutdown'])))
 
     if 'enable_parallel_worker_start' in options:
         enable_parallel_worker_start = options['enable_parallel_worker_start']

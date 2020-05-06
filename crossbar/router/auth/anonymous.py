@@ -34,6 +34,7 @@ from autobahn.wamp import types
 from txaio import make_logger, as_future
 
 from crossbar.router.auth.pending import PendingAuth
+from crossbar._util import hlid, hltype
 
 __all__ = ('PendingAuthAnonymous',)
 
@@ -48,7 +49,10 @@ class PendingAuthAnonymous(PendingAuth):
 
     AUTHMETHOD = 'anonymous'
 
-    def hello(self, realm, details):
+    def hello(self, realm: str, details: types.SessionDetails):
+        self.log.info('{func}(realm={realm}, details.realm={authrealm}, details.authid={authid}, details.authrole={authrole}) [config={config}]',
+                      func=hltype(self.hello), realm=hlid(realm), authrealm=hlid(details.realm),
+                      authid=hlid(details.authid), authrole=hlid(details.authrole), config=self._config)
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
@@ -67,6 +71,7 @@ class PendingAuthAnonymous(PendingAuth):
             # self._authid = self._transport._cbtid
 
             principal = {
+                'realm': realm,
                 'authid': self._authid,
                 'role': self._config.get('role', 'anonymous'),
                 'extra': details.authextra

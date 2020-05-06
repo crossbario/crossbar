@@ -32,7 +32,7 @@ import os
 import socket
 
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue, gatherResults
-from twisted.python.reflect import qual
+from twisted.internet.defer import succeed
 
 from txaio import make_logger
 
@@ -140,6 +140,7 @@ class Node(object):
         # node controller session (a singleton ApplicationSession embedded
         # in the local node router)
         self._controller = None
+        self._service_sessions = {}
 
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
         self._node_shutdown_triggers = [NODE_SHUTDOWN_ON_WORKER_EXIT]
@@ -224,30 +225,59 @@ class Node(object):
         return config_source, config_path
 
     def _add_global_roles(self):
-        self.log.info('No extra node router roles')
+        controller_role_config = {
+            # there is exactly 1 WAMP component authenticated under authrole "controller": the node controller
+            "name": "controller",
+            "permissions": [
+                {
+                    # the node controller can (locally) do "anything"
+                    "uri": "crossbar.",
+                    "match": "prefix",
+                    "allow": {
+                        "call": True,
+                        "register": True,
+                        "publish": True,
+                        "subscribe": True
+                    },
+                    "disclose": {
+                        "caller": True,
+                        "publisher": True
+                    },
+                    "cache": True
+                }
+            ]
+        }
+        self._router_factory.add_role(self._realm, controller_role_config)
+        self.log.info('{func} node-wide role "{authrole}" added on node management router realm "{realm}"',
+                      func=hltype(self._add_global_roles), authrole=hlid(controller_role_config['name']),
+                      realm=hlid(self._realm))
 
     def _add_worker_role(self, worker_auth_role, options):
         worker_role_config = {
+            # each (native) worker is authenticated under a worker-specific authrole
             "name": worker_auth_role,
             "permissions": [
                 # the worker requires these permissions to work:
                 {
-                    # worker_auth_role: "crossbar.worker.worker-001"
+                    # management API provided by the worker. note that the worker management API is provided under
+                    # the URI prefix "crossbar.worker.<worker_id>". note that the worker is also authenticated
+                    # under authrole <worker_auth_role> on realm "crossbar"
                     "uri": worker_auth_role,
                     "match": "prefix",
                     "allow": {
-                        "call": False,
+                        "call": True,
                         "register": True,
                         "publish": True,
-                        "subscribe": False
+                        "subscribe": True
                     },
                     "disclose": {
-                        "caller": False,
-                        "publisher": False
+                        "caller": True,
+                        "publisher": True
                     },
                     "cache": True
                 },
                 {
+                    # controller procedure called by the worker (to check for controller status)
                     "uri": "crossbar.get_status",
                     "match": "exact",
                     "allow": {
@@ -257,14 +287,39 @@ class Node(object):
                         "subscribe": False
                     },
                     "disclose": {
-                        "caller": False,
-                        "publisher": False
+                        "caller": True,
+                        "publisher": True
                     },
                     "cache": True
                 }
             ]
         }
+        # if configured to expose the controller connection within the worker (to make it available
+        # in user code such as dynamic authenticators and router/container components), also add
+        # permissions to actually use the (local) node management API
+        if options.get('expose_controller', True):
+            vendor_permissions = {
+                "uri": "crossbar.",
+                "match": "prefix",
+                "allow": {
+                    "call": True,
+                    "register": False,
+                    "publish": False,
+                    "subscribe": True
+                },
+                "disclose": {
+                    "caller": True,
+                    "publisher": True
+                },
+                "cache": True
+            }
+            worker_role_config["permissions"].append(vendor_permissions)
+
         self._router_factory.add_role(self._realm, worker_role_config)
+
+        self.log.info('worker-specific role "{authrole}" added on node management router realm "{realm}" {func}',
+                      func=hltype(self._add_worker_role), authrole=hlid(worker_role_config['name']),
+                      realm=hlid(self._realm))
 
     def _drop_worker_role(self, worker_auth_role):
         self._router_factory.drop_role(self._realm, worker_auth_role)
@@ -285,6 +340,24 @@ class Node(object):
             self._node_shutdown_triggers = [NODE_SHUTDOWN_ON_WORKER_EXIT]
             self.log.info("Using default node shutdown triggers {triggers}", triggers=self._node_shutdown_triggers)
 
+    def set_service_session(self, session, realm, authrole=None):
+        self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
+                      func=hltype(self.set_service_session), session=session,
+                      realm=hlid(realm), authrole=hlid(authrole))
+        if realm not in self._service_sessions:
+            self._service_sessions[realm] = {}
+        self._service_sessions[realm][authrole] = session
+
+    def get_service_session(self, realm, authrole=None):
+        if realm in self._service_sessions:
+            if authrole in self._service_sessions[realm]:
+                session = self._service_sessions[realm][authrole]
+                self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
+                              func=hltype(self.get_service_session), session=session,
+                              realm=hlid(realm), authrole=hlid(authrole))
+                return succeed(session)
+        return succeed(None)
+
     def stop(self):
         self._controller._shutdown_was_clean = True
         return self._controller.shutdown()
@@ -300,8 +373,8 @@ class Node(object):
 
         This is the _third_ function being called after the Node has been instantiated.
         """
-        self.log.info('Starting {personality} node {method}',
-                      personality=self.personality.NAME,
+        self.log.info('{note} [{method}]',
+                      note=hl('Starting node ..', color='green', bold=True),
                       method=hltype(Node.start))
 
         # a configuration must have been loaded before
@@ -344,6 +417,8 @@ class Node(object):
         # local node management router
         self._router_factory = RouterFactory(self._node_id, None, None)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
+
+        # start node-wide realm on node management router
         rlm_config = {
             'name': self._realm
         }
@@ -354,19 +429,22 @@ class Node(object):
         self._add_global_roles()
 
         # always add a realm service session
-        cfg = ComponentConfig(self._realm)
+        cfg = ComponentConfig(self._realm, controller=self._controller)
         rlm.session = (self.ROUTER_SERVICE)(cfg, router)
         self._router_session_factory.add(rlm.session,
                                          router,
-                                         authid='nodecontroller-serviceagent',
+                                         authid='serviceagent',
                                          authrole='trusted')
-        self.log.debug('Router service agent session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
+        self.log.info('{func} router service agent session attached [{router_service}]',
+                      func=hltype(self.start), router_service=hltype(self.ROUTER_SERVICE))
 
         self._router_session_factory.add(self._controller,
                                          router,
                                          authid='nodecontroller',
-                                         authrole='trusted')
-        self.log.debug('Node controller session attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
+                                         authrole='controller')
+        self._service_sessions[self._realm] = self._controller
+        self.log.info('{func} node controller session attached [{node_controller}]',
+                      func=hltype(self.start), node_controller=hltype(self.NODE_CONTROLLER))
 
         # add extra node controller components
         self._add_extra_controller_components(controller_config)
@@ -378,7 +456,9 @@ class Node(object):
         self._shutdown_complete = Deferred()
 
         # startup the node personality ..
+        self.log.info('{func}::NODE_BOOT_BEGIN', func=hltype(self.personality.Node.boot))
         yield self.personality.Node.boot(self)
+        self.log.info('{func}::NODE_BOOT_COMPLETE', func=hltype(self.personality.Node.boot))
 
         # notify systemd that we are fully up and running
         try:
@@ -461,7 +541,7 @@ class Node(object):
                     # start the (native) worker
                     self.log.info(
                         'Order node to start "{worker_logname}" ..',
-                        worker_logname=worker_logname,
+                        worker_logname=hlid(worker_logname),
                     )
 
                     d = self._controller.call('crossbar.start_worker', worker_id, worker_type, worker_options, options=CallOptions())
@@ -491,6 +571,11 @@ class Node(object):
                         except ApplicationError as e:
                             if e.error != 'wamp.error.canceled':
                                 raise
+
+                        self.log.info(
+                            'Ok, worker "{worker_logname}" configured and ready!',
+                            worker_logname=hlid(worker_logname),
+                        )
 
                     d.addCallback(configure_worker, worker_logname, worker_type, worker_id, worker)
 

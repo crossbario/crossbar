@@ -44,6 +44,7 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
+from crossbar._util import hlid, hltype, hlflag
 
 from txaio import make_logger
 
@@ -391,10 +392,19 @@ class Broker(object):
             d = self._router.authorize(session, publish.topic, 'publish', options=publish.marshal_options())
 
             def on_authorize_success(authorization):
-
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not ..
-                #
+                if not publish.topic.endswith('.on_log'):
+                    self.log.debug(
+                        '{func}::on_authorize_success() - permission {result} for PUBLISH to topic "{topic}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
+                        func=hltype(self.processPublish),
+                        result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
+                        topic=hlid(publish.topic),
+                        realm=hlid(session._realm),
+                        session_id=hlid(session._session_id),
+                        authid=hlid(session._authid),
+                        authrole=hlid(session._authrole))
+
                 if not authorization['allow']:
 
                     if publish.acknowledge:
@@ -779,10 +789,27 @@ class Broker(object):
         d = self._router.authorize(session, subscribe.topic, 'subscribe', options=subscribe.marshal_options())
 
         def on_authorize_success(authorization):
+            if not subscribe.topic.endswith('.on_log'):
+                self.log.debug(
+                    '{func}::on_authorize_success() - permission {result} for SUBSCRIBE to topic "{topic}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
+                    func=hltype(self.processSubscribe),
+                    result=hlflag(authorization['allow'], 'GRANTED', 'DENIED'),
+                    topic=hlid(subscribe.topic),
+                    realm=hlid(session._realm),
+                    session_id=hlid(session._session_id),
+                    authid=hlid(session._authid),
+                    authrole=hlid(session._authrole))
+
             if not authorization['allow']:
                 # error reply since session is not authorized to subscribe
-                #
-                replies = [message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])]
+                replies = [
+                    message.Error(
+                        message.Subscribe.MESSAGE_TYPE,
+                        subscribe.request,
+                        ApplicationError.NOT_AUTHORIZED,
+                        ['session (session_id={}, authid="{}", authrole="{}") is not authorized to subscribe to topic "{}" on realm "{}"'.format(
+                            session._session_id, session._authid, session._authrole, subscribe.topic, session._realm)])
+                ]
                 replies[0].correlation_id = subscribe.correlation_id
                 replies[0].correlation_uri = subscribe.topic
                 replies[0].correlation_is_anchor = False

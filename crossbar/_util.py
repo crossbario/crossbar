@@ -127,8 +127,22 @@ def hltype(obj, render=True):
         return ''
 
 
+def hlflag(flag, true_txt='YES', false_txt='NO', null_txt='UNSET'):
+    assert flag is None or type(flag) == bool
+    if flag is None:
+        return hl('{}'.format(null_txt), color='blue', bold=True)
+    elif flag:
+        return hl('{}'.format(true_txt), color='green', bold=True)
+    else:
+        return hl('{}'.format(false_txt), color='red', bold=True)
+
+
 def hlid(oid):
     return hl('{}'.format(oid), color='blue', bold=True)
+
+
+def hlval(val, color='white'):
+    return hl('{}'.format(val), color=color, bold=True)
 
 
 def hluserid(oid):

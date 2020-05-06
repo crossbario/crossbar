@@ -43,6 +43,7 @@ from twisted.internet.defer import Deferred
 
 import txaio
 
+from crossbar._util import hltype, hlid
 from crossbar.router.auth.pending import PendingAuth
 
 __all__ = (
@@ -100,7 +101,11 @@ class PendingAuthCryptosign(PendingAuth):
         }
         return extra
 
-    def hello(self, realm, details):
+    def hello(self, realm: str, details: types.HelloDetails):
+        self.log.debug('{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}")',
+                       func=hltype(self.hello), realm=hlid(realm), authid=hlid(details.authid),
+                       authrole=hlid(details.authrole))
+
         # the channel binding requested by the client authenticating
         channel_binding = details.authextra.get('channel_binding', None) if details.authextra else None
         if channel_binding is not None and channel_binding not in ['tls-unique']:
@@ -185,18 +190,18 @@ class PendingAuthCryptosign(PendingAuth):
                 self._session_details['authrole'] = details.authrole
                 self._session_details['authextra'] = details.authextra
 
-                self.log.info('Calling dynamic authenticator [proc="{proc}", realm="{realm}", session={session}, authid="{authid}", authrole="{authrole}"]',
-                              proc=self._authenticator,
-                              realm=self._authenticator_session._realm,
-                              session=self._authenticator_session._session_id,
-                              authid=self._authenticator_session._authid,
-                              authrole=self._authenticator_session._authrole)
+                self.log.debug('Calling dynamic authenticator [proc="{proc}", realm="{realm}", session={session}, authid="{authid}", authrole="{authrole}"]',
+                               proc=self._authenticator,
+                               realm=self._authenticator_session._realm,
+                               session=self._authenticator_session._session_id,
+                               authid=self._authenticator_session._authid,
+                               authrole=self._authenticator_session._authrole)
 
                 d2 = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
                 def on_authenticate_ok(principal):
-                    self.log.info('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_ok(principal={principal})',
-                                  klass=self.__class__.__name__, realm=realm, details=details, principal=principal)
+                    self.log.debug('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_ok(principal={principal})',
+                                   klass=self.__class__.__name__, realm=realm, details=details, principal=principal)
                     error = self._assign_principal(principal)
                     if error:
                         d.callback(error)
@@ -208,8 +213,8 @@ class PendingAuthCryptosign(PendingAuth):
                     d.callback(types.Challenge(self._authmethod, extra))
 
                 def on_authenticate_error(err):
-                    self.log.info('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
-                                  klass=self.__class__.__name__, realm=realm, details=details, err=err)
+                    self.log.debug('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
+                                   klass=self.__class__.__name__, realm=realm, details=details, err=err)
                     try:
                         d.callback(self._marshal_dynamic_authenticator_error(err))
                     except:
@@ -219,7 +224,11 @@ class PendingAuthCryptosign(PendingAuth):
                 d2.addCallbacks(on_authenticate_ok, on_authenticate_error)
                 return d2
 
-            d1.addCallback(initialized)
+            def initialized_error(fail):
+                self.log.failure('Internal error (3): {log_failure.value}', failure=fail)
+                d.errback(fail)
+
+            d1.addCallbacks(initialized, initialized_error)
 
             return d
 

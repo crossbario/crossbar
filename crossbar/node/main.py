@@ -798,11 +798,12 @@ def _run_command_start(options, reactor, personality):
     #
     for line in personality.BANNER.splitlines():
         log.info(hl(line, color='yellow', bold=True))
-    log.info('')
-    log.info('Initializing {node_class} as node [realm={realm}, cbdir={cbdir}]',
-             realm=hlid(node.realm),
-             cbdir=hlid(options.cbdir),
-             node_class=hltype(personality.Node))
+    print()
+
+    log.info('{note} {func}', note=hl('Booting {} node ..'.format(personality.NAME), color='red', bold=True),
+             func=hltype(_run_command_start))
+
+    log.debug('Running on realm="{realm}" from cbdir="{cbdir}"', realm=hlid(node.realm), cbdir=hlid(options.cbdir))
 
     # possibly generate new node key
     #

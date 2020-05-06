@@ -38,6 +38,7 @@ from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.types import RegisterOptions, CallDetails
 from autobahn.wamp.request import Registration
 
+from crossbar._util import hlid, hltype
 from crossbar.router.observation import is_protected_uri
 
 from txaio import make_logger
@@ -141,12 +142,6 @@ class RouterServiceAgent(ApplicationSession):
 
     @inlineCallbacks
     def onJoin(self, details):
-        self.log.info(
-            '{klass}: realm service session attached (details={details})',
-            klass=self.__class__.__name__,
-            details=details,
-        )
-
         # register our API on all configured sessions and then fire onready
         #
         on_ready = self.config.extra.get('onready', None) if self.config.extra else None
@@ -170,10 +165,15 @@ class RouterServiceAgent(ApplicationSession):
                 on_ready.errback(e)
             self.leave()
         else:
-            self.log.info('{klass}: realm service session ready (realm_name="{realm}", on_ready={on_ready})',
-                          klass=self.__class__.__name__,
-                          realm=self._realm,
-                          on_ready=on_ready)
+            self.log.info(
+                '{func}: realm service session attached to realm "{realm}" [session_id={session_id}, authid="{authid}", authrole="{authrole}", on_ready={on_ready}]',
+                func=hltype(self.onJoin),
+                realm=hlid(details.realm),
+                session_id=hlid(details.session),
+                authid=hlid(details.authid),
+                authrole=hlid(details.authrole),
+                on_ready=on_ready,
+            )
             if on_ready:
                 on_ready.callback(self)
 

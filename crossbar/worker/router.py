@@ -32,13 +32,14 @@ from crossbar.worker.types import RouterComponent, RouterRealm, RouterRealmRole
 from twisted.internet.defer import Deferred, DeferredList, maybeDeferred, returnValue
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
+from twisted.internet.defer import succeed
 
 from autobahn import wamp
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, ComponentConfig, CallDetails, SessionIdent
 
-from crossbar._util import class_name, hltype, hlid
+from crossbar._util import class_name, hltype, hlid, hlval
 
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceAgent
@@ -244,6 +245,8 @@ class RouterController(_TransportController):
 
         # map: realm URI -> realm ID
         self.realm_to_id = {}
+
+        self._service_sessions = {}
 
         # map: component ID -> RouterComponent
         self.components = {}
@@ -490,14 +493,18 @@ class RouterController(_TransportController):
             'management_session': self,
         }
         cfg = ComponentConfig(realm_name, extra)
+        # each worker is run under its own dedicated WAMP auth role
+        # svc_authrole = 'crossbar.worker.{}'.format(self._worker_id)
+        # wamp meta api only allowed for "trusted" sessions
+        svc_authrole = 'trusted'
+        svc_authid = 'routerworker-{}-realm-{}-serviceagent'.format(self._worker_id, realm_id)
         rlm.session = RouterServiceAgent(cfg, rlm.router)
-        self._router_session_factory.add(rlm.session,
-                                         rlm.router,
-                                         authid='routerworker-{}-realm-{}-serviceagent'.format(self._worker_id, realm_id),
-                                         authrole='trusted')
+        self._router_session_factory.add(rlm.session, rlm.router, authid=svc_authid, authrole=svc_authrole)
 
         yield extra['onready']
-        self.log.info('RouterServiceAgent started on realm "{realm_name}"', realm_name=realm_name)
+        self.set_service_session(rlm.session, realm_name, authrole=svc_authrole)
+        self.log.info('RouterServiceAgent started on realm="{realm_name}" with authrole="{authrole}", authid="{authid}"',
+                      realm_name=realm_name, authrole=svc_authrole, authid=svc_authid)
 
         self.publish('{}.on_realm_started'.format(self._uri_prefix), realm_id)
 
@@ -506,7 +513,8 @@ class RouterController(_TransportController):
         caller = details.caller if details else None
         self.publish(topic, event, options=PublishOptions(exclude=caller))
 
-        self.log.info('Realm "{realm_id}" (name="{realm_name}") started', realm_id=realm_id, realm_name=rlm.session._realm)
+        self.log.info('Realm "{realm_id}" (name="{realm_name}", authrole="{authrole}", authid="{authid}") started', realm_id=realm_id,
+                      realm_name=rlm.session._realm, authrole=svc_authrole, authid=svc_authid)
         return event
 
     @wamp.register(None)
@@ -550,6 +558,68 @@ class RouterController(_TransportController):
 
         self.publish('{}.on_realm_stopped'.format(self._uri_prefix), realm_id)
         returnValue(realm_stopped)
+
+    def has_realm(self, realm: str) -> bool:
+        """
+        Check if a realm with the given name is currently running.
+
+        :param realm: Realm name (_not_ ID).
+        :type realm: str
+
+        :returns: True if realm is running.
+        :rtype: bool
+        """
+        result = realm in self.realm_to_id and self.realm_to_id[realm] in self.realms
+        self.log.debug('{func}(realm="{realm}") -> {result}', func=hltype(RouterController.has_realm),
+                       realm=hlid(realm), result=hlval(result))
+        return result
+
+    def has_role(self, realm: str, authrole: str) -> bool:
+        """
+        Check if a role with the given name is currently running in the given realm.
+
+        :param realm: WAMP realm (name, _not_ run-time ID).
+        :type realm: str
+
+        :param authrole: WAMP authentication role (URI, _not_ run-time ID).
+        :type authrole: str
+
+        :returns: True if realm is running.
+        :rtype: bool
+        """
+        authrole = authrole or 'trusted'
+        result = realm in self.realm_to_id and self.realm_to_id[realm] in self.realms
+        if result:
+            realm_id = self.realm_to_id[realm]
+            result = (authrole in self.realms[realm_id].role_to_id and self.realms[realm_id].role_to_id[authrole] in self.realms[realm_id].roles)
+
+            # note: this is to enable eg built-in "trusted" authrole
+            result = result or authrole in self._service_sessions[realm]
+
+        self.log.debug('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
+                       func=hltype(RouterController.has_role), realm=hlid(realm), authrole=hlid(authrole),
+                       result=hlval(result))
+        return result
+
+    def set_service_session(self, session, realm, authrole):
+        authrole = authrole or 'trusted'
+        if realm not in self._service_sessions:
+            self._service_sessions[realm] = {}
+        self._service_sessions[realm][authrole] = session
+        self.log.info('{func}(session={session}, realm="{realm}", authrole="{authrole}")',
+                      func=hltype(self.set_service_session), session=session,
+                      realm=hlid(realm), authrole=hlid(authrole))
+
+    def get_service_session(self, realm, authrole):
+        authrole = authrole or 'trusted'
+        session = None
+        if realm in self._service_sessions:
+            if authrole in self._service_sessions[realm]:
+                session = self._service_sessions[realm][authrole]
+        self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {session}',
+                      func=hltype(self.get_service_session), session=session,
+                      realm=hlid(realm), authrole=hlid(authrole))
+        return succeed(session)
 
     @wamp.register(None)
     def get_router_realm_roles(self, realm_id, details=None):
@@ -617,8 +687,8 @@ class RouterController(_TransportController):
         :param details: Call details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        self.log.info('Starting role "{role_id}" on realm "{realm_id}" {method}',
-                      role_id=role_id, realm_id=realm_id, method=hltype(self.start_router_realm_role))
+        self.log.debug('Starting role "{role_id}" on realm "{realm_id}" {method}',
+                       role_id=role_id, realm_id=realm_id, method=hltype(self.start_router_realm_role))
 
         if realm_id not in self.realms:
             raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
@@ -626,9 +696,15 @@ class RouterController(_TransportController):
         if role_id in self.realms[realm_id].roles:
             raise ApplicationError("crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, realm_id))
 
-        self.realms[realm_id].roles[role_id] = RouterRealmRole(role_id, role_config)
-
         realm = self.realms[realm_id].config['name']
+        role = RouterRealmRole(role_id, role_config)
+        role_name = role.config['name']
+
+        if role_name in self.realms[realm_id].role_to_id:
+            raise ApplicationError("crossbar.error.already_exists", "A role with name '{}' already exists in realm with ID '{}'".format(role_name, realm_id))
+
+        self.realms[realm_id].roles[role_id] = role
+        self.realms[realm_id].role_to_id[role_name] = role_id
         self._router_factory.add_role(realm, role_config)
 
         topic = '{}.on_router_realm_role_started'.format(self._uri_prefix)
@@ -636,7 +712,8 @@ class RouterController(_TransportController):
         caller = details.caller if details else None
         self.publish(topic, event, options=PublishOptions(exclude=caller))
 
-        self.log.info('role {role_id} on realm {realm_id} started', realm_id=realm_id, role_id=role_id, role_config=role_config)
+        self.log.info('Role {role_id} named "{role_name}" started on realm "{realm}"', role_id=hlid(role_id),
+                      role_name=hlid(role_name), realm=hlid(realm), func=hltype(self.start_router_realm_role))
         return event
 
     @wamp.register(None)
@@ -662,6 +739,7 @@ class RouterController(_TransportController):
             raise ApplicationError("crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, realm_id))
 
         role = self.realms[realm_id].roles.pop(role_id)
+        del self.realms[realm_id].role_to_id[role.config['name']]
 
         topic = '{}.on_router_realm_role_stopped'.format(self._uri_prefix)
         event = role.marshal()

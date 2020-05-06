@@ -51,7 +51,7 @@ from autobahn.wamp.types import PublishOptions, ComponentConfig
 from autobahn import wamp
 
 import crossbar
-from crossbar._util import term_print, hlid, hltype, class_name
+from crossbar._util import term_print, hl, hlid, hltype, class_name
 from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT, NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR, NODE_SHUTDOWN_ON_LAST_WORKER_EXIT
 from crossbar.common.twisted.processutil import WorkerProcessEndpoint
 from crossbar.node.native import create_native_worker_client_factory
@@ -134,7 +134,8 @@ class NodeController(NativeProcess):
 
         from autobahn.wamp.types import SubscribeOptions
 
-        self.log.info("Joined realm '{realm}' on node management router", realm=details.realm)
+        self.log.info('{func}: joined realm="{realm}" on local node management router [authid="{authid}", authrole="{authrole}"]',
+                      func=hltype(self.onJoin), authid=hlid(details.authid), authrole=hlid(details.authrole), realm=hlid(details.realm))
 
         # When a (native) worker process has connected back to the router of
         # the node controller, the worker will publish this event
@@ -361,13 +362,13 @@ class NodeController(NativeProcess):
         """
         Start a new worker process in the node.
         """
-        self.log.info('Starting {worker_type} worker {worker_id} {worker_klass}',
-                      worker_type=worker_type,
-                      worker_id=hlid(worker_id),
-                      worker_klass=hltype(NodeController.start_worker))
-
         if type(worker_id) != str or worker_id in ['controller', '']:
             raise Exception('invalid worker ID "{}"'.format(worker_id))
+
+        self.log.info('Starting {worker_type}-worker "{worker_id}" .. {worker_klass}',
+                      worker_type=hl(worker_type),
+                      worker_id=hlid(worker_id),
+                      worker_klass=hltype(NodeController.start_worker))
 
         if worker_type == 'guest':
             return self._start_guest_worker(worker_id, worker_options, details=details)

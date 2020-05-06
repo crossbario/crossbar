@@ -47,6 +47,7 @@ from crossbar.router.protocol import WampWebSocketClientFactory, WampRawSocketCl
 from crossbar.router.protocol import set_websocket_options, set_rawsocket_options
 
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
+from crossbar._util import hlid, hltype
 
 __all__ = ('ContainerController',)
 
@@ -385,6 +386,10 @@ class ContainerController(WorkerController):
                 # is necessary for container-components (as opposed to
                 # router-components) to work as expected
                 def _ready(s):
+                    # this is different from "self.config.controller._realm" !!
+                    self.log.info('Container component ready: component_id="{component_id}", realm="{realm}", authrole="{authrole}", authid="{authid}", session={session} {func}',
+                                  func=hltype(self.onJoin), component_id=hlid(component_id), realm=hlid(session._realm),
+                                  authid=hlid(session._authid), authrole=hlid(session._authrole), session=hlid(session._session_id))
                     if not joined_d.called:
                         joined_d.callback(None)
                 session.on('ready', _ready)
