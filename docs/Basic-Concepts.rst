@@ -124,7 +124,7 @@ of the node.
 
 The node will expose the management API it uses to execute the
 configuration to an upcoming management and monitoring service
-(Crossbar.io Development Center), allowing full runtime configuration.
+(Crossbar.io DevOps Center), allowing full runtime configuration.
 
 At the moment each application router stands on its own, but connecting
 application routers for scale-out is upcoming.
@@ -148,7 +148,7 @@ The basic structure is:
     }
 
 The controller part is there for the connection to the upcoming
-`Crossbar.io DeveOps Center <https://crossbario.com>`__ and is irrelevant
+`Crossbar.io DevOps Center <https://crossbario.com>`__ and is irrelevant
 for running a single Crossbar.io instance configured via the
 configuration file.
 
@@ -157,13 +157,13 @@ you as a user.
 
 There are two ways of classifying workers:
 
--  **functional**: router workers vs. component hosting
+-  **functional**: router workers vs. component hosting workers
 -  **technical**: native workers vs. guest workers
 
 On the **functional level**, a router worker provides WAMP routing
-functionality, while component hosts each contain one or more WAMP
+functionality, while each component host contains one or more WAMP
 components. The typical use case will be for a Crossbar.io node to
-contain at least one router worker.
+contain at least one (application) router worker.
 
 On the **technical level** the distinction is about the implementing
 technology used for a worker. Crossbar.io itself is written in Python
@@ -193,7 +193,7 @@ Here you configure realms and transports.
     ]
 
 All routing is within **routing realms**, i.e. a client connection is to
-a routing realm and events and calls are only routed between clients
+a routing realm and events, and calls are only routed between clients
 connected to the same realm.
 
 **Transports** are how clients can connect with the node. The default
@@ -264,14 +264,14 @@ A sample realm configuration is:
 This defines a realm ``realm_1`` and a single role: ``role_1``. For this
 role, two sets of permissions are defined: A client successfully
 connected as ``role1`` can register a procedure under the URI
-'com.myapp.myprocedure1' and for any URI starting with ``com.myapp.``
-the client can publish and subscribe. All other actions are not
+'com.myapp.myprocedure1'. For any URI starting with ``com.myapp.``
+that client can publish and subscribe. All other actions are not
 authorized.
 
 Transports
 ^^^^^^^^^^
 
-At least one transport needs to be configured on an application worker
+At least one transport needs to be configured on an application router worker
 in order for WAMP components to be able to connect to it. You can
 configure multiple transports, e.g. so that some clients can connect via
 WebSockets and others via RawSocket, or using the same protocol but via
@@ -291,7 +291,7 @@ by Crossbar.io**.
 It is also possible to define a **custom authenticator component** which
 receives the full set of data about the authentication request from the
 client and can return not just whether the client is authenticated, but
-also set e.g the client's role. Besides giving you more control, custom
+also set e.g. the client's role. Besides giving you more control, custom
 authenticators allow you to integrate an existing authentication
 solution into your WAMP application.
 
@@ -348,15 +348,15 @@ A sample transport configuration is:
 This creates two transport:
 
 -  A **WebSocket transport** which is listening on port ``7000``. To
-   connect to this a client is required to use Ticket authentication.
+   connect to this, a client is required to use Ticket authentication.
    The authentication is handled entirely by Crossbar.io, and works just
    for a single user (``joe``). This user is then authenticated for the
    role ``role_1``.
 -  A **Web transport**, which is listening on port ``8080``. This does
-   two things: For HTTP connections to the root path it serves the
-   content of the ``web`` directory. For the path ``ws`` it accepts
-   WebSockte connections where, absent an explicit authentication
-   definition, clients will be connected for the role ``anonymous``.
+   two things: for HTTP connections to the root path it serves the
+   content of the ``web`` directory; for the path ``ws`` it accepts
+   WebSocket connections where, absent an explicit authentication
+   definition, clients will be connected for the default role ``anonymous``.
 
 Installation
 ------------
