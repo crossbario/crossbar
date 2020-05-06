@@ -13,18 +13,18 @@
  appdirs           1.4.3       MIT License                                          Trent Mick; Sridhar Ratnakumar; Jeff Rouse    
  argon2-cffi       19.2.0      MIT License                                          Hynek Schlawack                               
  attrs             19.3.0      MIT License                                          Hynek Schlawack                               
- autobahn          20.4.2      MIT License                                          Crossbar.io Technologies GmbH                 
+ autobahn          20.4.3      MIT License                                          Crossbar.io Technologies GmbH                 
  bcrypt            3.1.7       Apache Software License                              The Python Cryptographic Authority developers 
- bitstring         3.1.6       MIT License                                          Scott Griffiths                               
+ bitstring         3.1.7       MIT License                                          Scott Griffiths                               
  cbor              1.0.0       Apache Software License                              Brian Olson                                   
  cbor2             5.1.0       MIT License                                          Alex Grönholm                                 
  certifi           2020.4.5.1  Mozilla Public License 2.0 (MPL 2.0)                 Kenneth Reitz                                 
  cffi              1.14.0      MIT License                                          Armin Rigo, Maciej Fijalkowski                
  chardet           3.0.4       GNU Library or Lesser General Public License (LGPL)  Daniel Blanchard                              
- click             7.1.1       BSD License                                          UNKNOWN                                       
+ click             7.1.2       BSD License                                          UNKNOWN                                       
  colorama          0.4.3       BSD License                                          Jonathan Hartley                              
  constantly        15.1.0      MIT License                                          Twisted Matrix Labs Developers                
- cryptography      2.9         Apache Software License, BSD License                 The cryptography developers                   
+ cryptography      2.9.2       Apache Software License, BSD License                 The cryptography developers                   
  flatbuffers       1.12        Apache Software License                              FlatBuffers Contributors                      
  h2                3.2.0       MIT License                                          Cory Benfield                                 
  hpack             3.0.0       MIT License                                          Cory Benfield                                 
@@ -41,23 +41,23 @@
  pathtools         0.1.2       MIT License                                          Yesudeep Mangalapilly                         
  priority          1.3.0       MIT License                                          Cory Benfield                                 
  psutil            5.7.0       BSD License                                          Giampaolo Rodola                              
- py-ubjson         0.15.0      Apache Software License                              Iotic Labs Ltd                                
+ py-ubjson         0.16.1      Apache Software License                              Iotic Labs Ltd                                
  pyOpenSSL         19.1.0      Apache Software License                              The pyOpenSSL developers                      
  pyasn1            0.4.8       BSD License                                          Ilya Etingof                                  
  pyasn1-modules    0.2.8       BSD License                                          Ilya Etingof                                  
  pycparser         2.20        BSD License                                          Eli Bendersky                                 
  python-snappy     0.5.4       BSD License                                          Andres Moreira                                
- pytz              2019.3      MIT License                                          Stuart Bishop                                 
+ pytz              2020.1      MIT License                                          Stuart Bishop                                 
  requests          2.23.0      Apache Software License                              Kenneth Reitz                                 
  sdnotify          0.3.2       MIT License                                          Brett Bethke                                  
  service-identity  18.1.0      MIT License                                          Hynek Schlawack                               
  setproctitle      1.1.10      BSD License                                          Daniele Varrazzo                              
  six               1.14.0      MIT License                                          Benjamin Peterson                             
  sortedcontainers  2.1.0       Apache Software License                              Grant Jenks                                   
- treq              20.3.0      MIT License                                          David Reid                                    
+ treq              20.4.1      MIT License                                          David Reid                                    
  txaio             20.4.1      MIT License                                          Crossbar.io Technologies GmbH                 
  txtorcon          20.0.0      MIT License                                          meejah                                        
- u-msgpack-python  2.5.2       MIT License                                          vsergeev                                      
+ u-msgpack-python  2.6.0       MIT License                                          vsergeev                                      
  ujson             2.0.3       BSD License                                          Jonas Tarnstrom                               
  urllib3           1.24.3      MIT License                                          Andrey Petrov                                 
  vmprof            0.4.15      MIT License                                          vmprof team                                   
