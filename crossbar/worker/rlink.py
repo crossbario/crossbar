@@ -380,7 +380,7 @@ class BridgeSession(ApplicationSession):
 
             uri = reg_details['uri']
 
-            yield self._regs[reg_id]['reg'].unsubscribe()
+            yield self._regs[reg_id]['reg'].unregister()
 
             del self._regs[reg_id]
 
