@@ -54,8 +54,6 @@ __all__ = (
     'RLinkManager',
 )
 
-ERRMSG = False
-
 
 class BridgeSession(ApplicationSession):
 
@@ -105,11 +103,10 @@ class BridgeSession(ApplicationSession):
             self._subs[sub_id] = sub_details
 
             uri = sub_details['uri']
+            ERR_MSG = [None]
 
             @inlineCallbacks
             def on_event(*args, **kwargs):
-                global ERRMSG
-
                 assert 'details' in kwargs
 
                 details = kwargs.pop('details')
@@ -157,9 +154,9 @@ class BridgeSession(ApplicationSession):
                         self.log.warn('FAILED TO PUBLISH 1: {} {}'.format(type(e), str(e)))
                     return
                 except Exception as e:
-                    if not ERRMSG:
+                    if not ERR_MSG[0]:
                         self.log.warn('FAILED TO PUBLISH 2: {} {}'.format(type(e), str(e)))
-                        ERRMSG = True
+                        ERR_MSG[0] = True
                     return
 
                 self.log.debug(
@@ -274,10 +271,10 @@ class BridgeSession(ApplicationSession):
             self._regs[reg_id] = reg_details
 
             uri = reg_details['uri']
+            ERR_MSG = [None]
 
             @inlineCallbacks
             def on_call(*args, **kwargs):
-                global ERRMSG
 
                 assert 'details' in kwargs
 
@@ -321,9 +318,9 @@ class BridgeSession(ApplicationSession):
                         self.log.warn('FAILED TO CALL 1: {} {}'.format(type(e), str(e)))
                     return
                 except Exception as e:
-                    if not ERRMSG:
+                    if not ERR_MSG[0]:
                         self.log.warn('FAILED TO CALL 2: {} {}'.format(type(e), str(e)))
-                        ERRMSG = True
+                        ERR_MSG[0] = True
                     return
 
                 self.log.info(
