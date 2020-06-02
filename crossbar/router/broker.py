@@ -445,6 +445,7 @@ class Broker(object):
                             publisher = publish.forward_for[0]['session']
                             publisher_authid = publish.forward_for[0]['authid']
                             publisher_authrole = publish.forward_for[0]['authrole']
+                            assert session._session_id is not None
                             forward_for = publish.forward_for + [
                                 {
                                     'session': session._session_id,

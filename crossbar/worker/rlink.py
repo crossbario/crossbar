@@ -121,6 +121,7 @@ class BridgeSession(ApplicationSession):
                     publisher_authrole=details.publisher_authrole,
                     forward_for=details.forward_for)
 
+                assert details.publisher is not None
                 this_forward = {
                     'session': details.publisher,
                     'authid': details.publisher_authid,
