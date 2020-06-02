@@ -108,9 +108,21 @@ class BridgeSession(ApplicationSession):
             @inlineCallbacks
             def on_event(*args, **kwargs):
                 assert 'details' in kwargs
-
                 details = kwargs.pop('details')
                 options = kwargs.pop('options', None)
+
+                if details.publisher is None:
+                    raise RuntimeError(
+                        "No 'details.publisher' while attempting rlink forwarding"
+                    )
+                if details.publisher_authid is None:
+                    raise RuntimeError(
+                        "No 'details.publisher_authid' while attempting rlink forwarding"
+                    )
+                if details.publisher_authrole is None:
+                    raise RuntimeError(
+                        "No 'details.publisher_authrole' while attempting rlink forwarding"
+                    )
 
                 self.log.debug(
                     'Received event on uri={uri}, options={options} (publisher={publisher}, publisher_authid={publisher_authid}, publisher_authrole={publisher_authrole}, forward_for={forward_for})',
@@ -281,6 +293,19 @@ class BridgeSession(ApplicationSession):
 
                 details = kwargs.pop('details')
                 options = kwargs.pop('options', None)
+
+                if details.caller is None:
+                    raise RuntimeError(
+                        "No 'details.caller' while attempting rlink forwarding"
+                    )
+                if details.caller_authid is None:
+                    raise RuntimeError(
+                        "No 'details.caller_authid' while attempting rlink forwarding"
+                    )
+                if details.caller_authrole is None:
+                    raise RuntimeError(
+                        "No 'details.caller_authrole' while attempting rlink forwarding"
+                    )
 
                 self.log.info(
                     'Received invocation on uri={uri}, options={options} (caller={caller}, caller_authid={caller_authid}, caller_authrole={caller_authrole}, forward_for={forward_for})',
