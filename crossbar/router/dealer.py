@@ -980,6 +980,7 @@ class Dealer(object):
                 caller_authrole = call.forward_for[0]['authrole']
 
                 # append this session (a r2r link) to forward_for
+                assert session._session_id is not None
                 forward_for = call.forward_for + [
                     {
                         'session': session._session_id,
@@ -1173,6 +1174,7 @@ class Dealer(object):
                 if disclose:
                     if cancel.forward_for:
                         # append this calling session (a r2r link) to forward_for
+                        assert session._session_id is not None
                         forward_for = cancel.forward_for + [
                             {
                                 'session': session._session_id,
@@ -1251,6 +1253,7 @@ class Dealer(object):
                     callee_authrole = yield_.forward_for[0]['authrole']
 
                     # append this session (a r2r link) to forward_for
+                    assert session._session_id is not None
                     forward_for = yield_.forward_for + [
                         {
                             'session': session._session_id,
@@ -1437,6 +1440,7 @@ class Dealer(object):
                     callee_authrole = invocation_request.forward_for[0]['authrole']
 
                     # append this session (a r2r link) to forward_for
+                    assert session._session_id is not None
                     forward_for = error.forward_for + [
                         {
                             'session': session._session_id,

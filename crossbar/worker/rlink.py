@@ -54,8 +54,6 @@ __all__ = (
     'RLinkManager',
 )
 
-ERRMSG = False
-
 
 class BridgeSession(ApplicationSession):
 
@@ -105,15 +103,26 @@ class BridgeSession(ApplicationSession):
             self._subs[sub_id] = sub_details
 
             uri = sub_details['uri']
+            ERR_MSG = [None]
 
             @inlineCallbacks
             def on_event(*args, **kwargs):
-                global ERRMSG
-
                 assert 'details' in kwargs
-
                 details = kwargs.pop('details')
                 options = kwargs.pop('options', None)
+
+                if details.publisher is None:
+                    raise RuntimeError(
+                        "No 'details.publisher' while attempting rlink forwarding"
+                    )
+                if details.publisher_authid is None:
+                    raise RuntimeError(
+                        "No 'details.publisher_authid' while attempting rlink forwarding"
+                    )
+                if details.publisher_authrole is None:
+                    raise RuntimeError(
+                        "No 'details.publisher_authrole' while attempting rlink forwarding"
+                    )
 
                 self.log.debug(
                     'Received event on uri={uri}, options={options} (publisher={publisher}, publisher_authid={publisher_authid}, publisher_authrole={publisher_authrole}, forward_for={forward_for})',
@@ -124,6 +133,7 @@ class BridgeSession(ApplicationSession):
                     publisher_authrole=details.publisher_authrole,
                     forward_for=details.forward_for)
 
+                assert details.publisher is not None
                 this_forward = {
                     'session': details.publisher,
                     'authid': details.publisher_authid,
@@ -157,9 +167,9 @@ class BridgeSession(ApplicationSession):
                         self.log.warn('FAILED TO PUBLISH 1: {} {}'.format(type(e), str(e)))
                     return
                 except Exception as e:
-                    if not ERRMSG:
+                    if not ERR_MSG[0]:
                         self.log.warn('FAILED TO PUBLISH 2: {} {}'.format(type(e), str(e)))
-                        ERRMSG = True
+                        ERR_MSG[0] = True
                     return
 
                 self.log.debug(
@@ -274,15 +284,28 @@ class BridgeSession(ApplicationSession):
             self._regs[reg_id] = reg_details
 
             uri = reg_details['uri']
+            ERR_MSG = [None]
 
             @inlineCallbacks
             def on_call(*args, **kwargs):
-                global ERRMSG
 
                 assert 'details' in kwargs
 
                 details = kwargs.pop('details')
                 options = kwargs.pop('options', None)
+
+                if details.caller is None:
+                    raise RuntimeError(
+                        "No 'details.caller' while attempting rlink forwarding"
+                    )
+                if details.caller_authid is None:
+                    raise RuntimeError(
+                        "No 'details.caller_authid' while attempting rlink forwarding"
+                    )
+                if details.caller_authrole is None:
+                    raise RuntimeError(
+                        "No 'details.caller_authrole' while attempting rlink forwarding"
+                    )
 
                 self.log.info(
                     'Received invocation on uri={uri}, options={options} (caller={caller}, caller_authid={caller_authid}, caller_authrole={caller_authrole}, forward_for={forward_for})',
@@ -321,9 +344,9 @@ class BridgeSession(ApplicationSession):
                         self.log.warn('FAILED TO CALL 1: {} {}'.format(type(e), str(e)))
                     return
                 except Exception as e:
-                    if not ERRMSG:
+                    if not ERR_MSG[0]:
                         self.log.warn('FAILED TO CALL 2: {} {}'.format(type(e), str(e)))
-                        ERRMSG = True
+                        ERR_MSG[0] = True
                     return
 
                 self.log.info(
@@ -383,7 +406,7 @@ class BridgeSession(ApplicationSession):
 
             uri = reg_details['uri']
 
-            yield self._regs[reg_id]['reg'].unsubscribe()
+            yield self._regs[reg_id]['reg'].unregister()
 
             del self._regs[reg_id]
 
