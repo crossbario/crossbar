@@ -115,10 +115,6 @@ class BridgeSession(ApplicationSession):
                     raise RuntimeError(
                         "No 'details.publisher' while attempting rlink forwarding"
                     )
-                if details.publisher_authid is None:
-                    raise RuntimeError(
-                        "No 'details.publisher_authid' while attempting rlink forwarding"
-                    )
                 if details.publisher_authrole is None:
                     raise RuntimeError(
                         "No 'details.publisher_authrole' while attempting rlink forwarding"
@@ -297,10 +293,6 @@ class BridgeSession(ApplicationSession):
                 if details.caller is None:
                     raise RuntimeError(
                         "No 'details.caller' while attempting rlink forwarding"
-                    )
-                if details.caller_authid is None:
-                    raise RuntimeError(
-                        "No 'details.caller_authid' while attempting rlink forwarding"
                     )
                 if details.caller_authrole is None:
                     raise RuntimeError(
