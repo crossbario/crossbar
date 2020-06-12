@@ -295,7 +295,7 @@ class BridgeSession(ApplicationSession):
                 details = kwargs.pop('details')
                 options = kwargs.pop('options', None)
 
-                if details.caller is None or details.caller_authrole is None or details.caller_authid:
+                if details.caller is None or details.caller_authrole is None or details.caller_authid is None:
                     raise RuntimeError(
                         "Internal error attempting rlink forwarding"
                     )
