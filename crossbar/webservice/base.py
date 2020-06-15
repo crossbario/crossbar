@@ -33,6 +33,7 @@ import importlib
 
 import txaio
 
+from twisted.internet.defer import inlineCallbacks, maybeDeferred
 from twisted.web import server
 from twisted.web._responses import NOT_FOUND
 from twisted.web.resource import Resource
@@ -167,7 +168,11 @@ class RouterWebService(object):
 
     @property
     def config(self):
-        return self.config
+        return self._config
+
+    @property
+    def resource(self):
+        return self._resource
 
 
 class ExtReverseProxyResource(ReverseProxyResource):
@@ -347,6 +352,7 @@ class RouterWebServiceNestedPath(RouterWebService):
     """
 
     @staticmethod
+    @inlineCallbacks
     def create(transport, path, config):
         personality = transport.worker.personality
         personality.WEB_SERVICE_CHECKERS['path'](personality, config)
@@ -354,12 +360,19 @@ class RouterWebServiceNestedPath(RouterWebService):
         nested_paths = config.get('paths', {})
 
         if '/' in nested_paths:
-            resource = personality.create_web_service(personality, transport.worker._reactor, nested_paths['/'], transport.templates, transport.cbdir)
+            root_config = nested_paths['/']
+            root_factory = personality.WEB_SERVICE_FACTORIES[root_config['type']]
+            root_service = yield maybeDeferred(root_factory.create, transport, '/', root_config)
+            root_resource = root_service.resource
         else:
-            resource = Resource404(transport.templates, b'')
+            root_resource = Resource404(transport.templates, b'')
 
-        # nest subpaths under the current entry
-        #
-        # personality.add_web_services(personality, reactor, nested_resource, nested_paths, templates, log, cbdir, _router_session_factory, node)
+        for nested_path in sorted(nested_paths):
+            if nested_path != '/':
+                nested_config = nested_paths[nested_path]
+                nested_factory = personality.WEB_SERVICE_FACTORIES[nested_config['type']]
+                nested_service = yield maybeDeferred(nested_factory.create, transport, nested_path, nested_config)
+                nested_resource = nested_service.resource
+                root_resource.putChild(nested_path.encode('utf8'), nested_resource)
 
-        return RouterWebServiceNestedPath(transport, path, config, resource)
+        return RouterWebServiceNestedPath(transport, path, config, root_resource)
