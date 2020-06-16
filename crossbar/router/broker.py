@@ -603,6 +603,11 @@ class Broker(object):
                             msg.correlation_uri = publish.topic
                             msg.correlation_is_anchor = False
                             msg.correlation_is_last = False
+                            msg._router_internal = (
+                                session._session_id,  # publisher
+                                session._authid,
+                                session._authrole,
+                            )
 
                             chunk_size = self._options.event_dispatching_chunk_size
 

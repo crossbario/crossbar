@@ -1039,6 +1039,13 @@ class Dealer(object):
         invocation.correlation_is_anchor = False
         invocation.correlation_is_last = False
 
+        # for internal use by rlinks
+        invocation._router_internal = (
+            caller,
+            caller_authid,
+            caller_authrole,
+        )
+
         self._add_invoke_request(invocation_request_id, registration, session, call, callee, forward_for, timeout=call.timeout)
         self._router.send(callee, invocation)
         return True

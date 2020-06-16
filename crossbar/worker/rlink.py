@@ -43,6 +43,7 @@ from crossbar.common.checkconfig import check_dict_args, check_realm_name, check
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
 from autobahn.wamp.types import SubscribeOptions, PublishOptions, RegisterOptions, CallOptions, ComponentConfig
+from autobahn.wamp.message import Event, Invocation
 from autobahn.wamp.exception import ApplicationError, TransportLost
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
@@ -67,6 +68,14 @@ class BridgeSession(ApplicationSession):
 
         self._exclude_authid = None
         self._exclude_authrole = None
+
+    def onMessage(self, msg):
+        if msg._router_internal is not None:
+            if isinstance(msg, Event):
+                msg.publisher, msg.publisher_authid, msg.publisher_authrole = msg._router_internal
+            elif isinstance(msg, Invocation):
+                msg.caller, msg.caller_authid, msg.caller_authrole = msg._router_internal
+        return super(BridgeSession, self).onMessage(msg)
 
     @inlineCallbacks
     def _setup_event_forwarding(self, other):
@@ -111,13 +120,9 @@ class BridgeSession(ApplicationSession):
                 details = kwargs.pop('details')
                 options = kwargs.pop('options', None)
 
-                if details.publisher is None:
+                if details.publisher is None or details.publisher_authrole is None or details.publisher_authid is None:
                     raise RuntimeError(
-                        "No 'details.publisher' while attempting rlink forwarding"
-                    )
-                if details.publisher_authrole is None:
-                    raise RuntimeError(
-                        "No 'details.publisher_authrole' while attempting rlink forwarding"
+                        "Internal error while attempting rlink forwarding"
                     )
 
                 self.log.debug(
@@ -290,13 +295,9 @@ class BridgeSession(ApplicationSession):
                 details = kwargs.pop('details')
                 options = kwargs.pop('options', None)
 
-                if details.caller is None:
+                if details.caller is None or details.caller_authrole is None or details.caller_authid:
                     raise RuntimeError(
-                        "No 'details.caller' while attempting rlink forwarding"
-                    )
-                if details.caller_authrole is None:
-                    raise RuntimeError(
-                        "No 'details.caller_authrole' while attempting rlink forwarding"
+                        "Internal error attempting rlink forwarding"
                     )
 
                 self.log.info(
