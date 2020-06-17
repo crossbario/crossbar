@@ -1041,9 +1041,9 @@ class Dealer(object):
 
         # for internal use by rlinks
         invocation._router_internal = (
-            caller,
-            caller_authid,
-            caller_authrole,
+            session._session_id,  # caller
+            session._authid,
+            session._authrole,
         )
 
         self._add_invoke_request(invocation_request_id, registration, session, call, callee, forward_for, timeout=call.timeout)
