@@ -5,10 +5,26 @@
 Changelog
 =========
 
-master
+20.6.2.dev2
+-----------
+
+* fix: management procedure "get_router_realm_links" return value not serializable (#1781)
+* fix: we always have publisher/caller information (#1778)
+* fix: attribute name (removed underscore)
+* fix: webservice of type "path"
+
+20.6.1
 ------
 
-* ...
+* new: bump CI to py 3.8
+* fix: rlink fixups (#1777)
+* fix: node shutdown option processing
+* new: Configurable cookie headers  #issue-1511 (#1753)
+* fix: fix backend closing behavior for proxy worker (#1754)
+* new: proxy class authenticator 2 (#1764)
+* new: add mgmt api to lookup realms by name in router workers
+* fix: varies proxy worker fixes and cleanups
+* fix: backend closing behavior for proxy worker
 
 20.4.2
 ------

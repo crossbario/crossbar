@@ -1174,7 +1174,7 @@ class RouterController(_TransportController):
 
         rlink_manager = self.realms[realm_id].rlink_manager
 
-        return rlink_manager.keys()
+        return sorted([str(k) for k in rlink_manager.keys()])
 
     @wamp.register(None)
     def get_router_realm_link(self, realm_id, link_id, details=None):
@@ -1198,7 +1198,7 @@ class RouterController(_TransportController):
             'Get router link {link_id} on realm {realm_id} {method}',
             link_id=hlid(link_id),
             realm_id=hlid(realm_id),
-            method=hltype(RouterController.get_router_realm_links))
+            method=hltype(RouterController.get_router_realm_link))
 
         if realm_id not in self.realms:
             raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
