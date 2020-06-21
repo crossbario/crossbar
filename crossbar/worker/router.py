@@ -1198,7 +1198,7 @@ class RouterController(_TransportController):
             'Get router link {link_id} on realm {realm_id} {method}',
             link_id=hlid(link_id),
             realm_id=hlid(realm_id),
-            method=hltype(RouterController.get_router_realm_links))
+            method=hltype(RouterController.get_router_realm_link))
 
         if realm_id not in self.realms:
             raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
