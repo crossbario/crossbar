@@ -1174,7 +1174,7 @@ class RouterController(_TransportController):
 
         rlink_manager = self.realms[realm_id].rlink_manager
 
-        return rlink_manager.keys()
+        return sorted([str(k) for k in rlink_manager.keys()])
 
     @wamp.register(None)
     def get_router_realm_link(self, realm_id, link_id, details=None):
