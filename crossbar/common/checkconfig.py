@@ -512,6 +512,11 @@ def check_transport_auth_cryptosign(config):
                 'role': (False, [str]),
                 'realm': (False, [str]),
             }, principal, "WAMP-Cryptosign - principal '{}' configuration".format(authid))
+            # allow to set value from environment variable
+            for idx in range(len(principal['authorized_keys'])):
+                principal['authorized_keys'][idx] = maybe_from_env(
+                    'auth.wampcra.cryptosign["{}"].authorized_key[{}]'.format(authid, idx),
+                    principal['authorized_keys'][idx], hide_value=True)
             for pubkey in principal['authorized_keys']:
                 if not isinstance(pubkey, str):
                     raise InvalidConfigException("invalid type {} for pubkey in authorized_keys of principal".format(type(pubkey)))
