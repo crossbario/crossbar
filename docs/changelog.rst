@@ -5,8 +5,8 @@
 Changelog
 =========
 
-20.6.2.dev2
------------
+20.6.2
+------
 
 * fix: management procedure "get_router_realm_links" return value not serializable (#1781)
 * fix: we always have publisher/caller information (#1778)
