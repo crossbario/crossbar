@@ -64,6 +64,7 @@ class BridgeSession(ApplicationSession):
         ApplicationSession.__init__(self, config)
 
         self._subs = {}
+        # registration-id's of remote registrations from an rlink
         self._regs = {}
 
         self._exclude_authid = None
@@ -261,7 +262,7 @@ class BridgeSession(ApplicationSession):
 
         # called when a registration is created on the local router
         @inlineCallbacks
-        def on_registration_create(reg_id, reg_details, details=None):
+        def on_registration_create(reg_session, reg_details, details=None):
             """
             Event handler fired when a new registration was created on this router.
 
@@ -273,16 +274,19 @@ class BridgeSession(ApplicationSession):
             :param details:
             :return:
             """
+            if reg_details['uri'].startswith("wamp."):
+                return
+
             # FIXME
-            if False and reg_id in self._regs:
+            if True and reg_details['id'] in self._regs:
                 # this should not happen actually, but not sure ..
                 self.log.error(
                     'on_registration_create: reg ID {reg_id} already in map {method}',
-                    reg_id=reg_id,
+                    reg_id=reg_details['id'],
                     method=hltype(BridgeSession._setup_invocation_forwarding))
                 return
 
-            self._regs[reg_id] = reg_details
+            self._regs[reg_details['id']] = reg_details
 
             uri = reg_details['uri']
             ERR_MSG = [None]
@@ -358,7 +362,10 @@ class BridgeSession(ApplicationSession):
                         on_call,
                         uri,
                         options=RegisterOptions(
-                            details_arg='details', invoke=reg_details.get('invoke', None)))
+                            details_arg='details',
+                            invoke=reg_details.get('invoke', None),
+                        )
+                    )
                 except:
                     self.log.failure()
                     from autobahn.twisted.util import sleep
@@ -370,13 +377,13 @@ class BridgeSession(ApplicationSession):
             if not reg:
                 raise Exception('fatal: could not forward-register')
 
-            self._regs[reg_id]['reg'] = reg
+            self._regs[reg_details['id']]['reg'] = reg
 
             self.log.info(
                 "created forwarding registration: me={me} other={other} reg_id={reg_id} reg_details={reg_details} details={details}",
                 me=self,
                 other=other,
-                reg_id=reg_id,
+                reg_id=reg_details['id'],
                 reg_details=reg_details,
                 details=details,
             )
@@ -409,7 +416,8 @@ class BridgeSession(ApplicationSession):
         regs = yield self.call("wamp.registration.list")
         for reg_id in regs['exact']:
             reg = yield self.call("wamp.registration.get", reg_id)
-            yield on_registration_create(reg_id, reg)
+            assert reg['id'] == reg_id, "Logic error, registration IDs don't match"
+            yield on_registration_create(self._session_id, reg)
 
         # listen to when new registrations are created on the local router
         yield self.subscribe(
@@ -820,8 +828,8 @@ class RLinkManager(object):
             'other': None,
             'on_ready': Deferred(),
             'rlink': link_id,
-            # 'forward_events': False,
             'forward_events': link_config.forward_local_events,
+            'forward_invocations': link_config.forward_local_invocations,
         }
         local_realm = self._realm.config['name']
 
