@@ -85,7 +85,7 @@ class BridgeSession(ApplicationSession):
             "setup event forwarding between {me} and {other} (exclude_authid={exclude_authid}, exclude_authrole={exclude_authrole})",
             exclude_authid=self._exclude_authid,
             exclude_authrole=self._exclude_authrole,
-            me=self,
+            me=self._session_id,
             other=other)
 
         @inlineCallbacks
@@ -195,7 +195,7 @@ class BridgeSession(ApplicationSession):
 
             self.log.debug(
                 "created forwarding subscription: me={me} other={other} sub_id={sub_id} sub_details={sub_details} details={details}",
-                me=self,
+                me=self._session_id,
                 other=other,
                 sub_id=sub_id,
                 sub_details=sub_details,
@@ -366,12 +366,13 @@ class BridgeSession(ApplicationSession):
             self._regs[reg_details['id']]['reg'] = reg
 
             self.log.info(
-                "created forwarding registration: me={me} other={other} reg_id={reg_id} reg_details={reg_details} details={details}",
-                me=self,
-                other=other,
+                "created forwarding registration: me={me} other={other} reg_id={reg_id} reg_details={reg_details} details={details} reg_session={reg_session}",
+                me=self._session_id,
+                other=other._session_id,
                 reg_id=reg_details['id'],
                 reg_details=reg_details,
                 details=details,
+                reg_session=reg_session,
             )
 
         # called when a registration is removed from the local router
@@ -417,7 +418,7 @@ class BridgeSession(ApplicationSession):
             "wamp.registration.on_delete",
             options=SubscribeOptions(details_arg="details"))
 
-        self.log.info("{me}: call forwarding setup done", me=self)
+        self.log.info("{me}: call forwarding setup done", me=self._session_id)
 
 
 class RLinkLocalSession(BridgeSession):
