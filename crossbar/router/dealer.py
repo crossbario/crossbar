@@ -648,6 +648,7 @@ class Dealer(object):
         #
         was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
         was_deleted = False
+        is_rlink_session = (session._authrole == "rlink")
 
         if was_registered and was_last_callee:
             self._registration_map.delete_observation(registration)
@@ -703,12 +704,13 @@ class Dealer(object):
                     if options:
                         options.correlation_is_last = True
 
-                    service_session.publish(
-                        'wamp.registration.on_delete',
-                        session._session_id,
-                        registration.id,
-                        options=options
-                    )
+                    if not is_rlink_session:
+                        service_session.publish(
+                            'wamp.registration.on_delete',
+                            session._session_id,
+                            registration.id,
+                            options=options
+                        )
 
             # we postpone actual sending of meta events until we return to this client session
             self._reactor.callLater(0, _publish)
