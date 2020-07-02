@@ -101,8 +101,7 @@ class BridgeSession(ApplicationSession):
             :param details:
             :return:
             """
-            # FIXME
-            if False and sub_id in self._subs:
+            if sub_id in self._subs:
                 # this should not happen actually, but not sure ..
                 self.log.error(
                     'on_subscription_create: sub ID {sub_id} already in map {method}',
@@ -277,8 +276,7 @@ class BridgeSession(ApplicationSession):
             if reg_details['uri'].startswith("wamp."):
                 return
 
-            # FIXME
-            if True and reg_details['id'] in self._regs:
+            if reg_details['id'] in self._regs:
                 # this should not happen actually, but not sure ..
                 self.log.error(
                     'on_registration_create: reg ID {reg_id} already in map {method}',
@@ -353,29 +351,17 @@ class BridgeSession(ApplicationSession):
                 )
                 return result
 
-            # FIXME
-            n = 300
-            reg = None
-            while n > 0:
-                try:
-                    reg = yield other.register(
-                        on_call,
-                        uri,
-                        options=RegisterOptions(
-                            details_arg='details',
-                            invoke=reg_details.get('invoke', None),
-                        )
-                    )
-                except:
-                    self.log.failure()
-                    from autobahn.twisted.util import sleep
-                    yield sleep(1)
-                    n -= 1
-                else:
-                    break
+            reg = yield other.register(
+                on_call,
+                uri,
+                options=RegisterOptions(
+                    details_arg='details',
+                    invoke=reg_details.get('invoke', None),
+                )
+            )
 
             if not reg:
-                raise Exception('fatal: could not forward-register')
+                raise Exception("fatal: could not forward-register '{}'".format(uri))
 
             self._regs[reg_details['id']]['reg'] = reg
 
