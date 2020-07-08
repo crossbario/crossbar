@@ -206,6 +206,7 @@ class Dealer(object):
         """
         # if the caller on an in-flight invocation goes away
         # INTERRUPT the callee if supported
+        is_rlink_session = (session._authrole == "rlink")
         if session in self._caller_to_invocations:
 
             outstanding = self._caller_to_invocations.get(session, [])
@@ -292,12 +293,13 @@ class Dealer(object):
                             )
 
                         if was_last_callee:
-                            service_session.publish(
-                                'wamp.registration.on_delete',
-                                session._session_id,
-                                registration.id,
-                                options=options,
-                            )
+                            if not is_rlink_session:
+                                service_session.publish(
+                                    'wamp.registration.on_delete',
+                                    session._session_id,
+                                    registration.id,
+                                    options=options,
+                                )
                     # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish, registration)
 
