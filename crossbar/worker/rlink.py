@@ -285,6 +285,7 @@ class BridgeSession(ApplicationSession):
                 return
 
             self._regs[reg_details['id']] = reg_details
+            self._regs[reg_details['id']]['reg'] = None
 
             uri = reg_details['uri']
             ERR_MSG = [None]
@@ -363,7 +364,15 @@ class BridgeSession(ApplicationSession):
             if not reg:
                 raise Exception("fatal: could not forward-register '{}'".format(uri))
 
-            self._regs[reg_details['id']]['reg'] = reg
+            # so ... if, during that "yield" above while we register
+            # on the "other" router, *this* router may have already
+            # un-registered. If that happened, our registration will
+            # be gone, so we immediately un-register on the other side
+            if reg_details['id'] not in self._regs:
+                self.log.info("registration already gone: {uri}", uri=reg_details['uri'])
+                yield reg.unregister()
+            else:
+                self._regs[reg_details['id']]['reg'] = reg
 
             self.log.info(
                 "created forwarding registration: me={me} other={other} reg_id={reg_id} reg_details={reg_details} details={details} reg_session={reg_session}",
@@ -393,7 +402,13 @@ class BridgeSession(ApplicationSession):
 
             uri = reg_details['uri']
 
-            yield self._regs[reg_id]['reg'].unregister()
+            reg = self._regs[reg_id]['reg']
+            if reg is None:
+                # see above; we might have un-registered here before
+                # we got an answer from the other router
+                self.log.info("registration has no 'reg'")
+            else:
+                yield reg.unregister()
 
             del self._regs[reg_id]
 
