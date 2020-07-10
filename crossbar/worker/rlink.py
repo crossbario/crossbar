@@ -120,11 +120,6 @@ class BridgeSession(ApplicationSession):
                 details = kwargs.pop('details')
                 options = kwargs.pop('options', None)
 
-                if details.publisher is None or details.publisher_authrole is None or details.publisher_authid is None:
-                    raise RuntimeError(
-                        "Internal error while attempting rlink forwarding"
-                    )
-
                 self.log.debug(
                     'Received event on uri={uri}, options={options} (publisher={publisher}, publisher_authid={publisher_authid}, publisher_authrole={publisher_authrole}, forward_for={forward_for})',
                     uri=uri,

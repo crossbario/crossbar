@@ -447,7 +447,7 @@ class Router(object):
                 if action in ['call', 'publish']:
                     authorization['disclose'] = False
 
-            auto_disclose_trusted = False
+            auto_disclose_trusted = True
             if auto_disclose_trusted and role == 'trusted' and action in ['call', 'publish']:
                 authorization['disclose'] = True
 
