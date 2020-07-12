@@ -149,6 +149,10 @@ class Node(object):
         # the node has shut down, and the result signals if shutdown was clean
         self._shutdown_complete = None
 
+        # wil ve filled with a Deferred in start(). the Deferred will fire when
+        # the node has booted completely
+        self._boot_complete = None
+
         # for node elements started under specific IDs, and where
         # the node configuration does not specify an ID, use a generic
         # name numbered sequentially using the counters here
@@ -358,9 +362,9 @@ class Node(object):
                 return succeed(session)
         return succeed(None)
 
-    def stop(self):
+    def stop(self, restart=False):
         self._controller._shutdown_was_clean = True
-        return self._controller.shutdown()
+        return self._controller.shutdown(restart=restart)
 
     @inlineCallbacks
     def start(self, node_id=None):
@@ -379,7 +383,8 @@ class Node(object):
 
         # a configuration must have been loaded before
         if not self._config:
-            raise Exception("No node configuration set")
+            self.log.warn('no node configuration set - will use empty node configuration!')
+            self._config = {}
 
         # a node can only be started once for now
         assert self._shutdown_complete is None
@@ -455,10 +460,16 @@ class Node(object):
         # setup node shutdown Deferred
         self._shutdown_complete = Deferred()
 
+        # setup node booted complete Deferred
+        self._boot_complete = Deferred()
+
         # startup the node personality ..
         self.log.info('{func}::NODE_BOOT_BEGIN', func=hltype(self.personality.Node.boot))
-        yield self.personality.Node.boot(self)
+        res = yield self.personality.Node.boot(self)
         self.log.info('{func}::NODE_BOOT_COMPLETE', func=hltype(self.personality.Node.boot))
+
+        # notify observers of boot completition
+        self._boot_complete.callback(res)
 
         # notify systemd that we are fully up and running
         try:

@@ -47,7 +47,7 @@ from crossbar.router.protocol import WampWebSocketClientFactory, WampRawSocketCl
 from crossbar.router.protocol import set_websocket_options, set_rawsocket_options
 
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
-from crossbar._util import hlid, hltype
+from crossbar._util import hlid, hltype, hlval
 
 __all__ = ('ContainerController',)
 
@@ -254,7 +254,7 @@ class ContainerController(WorkerController):
             self._module_tracker.reload()
 
         # prepare some cleanup code in case this connection goes away
-        def _closed(session, was_clean):
+        def _component_closed(session, was_clean):
             """
             This is moderate hack around the fact that we don't have any way
             to "listen" for a close event on websocket or rawsocket
@@ -333,29 +333,33 @@ class ContainerController(WorkerController):
             # shutdown above .. so if we have a shutdown mode of
             # SHUTDOWN_ON_ANY_COMPONENT_STOPPED will mean we never try
             # to re-start anything.
-            if self._restart_mode and self._restart_mode != self.RESTART_NEVER:
+            if self._restart_mode == self.RESTART_ALWAYS or (self._restart_mode == self.RESTART_FAILED and not was_clean):
 
                 def restart_component():
                     # Think: if this below start_component() fails,
                     # we'll still schedule *exactly one* new re-start
                     # attempt for it, right?
-                    self.log.info(
-                        "Restarting component '{component_id}'",
-                        component_id=component_id,
-                    )
+                    self.log.info('{func}: now restarting previously closed component {component_id} automatically .. [restart_mode={restart_mode}, was_clean={was_clean}]',
+                                  func=hltype(_component_closed),
+                                  component_id=hlid(component_id),
+                                  restart_mode=hlval(self._restart_mode),
+                                  was_clean=hlval(was_clean))
                     return self.start_component(
                         component_id, config,
                         reload_modules=reload_modules,
                         details=details,
                     )
                 # note we must yield to the reactor with
-                # callLater(0, ..) to avoid infinite recurision if
+                # callLater(0, ..) to avoid infinite recursion if
                 # we're stuck in a restart loop
                 from twisted.internet import reactor
-                if self._restart_mode == self.RESTART_ALWAYS:
-                    reactor.callLater(0, restart_component)
-                elif self._restart_mode == self.RESTART_FAILED and not was_clean:
-                    reactor.callLater(0, restart_component)
+                reactor.callLater(0, restart_component)
+            else:
+                self.log.warn('{func}: component {component_id} will not be restarted automatically! [restart_mode={restart_mode}, was_clean={was_clean}]',
+                              func=hltype(_component_closed),
+                              component_id=hlid(component_id),
+                              restart_mode=hlval(self._restart_mode),
+                              was_clean=hlval(was_clean))
 
         joined_d = Deferred()
 
@@ -374,12 +378,12 @@ class ContainerController(WorkerController):
                     session.disconnect()
                 session._swallow_error = panic
 
-                # see note above, for _closed -- we should be
+                # see note above, for _component_closed -- we should be
                 # listening for "the transport was closed", but
                 # "session disconnect" is close enough (since there
                 # are no "proper events" from websocket/rawsocket
                 # implementations).
-                session.on('disconnect', _closed)
+                session.on('disconnect', _component_closed)
 
                 # note, "ready" here means: onJoin and any on('join',
                 # ..) handlers have all completed successfully. This

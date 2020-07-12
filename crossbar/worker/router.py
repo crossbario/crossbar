@@ -616,9 +616,9 @@ class RouterController(_TransportController):
         if realm in self._service_sessions:
             if authrole in self._service_sessions[realm]:
                 session = self._service_sessions[realm][authrole]
-        self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {session}',
-                      func=hltype(self.get_service_session), session=session,
-                      realm=hlid(realm), authrole=hlid(authrole))
+        self.log.debug('{func}(realm="{realm}", authrole="{authrole}") -> {session}',
+                       func=hltype(self.get_service_session), session=session,
+                       realm=hlid(realm), authrole=hlid(authrole))
         return succeed(session)
 
     @wamp.register(None)
