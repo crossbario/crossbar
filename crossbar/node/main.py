@@ -821,7 +821,7 @@ def _run_command_start(options, reactor, personality):
     except:
         raise
     else:
-        config_source = node.CONFIG_SOURCE_TO_STR[config_source]
+        config_source = node.CONFIG_SOURCE_TO_STR.get(config_source, None)
         log.info('Node configuration loaded [config_source={config_source}, config_path={config_path}]',
                  config_source=hl(config_source, bold=True, color='green'), config_path=hlid(config_path))
 

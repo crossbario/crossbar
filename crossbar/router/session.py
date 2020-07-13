@@ -43,7 +43,7 @@ from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.protocol import BaseSession, ApplicationSession
 from autobahn.wamp.exception import SessionNotReady
-from autobahn.wamp.types import SessionDetails
+from autobahn.wamp.types import SessionDetails, PublishOptions
 from autobahn.wamp.interfaces import ITransportHandler
 
 from crossbar.common.twisted.endpoint import extract_peer_certificate
@@ -322,10 +322,31 @@ class RouterApplicationSession(object):
                     self._log_error(Failure(), "While notifying 'disconnect'")
 
                 if self._router._realm.session:
-                    yield self._router._realm.session.publish(
-                        'wamp.session.on_leave',
-                        session._session_id,
-                    )
+                    try:
+                        # publish management API v1 event
+                        yield self._router._realm.session.publish(
+                            'wamp.session.on_leave',
+                            session._session_id,
+                            options=PublishOptions(acknowledge=True)
+                        )
+                        # # publish management API v2 event
+                        # session_info_long = {
+                        #     'session': session._session_id,
+                        #     'authid': session._authid,
+                        #     'authrole': session._authrole,
+                        #     'authmethod': session._authmethod,
+                        #     'authextra': session._authextra,
+                        #     'authprovider': session._authprovider,
+                        #     'transport': None,
+                        # }
+                        # yield self._router._realm.session.publish(
+                        #     'wamp.session.on_leave_v2',
+                        #     session._session_id,
+                        #     session_info_long,
+                        #     options=PublishOptions(acknowledge=True)
+                        # )
+                    except:
+                        self.log.failure()
             d = do_goodbye()
             d.addErrback(lambda fail: self._log_error(fail, "Internal error"))
 
