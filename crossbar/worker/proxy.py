@@ -54,7 +54,7 @@ from autobahn.twisted.component import Component
 from crossbar._util import hltype, hlid, hlval
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
-from crossbar.worker.router import _TransportController
+from crossbar.worker.transport import _TransportController
 from crossbar.common.key import _read_node_key
 from crossbar.common.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
@@ -849,6 +849,19 @@ def make_authenticator_session(backend_config, cbdir, realm, extra=None, reactor
 
 # implements IRealmContainer
 class ProxyController(_TransportController):
+    """
+    Controller for proxy workers. Manages:
+
+    * proxy transports
+    * proxy connections
+    * proxy routes
+
+    and
+
+    * web transport services (from base class `_TransportController`)
+
+    and more (from `WorkerController` and `NativeProcess`).
+    """
     WORKER_TYPE = 'proxy'
     WORKER_TITLE = 'WAMP proxy'
 
@@ -1045,24 +1058,52 @@ class ProxyController(_TransportController):
 
         yield self.publish_ready()
 
+    @wamp.register(None)
+    def get_proxy_transports(self, details=None):
+        """
+        Get transports currently running in this proxy workers.
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: List of transports currently running.
+        :rtype: list
+        """
+        self.log.info('{func}(details={details})',
+                      func=hltype(self.get_proxy_transports),
+                      details=details)
+        return sorted(self.transports.keys())
+
+    @wamp.register(None)
+    def get_proxy_transport(self, transport_id, details=None):
+        """
+        Get transport currently running in this proxy worker.
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: List of transports currently running.
+        :rtype: dict
+        """
+        self.log.info('{func}(details={details})',
+                      func=hltype(self.get_proxy_transport),
+                      details=details)
+
+        if transport_id in self.transports:
+            transport = self.transports[transport_id]
+            obj = transport.marshal()
+            return obj
+        else:
+            raise ApplicationError("crossbar.error.no_such_object", "No transport {}".format(transport_id))
+
     @inlineCallbacks
     @wamp.register(None)
     def start_proxy_transport(self, transport_id, config, details=None):
-        self.log.debug(
-            "start_proxy_transport: transport_id={transport_id}, config={config}",
-            transport_id=transport_id,
-            config=config,
-        )
-        self.log.info(
-            "start_proxy_transport: transport_id={transport_id}",
-            transport_id=transport_id,
-        )
-
-        self.log.info(
-            'Starting proxy transport "{transport_id}" {method}',
-            transport_id=transport_id,
-            method=self.start_proxy_transport,
-        )
+        self.log.info('{func}(transport_id={transport_id}, config={config}, details={details})',
+                      func=hltype(self.start_proxy_transport),
+                      transport_id=hlid(transport_id),
+                      config=config,
+                      details=details)
 
         # prohibit starting a transport twice
         if transport_id in self.transports:
@@ -1072,7 +1113,7 @@ class ProxyController(_TransportController):
 
         # create a transport and parse the transport configuration
         # (NOTE: yes, this is re-using create_router_transport so we
-        # can proxy every sevice a 'real' router can)
+        # can proxy every service a 'real' router can)
         proxy_transport = self.personality.create_router_transport(self, transport_id, config)
 
         caller = details.caller if details else None
@@ -1095,7 +1136,7 @@ class ProxyController(_TransportController):
             raise ApplicationError("crossbar.error.cannot_listen", _emsg.format(log_failure=err))
 
         self.transports[transport_id] = proxy_transport
-        self.log.debug('Router transport "{transport_id}" started and listening', transport_id=transport_id)
+        self.log.info('Proxy transport "{transport_id}" started and listening', transport_id=hlid(transport_id))
 
         topic = '{}.on_proxy_transport_started'.format(self._uri_prefix)
         self.publish(topic, event, options=types.PublishOptions(exclude=caller))
@@ -1112,6 +1153,14 @@ class ProxyController(_TransportController):
             )
         yield self._transports[name].port.stopListening()
         del self._transports[name]
+
+    @wamp.register(None)
+    def get_proxy_routes(self, details=None):
+        raise NotImplementedError()
+
+    @wamp.register(None)
+    def get_proxy_route(self, realm_name, details=None):
+        raise NotImplementedError()
 
     @wamp.register(None)
     def start_proxy_route(self, realm_name, config, details=None):
@@ -1140,6 +1189,18 @@ class ProxyController(_TransportController):
         return route_started
 
     @wamp.register(None)
+    def stop_proxy_route(self, realm_name, details=None):
+        raise NotImplementedError()
+
+    @wamp.register(None)
+    def get_proxy_connections(self, details=None):
+        raise NotImplementedError()
+
+    @wamp.register(None)
+    def get_proxy_connection(self, name, details=None):
+        raise NotImplementedError()
+
+    @wamp.register(None)
     def start_proxy_connection(self, name, options, details=None):
         self.log.info(
             "start_proxy_connection '{name}': {options}",
@@ -1151,3 +1212,7 @@ class ProxyController(_TransportController):
                 "Already have a connection named '{}'".format(name)
             )
         self._backend_configs[name] = options
+
+    @wamp.register(None)
+    def stop_proxy_connection(self, name, details=None):
+        raise NotImplementedError()

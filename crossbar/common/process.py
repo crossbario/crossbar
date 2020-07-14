@@ -33,6 +33,7 @@ import os
 import gc
 
 from datetime import datetime
+from pprint import pformat
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
@@ -65,7 +66,7 @@ from txaio import make_logger
 
 from twisted.cred import portal
 
-from crossbar._util import hlid, hl, hlval
+from crossbar._util import hl, hlval, hltype
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.common.processinfo import _HAS_PSUTIL
@@ -204,13 +205,24 @@ class NativeProcess(ApplicationSession):
             options=RegisterOptions(details_arg='details'),
         )
 
-        self.log.info('Ok, registered {len_reg} management procedures on realm "{realm}".',
-                      len_reg=hlval(len(regs)), realm=hl(self.realm))
+        procs = []
+        errors = []
         for reg in regs:
             if isinstance(reg, Failure):
-                self.log.error("Failed to register: {f}", f=reg, log_failure=reg)
+                self.log.error("Failed to register management procedure: {f}", f=reg, log_failure=reg)
+                errors.append(str(reg))
             else:
-                self.log.debug('  {proc}', proc=hlid(reg.procedure))
+                procs.append(reg.procedure)
+
+        if errors:
+            raise ApplicationError('crossbar.error.cannot_start', 'management API could not be initialized',
+                                   errors=errors)
+        else:
+            self.log.info('Ok, registered {len_reg} management procedures on realm "{realm}" [{func}]:\n\n{procs}\n',
+                          len_reg=hlval(len(regs)),
+                          realm=hl(self.realm),
+                          func=hltype(self.onJoin),
+                          procs=hl(pformat(procs), color='white', bold=True))
         returnValue(regs)
 
     @wamp.register(None)
