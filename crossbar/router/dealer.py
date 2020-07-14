@@ -47,7 +47,6 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
-from crossbar.worker import rlink
 from crossbar._util import hlid, hlflag, hltype
 
 from txaio import make_logger
