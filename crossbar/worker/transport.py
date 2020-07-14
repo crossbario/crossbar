@@ -43,7 +43,7 @@ from autobahn.util import utcstr
 from autobahn.wamp import ApplicationError, PublishOptions
 
 import crossbar
-from crossbar._util import hltype
+from crossbar._util import hltype, hlid, hlval
 from crossbar.common.twisted.web import Site
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
 from crossbar.bridge.mqtt.wamp import WampMQTTServerFactory
@@ -443,7 +443,7 @@ def create_router_transport(worker, transport_id, config):
     return transport
 
 
-class _TransportController(WorkerController):
+class TransportController(WorkerController):
     """
     Services shared between RouterController and ProxyController
     """
@@ -469,11 +469,11 @@ class _TransportController(WorkerController):
         if not isinstance(config, dict) or 'type' not in config:
             raise ApplicationError('crossbar.invalid_argument', 'config parameter must be dict with type attribute')
 
-        self.log.info('Starting "{service_type}" Web service on path "{path}" of transport "{transport_id}" {method}',
-                      service_type=config.get('type', None),
-                      path=path,
-                      transport_id=transport_id,
-                      method=hltype(self.start_web_transport_service))
+        self.log.info('Starting "{service_type}" Web service on path "{path}" of transport "{transport_id}" {func}',
+                      service_type=hlval(config.get('type', 'unknown')),
+                      path=hlval(path),
+                      transport_id=hlid(transport_id),
+                      func=hltype(self.start_web_transport_service))
 
         transport = self.transports.get(transport_id, None)
         if not transport:
@@ -538,10 +538,10 @@ class _TransportController(WorkerController):
         :param details: Call details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        self.log.info("{name}.stop_web_transport_service(transport_id={transport_id}, path={path})",
-                      name=self.__class__.__name__,
-                      transport_id=transport_id,
-                      path=path)
+        self.log.info('{func}(transport_id={transport_id}, path="{path}")',
+                      func=hltype(self.stop_web_transport_service),
+                      transport_id=hlid(transport_id),
+                      path=hlval(path))
 
         transport = self.transports.get(transport_id, None)
         if not transport or \
@@ -581,10 +581,10 @@ class _TransportController(WorkerController):
 
     @wamp.register(None)
     def get_web_transport_service(self, transport_id, path, details=None):
-        self.log.info("{name}.get_web_transport_service(transport_id={transport_id}, path={path})",
-                      name=self.__class__.__name__,
-                      transport_id=transport_id,
-                      path=path)
+        self.log.info('{func}(transport_id={transport_id}, path="{path}")',
+                      func=hltype(self.get_web_transport_service),
+                      transport_id=hlid(transport_id),
+                      path=hlval(path))
 
         transport = self.transports.get(transport_id, None)
         if not transport or \

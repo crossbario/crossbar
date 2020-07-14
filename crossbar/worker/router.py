@@ -27,7 +27,7 @@
 #  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
 #
 #####################################################################################
-from crossbar.worker.transport import _TransportController
+from crossbar.worker.transport import TransportController
 from crossbar.worker.types import RouterComponent, RouterRealm, RouterRealmRole
 from twisted.internet.defer import Deferred, DeferredList, maybeDeferred, returnValue
 from twisted.internet.defer import inlineCallbacks
@@ -53,7 +53,7 @@ from crossbar.worker.rlink import RLinkConfig
 __all__ = ('RouterController',)
 
 
-class RouterController(_TransportController):
+class RouterController(TransportController):
     """
     A native Crossbar.io worker that runs a WAMP router which can manage
     multiple realms, run multiple transports and links, as well as host

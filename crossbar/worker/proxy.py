@@ -54,7 +54,7 @@ from autobahn.twisted.component import Component
 from crossbar._util import hltype, hlid, hlval
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
-from crossbar.worker.transport import _TransportController
+from crossbar.worker.transport import TransportController
 from crossbar.common.key import _read_node_key
 from crossbar.common.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
@@ -1033,7 +1033,7 @@ class ProxyConnection(object):
 
 
 # implements IRealmContainer
-class ProxyController(_TransportController):
+class ProxyController(TransportController):
     """
     Controller for proxy workers. Manages:
 
