@@ -847,6 +847,191 @@ def make_authenticator_session(backend_config, cbdir, realm, extra=None, reactor
         raise
 
 
+STATE_CREATED = 1
+STATE_STARTING = 2
+STATE_STARTED = 3
+STATE_FAILED = 4
+STATE_STOPPING = 5
+STATE_STOPPED = 6
+
+STATES = {
+    STATE_CREATED: "created",
+    STATE_STARTING: "starting",
+    STATE_STARTED: "started",
+    STATE_FAILED: "failed",
+    STATE_STOPPING: "stopping",
+    STATE_STOPPED: "stopped",
+}
+
+
+class ProxyRoute(object):
+    """
+
+    """
+    log = make_logger()
+
+    def __init__(self, worker, connection_id, config):
+        """
+
+        :param worker: The (proxy) worker controller session the proxy connection is created from.
+        :type worker: crossbar.worker.proxy.ProxyController
+
+        :param connection_id: The run-time connection ID within the proxy worker.
+        :type connection_id: str
+
+        :param config: The proxy connection's configuration.
+        :type config: dict
+        """
+        self._worker = worker
+
+        self._connection_id = connection_id
+        self._config = config
+        self._created = time_ns()
+        self._state = STATE_CREATED
+
+    def marshal(self):
+        return {
+            'id': self._connection_id,
+            'config': self._config,
+            'created': self._created,
+            'state': self._state,
+        }
+
+    @property
+    def id(self):
+        """
+
+        :return: The connection ID.
+        """
+        return self._connection_id
+
+    @property
+    def config(self):
+        """
+
+        :return: The original configuration as supplied to this proxy connection.
+        """
+        return self._config
+
+    @property
+    def created(self):
+        """
+
+        :return: When this connection was created (the run-time, in-memory object instantiated).
+        """
+        return self._created
+
+    @property
+    def state(self):
+        """
+
+        :return: Current state of connection.
+        """
+        return self._state
+
+    def start(self):
+        """
+
+        :return:
+        """
+        assert self._state == STATE_CREATED
+        self._state = STATE_STARTING
+        self._state = STATE_STARTED
+
+    def stop(self):
+        """
+
+        :return:
+        """
+        assert self._state == STATE_STARTED
+        self._state = STATE_STOPPING
+        self._state = STATE_STOPPED
+
+
+class ProxyConnection(object):
+    """
+
+    """
+    log = make_logger()
+
+    def __init__(self, worker, connection_id, config):
+        """
+
+        :param worker: The (proxy) worker controller session the proxy connection is created from.
+        :type worker: crossbar.worker.proxy.ProxyController
+
+        :param connection_id: The run-time connection ID within the proxy worker.
+        :type connection_id: str
+
+        :param config: The proxy connection's configuration.
+        :type config: dict
+        """
+        self._worker = worker
+
+        self._connection_id = connection_id
+        self._config = config
+        self._created = time_ns()
+        self._state = STATE_CREATED
+
+    def marshal(self):
+        return {
+            'id': self._connection_id,
+            'config': self._config,
+            'created': self._created,
+            'state': self._state,
+        }
+
+    @property
+    def id(self):
+        """
+
+        :return: The connection ID.
+        """
+        return self._connection_id
+
+    @property
+    def config(self):
+        """
+
+        :return: The original configuration as supplied to this proxy connection.
+        """
+        return self._config
+
+    @property
+    def created(self):
+        """
+
+        :return: When this connection was created (the run-time, in-memory object instantiated).
+        """
+        return self._created_at
+
+    @property
+    def state(self):
+        """
+
+        :return: Current state of connection.
+        """
+        return self._state
+
+    def start(self):
+        """
+
+        :return:
+        """
+        assert self._state == STATE_CREATED
+        self._state = STATE_STARTING
+        self._state = STATE_STARTED
+
+    def stop(self):
+        """
+
+        :return:
+        """
+        assert self._state == STATE_STARTED
+        self._state = STATE_STOPPING
+        self._state = STATE_STOPPED
+
+
 # implements IRealmContainer
 class ProxyController(_TransportController):
     """
@@ -1085,21 +1270,21 @@ class ProxyController(_TransportController):
         :returns: List of transports currently running.
         :rtype: dict
         """
-        self.log.info('{func}(details={details})',
+        self.log.info('{func}(transport_id={transport_id})',
                       func=hltype(self.get_proxy_transport),
+                      transport_id=hlid(transport_id),
                       details=details)
 
         if transport_id in self.transports:
             transport = self.transports[transport_id]
-            obj = transport.marshal()
-            return obj
+            return transport.marshal()
         else:
             raise ApplicationError("crossbar.error.no_such_object", "No transport {}".format(transport_id))
 
     @inlineCallbacks
     @wamp.register(None)
     def start_proxy_transport(self, transport_id, config, details=None):
-        self.log.info('{func}(transport_id={transport_id}, config={config}, details={details})',
+        self.log.info('{func}(transport_id={transport_id}, config={config})',
                       func=hltype(self.start_proxy_transport),
                       transport_id=hlid(transport_id),
                       config=config,
