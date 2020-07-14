@@ -47,7 +47,6 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
-from crossbar.worker import rlink
 from crossbar._util import hlid, hlflag, hltype
 
 from txaio import make_logger
@@ -206,6 +205,7 @@ class Dealer(object):
         """
         # if the caller on an in-flight invocation goes away
         # INTERRUPT the callee if supported
+        is_rlink_session = (session._authrole == "rlink")
         if session in self._caller_to_invocations:
 
             outstanding = self._caller_to_invocations.get(session, [])
@@ -292,12 +292,13 @@ class Dealer(object):
                             )
 
                         if was_last_callee:
-                            service_session.publish(
-                                'wamp.registration.on_delete',
-                                session._session_id,
-                                registration.id,
-                                options=options,
-                            )
+                            if not is_rlink_session:
+                                service_session.publish(
+                                    'wamp.registration.on_delete',
+                                    session._session_id,
+                                    registration.id,
+                                    options=options,
+                                )
                     # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish, registration)
 
@@ -313,7 +314,8 @@ class Dealer(object):
         # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
         # URI components must be non-empty other than for wildcard subscriptions
         #
-        is_rlink_session = isinstance(session, rlink.RLinkLocalSession)  # noqa
+        is_rlink_session = (session._authrole == "rlink")
+
         if self._router.is_traced:
             if not register.correlation_id:
                 register.correlation_id = self._router.new_correlation_id()
@@ -538,23 +540,25 @@ class Dealer(object):
                                 'match': registration.match,
                                 'invoke': registration.extra.invoke,
                             }
-                            service_session.publish(
-                                'wamp.registration.on_create',
-                                session._session_id,
-                                registration_details,
-                                options=options
-                            )
+                            if not is_rlink_session:
+                                service_session.publish(
+                                    'wamp.registration.on_create',
+                                    session._session_id,
+                                    registration_details,
+                                    options=options
+                                )
 
                         if not was_already_registered:
                             if options:
                                 options.correlation_is_last = True
 
-                            service_session.publish(
-                                'wamp.registration.on_register',
-                                session._session_id,
-                                registration.id,
-                                options=options
-                            )
+                            if not is_rlink_session:
+                                service_session.publish(
+                                    'wamp.registration.on_register',
+                                    session._session_id,
+                                    registration.id,
+                                    options=options
+                                )
                     # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish)
 
@@ -645,6 +649,7 @@ class Dealer(object):
         #
         was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
         was_deleted = False
+        is_rlink_session = (session._authrole == "rlink")
 
         if was_registered and was_last_callee:
             self._registration_map.delete_observation(registration)
@@ -700,12 +705,13 @@ class Dealer(object):
                     if options:
                         options.correlation_is_last = True
 
-                    service_session.publish(
-                        'wamp.registration.on_delete',
-                        session._session_id,
-                        registration.id,
-                        options=options
-                    )
+                    if not is_rlink_session:
+                        service_session.publish(
+                            'wamp.registration.on_delete',
+                            session._session_id,
+                            registration.id,
+                            options=options
+                        )
 
             # we postpone actual sending of meta events until we return to this client session
             self._reactor.callLater(0, _publish)
