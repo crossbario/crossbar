@@ -174,18 +174,7 @@ class BridgeSession(ApplicationSession):
                     options=options,
                 )
 
-            n = 300
-            while n > 0:
-                try:
-                    sub = yield other.subscribe(on_event, uri, options=SubscribeOptions(details=True))
-                except:
-                    self.log.failure()
-                    from autobahn.twisted.util import sleep
-                    yield sleep(1)
-                    n -= 1
-                else:
-                    break
-
+            sub = yield other.subscribe(on_event, uri, options=SubscribeOptions(details=True))
             self._subs[sub_id]['sub'] = sub
 
             self.log.debug(
