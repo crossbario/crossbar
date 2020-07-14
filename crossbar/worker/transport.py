@@ -447,6 +447,14 @@ class TransportController(WorkerController):
     """
     Services shared between RouterController and ProxyController
     """
+    def __init__(self, config=None, reactor=None, personality=None):
+        super(TransportController, self).__init__(
+            config=config,
+            reactor=reactor,
+            personality=personality,
+        )
+        # map: transport ID -> RouterTransport
+        self.transports = {}
 
     @wamp.register(None)
     @inlineCallbacks
@@ -600,3 +608,19 @@ class TransportController(WorkerController):
             raise ApplicationError('crossbar.error.not_running', emsg)
 
         return transport.marshal()
+
+    @wamp.register(None)
+    def get_web_transport_services(self, transport_id, details=None):
+        self.log.info('{func}(transport_id={transport_id})',
+                      func=hltype(self.get_web_transport_services),
+                      transport_id=hlid(transport_id))
+
+        transport = self.transports.get(transport_id, None)
+        if not transport or \
+           not isinstance(transport, self.personality.RouterWebTransport) or \
+           transport.state != self.personality.RouterTransport.STATE_STARTED:
+            emsg = "No transport with ID '{}' or transport is not a Web transport".format(transport_id)
+            self.log.debug(emsg)
+            raise ApplicationError('crossbar.error.not_running', emsg)
+
+        return sorted(transport._config.get('paths', []))

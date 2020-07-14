@@ -1059,14 +1059,12 @@ class ProxyController(TransportController):
 
         self._cbdir = config.extra.cbdir
         self._reactor = reactor
-        self._transports = dict()
-        self._routes = dict()  # realm -> dict
 
-        # map: transport ID -> RouterTransport
-        self.transports = {}
+        # map: realm name -> ProxyRoute
+        self._routes = dict()
 
-        # will be set up via Node by start_proxy_connection et al.
-        self._backend_configs = dict()
+        # map: connection ID -> ProxyConnection
+        self._connections = {}
 
         # since we share some functionality with RouterController we
         # need to have a router_session_factory
@@ -1226,7 +1224,7 @@ class ProxyController(TransportController):
             identified by the realm_name and role_name
         """
         backend_name = self._routes[realm_name][role_name]['backend_name']
-        return self._backend_configs[backend_name]
+        return self._connections[backend_name]
 
     @inlineCallbacks
     def onJoin(self, details):
@@ -1246,12 +1244,12 @@ class ProxyController(TransportController):
     @wamp.register(None)
     def get_proxy_transports(self, details=None):
         """
-        Get transports currently running in this proxy workers.
+        Get proxy (listening) transports currently running in this proxy worker.
 
         :param details: Call details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
 
-        :returns: List of transports currently running.
+        :returns: List of transport IDs of transports currently running.
         :rtype: list
         """
         self.log.info('{func}(details={details})',
@@ -1341,14 +1339,52 @@ class ProxyController(TransportController):
 
     @wamp.register(None)
     def get_proxy_routes(self, details=None):
-        raise NotImplementedError()
+        """
+        Get proxy routes currently running in this proxy worker.
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: List of (target) realm names in proxy routes currently running.
+        :rtype: list
+        """
+        self.log.info('{func}(details={details})',
+                      func=hltype(self.get_proxy_routes),
+                      details=details)
+        return sorted(self._routes.keys())
 
     @wamp.register(None)
     def get_proxy_route(self, realm_name, details=None):
-        raise NotImplementedError()
+        """
+        Get proxy route currently running in this proxy worker.
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: Proxy route object.
+        :rtype: dict
+        """
+        self.log.info('{func}(realm_name={realm_name})',
+                      func=hltype(self.get_proxy_route),
+                      realm_name=hlid(realm_name),
+                      details=details)
+
+        if realm_name in self._routes:
+            route = self._routes[realm_name]
+            return route.marshal()
+        else:
+            raise ApplicationError("crossbar.error.no_such_object",
+                                   'No route for realm "{}" in proxy'.format(realm_name))
 
     @wamp.register(None)
     def start_proxy_route(self, realm_name, config, details=None):
+        """
+
+        :param realm_name:
+        :param config:
+        :param details:
+        :return:
+        """
         self.log.info(
             "start_proxy_route: realm_name={realm_name}, config={config}",
             realm_name=realm_name,
@@ -1375,6 +1411,12 @@ class ProxyController(TransportController):
 
     @wamp.register(None)
     def stop_proxy_route(self, realm_name, details=None):
+        """
+
+        :param realm_name:
+        :param details:
+        :return:
+        """
         raise NotImplementedError()
 
     @wamp.register(None)
@@ -1392,11 +1434,11 @@ class ProxyController(TransportController):
             name=name,
             options=options,
         )
-        if name in self._backend_configs:
+        if name in self._connections:
             raise ValueError(
                 "Already have a connection named '{}'".format(name)
             )
-        self._backend_configs[name] = options
+        self._connections[name] = options
 
     @wamp.register(None)
     def stop_proxy_connection(self, name, details=None):
