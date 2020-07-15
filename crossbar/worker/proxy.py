@@ -1252,9 +1252,9 @@ class ProxyController(TransportController):
         :returns: List of transport IDs of transports currently running.
         :rtype: list
         """
-        self.log.info('{func}(details={details})',
-                      func=hltype(self.get_proxy_transports),
-                      details=details)
+        self.log.debug('{func}(details={details})',
+                       func=hltype(self.get_proxy_transports),
+                       details=details)
         return sorted(self.transports.keys())
 
     @wamp.register(None)
@@ -1268,10 +1268,10 @@ class ProxyController(TransportController):
         :returns: List of transports currently running.
         :rtype: dict
         """
-        self.log.info('{func}(transport_id={transport_id})',
-                      func=hltype(self.get_proxy_transport),
-                      transport_id=hlid(transport_id),
-                      details=details)
+        self.log.debug('{func}(transport_id={transport_id})',
+                       func=hltype(self.get_proxy_transport),
+                       transport_id=hlid(transport_id),
+                       details=details)
 
         if transport_id in self.transports:
             transport = self.transports[transport_id]
@@ -1348,9 +1348,9 @@ class ProxyController(TransportController):
         :returns: List of (target) realm names in proxy routes currently running.
         :rtype: list
         """
-        self.log.info('{func}(details={details})',
-                      func=hltype(self.get_proxy_routes),
-                      details=details)
+        self.log.debug('{func}(details={details})',
+                       func=hltype(self.get_proxy_routes),
+                       details=details)
         return sorted(self._routes.keys())
 
     @wamp.register(None)
@@ -1364,10 +1364,10 @@ class ProxyController(TransportController):
         :returns: Proxy route object.
         :rtype: dict
         """
-        self.log.info('{func}(realm_name={realm_name})',
-                      func=hltype(self.get_proxy_route),
-                      realm_name=hlid(realm_name),
-                      details=details)
+        self.log.debug('{func}(realm_name={realm_name})',
+                       func=hltype(self.get_proxy_route),
+                       realm_name=hlid(realm_name),
+                       details=details)
 
         if realm_name in self._routes:
             route = self._routes[realm_name]
