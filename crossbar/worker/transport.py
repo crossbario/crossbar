@@ -589,10 +589,10 @@ class TransportController(WorkerController):
 
     @wamp.register(None)
     def get_web_transport_service(self, transport_id, path, details=None):
-        self.log.info('{func}(transport_id={transport_id}, path="{path}")',
-                      func=hltype(self.get_web_transport_service),
-                      transport_id=hlid(transport_id),
-                      path=hlval(path))
+        self.log.debug('{func}(transport_id={transport_id}, path="{path}")',
+                       func=hltype(self.get_web_transport_service),
+                       transport_id=hlid(transport_id),
+                       path=hlval(path))
 
         transport = self.transports.get(transport_id, None)
         if not transport or \
@@ -611,9 +611,9 @@ class TransportController(WorkerController):
 
     @wamp.register(None)
     def get_web_transport_services(self, transport_id, details=None):
-        self.log.info('{func}(transport_id={transport_id})',
-                      func=hltype(self.get_web_transport_services),
-                      transport_id=hlid(transport_id))
+        self.log.debug('{func}(transport_id={transport_id})',
+                       func=hltype(self.get_web_transport_services),
+                       transport_id=hlid(transport_id))
 
         transport = self.transports.get(transport_id, None)
         if not transport or \
