@@ -218,11 +218,11 @@ class NativeProcess(ApplicationSession):
             raise ApplicationError('crossbar.error.cannot_start', 'management API could not be initialized',
                                    errors=errors)
         else:
-            self.log.info('Ok, registered {len_reg} management procedures on realm "{realm}" [{func}]:\n\n{procs}\n',
-                          len_reg=hlval(len(regs)),
-                          realm=hl(self.realm),
-                          func=hltype(self.onJoin),
-                          procs=hl(pformat(procs), color='white', bold=True))
+            self.log.debug('Ok, registered {len_reg} management procedures on realm "{realm}" [{func}]:\n\n{procs}\n',
+                           len_reg=hlval(len(regs)),
+                           realm=hl(self.realm),
+                           func=hltype(self.onJoin),
+                           procs=hl(pformat(procs), color='white', bold=True))
         returnValue(regs)
 
     @wamp.register(None)
