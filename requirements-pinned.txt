@@ -1,12 +1,12 @@
 appdirs==1.4.4
 argon2-cffi==20.1.0
 attrs==19.3.0
-autobahn==20.6.2
+autobahn==20.7.1
 Automat==20.2.0
 bcrypt==3.1.7
 bitstring==3.1.7
 cbor==1.0.0
-cbor2==5.1.0
+cbor2==5.1.1
 certifi==2020.6.20
 cffi==1.14.0
 chardet==3.0.4
@@ -26,12 +26,12 @@ lmdb==0.98
 MarkupSafe==1.1.1
 mistune==0.8.4
 msgpack==1.0.0
-netaddr==0.7.20
+netaddr==0.8.0
 numpy==1.15.4
 passlib==1.7.2
 pathtools==0.1.2
 priority==1.3.0
-psutil==5.7.0
+psutil==5.7.2
 py-ubjson==0.16.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
@@ -49,7 +49,7 @@ requests==2.24.0
 sdnotify==0.3.2
 service-identity==18.1.0
 setproctitle==1.1.10
-setuptools==47.3.1
+setuptools==49.2.0
 six==1.15.0
 sortedcontainers==2.2.2
 treq==20.4.1
@@ -63,5 +63,5 @@ vmprof==0.4.15
 watchdog==0.10.3
 Werkzeug==1.0.1
 wsaccel==0.6.2
-zlmdb==20.4.1
+zlmdb==20.7.1
 zope.interface==5.1.0

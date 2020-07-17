@@ -5,6 +5,13 @@
 Changelog
 =========
 
+20.7.1
+------
+
+* new: various fixes and improvements to rlinks
+* new: proxy worker management API
+* fix: turn down log noise
+
 20.6.2
 ------
 
