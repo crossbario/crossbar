@@ -1417,29 +1417,67 @@ class ProxyController(TransportController):
         :param details:
         :return:
         """
-        raise NotImplementedError()
+        self.log.info(
+            '{func}(realm_name={realm_name}, details={details})',
+            func=hltype(self.stop_proxy_route),
+            realm_name=realm_name,
+            details=details
+        )
+        if realm_name not in self._routes:
+            raise ApplicationError('crossbar.error.no_such_object', 'no proxy route for realm "{}" currently running'.format(realm_name))
+        route_role = self._routes[realm_name]
+        del self._routes[realm_name]
+
+        # FIXME: publish event; store in local metadata object
+
+        route_stopped = {
+            'stopped': time_ns(),
+            'realm': realm_name,
+            'route': route_role
+        }
+        return route_stopped
 
     @wamp.register(None)
     def get_proxy_connections(self, details=None):
-        raise NotImplementedError()
+        return sorted(self._connections.keys())
 
     @wamp.register(None)
-    def get_proxy_connection(self, name, details=None):
-        raise NotImplementedError()
+    def get_proxy_connection(self, connection_id, details=None):
+        self.log.debug('{func}(connection_id={connection_id}, details={details})',
+                       func=hltype(self.get_proxy_connection),
+                       connection_id=hlid(connection_id),
+                       details=details)
+
+        if connection_id in self._connections:
+            connection = self._connections[connection_id]
+            return connection.marshal()
+        else:
+            raise ApplicationError("crossbar.error.no_such_object",
+                                   'no proxy connection with ID "{}" currently running'.format(connection_id))
 
     @wamp.register(None)
-    def start_proxy_connection(self, name, options, details=None):
+    def start_proxy_connection(self, connection_id, config, details=None):
         self.log.info(
-            "start_proxy_connection '{name}': {options}",
-            name=name,
-            options=options,
+            '{func}(connection_id={connection_id}, config={config}, details={details})',
+            func=hltype(self.start_proxy_connection),
+            connection_id=connection_id,
+            config=config,
+            details=details
         )
-        if name in self._connections:
-            raise ValueError(
-                "Already have a connection named '{}'".format(name)
-            )
-        self._connections[name] = options
+        if connection_id in self._connections:
+            raise ApplicationError('crossbar.error.already_running', 'proxy connection with ID "{}" already running'.format(connection_id))
+        self._connections[connection_id] = config
 
     @wamp.register(None)
-    def stop_proxy_connection(self, name, details=None):
-        raise NotImplementedError()
+    def stop_proxy_connection(self, connection_id, details=None):
+        self.log.info(
+            '{func}(connection_id={connection_id}, details={details})',
+            func=hltype(self.stop_proxy_connection),
+            connection_id=connection_id,
+            details=details
+        )
+        if connection_id not in self._connections:
+            raise ApplicationError('crossbar.error.no_such_object', 'no proxy connection with ID "{}" currently running'.format(connection_id))
+        config = self._connections[connection_id]
+        del self._connections[connection_id]
+        return config
