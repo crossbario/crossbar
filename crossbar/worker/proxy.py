@@ -658,13 +658,13 @@ class ProxyBackendSession(Session):
             self._frontend._forward(msg)
 
 
-def make_backend_connection(backend_config, frontend_session, cbdir):
+def make_backend_connection(connection, frontend_session, cbdir):
     """
     Connects to a 'backend' session with the given config; returns a
     transport that is definitely connected (e.g. you can send a Hello
     right away).
 
-    :param backend_config: Backend connection configuration, for example:
+    Backend connection configuration, for example:
 
         .. code-block:: json
             {
@@ -685,12 +685,18 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
                 }
             }
 
+    :param backend_config: Proxy backend connection
+    :type connection: :class:`ProxyConnection`
+
     :param frontend_session: The frontend proxy session for which to create a mapped backend connection.
 
     :param cbdir: The node directory.
     """
 
     from twisted.internet import reactor
+
+    # proxy backend connecting transport configuration (see example in docstring)
+    backend_config = connection.config
 
     connected_d = Deferred()
     backend = _create_transport(0, backend_config['transport'])
@@ -1174,7 +1180,11 @@ class ProxyController(TransportController):
         :rtype: bool
         """
         authrole = authrole or 'trusted'
-        result = authrole in self._routes.get(realm, {})
+        if realm in self._routes:
+            route = self._routes[realm]
+            result = authrole in route.config
+        else:
+            result = False
         self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
                       func=hltype(ProxyController.has_role), realm=hlid(realm), authrole=hlid(authrole),
                       result=hlval(result))
