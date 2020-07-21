@@ -27,8 +27,9 @@
 #  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
 #
 #####################################################################################
-
+import contextlib
 import os
+import socket
 import sys
 import inspect
 import json
@@ -238,3 +239,70 @@ def _add_log_arguments(parser):
                         help="Whether or not to log to file")
 
     return parser
+
+
+def get_free_tcp_port(host='127.0.0.1'):
+    """
+    Returns random, free listening port.
+
+    .. note::
+
+        This is _not_ completely race free, as a port returned as free is closed
+        before returning, and might then be used by another process before the caller
+        of this function can actually bind it. So watch out ..
+
+    :param host: Host (interface) for which to return a free port for.
+    :type host: str
+
+    :return: Free TCP listening port.
+    :rtype: int
+    """
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        sock.bind((host, 0))
+        return sock.getsockname()[1]
+
+
+def first_free_tcp_port(host='127.0.0.1', portrange=(1024, 65535)):
+    """
+    Returns the first free listening port within the given range.
+
+    :param host: Host (interface) for which to return a free port for.
+    :type host: str
+
+    :param portrange: Pair of start and end port for port range to select free port within.
+    :type portrange: tuple
+
+    :return: Free TCP listening port.
+    :rtype: int
+    """
+    port, max_port = portrange
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while port <= max_port:
+        try:
+            sock.bind((host, port))
+            sock.close()
+            return port
+        except OSError:
+            port += 1
+    raise IOError('no free ports')
+
+
+def get_free_tcp_address(host='127.0.0.1'):
+    """
+    Returns default local listening address with random port.
+
+    Note: this is _not_ completely race free, as a port returned as free
+    might be used by another process before the caller can bind it.
+
+    :return: Default/free listening address:port.
+    :rtype: str
+    """
+    # source: https://gist.github.com/gabrielfalcao/20e567e188f588b65ba2
+
+    tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp.bind((host, 0))
+    host, port = tcp.getsockname()
+    tcp.close()
+    address = 'tcp://{host}:{port}'.format(**locals())
+
+    return address
