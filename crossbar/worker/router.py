@@ -909,7 +909,22 @@ class RouterController(TransportController):
 
         def ok(_):
             self.transports[transport_id] = router_transport
-            self.log.debug('Router transport "{transport_id}" started and listening', transport_id=transport_id)
+            if config['endpoint']['type'] == 'tcp':
+                endpoint = 'TCP port {}'.format(config['endpoint']['port'])
+                if 'portrange' in config['endpoint']:
+                    transport_type = 'TCP/{} transport'.format(config['endpoint']['portrange'])
+                else:
+                    transport_type = 'TCP/{} transport'.format(config['endpoint']['port'])
+            elif config['endpoint']['type'] == 'unix':
+                endpoint = 'UDS path "{}"'.format(config['endpoint']['path'])
+                transport_type = 'Unix domain socket transport'
+            else:
+                endpoint = 'unknown'
+                transport_type = 'unknown'
+            self.log.info('Router {transport_type} started as transport "{transport_id}" and listening on {endpoint}',
+                          transport_type=hlval(transport_type),
+                          transport_id=hlid(transport_id),
+                          endpoint=hlval(endpoint))
 
             topic = '{}.on_router_transport_started'.format(self._uri_prefix)
             self.publish(topic, event, options=PublishOptions(exclude=caller))

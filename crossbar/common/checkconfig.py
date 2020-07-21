@@ -108,7 +108,7 @@ _ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
 _ENVPAT_STR = r'^\$\{(.+)\}$'
 _ENVPAT = re.compile(_ENVPAT_STR)
 
-_CONFIG_ITEM_ID_PAT_STR = r'^[a-z][a-z0-9_]{2,11}$'
+_CONFIG_ITEM_ID_PAT_STR = r'^[a-z][a-z0-9_]{2,63}$'
 _CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
 
 _REALM_NAME_PAT_STR = r'^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$'
@@ -845,21 +845,30 @@ def check_listening_endpoint_tcp(endpoint):
     :type endpoint: dict
     """
     for k in endpoint:
-        if k not in ['type', 'version', 'port', 'shared', 'interface', 'backlog', 'tls']:
+        if k not in ['type', 'version', 'port', 'portrange', 'shared', 'interface', 'backlog', 'tls']:
             raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint".format(k))
 
-    if 'port' not in endpoint:
-        raise InvalidConfigException("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
-
-    if isinstance(endpoint['port'], str):
-        port = _readenv(endpoint['port'], "listening endpoint configuration")
-        try:
-            port = int(port)
-        except:
-            pass  # we handle this in check_endpoint_port()
+    if 'portrange' in endpoint:
+        portrange = endpoint['portrange']
+        if not isinstance(portrange, Sequence) or len(portrange) != 2:
+            raise InvalidConfigException("'portrange' in 'endpoint' in listening endpoint must be a pair of integers ({} encountered)".format(type(portrange)))
+        check_endpoint_port(portrange[0])
+        check_endpoint_port(portrange[1])
+        if portrange[1] < portrange[0]:
+            raise InvalidConfigException("invalid 'portrange' in 'endpoint' in listening endpoint: port range end must not be smaller than range start ({} encountered)".format(portrange))
     else:
-        port = endpoint['port']
-    check_endpoint_port(port)
+        if 'port' not in endpoint:
+            raise InvalidConfigException("neither 'portrange' and nor 'port' specified in listening endpoint item\n\n{}".format(pformat(endpoint)))
+
+        if isinstance(endpoint['port'], str):
+            port = _readenv(endpoint['port'], "listening endpoint configuration")
+            try:
+                port = int(port)
+            except:
+                pass  # we handle this in check_endpoint_port()
+        else:
+            port = endpoint['port']
+        check_endpoint_port(port)
 
     if 'version' in endpoint:
         check_endpoint_ip_version(endpoint['version'])

@@ -51,6 +51,7 @@ from zope.interface import implementer
 
 import txtorcon
 
+from crossbar._util import get_free_tcp_port, first_free_tcp_port
 from crossbar.common.twisted.sharedport import SharedPort, SharedTLSPort
 
 try:
@@ -522,19 +523,28 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
 
     :returns obj -- A Deferred that results in an IListeningPort or an CannotListenError
     """
+
+    if 'portrange' in config:
+        # first free port in given range
+        config['port'] = first_free_tcp_port(host=config.get('interface', ''), portrange=config['portrange'])
+    else:
+        if 'port' not in config or config['port'] is None:
+            # random free port
+            config['port'] = get_free_tcp_port(host=config.get('interface', ''))
+
     if config['type'] == 'tcp' and config.get('shared', False):
 
         # the TCP protocol version (v4 or v6)
         #
         version = int(config.get('version', 4))
 
-        # the listening port
-        #
-        port = int(config['port'])
-
         # the listening interface
         #
         interface = str(config.get('interface', '').strip())
+
+        # the listening port
+        #
+        port = int(config['port'])
 
         # the TCP accept queue depth
         #

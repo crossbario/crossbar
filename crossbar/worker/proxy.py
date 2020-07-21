@@ -866,95 +866,127 @@ STATES = {
 
 class ProxyRoute(object):
     """
-
+    Proxy backend route intra-node run-time representation.
     """
     log = make_logger()
 
-    def __init__(self, worker, connection_id, config):
+    def __init__(self, controller, realm_name, config):
         """
 
-        :param worker: The (proxy) worker controller session the proxy connection is created from.
-        :type worker: crossbar.worker.proxy.ProxyController
+        :param controller: The (proxy) worker controller session the proxy connection is created from.
+        :type controller: crossbar.worker.proxy.ProxyController
 
-        :param connection_id: The run-time connection ID within the proxy worker.
-        :type connection_id: str
+        :param route_id: The run-time route ID within the proxy worker.
+        :type route_id: str
 
-        :param config: The proxy connection's configuration.
+        :param config: The proxy route's configuration.
         :type config: dict
         """
-        self._worker = worker
-
-        self._connection_id = connection_id
+        self._controller = controller
+        self._realm_name = realm_name
         self._config = config
-        self._created = time_ns()
+        self._started = None
+        self._stopped = None
         self._state = STATE_CREATED
 
     def marshal(self):
         return {
-            'id': self._connection_id,
+            'realm': self._realm_name,
             'config': self._config,
-            'created': self._created,
+            'started': self._started,
+            'stopped': self._stopped,
             'state': self._state,
         }
 
+    def __str__(self):
+        return pformat(self.marshal())
+
     @property
-    def id(self):
+    def realm(self):
         """
 
-        :return: The connection ID.
+        :return: The realm this route applies to.
         """
-        return self._connection_id
+        return self._realm_name
 
     @property
     def config(self):
         """
 
-        :return: The original configuration as supplied to this proxy connection.
+        :return: The original configuration as supplied to this proxy route.
         """
         return self._config
 
     @property
-    def created(self):
+    def started(self):
         """
 
-        :return: When this connection was created (the run-time, in-memory object instantiated).
+        :return: When this route was started (the run-time, in-memory object instantiated).
         """
-        return self._created
+        return self._started
+
+    @property
+    def stopped(self):
+        """
+
+        :return: When this route was stopped (the run-time, in-memory object instantiated).
+        """
+        return self._stopped
 
     @property
     def state(self):
         """
 
-        :return: Current state of connection.
+        :return: Current state of route.
         """
         return self._state
 
+    @inlineCallbacks
     def start(self):
         """
+        Start proxy route.
 
-        :return:
+        :return: Proxy route run-time metadata.
         """
         assert self._state == STATE_CREATED
         self._state = STATE_STARTING
-        self._state = STATE_STARTED
 
+        topic = '{}.on_proxy_route_starting'.format(self._controller._uri_prefix)
+        yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
+
+        self._state = STATE_STARTED
+        self._started = time_ns()
+
+        topic = '{}.on_proxy_route_started'.format(self._controller._uri_prefix)
+        yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
+
+    @inlineCallbacks
     def stop(self):
         """
+        Stop proxy route.
 
-        :return:
+        :return: Proxy route run-time metadata.
         """
         assert self._state == STATE_STARTED
         self._state = STATE_STOPPING
+
+        topic = '{}.on_proxy_route_stopping'.format(self._controller._uri_prefix)
+        yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
+
         self._state = STATE_STOPPED
+        self._stopped = time_ns()
+
+        topic = '{}.on_proxy_route_stopped'.format(self._controller._uri_prefix)
+        yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
 
 
 class ProxyConnection(object):
     """
-
+    Proxy backend connection intra-node run-time representation.
     """
     log = make_logger()
 
-    def __init__(self, worker, connection_id, config):
+    def __init__(self, controller, connection_id, config):
         """
 
         :param worker: The (proxy) worker controller session the proxy connection is created from.
@@ -966,26 +998,30 @@ class ProxyConnection(object):
         :param config: The proxy connection's configuration.
         :type config: dict
         """
-        self._worker = worker
-
+        self._controller = controller
         self._connection_id = connection_id
         self._config = config
-        self._created = time_ns()
+        self._started = None
+        self._stopped = None
         self._state = STATE_CREATED
 
     def marshal(self):
         return {
             'id': self._connection_id,
             'config': self._config,
-            'created': self._created,
+            'started': self._started,
+            'stopped': self._stopped,
             'state': self._state,
         }
+
+    def __str__(self):
+        return pformat(self.marshal())
 
     @property
     def id(self):
         """
 
-        :return: The connection ID.
+        :return: The ID of this proxy backend connection.
         """
         return self._connection_id
 
@@ -993,43 +1029,71 @@ class ProxyConnection(object):
     def config(self):
         """
 
-        :return: The original configuration as supplied to this proxy connection.
+        :return: The original configuration as supplied to this proxy backend connection.
         """
         return self._config
 
     @property
-    def created(self):
+    def started(self):
         """
 
-        :return: When this connection was created (the run-time, in-memory object instantiated).
+        :return: When this proxy backend connection was started.
         """
-        return self._created_at
+        return self._started
+
+    @property
+    def stopped(self):
+        """
+
+        :return: When this proxy backend connection was stopped.
+        """
+        return self._stopped
 
     @property
     def state(self):
         """
 
-        :return: Current state of connection.
+        :return: Current state of this proxy backend connection.
         """
         return self._state
 
+    @inlineCallbacks
     def start(self):
         """
+        Start this proxy backend connection.
 
-        :return:
+        :return: Proxy backend connection run-time metadata.
         """
         assert self._state == STATE_CREATED
         self._state = STATE_STARTING
-        self._state = STATE_STARTED
 
+        topic = '{}.on_proxy_connection_starting'.format(self._controller._uri_prefix)
+        yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
+
+        self._state = STATE_STARTED
+        self._started = time_ns()
+
+        topic = '{}.on_proxy_connection_started'.format(self._controller._uri_prefix)
+        yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
+
+    @inlineCallbacks
     def stop(self):
         """
+        Stop this proxy backend connection.
 
-        :return:
+        :return: Proxy backend connection run-time metadata.
         """
         assert self._state == STATE_STARTED
         self._state = STATE_STOPPING
+
+        topic = '{}.on_proxy_connection_stopping'.format(self._controller._uri_prefix)
+        yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
+
         self._state = STATE_STOPPED
+        self._stopped = time_ns()
+
+        topic = '{}.on_proxy_connection_stopped'.format(self._controller._uri_prefix)
+        yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
 
 
 # implements IRealmContainer
@@ -1223,8 +1287,8 @@ class ProxyController(TransportController):
         :returns: a dict containing the configure for the backend
             identified by the realm_name and role_name
         """
-        backend_name = self._routes[realm_name][role_name]['backend_name']
-        return self._connections[backend_name]
+        connection_id = self._routes[realm_name].config[role_name]
+        return self._connections[connection_id]
 
     @inlineCallbacks
     def onJoin(self, details):
@@ -1376,6 +1440,7 @@ class ProxyController(TransportController):
             raise ApplicationError("crossbar.error.no_such_object",
                                    'No route for realm "{}" in proxy'.format(realm_name))
 
+    @inlineCallbacks
     @wamp.register(None)
     def start_proxy_route(self, realm_name, config, details=None):
         """
@@ -1386,29 +1451,28 @@ class ProxyController(TransportController):
         :return:
         """
         self.log.info(
-            "start_proxy_route: realm_name={realm_name}, config={config}",
+            '{func}(realm_name="{realm_name}", config={config})',
+            func=hltype(self.start_proxy_route),
             realm_name=realm_name,
             config=config,
         )
         if realm_name in self._routes:
-            raise Exception("Already have realm '{}'".format(realm_name))
+            raise ApplicationError('crossbar.error.already_running',
+                                   'proxy route for realm "{}" already running'.format(realm_name))
 
-        route_role = dict()
         for role_name in config:
-            route_role[role_name] = {
-                "backend_name": config[role_name],
-            }
-        self._routes[realm_name] = route_role
+            connection_id = config[role_name]
+            if connection_id not in self._connections:
+                raise ApplicationError("crossbar.error.no_such_object",
+                                       'no connection "{}" found for role "{}" in proxy route config'.format(realm_name, role_name))
 
-        # FIXME: publish event; store in local metadata object
+        route = ProxyRoute(self, realm_name, config)
+        self._routes[realm_name] = route
+        yield route.start()
 
-        route_started = {
-            'started': time_ns(),
-            'realm': realm_name,
-            'route': route_role
-        }
-        return route_started
+        returnValue(route.marshal())
 
+    @inlineCallbacks
     @wamp.register(None)
     def stop_proxy_route(self, realm_name, details=None):
         """
@@ -1417,29 +1481,103 @@ class ProxyController(TransportController):
         :param details:
         :return:
         """
-        raise NotImplementedError()
+        self.log.info(
+            '{func}(realm_name={realm_name}, details={details})',
+            func=hltype(self.stop_proxy_route),
+            realm_name=realm_name,
+            details=details
+        )
+        if realm_name not in self._routes:
+            raise ApplicationError('crossbar.error.no_such_object',
+                                   'no proxy route for realm "{}" currently running'.format(realm_name))
+
+        route = self._routes[realm_name]
+        yield route.stop()
+        del self._routes[realm_name]
+
+        returnValue(route.marshal())
 
     @wamp.register(None)
     def get_proxy_connections(self, details=None):
-        raise NotImplementedError()
+        """
+
+        :param details:
+        :return:
+        """
+        self.log.debug('{func}(details={details})',
+                       func=hltype(self.get_proxy_connections),
+                       details=details)
+
+        return sorted(self._connections.keys())
 
     @wamp.register(None)
-    def get_proxy_connection(self, name, details=None):
-        raise NotImplementedError()
+    def get_proxy_connection(self, connection_id, details=None):
+        """
 
+        :param connection_id:
+        :param details:
+        :return:
+        """
+        self.log.debug('{func}(connection_id={connection_id}, details={details})',
+                       func=hltype(self.get_proxy_connection),
+                       connection_id=hlid(connection_id),
+                       details=details)
+
+        if connection_id in self._connections:
+            connection = self._connections[connection_id]
+            return connection.marshal()
+        else:
+            raise ApplicationError("crossbar.error.no_such_object",
+                                   'no proxy connection with ID "{}" currently running'.format(connection_id))
+
+    @inlineCallbacks
     @wamp.register(None)
-    def start_proxy_connection(self, name, options, details=None):
+    def start_proxy_connection(self, connection_id, config, details=None):
+        """
+
+        :param connection_id:
+        :param config:
+        :param details:
+        :return:
+        """
         self.log.info(
-            "start_proxy_connection '{name}': {options}",
-            name=name,
-            options=options,
+            '{func}(connection_id={connection_id}, config={config}, details={details})',
+            func=hltype(self.start_proxy_connection),
+            connection_id=connection_id,
+            config=config,
+            details=details
         )
-        if name in self._connections:
-            raise ValueError(
-                "Already have a connection named '{}'".format(name)
-            )
-        self._connections[name] = options
+        if connection_id in self._connections:
+            raise ApplicationError('crossbar.error.already_running',
+                                   'proxy connection with ID "{}" already running'.format(connection_id))
 
+        connection = ProxyConnection(self, connection_id, config)
+        self._connections[connection_id] = connection
+        yield connection.start()
+
+        returnValue(connection.marshal())
+
+    @inlineCallbacks
     @wamp.register(None)
-    def stop_proxy_connection(self, name, details=None):
-        raise NotImplementedError()
+    def stop_proxy_connection(self, connection_id, details=None):
+        """
+
+        :param connection_id:
+        :param details:
+        :return:
+        """
+        self.log.info(
+            '{func}(connection_id={connection_id}, details={details})',
+            func=hltype(self.stop_proxy_connection),
+            connection_id=connection_id,
+            details=details
+        )
+        if connection_id not in self._connections:
+            raise ApplicationError('crossbar.error.no_such_object',
+                                   'no proxy connection with ID "{}" currently running'.format(connection_id))
+
+        connection = self._connections[connection_id]
+        yield connection.stop()
+        del self._connections[connection_id]
+
+        returnValue(connection.marshal())
