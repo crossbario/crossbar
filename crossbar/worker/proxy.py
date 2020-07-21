@@ -658,7 +658,7 @@ class ProxyBackendSession(Session):
             self._frontend._forward(msg)
 
 
-def make_backend_connection(connection, frontend_session, cbdir):
+def make_backend_connection(backend_config, frontend_session, cbdir):
     """
     Connects to a 'backend' session with the given config; returns a
     transport that is definitely connected (e.g. you can send a Hello
@@ -695,9 +695,6 @@ def make_backend_connection(connection, frontend_session, cbdir):
 
     from twisted.internet import reactor
 
-    # proxy backend connecting transport configuration (see example in docstring)
-    backend_config = connection.config
-
     connected_d = Deferred()
     backend = _create_transport(0, backend_config['transport'])
     key = _read_node_key(cbdir, private=True)
@@ -716,7 +713,8 @@ def make_backend_connection(connection, frontend_session, cbdir):
         # that machine, any website can try to access the "real"
         # backend)
         if 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
-            if backend_config['transport']['endpoint']['type'] == 'unix':
+            # FIXME
+            if True or backend_config['transport']['endpoint']['type'] == 'unix':
                 session.add_authenticator(create_authenticator("anonymous"))
             else:
                 raise RuntimeError('anonymous-proxy authenticator only allowed on Unix domain socket based transports, not type "{}"'.format(backend_config['transport']['endpoint']['type']))
@@ -1298,7 +1296,8 @@ class ProxyController(TransportController):
             identified by the realm_name and role_name
         """
         connection_id = self._routes[realm_name].config[role_name]
-        return self._connections[connection_id]
+        connection = self._connections[connection_id]
+        return connection.config
 
     @inlineCallbacks
     def onJoin(self, details):
