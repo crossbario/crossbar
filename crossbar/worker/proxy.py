@@ -72,6 +72,9 @@ except ImportError:
 
 __all__ = (
     'ProxyWorkerProcess',
+    'ProxyController',
+    'ProxyConnection',
+    'ProxyRoute',
 )
 
 log = make_logger()
@@ -1404,11 +1407,13 @@ class ProxyController(TransportController):
     @wamp.register(None)
     def start_proxy_transport(self, transport_id, config, details=None):
         """
+        Start a new proxy front-end listening transport.
 
-        :param transport_id:
-        :param config:
-        :param details:
-        :return:
+        :param transport_id: The run-time ID to start the transport under.
+        :param config: The listening transport configuration.
+        :param details: WAMP call details.
+
+        :return: Proxy transport run-time metadata.
         """
         self.log.info('{func}(transport_id="{transport_id}", config={config})',
                       func=hltype(self.start_proxy_transport),
@@ -1462,10 +1467,11 @@ class ProxyController(TransportController):
     @wamp.register(None)
     def stop_proxy_transport(self, transport_id, details=None):
         """
+        Stop a currently running proxy front-end listening transport.
 
-        :param transport_id:
-        :param details:
-        :return:
+        :param transport_id: The run-time ID of the transport to stop.
+        :param details: WAMP call details.
+        :return: Proxy transport run-time information.
         """
         if transport_id not in self._transports:
             raise ApplicationError('crossbar.error.no_such_object',
@@ -1530,11 +1536,12 @@ class ProxyController(TransportController):
     @wamp.register(None)
     def start_proxy_route(self, realm_name, config, details=None):
         """
+        Start a new proxy route for the given realm.
 
-        :param realm_name:
-        :param config:
-        :param details:
-        :return:
+        :param realm_name: The realm this route should apply for.
+        :param config: The route configuration.
+        :param details: WAMP call details.
+        :return: Proxy route run-time information.
         """
         self.log.info(
             '{func}(realm_name="{realm_name}", config={config})',
@@ -1562,10 +1569,11 @@ class ProxyController(TransportController):
     @wamp.register(None)
     def stop_proxy_route(self, realm_name, details=None):
         """
+        Stop a currently running proxy route.
 
-        :param realm_name:
-        :param details:
-        :return:
+        :param realm_name: The name of the realm to stop the route for.
+        :param details: WAMP call details.
+        :return: Run-time information about the stopped route.
         """
         self.log.info(
             '{func}(realm_name={realm_name}, caller_authid="{caller_authid}")',
@@ -1586,9 +1594,10 @@ class ProxyController(TransportController):
     @wamp.register(None)
     def get_proxy_connections(self, details=None):
         """
+        Get currently running proxy connections.
 
-        :param details:
-        :return:
+        :param details: WAMP call details.
+        :return: List of run-time IDs of currently running connection.s
         """
         self.log.debug('{func}(caller_authid="{caller_authid}")',
                        func=hltype(self.get_proxy_connections),
@@ -1599,10 +1608,11 @@ class ProxyController(TransportController):
     @wamp.register(None)
     def get_proxy_connection(self, connection_id, details=None):
         """
+        Get run-time information for a currently running proxy connection.
 
-        :param connection_id:
-        :param details:
-        :return:
+        :param connection_id: The run-time ID of the proxy connection to return information for.
+        :param details: WAMP call details.
+        :return: Proxy connection configuration.
         """
         self.log.debug('{func}(connection_id={connection_id}, caller_authid="{caller_authid}")',
                        func=hltype(self.get_proxy_connection),

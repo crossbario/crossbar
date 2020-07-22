@@ -5,6 +5,12 @@
 Changelog
 =========
 
+master
+------
+
+* fix: management API of proxy workers
+* fix: improve and polish log output of nodes
+
 20.7.1
 ------
 
