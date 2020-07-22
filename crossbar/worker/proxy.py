@@ -51,6 +51,7 @@ from autobahn.twisted.wamp import Session, ApplicationSession
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 from autobahn.twisted.component import Component
 
+from crossbar._interfaces import IRealmContainer
 from crossbar._util import hltype, hlid, hlval
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
@@ -1100,7 +1101,6 @@ class ProxyConnection(object):
         yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
 
 
-# implements IRealmContainer
 class ProxyController(TransportController):
     """
     Controller for proxy workers. Manages:
@@ -1590,3 +1590,6 @@ class ProxyController(TransportController):
         del self._connections[connection_id]
 
         returnValue(connection.marshal())
+
+
+IRealmContainer.register(ProxyController)

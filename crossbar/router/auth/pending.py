@@ -28,11 +28,9 @@
 #
 #####################################################################################
 
-import abc
 import importlib
 
 from autobahn.wamp import types
-from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.exception import ApplicationError
 from txaio import make_logger
 from twisted.internet.defer import Deferred
@@ -45,32 +43,6 @@ import txaio
 __all__ = ('PendingAuth',)
 
 _authenticators = dict()
-
-
-class IRealmContainer(abc.ABC):
-    """
-    An object the authentication system can query about the existince
-    of realms and roles.
-    """
-
-    @abc.abstractmethod
-    def has_realm(self, realm: str) -> bool:
-        """
-        :returns: True if the given realm exists
-        """
-
-    @abc.abstractmethod
-    def has_role(self, realm: str, role: str) -> bool:
-        """
-        :returns: True if the given role exists inside the realm
-        """
-
-    @abc.abstractmethod
-    def get_service_session(self, realm: str, role: str) -> ISession:
-        """
-        :returns: ApplicationSession suitable for use by dynamic
-            authenticators
-        """
 
 
 class PendingAuth:
@@ -91,7 +63,7 @@ class PendingAuth:
 
         :param dict transport_info: information about the session's transport
 
-        :param IRealmContainer realm_container: access configured realms / roles
+        :param crossbar._interfaces.IRealmContainer realm_container: access configured realms / roles
 
         :param dict config: Authentication configuration to apply for the pending auth.
         """
