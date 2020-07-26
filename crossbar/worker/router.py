@@ -1017,7 +1017,7 @@ class RouterController(TransportController):
         assert isinstance(details, CallDetails)
 
         self.log.info(
-            'Getting router links for realm {realm_id} {method}',
+            '{method} Getting router links for realm {realm_id}',
             realm_id=hlid(realm_id),
             method=hltype(RouterController.get_router_realm_links))
 
@@ -1047,7 +1047,7 @@ class RouterController(TransportController):
         assert isinstance(details, CallDetails)
 
         self.log.info(
-            'Get router link {link_id} on realm {realm_id} {method}',
+            '{method} Get router link {link_id} on realm {realm_id}',
             link_id=hlid(link_id),
             realm_id=hlid(realm_id),
             method=hltype(RouterController.get_router_realm_link))
@@ -1106,33 +1106,37 @@ class RouterController(TransportController):
         assert isinstance(details, CallDetails)
 
         self.log.info(
-            'Router link {link_id} starting on realm {realm_id} {method}',
+            '{method} Router link {link_id} starting on realm {realm_id} ..',
             link_id=hlid(link_id),
             realm_id=hlid(realm_id),
             method=hltype(RouterController.start_router_realm_link))
 
-        if realm_id not in self.realms:
-            raise ApplicationError('crossbar.error.no_such_object', 'no realm with ID {}'.format(realm_id))
+        try:
+            if realm_id not in self.realms:
+                self.log.warn('{func} realm "{realm}" not found in {realms}',
+                              func=hltype(self.start_router_realm_link),
+                              realm=hlval(realm_id),
+                              realms=sorted(self.realms.keys()))
+                raise ApplicationError('crossbar.error.no_such_object', 'no realm with ID {}'.format(realm_id))
 
-        rlink_manager = self.realms[realm_id].rlink_manager
+            rlink_manager = self.realms[realm_id].rlink_manager
 
-        if link_id in rlink_manager:
-            raise ApplicationError('crossbar.error.already_running',
-                                   'router link {} already running'.format(link_id))
+            if link_id in rlink_manager:
+                raise ApplicationError('crossbar.error.already_running',
+                                       'router link {} already running'.format(link_id))
+            link_config = RLinkConfig.parse(self.personality, link_config, id=link_id)
+            caller = SessionIdent.from_calldetails(details)
+            rlink = yield rlink_manager.start_link(link_id, link_config, caller)
+            started = rlink.marshal()
+        except:
+            self.log.failure()
+            raise
+        else:
+            self.publish('{}.on_router_realm_link_started'.format(self._uri_prefix), started)
 
-        link_config = RLinkConfig.parse(self.personality, link_config, id=link_id)
+            self.log.info('Router link {link_id} started', link_id=hlid(link_id))
 
-        caller = SessionIdent.from_calldetails(details)
-
-        rlink = yield rlink_manager.start_link(link_id, link_config, caller)
-
-        started = rlink.marshal()
-
-        self.publish('{}.on_router_realm_link_started'.format(self._uri_prefix), started)
-
-        self.log.info('Router link {link_id} started', link_id=hlid(link_id))
-
-        returnValue(started)
+            returnValue(started)
 
     @wamp.register(None)
     @inlineCallbacks
@@ -1154,7 +1158,7 @@ class RouterController(TransportController):
         assert isinstance(details, CallDetails)
 
         self.log.info(
-            'Router link {link_id} stopping on realm {realm_id} {method}',
+            '{method} Router link {link_id} stopping on realm {realm_id}',
             link_id=hlid(link_id),
             realm_id=hlid(realm_id),
             method=hltype(RouterController.stop_router_realm_link))
