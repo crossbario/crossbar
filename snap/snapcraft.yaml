@@ -9,7 +9,7 @@ description: |
 
 grade: stable
 confinement: strict
-base: core18
+base: core20
 
 architectures:
   - build-on: amd64
@@ -26,42 +26,24 @@ architectures:
 
 apps:
   crossbar:
-    command: python3.7 -u $SNAP/bin/crossbar
+    command: bin/crossbar
     environment:
-      PATH: $PATH:$SNAP/usr/bin:$SNAP/bin
-      PYTHONPATH: $PYTHONPATH:$SNAP/lib/python3.7/site-packages
+      PYTHONPATH: $PYTHONPATH:$SNAP/lib/python3.8/site-packages
     plugs:
       - home
       - network
       - network-bind
 
 parts:
-  py37:
-    plugin: nil
-    stage-packages:
-      - python3.7
-    build-packages:
-      - wget
-      - python3.7
-      - python3.7-dev
-      - python3.7-venv
-      - python3.7-distutils
-    override-build: |
-      snapcraftctl build
-      wget -O - https://bootstrap.pypa.io/get-pip.py | /usr/bin/python3.7 -u
-      /usr/bin/python3.7 -m compileall -b $SNAPCRAFT_PART_INSTALL
-      find $SNAPCRAFT_PART_INSTALL -type f -name "*.py" -exec rm {} \;
   crossbar:
     plugin: nil
-    after:
-      - py37
     source: .
     override-build: |
       snapcraftctl build
       # Build and install Crossbar
       export MAKEFLAGS="-j$(nproc)"
-      /usr/bin/python3.7 -m pip install --ignore-installed -U --no-compile --prefix $SNAPCRAFT_PART_INSTALL .
-      /usr/bin/python3.7 -m compileall -b -x .*\.syntaxerror.py$ $SNAPCRAFT_PART_INSTALL
+      pip3 install --ignore-installed -U --no-compile --prefix $SNAPCRAFT_PART_INSTALL .
+      python3 -m compileall -b -x .*\.syntaxerror.py$ $SNAPCRAFT_PART_INSTALL
       find $SNAPCRAFT_PART_INSTALL -type f -name "*.py" -exec rm {} \;
       find $SNAPCRAFT_PART_INSTALL -type f -name "*.so" -exec strip -s {} \;
       # Set package version
@@ -69,6 +51,7 @@ parts:
     stage-packages:
       - libsnappy1v5
       - libunwind8
+      - python3
     build-packages:
       - build-essential
       - gcc
@@ -78,5 +61,7 @@ parts:
       - libbz2-dev
       - libsnappy-dev
       - libunwind-dev
+      - python3-pip
+      - python3-dev
       # required by package versioning
       - git
