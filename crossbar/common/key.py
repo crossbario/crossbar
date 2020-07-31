@@ -81,8 +81,8 @@ def _parse_key_file(key_path, private=True):
     if os.path.exists(key_path) and not os.path.isfile(key_path):
         raise Exception("Key file '{}' exists, but isn't a file".format(key_path))
 
-    allowed_tags = ['public-key-ed25519', 'machine-id', 'created-at',
-                    'creator']
+    allowed_tags = ['public-key-ed25519', 'machine-id', 'node-authid',
+                    'created-at', 'creator']
     if private:
         allowed_tags.append('private-key-ed25519')
 
