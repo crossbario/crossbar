@@ -252,7 +252,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         pubkey = privkey.verify_key
         pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
-        if 'CROSSBARFX_NODE_ID' in os.environ:
+        if 'CROSSBARFX_NODE_ID' in os.environ and os.environ['CROSSBARFX_NODE_ID'].strip() != '':
             node_authid = os.environ['CROSSBARFX_NODE_ID']
         else:
             node_authid = socket.gethostname()
