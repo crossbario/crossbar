@@ -197,7 +197,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         # node private key seems to exist already .. check!
 
         priv_tags = _parse_key_file(privkey_path, private=True)
-        for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519', 'private-key-ed25519']:
+        for tag in ['creator', 'created-at', 'machine-id', 'node-authid', 'public-key-ed25519', 'private-key-ed25519']:
             if tag not in priv_tags:
                 raise Exception("Corrupt node private key file {} - {} tag not found".format(privkey_path, tag))
 
@@ -214,7 +214,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
         if os.path.exists(pubkey_path):
             pub_tags = _parse_key_file(pubkey_path, private=False)
-            for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519']:
+            for tag in ['creator', 'created-at', 'machine-id', 'node-authid', 'public-key-ed25519']:
                 if tag not in pub_tags:
                     raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))
 
@@ -233,6 +233,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
                 ('creator', priv_tags['creator']),
                 ('created-at', priv_tags['created-at']),
                 ('machine-id', priv_tags['machine-id']),
+                ('node-authid', priv_tags['node-authid']),
                 ('public-key-ed25519', pubkey_hex),
             ])
             msg = 'Crossbar.io node public key\n\n'
@@ -251,11 +252,17 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         pubkey = privkey.verify_key
         pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
+        if 'CROSSBARFX_NODE_ID' in os.environ:
+            node_authid = os.environ['CROSSBARFX_NODE_ID']
+        else:
+            node_authid = socket.gethostname()
+
         # first, write the public file
         tags = OrderedDict([
             ('creator', _creator()),
             ('created-at', utcnow()),
             ('machine-id', _machine_id()),
+            ('node-authid', node_authid),
             ('public-key-ed25519', pubkey_hex),
         ])
         msg = 'Crossbar.io node public key\n\n'
