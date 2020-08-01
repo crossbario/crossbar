@@ -8,6 +8,9 @@ Changelog
 master
 ------
 
+* new: include node authid in generated node key file
+* new: web+router+proxy worker mgmt api polish + docs
+* new: refactor/cleanup IRealmContainer
 * fix: management API of proxy workers
 * fix: improve and polish log output of nodes
 

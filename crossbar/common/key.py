@@ -81,8 +81,8 @@ def _parse_key_file(key_path, private=True):
     if os.path.exists(key_path) and not os.path.isfile(key_path):
         raise Exception("Key file '{}' exists, but isn't a file".format(key_path))
 
-    allowed_tags = ['public-key-ed25519', 'machine-id', 'created-at',
-                    'creator']
+    allowed_tags = ['public-key-ed25519', 'machine-id', 'node-authid',
+                    'created-at', 'creator']
     if private:
         allowed_tags.append('private-key-ed25519')
 
@@ -197,6 +197,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         # node private key seems to exist already .. check!
 
         priv_tags = _parse_key_file(privkey_path, private=True)
+        # node-authid is optional!
         for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519', 'private-key-ed25519']:
             if tag not in priv_tags:
                 raise Exception("Corrupt node private key file {} - {} tag not found".format(privkey_path, tag))
@@ -214,6 +215,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
         if os.path.exists(pubkey_path):
             pub_tags = _parse_key_file(pubkey_path, private=False)
+            # node-authid is optional!
             for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519']:
                 if tag not in pub_tags:
                     raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))
@@ -233,6 +235,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
                 ('creator', priv_tags['creator']),
                 ('created-at', priv_tags['created-at']),
                 ('machine-id', priv_tags['machine-id']),
+                ('node-authid', priv_tags.get('node-authid', None)),
                 ('public-key-ed25519', pubkey_hex),
             ])
             msg = 'Crossbar.io node public key\n\n'
@@ -251,11 +254,17 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         pubkey = privkey.verify_key
         pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
+        if 'CROSSBARFX_NODE_ID' in os.environ and os.environ['CROSSBARFX_NODE_ID'].strip() != '':
+            node_authid = os.environ['CROSSBARFX_NODE_ID']
+        else:
+            node_authid = socket.gethostname()
+
         # first, write the public file
         tags = OrderedDict([
             ('creator', _creator()),
             ('created-at', utcnow()),
             ('machine-id', _machine_id()),
+            ('node-authid', node_authid),
             ('public-key-ed25519', pubkey_hex),
         ])
         msg = 'Crossbar.io node public key\n\n'
