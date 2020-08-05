@@ -217,7 +217,7 @@ class BridgeSession(ApplicationSession):
         for sub_id in subs['exact']:
             sub = yield self.call("wamp.subscription.get", sub_id)
 
-            if True:
+            if not sub['uri'].startswith("wamp."):
                 yield on_subscription_create(sub_id, sub)
 
         # listen to when new subscriptions are created on the local router
