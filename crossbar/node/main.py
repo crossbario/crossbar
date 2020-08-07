@@ -618,13 +618,19 @@ def _run_command_stop(options, reactor, personality):
         pid = pid_data['pid']
         print("Stopping Crossbar.io currently running from node directory {} (PID {}) ...".format(options.cbdir, pid))
         if not _HAS_PSUTIL:
-            os.kill(pid, signal.SIGINT)
-            print("SIGINT sent to process {}.".format(pid))
+            if sys.platform == 'win32':
+                # Windows doesn't accept SIGINT
+                os.kill(pid, signal.SIGTERM)
+                print("SIGTERM sent to process {}.".format(pid))
+            else:
+                os.kill(pid, signal.SIGINT)
+                print("SIGINT sent to process {}.".format(pid))
         else:
             p = psutil.Process(pid)
             try:
                 # first try to interrupt (orderly shutdown)
                 _INTERRUPT_TIMEOUT = 5
+                # On Windows, SIGINT raises ValueError which is caught below.
                 p.send_signal(signal.SIGINT)
                 print("SIGINT sent to process {} .. waiting for exit ({} seconds) ...".format(pid, _INTERRUPT_TIMEOUT))
                 p.wait(timeout=_INTERRUPT_TIMEOUT)
