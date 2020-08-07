@@ -29,7 +29,7 @@ sdnotify>=0.3.1
 service_identity>=17.0.0
 setproctitle>=1.1.10
 setuptools>=36.2.7
-treq>=17.3.1
+treq>=20.4.1
 twisted[tls,conch,http2]>=20.3.0; sys_platform != 'darwin' and sys_platform != 'win32'
 twisted[tls,conch,http2,osx_platform]>=20.3.0; sys_platform == 'darwin'
 twisted[tls,conch,http2,windows_platform]>=20.3.0; sys_platform == 'win32'

@@ -28,7 +28,7 @@ sdnotify>=0.3.1
 service_identity>=17.0.0
 setproctitle>=1.1.10
 setuptools>=36.2.7
-treq>=17.3.1
+treq>=20.4.1
 git+https://github.com/twisted/twisted@trunk#egg=twisted[tls,conch,http2]; sys_platform != 'darwin' and sys_platform != 'win32'
 git+https://github.com/twisted/twisted@trunk#egg=twisted[tls,conch,http2,osx_platform]; sys_platform == 'darwin'
 git+https://github.com/twisted/twisted@trunk#egg=twisted[tls,conch,http2,windows_platform]; sys_platform == 'win32'
