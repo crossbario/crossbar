@@ -8,6 +8,13 @@ Changelog
 master
 ------
 
+* ...
+
+20.8.1
+------
+
+* fix: "crossbar stop" subcommand crashes on Windows (#1802)
+* new: use core20 for snap runtime (#1798)
 * new: include node authid in generated node key file
 * new: web+router+proxy worker mgmt api polish + docs
 * new: refactor/cleanup IRealmContainer
