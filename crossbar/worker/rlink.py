@@ -658,7 +658,7 @@ class RLink(object):
             'id': self.id,
             'config': self.config.marshal(),
             'started': self.started,
-            'started_by': self.started_by.marshal(),
+            'started_by': self.started_by.marshal() if self.started_by else None,
         }
         return obj
 
