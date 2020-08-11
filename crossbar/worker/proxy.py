@@ -720,6 +720,9 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
 
     :param cbdir: The node directory.
     """
+    log.info('{func}() connecting with config=\n{config}',
+             func=hltype(make_backend_connection),
+             config=pformat(backend_config))
 
     from twisted.internet import reactor
 
@@ -1123,15 +1126,20 @@ class ProxyController(TransportController):
     """
     Controller for proxy workers. Manages:
 
-    * proxy transports
-    * proxy connections
-    * proxy routes
+    * **proxy transports**, for accepting incoming client connections
+    * **proxy connections**, for backend router connections
+    * **proxy routes**, for routes from ``(realm_name, role_name)`` to backend router connections
 
     and
 
-    * web transport services (from base class `TransportController`)
+    * web transport services (from base class `TransportController`), when running a proxy transport
+    of type ``web``.
 
-    and more (from `WorkerController` and `NativeProcess`).
+    Proxy controllers also inherit more procedures and events from the base classes
+
+    * :class:`crossbar.worker.transport.TransportController`,
+    * :class:`crossbar.worker.controller.WorkerController` and
+    * :class:`crossbar.common.process.NativeProcess`.
     """
     WORKER_TYPE = 'proxy'
     WORKER_TITLE = 'WAMP proxy'

@@ -248,7 +248,8 @@ class RouterController(TransportController):
         res = {}
         for realm_id in realm_ids:
             realm = self.realms[realm_id]
-            res[realm_id] = realm.router.stats()
+            if realm.router:
+                res[realm_id] = realm.router.stats()
 
         return res
 
@@ -1134,7 +1135,8 @@ class RouterController(TransportController):
         else:
             self.publish('{}.on_router_realm_link_started'.format(self._uri_prefix), started)
 
-            self.log.info('Router link {link_id} started', link_id=hlid(link_id))
+            self.log.info('Router link {link_id} started on realm {realm_id}',
+                          link_id=hlid(link_id), realm_id=hlid(realm_id))
 
             returnValue(started)
 
