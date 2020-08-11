@@ -248,7 +248,8 @@ class RouterController(TransportController):
         res = {}
         for realm_id in realm_ids:
             realm = self.realms[realm_id]
-            res[realm_id] = realm.router.stats()
+            if realm.router:
+                res[realm_id] = realm.router.stats()
 
         return res
 
