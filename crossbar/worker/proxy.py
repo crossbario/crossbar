@@ -405,7 +405,7 @@ class ProxyFrontendSession(object):
         Now we do any authentication necessary with them and connect
         to our backend.
         """
-        self.log.debug('{func}(msg={msg})', func=hltype(self._process_Hello), msg=msg)
+        self.log.info('{func}(msg={msg})', func=hltype(self._process_Hello), msg=msg)
         self._pending_session_id = util.id()
         self._goodbye_sent = False
 

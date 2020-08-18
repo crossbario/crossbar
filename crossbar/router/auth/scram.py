@@ -115,9 +115,11 @@ class PendingAuthScram(PendingAuth):
             extra = self._compute_challenge()
             return types.Challenge(self._authmethod, extra)
 
+        def on_authenticate_error(err):
+            return self._marshal_dynamic_authenticator_error(err)
+
         # use static principal database from configuration
         if self._config['type'] == 'static':
-
             self._authprovider = 'static'
 
             if self._authid in self._config.get('principals', {}):
@@ -130,6 +132,7 @@ class PendingAuthScram(PendingAuth):
                 )
 
         elif self._config['type'] == 'dynamic':
+            self._authprovider = 'dynamic'
 
             init_d = as_future(self._init_dynamic_authenticator)
 
@@ -137,14 +140,28 @@ class PendingAuthScram(PendingAuth):
                 if error:
                     return error
 
+                # now call (via WAMP) the user provided authenticator (WAMP RPC endpoint)
                 d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
-
-                def on_authenticate_error(err):
-                    return self._marshal_dynamic_authenticator_error(err)
-
                 d.addCallbacks(on_authenticate_ok, on_authenticate_error)
-
                 return d
+
+            init_d.addBoth(init)
+            return init_d
+
+        elif self._config['type'] == 'function':
+            self._authprovider = 'function'
+
+            init_d = as_future(self._init_function_authenticator)
+
+            def init(error):
+                if error:
+                    return error
+
+                # now call (via direct Python function call) the user provided authenticator (Python function)
+                auth_d = as_future(self._authenticator, realm, details.authid, self._session_details)
+                auth_d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+                return auth_d
+
             init_d.addBoth(init)
             return init_d
 
