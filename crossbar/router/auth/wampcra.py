@@ -102,6 +102,18 @@ class PendingAuthWampCra(PendingAuth):
         # remember the authid the client wants to identify as (if any)
         self._authid = details.authid
 
+        def on_authenticate_ok(principal):
+            error = self._assign_principal(principal)
+            if error:
+                return error
+
+            # now compute CHALLENGE.Extra and signature expected
+            extra, self._signature = self._compute_challenge(principal)
+            return types.Challenge(self._authmethod, extra)
+
+        def on_authenticate_error(err):
+            return self._marshal_dynamic_authenticator_error(err)
+
         # use static principal database from configuration
         if self._config['type'] == 'static':
 
@@ -135,24 +147,38 @@ class PendingAuthWampCra(PendingAuth):
                     return result
 
                 self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+                self._session_details['authid'] = details.authid
+                self._session_details['authrole'] = details.authrole
                 self._session_details['authextra'] = details.authextra
 
                 d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
-
-                def on_authenticate_ok(principal):
-                    error = self._assign_principal(principal)
-                    if error:
-                        return error
-
-                    # now compute CHALLENGE.Extra and signature expected
-                    extra, self._signature = self._compute_challenge(principal)
-                    return types.Challenge(self._authmethod, extra)
-
-                def on_authenticate_error(err):
-                    return self._marshal_dynamic_authenticator_error(err)
-
                 d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
                 return d
+
+            init_d.addBoth(init)
+            return init_d
+
+        elif self._config['type'] == 'function':
+
+            self._authprovider = 'function'
+
+            init_d = txaio.as_future(self._init_function_authenticator)
+
+            def init(error):
+                if error:
+                    return error
+
+                self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+                self._session_details['authid'] = details.authid
+                self._session_details['authrole'] = details.authrole
+                self._session_details['authextra'] = details.authextra
+
+                auth_d = txaio.as_future(self._authenticator, realm, details.authid, self._session_details)
+                auth_d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+                return auth_d
+
             init_d.addBoth(init)
             return init_d
 

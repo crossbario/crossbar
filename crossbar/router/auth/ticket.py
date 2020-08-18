@@ -91,14 +91,29 @@ class PendingAuthTicket(PendingAuth):
 
             init_d = as_future(self._init_dynamic_authenticator)
 
-            def init(result):
-                if result:
-                    return result
-
+            def init(error):
+                if error:
+                    return error
                 self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
                 self._session_details['authextra'] = details.authextra
-
                 return types.Challenge(self._authmethod)
+
+            init_d.addBoth(init)
+            return init_d
+
+        elif self._config['type'] == 'function':
+
+            self._authprovider = 'function'
+
+            init_d = as_future(self._init_function_authenticator)
+
+            def init(error):
+                if error:
+                    return error
+                self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+                self._session_details['authextra'] = details.authextra
+                return types.Challenge(self._authmethod)
+
             init_d.addBoth(init)
             return init_d
 
@@ -107,6 +122,21 @@ class PendingAuthTicket(PendingAuth):
             return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
 
     def authenticate(self, signature):
+
+        def on_authenticate_ok(principal):
+            # backwards compatibility: dynamic ticket authenticator
+            # was expected to return a role directly
+            if isinstance(principal, str):
+                principal = {'role': principal}
+
+            error = self._assign_principal(principal)
+            if error:
+                return error
+
+            return self._accept()
+
+        def on_authenticate_error(err):
+            return self._marshal_dynamic_authenticator_error(err)
 
         # WAMP-Ticket "static"
         if self._authprovider == 'static':
@@ -134,24 +164,19 @@ class PendingAuthTicket(PendingAuth):
             self._session_details['ticket'] = signature
             d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
 
-            def on_authenticate_ok(principal):
-                # backwards compatibility: dynamic ticket authenticator
-                # was expected to return a role directly
-                if isinstance(principal, str):
-                    principal = {'role': principal}
-
-                error = self._assign_principal(principal)
-                if error:
-                    return error
-
-                return self._accept()
-
-            def on_authenticate_error(err):
-                return self._marshal_dynamic_authenticator_error(err)
-
             d.addCallbacks(on_authenticate_ok, on_authenticate_error)
 
             return d
+
+        # WAMP-Ticket "function"
+        elif self._authprovider == 'function':
+
+            self._session_details['ticket'] = signature
+
+            auth_d = as_future(self._authenticator, self._realm, self._authid, self._session_details)
+
+            auth_d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+            return auth_d
 
         else:
             # should not arrive here, as config errors should be caught earlier

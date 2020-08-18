@@ -395,8 +395,8 @@ def check_transport_auth_ticket(config):
     if 'type' not in config:
         raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-Ticket configuration")
 
-    if config['type'] not in ['static', 'dynamic']:
-        raise InvalidConfigException("invalid type '{}' in WAMP-Ticket configuration - must be one of 'static', 'dynamic'".format(config['type']))
+    if config['type'] not in ['static', 'dynamic', 'function']:
+        raise InvalidConfigException("invalid type '{}' in WAMP-Ticket configuration - must be one of 'static', 'dynamic', 'function'".format(config['type']))
 
     if config['type'] == 'static':
         if 'principals' not in config:
@@ -419,6 +419,13 @@ def check_transport_auth_ticket(config):
         if 'authenticator' not in config:
             raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-Ticket configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-Ticket configuration".format(config['authenticator']))
+
+    elif config['type'] == 'function':
+        if 'create' not in config:
+            raise InvalidConfigException(
+                "missing mandatory attribute 'create' in function WAMP-Ticket configuration"
+            )
+
     else:
         raise InvalidConfigException('logic error')
 
@@ -433,8 +440,8 @@ def check_transport_auth_wampcra(config):
     if 'type' not in config:
         raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-CRA configuration")
 
-    if config['type'] not in ['static', 'dynamic']:
-        raise InvalidConfigException("invalid type '{}' in WAMP-CRA configuration - must be one of 'static', 'dynamic'".format(config['type']))
+    if config['type'] not in ['static', 'dynamic', 'function']:
+        raise InvalidConfigException("invalid type '{}' in WAMP-CRA configuration - must be one of 'static', 'dynamic', 'function'".format(config['type']))
 
     if config['type'] == 'static':
         if 'users' not in config:
@@ -457,30 +464,42 @@ def check_transport_auth_wampcra(config):
         if 'authenticator' not in config:
             raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-CRA configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-CRA configuration".format(config['authenticator']))
+
+    elif config['type'] == 'function':
+        if 'create' not in config:
+            raise InvalidConfigException(
+                "missing mandatory attribute 'create' in function WAMP-CRA configuration"
+            )
+
     else:
         raise InvalidConfigException('logic error')
 
 
 def check_transport_auth_tls(config):
     """
-    Check a WAMP-CRA configuration item.
-
-    http://crossbar.io/docs/
-    https://github.com/crossbario/crossbar/blob/master/docs/pages/administration/auth/Challenge-Response-Authentication.md
+    Check a WAMP-TLS configuration item.
     """
     if 'type' not in config:
         raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-TLS configuration")
 
-    if config['type'] not in ['static', 'dynamic']:
-        raise InvalidConfigException("invalid type '{}' in WAMP-TLS configuration - must be one of 'static', 'dynamic'".format(config['type']))
+    if config['type'] not in ['static', 'dynamic', 'function']:
+        raise InvalidConfigException("invalid type '{}' in WAMP-TLS configuration - must be one of 'static', 'dynamic', 'function'".format(config['type']))
 
     if config['type'] == 'static':
         # FIXME
         pass
+
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
             raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-TLS configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-TLS configuration".format(config['authenticator']))
+
+    elif config['type'] == 'function':
+        if 'create' not in config:
+            raise InvalidConfigException(
+                "missing mandatory attribute 'create' in function WAMP-TLS configuration"
+            )
+
     else:
         raise InvalidConfigException('logic error')
 
@@ -527,6 +546,7 @@ def check_transport_auth_cryptosign(config):
                 "missing mandatory attribute 'create' in function WAMP-Cryptosign configuration"
             )
         # can also have optional 'config' item
+
     else:
         raise InvalidConfigException('logic error')
 
@@ -539,6 +559,10 @@ def check_transport_auth_scram(config):
         raise InvalidConfigException(
             "missing mandatory attribute '{}' in WAMP-SCRAM configuration".format('type')
         )
+
+    if config['type'] not in ['static', 'dynamic', 'function']:
+        raise InvalidConfigException("invalid type '{}' in WAMP-SCRAM configuration - must be one of 'static', 'dynamic', 'function'".format(config['type']))
+
     if config['type'] == 'static':
         if 'principals' not in config:
             raise InvalidConfigException(
@@ -566,6 +590,21 @@ def check_transport_auth_scram(config):
                     )
                 )
 
+    elif config['type'] == 'dynamic':
+        if 'authenticator' not in config:
+            raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-SCRAM configuration")
+        check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-SCRAM configuration".format(config['authenticator']))
+
+    elif config['type'] == 'function':
+        if 'create' not in config:
+            raise InvalidConfigException(
+                "missing mandatory attribute 'create' in function WAMP-SCRAM configuration"
+            )
+        # can also have optional 'config' item
+
+    else:
+        raise InvalidConfigException('logic error')
+
 
 def check_transport_auth_cookie(config):
     """
@@ -587,8 +626,8 @@ def check_transport_auth_anonymous(config):
     if 'type' not in config:
         raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-Anonymous configuration")
 
-    if config['type'] not in ['static', 'dynamic']:
-        raise InvalidConfigException("invalid type '{}' in WAMP-Anonymous configuration - must be one of 'static', 'dynamic'".format(config['type']))
+    if config['type'] not in ['static', 'dynamic', 'function']:
+        raise InvalidConfigException("invalid type '{}' in WAMP-Anonymous configuration - must be one of 'static', 'dynamic', 'function'".format(config['type']))
 
     if config['type'] == 'static':
         check_dict_args({
