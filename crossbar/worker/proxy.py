@@ -1365,20 +1365,9 @@ class ProxyController(TransportController):
         """
         assert self.has_role(realm_name, role_name)
 
-        # XXX okay, we want self._routes[realm_name] to have several
-        # possible ... versions? and so we want to round-robin, 'or
-        # something', between them. (Probably round-robin? So do we
-        # keep a seed of some kind and mod it by the lenth of things
-        # in the list?)
-
         routes = self._routes[realm_name]
-        if not routes:
-            raise ValueError(
-                "No routes for realm '{}'".format(realm_name)
-            )
         self._roundrobin_idx = (self._roundrobin_idx + 1) % len(routes)
         route = list(routes.values())[self._roundrobin_idx]
-        print("roundrobin index: {}: {}".format(self._roundrobin_idx, route))
 
         connection_id = route.config[role_name]
         connection = self._connections[connection_id]
