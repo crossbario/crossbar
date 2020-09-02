@@ -1589,9 +1589,6 @@ class ProxyController(TransportController):
             realm_name=realm_name,
             config=config,
         )
-#        if realm_name in self._routes:
-#            raise ApplicationError('crossbar.error.already_running',
-#                                   'proxy route for realm "{}" already running'.format(realm_name))
 
         for role_name in config:
             connection_id = config[role_name]
