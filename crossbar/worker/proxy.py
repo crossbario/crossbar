@@ -1590,11 +1590,11 @@ class ProxyController(TransportController):
             config=config,
         )
 
-        for role_name in config:
+        for role_name in config.keys():
             connection_id = config[role_name]
             if connection_id not in self._connections:
                 raise ApplicationError("crossbar.error.no_such_object",
-                                       'no connection "{}" found for role "{}" in proxy route config'.format(realm_name, role_name))
+                                       'no connection "{}" found for realm "{}" and role "{}" in proxy route config'.format(connection_id, realm_name, role_name))
 
         route_id = 'route{:03d}'.format(self._next_route_id)
         self._next_route_id += 1
