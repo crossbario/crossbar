@@ -1547,7 +1547,6 @@ class ProxyController(TransportController):
             raise ApplicationError("crossbar.error.no_such_object",
                                    'No route for realm "{}" in proxy'.format(realm_name))
 
-
     @wamp.register(None)
     def get_proxy_realm_route(self, realm_name, route_id, details=None):
         """
