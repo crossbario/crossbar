@@ -217,7 +217,7 @@ class BridgeSession(ApplicationSession):
         for sub_id in subs['exact']:
             sub = yield self.call("wamp.subscription.get", sub_id)
 
-            if True:
+            if not sub['uri'].startswith("wamp."):
                 yield on_subscription_create(sub_id, sub)
 
         # listen to when new subscriptions are created on the local router
@@ -441,6 +441,7 @@ class RLinkLocalSession(BridgeSession):
         self.join(self.config.realm,
                   authid=self.config.extra['rlink'],
                   authextra=authextra)
+        self._tracker = self.config.extra['tracker']
 
     @inlineCallbacks
     def onJoin(self, details):
@@ -579,6 +580,7 @@ class RLinkRemoteSession(BridgeSession):
 
         local = self.config.extra['other']
         assert isinstance(local, RLinkLocalSession)
+        local._tracker.connected = True
 
         self._exclude_authid = self.config.extra.get('exclude_authid', None)
         self._exclude_authrole = self.config.extra.get('exclude_authrole', None)
@@ -610,6 +612,7 @@ class RLinkRemoteSession(BridgeSession):
             self.config.extra['on_ready'].callback(self)
 
     def onLeave(self, details):
+        self.config.extra['other']._tracker.connected = False
         self.log.warn(
             '{klass}.onLeave(): rlink remote session left! (realm={realm}, authid={authid}, authrole={authrole}, session={session}, details={details}) {method}',
             klass=self.__class__.__name__,
@@ -650,15 +653,19 @@ class RLink(object):
         # remote session: RLinkRemoteSession
         self.remote = remote
 
+        # updated by the session
+        self.connected = False
+
     def __str__(self):
         return pprint.pformat(self.marshal())
 
     def marshal(self):
         obj = {
             'id': self.id,
-            'config': self.config.marshal(),
+            'config': self.config.marshal() if self.config else None,
             'started': self.started,
             'started_by': self.started_by.marshal() if self.started_by else None,
+            'connected': self.connected,
         }
         return obj
 
@@ -848,6 +855,7 @@ class RLinkManager(object):
         #
         rlink = RLink(link_id, link_config)
         self._links[link_id] = rlink
+        local_extra['tracker'] = rlink
 
         # create connecting client endpoint
         #

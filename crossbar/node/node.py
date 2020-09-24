@@ -920,7 +920,11 @@ class Node(object):
         # set up backend connections on the proxy
 
         for i, connection_name in enumerate(worker.get('connections', {})):
-            print(i, connection_name)
+            self.log.debug(
+                "Starting connection {index}: {name}",
+                index=i,
+                name=connection_name,
+            )
             yield self._controller.call(
                 'crossbar.worker.{}.start_proxy_connection'.format(worker_id),
                 connection_name,
@@ -930,9 +934,19 @@ class Node(object):
         # set up realms and roles on the proxy
 
         for i, realm_name in enumerate(worker.get('routes', {})):
-            print(i, realm_name)
-            yield self._controller.call(
-                'crossbar.worker.{}.start_proxy_route'.format(worker_id),
-                realm_name,
-                worker['routes'].get(realm_name, {}),
-            )
+            roles = worker['routes'][realm_name]
+            for role_id, connections in roles.items():
+                if not isinstance(connections, list):
+                    connections = [connections]  # used to be a single string, now a list of strings
+                for connection_id in connections:
+                    self.log.debug(
+                        "Starting proxy realm route {realm}, {role} to {connection}",
+                        realm=realm_name,
+                        role=role_id,
+                        connection=connection_id,
+                    )
+                    yield self._controller.call(
+                        'crossbar.worker.{}.start_proxy_realm_route'.format(worker_id),
+                        realm_name,
+                        {role_id: connection_id},
+                    )

@@ -904,7 +904,7 @@ class ProxyRoute(object):
     """
     log = make_logger()
 
-    def __init__(self, controller, realm_name, config):
+    def __init__(self, controller, realm_name, route_id, config):
         """
 
         :param controller: The (proxy) worker controller session the proxy connection is created from.
@@ -918,6 +918,7 @@ class ProxyRoute(object):
         """
         self._controller = controller
         self._realm_name = realm_name
+        self._route_id = route_id
         self._config = config
         self._started = None
         self._stopped = None
@@ -926,6 +927,7 @@ class ProxyRoute(object):
     def marshal(self):
         return {
             'realm': self._realm_name,
+            'id': self._route_id,
             'config': self._config,
             'started': self._started,
             'stopped': self._stopped,
@@ -1157,6 +1159,12 @@ class ProxyController(TransportController):
         # map: realm name -> ProxyRoute
         self._routes = dict()
 
+        # for creating route-id's
+        self._next_route_id = 0
+
+        # next route to use in a realm while forwarding connections
+        self._roundrobin_idx = 0
+
         # map: connection ID -> ProxyConnection
         self._connections = {}
 
@@ -1205,10 +1213,13 @@ class ProxyController(TransportController):
         """
         authrole = authrole or 'trusted'
         if realm in self._routes:
-            route = self._routes[realm]
+            realm_routes = self._routes[realm]
 
             # the route config is a map with role name as key
-            result = authrole in route.config
+            result = any(
+                authrole in route.config
+                for route in realm_routes.values()
+            )
         else:
             result = False
         self.log.debug('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
@@ -1290,7 +1301,7 @@ class ProxyController(TransportController):
         # insert the node's private key
 
         if authrole is None:
-            if len(self._routes.get(realm, {})) != 1:
+            if len(self._routes.get(realm, set())) != 1:
                 raise RuntimeError(
                     "Cannot select default role unless realm has exactly 1"
                 )
@@ -1353,7 +1364,12 @@ class ProxyController(TransportController):
             identified by the realm_name and role_name
         """
         assert self.has_role(realm_name, role_name)
-        connection_id = self._routes[realm_name].config[role_name]
+
+        routes = self._routes[realm_name]
+        self._roundrobin_idx = (self._roundrobin_idx + 1) % len(routes)
+        route = list(routes.values())[self._roundrobin_idx]
+
+        connection_id = route.config[role_name]
         connection = self._connections[connection_id]
         return connection.config
 
@@ -1518,9 +1534,23 @@ class ProxyController(TransportController):
         return sorted(self._routes.keys())
 
     @wamp.register(None)
-    def get_proxy_route(self, realm_name, details=None):
+    def list_proxy_realm_routes(self, realm_name, details=None):
         """
-        Get proxy route currently running in this proxy worker.
+        Get list of all routes enabled for a particular realm
+        """
+        if realm_name in self._routes:
+            return [
+                self._routes[realm_name][route_id].marshal()
+                for route_id in self._routes[realm_name].keys()
+            ]
+        else:
+            raise ApplicationError("crossbar.error.no_such_object",
+                                   'No route for realm "{}" in proxy'.format(realm_name))
+
+    @wamp.register(None)
+    def get_proxy_realm_route(self, realm_name, route_id, details=None):
+        """
+        Get a particular realm-route
 
         :param details: Call details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
@@ -1529,20 +1559,21 @@ class ProxyController(TransportController):
         :rtype: dict
         """
         self.log.debug('{func}(realm_name={realm_name})',
-                       func=hltype(self.get_proxy_route),
+                       func=hltype(self.get_proxy_realm_route),
                        realm_name=hlid(realm_name),
                        caller_authid=hlval(details.caller_authid))
 
-        if realm_name in self._routes:
-            route = self._routes[realm_name]
-            return route.marshal()
-        else:
-            raise ApplicationError("crossbar.error.no_such_object",
-                                   'No route for realm "{}" in proxy'.format(realm_name))
+        try:
+            return self._routes[realm_name][route_id]
+        except KeyError:
+            raise ApplicationError(
+                "crossbar.error.no_such_object",
+                'No route "{}" for realm "{}" in proxy'.format(route_id, realm_name)
+            )
 
     @inlineCallbacks
     @wamp.register(None)
-    def start_proxy_route(self, realm_name, config, details=None):
+    def start_proxy_realm_route(self, realm_name, config, details=None):
         """
         Start a new proxy route for the given realm.
 
@@ -1553,33 +1584,39 @@ class ProxyController(TransportController):
         """
         self.log.info(
             '{func}(realm_name="{realm_name}", config={config})',
-            func=hltype(self.start_proxy_route),
+            func=hltype(self.start_proxy_realm_route),
             realm_name=realm_name,
             config=config,
         )
-        if realm_name in self._routes:
-            raise ApplicationError('crossbar.error.already_running',
-                                   'proxy route for realm "{}" already running'.format(realm_name))
 
-        for role_name in config:
+        for role_name in config.keys():
             connection_id = config[role_name]
             if connection_id not in self._connections:
                 raise ApplicationError("crossbar.error.no_such_object",
-                                       'no connection "{}" found for role "{}" in proxy route config'.format(realm_name, role_name))
+                                       'no connection "{}" found for realm "{}" and role "{}" in proxy route config'.format(connection_id, realm_name, role_name))
 
-        route = ProxyRoute(self, realm_name, config)
-        self._routes[realm_name] = route
+        route_id = 'route{:03d}'.format(self._next_route_id)
+        self._next_route_id += 1
+
+        try:
+            routes = self._routes[realm_name]
+        except KeyError:
+            routes = dict()
+            self._routes[realm_name] = routes
+        route = ProxyRoute(self, realm_name, route_id, config)
+        routes[route_id] = route
         yield route.start()
 
         returnValue(route.marshal())
 
     @inlineCallbacks
     @wamp.register(None)
-    def stop_proxy_route(self, realm_name, details=None):
+    def stop_proxy_realm_route(self, realm_name, route_id, details=None):
         """
         Stop a currently running proxy route.
 
         :param realm_name: The name of the realm to stop the route for.
+        :param route_id: Which route to stop
         :param details: WAMP call details.
         :return: Run-time information about the stopped route.
         """
@@ -1591,11 +1628,14 @@ class ProxyController(TransportController):
         )
         if realm_name not in self._routes:
             raise ApplicationError('crossbar.error.no_such_object',
-                                   'no proxy route for realm "{}" currently running'.format(realm_name))
+                                   'no proxy routes for realm "{}" currently running'.format(realm_name))
+        if route_id not in self._routes[realm_name]:
+            raise ApplicationError('crossbar.error.no_such_object',
+                                   'no route "{}" for realm "{}" currently running'.format(route_id, realm_name))
 
-        route = self._routes[realm_name]
+        route = self._routes[realm_name][route_id]
         yield route.stop()
-        del self._routes[realm_name]
+        del self._routes[realm_name][route_id]
 
         returnValue(route.marshal())
 
