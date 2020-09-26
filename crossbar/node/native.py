@@ -64,8 +64,8 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         self._authprovider = 'programcode'
 
         # FIXME / CHECKME
-        self._cbtid = None
-        self._transport_info = None
+        self._cbtid = {}
+        self._transport_info = {}
 
     def connectionLost(self, reason):
         if isinstance(reason.value, ConnectionDone):
