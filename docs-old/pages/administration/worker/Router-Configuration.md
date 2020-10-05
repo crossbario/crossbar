@@ -62,7 +62,7 @@ parameter | description
 **`id`** | Optional component ID (default: `"component<N>"`)
 **`type`** | Must be `"class"`.
 **`realm`** | The realm to join with the component.
-**`role`** | The atuhrole under which to attach the component.
+**`role`** | The authrole under which to attach the component.
 **`references`** | Please see below.
 **`classname`** | The fully qualified Python classname to use.
 **`extra`** | Arbitrary custom data forwarded to the class ctonstructor.
