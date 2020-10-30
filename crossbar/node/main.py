@@ -280,7 +280,6 @@ class Versions(object):
         self.lmdb_ver = ''
         self.crossbar_ver = ''
         self.crossbarfx_ver = ''
-        self.numpy_ver = ''
         self.release_pubkey = ''
         self.supported_serializers = ''
 
@@ -310,7 +309,6 @@ class Versions(object):
         obj['lmdb_ver'] = self.lmdb_ver
         obj['crossbar_ver'] = self.crossbar_ver
         obj['crossbarfx_ver'] = self.crossbarfx_ver
-        obj['numpy_ver'] = self.numpy_ver
         obj['release_pubkey'] = self.release_pubkey
         obj['supported_serializers'] = self.supported_serializers
         return obj
@@ -436,13 +434,6 @@ def _get_versions(reactor):
     except ImportError:
         pass
 
-    # numpy
-    try:
-        import numpy  # noqa
-        v.numpy_ver = _get_version(numpy)
-    except ImportError:
-        pass
-
     # Release Public Key
     from crossbar.common.key import _read_release_key
     release_pubkey = _read_release_key()
@@ -480,7 +471,6 @@ def _run_command_version(options, reactor, personality):
     log.info("   Python           : {ver}/{impl}", ver=decorate(v.py_ver), impl=decorate(v.py_ver_detail))
     if personality.NAME in ('edge', 'master'):
         log.info(" CrossbarFX         : {ver}", ver=decorate(v.crossbarfx_ver))
-        log.info("   NumPy            : {ver}", ver=decorate(v.numpy_ver))
     log.info(" Frozen executable  : {py_is_frozen}", py_is_frozen=decorate('yes' if v.py_is_frozen else 'no'))
     log.info(" Operating system   : {ver}", ver=decorate(v.platform))
     log.info(" Host machine       : {ver}", ver=decorate(v.machine))
