@@ -13,7 +13,7 @@ chardet==3.0.4
 click==7.1.2
 colorama==0.4.3
 constantly==15.1.0
-cryptography==3.0
+cryptography==3.2
 flatbuffers==1.12
 h2==3.2.0
 hpack==3.0.0
