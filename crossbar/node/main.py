@@ -281,7 +281,6 @@ class Versions(object):
         self.crossbar_ver = ''
         self.crossbarfx_ver = ''
         self.numpy_ver = ''
-        self.zlmdb_ver = ''
         self.release_pubkey = ''
         self.supported_serializers = ''
 
@@ -312,7 +311,6 @@ class Versions(object):
         obj['crossbar_ver'] = self.crossbar_ver
         obj['crossbarfx_ver'] = self.crossbarfx_ver
         obj['numpy_ver'] = self.numpy_ver
-        obj['zlmdb_ver'] = self.zlmdb_ver
         obj['release_pubkey'] = self.release_pubkey
         obj['supported_serializers'] = self.supported_serializers
         return obj
@@ -438,13 +436,6 @@ def _get_versions(reactor):
     except ImportError:
         pass
 
-    # zlmdb
-    try:
-        import zlmdb  # noqa
-        v.zlmdb_ver = _get_version(zlmdb)
-    except ImportError:
-        pass
-
     # numpy
     try:
         import numpy  # noqa
@@ -490,7 +481,6 @@ def _run_command_version(options, reactor, personality):
     if personality.NAME in ('edge', 'master'):
         log.info(" CrossbarFX         : {ver}", ver=decorate(v.crossbarfx_ver))
         log.info("   NumPy            : {ver}", ver=decorate(v.numpy_ver))
-        log.info("   zLMDB            : {ver}", ver=decorate(v.zlmdb_ver))
     log.info(" Frozen executable  : {py_is_frozen}", py_is_frozen=decorate('yes' if v.py_is_frozen else 'no'))
     log.info(" Operating system   : {ver}", ver=decorate(v.platform))
     log.info(" Host machine       : {ver}", ver=decorate(v.machine))
