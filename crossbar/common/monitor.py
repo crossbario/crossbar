@@ -154,11 +154,12 @@ class ProcessMonitor(Monitor):
 
         self._has_io_counters = False
         if not sys.platform.startswith('darwin'):
-            try:
-                self._p.io_counters()
-                self._has_io_counters = True
-            except psutil.AccessDenied:
-                pass
+            if hasattr(self._p, 'io_counters'):
+                try:
+                    self._p.io_counters()
+                    self._has_io_counters = True
+                except psutil.AccessDenied:
+                    pass
 
     @inlineCallbacks
     def poll(self, verbose=False):
