@@ -2,7 +2,7 @@
 # https://github.com/travis-ci/travis-ci/issues/9815#issue-336465122
 # https://github.com/travis-ci/travis-ci/issues/9069#issuecomment-425720905
 language: python
-dist: xenial
+dist: bionic
 sudo: true
 
 addons:
@@ -75,7 +75,7 @@ matrix:
     - python: "3.8"
       env: TOX_ENV=py38-cli
 
-    - python: "pypy3.5"
+    - python: "pypy3.7"
       env: TOX_ENV=pypy3-cli
 
     # osx/cli
@@ -88,7 +88,7 @@ matrix:
     - python: "3.8"
       env: TOX_ENV=py38-examples
 
-    - python: "pypy3.5"
+    - python: "pypy3.7"
       env: TOX_ENV=pypy3-examples
 
     # osx/examples
@@ -108,13 +108,13 @@ matrix:
       env: TOX_ENV=py38-abtrunk-trial
 
     # linux/trial/pypy3
-    - python: "pypy3.5"
+    - python: "pypy3.7"
       env: TOX_ENV=pypy3-unpinned-trial
 
-    - python: "pypy3.5"
+    - python: "pypy3.7"
       env: TOX_ENV=pypy3-pinned-trial
 
-    - python: "pypy3.5"
+    - python: "pypy3.7"
       env: TOX_ENV=pypy3-abtrunk-trial
 
     # osx/trial/python3
