@@ -5,10 +5,16 @@
 Changelog
 =========
 
-master
-------
+20.12.1
+-------
 
-* ...
+* new: bump dependencies
+* new: CI use newer ubuntu and newer pypy
+* fix: copy license file to root folder (#1825)
+* fix: check for io_counters feature - macos (#1826)
+* new: proxy improvements (maintain and RR multiple backend connections)
+* new: function-based custom authenticators (for more authmethods)
+* fix: proxy/rlink management API
 
 20.8.1
 ------
