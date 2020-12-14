@@ -117,22 +117,25 @@ matrix:
     - python: "pypy3.7"
       env: TOX_ENV=pypy3-abtrunk-trial
 
-    # osx/trial/python3
-    # https://docs.travis-ci.com/user/multi-os/#Python-example-(unsupported-languages)
-    - os: osx
-      osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
-      language: shell         # 'language: python' is an error on Travis CI macOS
-      env: TOX_ENV=py38-unpinned-trial
+    # Travis recently changed the pricing plans, and macOS builds, different from linux, fbsd, win
+    # requires additional "credits". yeah. https://github.com/crossbario/crossbar/issues/1832
+    #
+    # # osx/trial/python3
+    # # https://docs.travis-ci.com/user/multi-os/#Python-example-(unsupported-languages)
+    # - os: osx
+    #   osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
+    #   language: shell         # 'language: python' is an error on Travis CI macOS
+    #   env: TOX_ENV=py38-unpinned-trial
 
-    - os: osx
-      osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
-      language: shell         # 'language: python' is an error on Travis CI macOS
-      env: TOX_ENV=py38-pinned-trial
+    # - os: osx
+    #   osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
+    #   language: shell         # 'language: python' is an error on Travis CI macOS
+    #   env: TOX_ENV=py38-pinned-trial
 
-    - os: osx
-      osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
-      language: shell         # 'language: python' is an error on Travis CI macOS
-      env: TOX_ENV=py38-abtrunk-trial
+    # - os: osx
+    #   osx_image: xcode10.2    # Python 3.7.2 running on macOS 10.14.3
+    #   language: shell         # 'language: python' is an error on Travis CI macOS
+    #   env: TOX_ENV=py38-abtrunk-trial
 
     # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
     - stage: deploy
