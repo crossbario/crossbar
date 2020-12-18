@@ -1,4 +1,4 @@
-FROM python:3.7-slim
+FROM amd64/python:3.7-slim
 
 MAINTAINER The Crossbar.io Project <support@crossbario.com>
 
