@@ -21,6 +21,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Install OS package dependencies
+      run: |
+        sudo apt install libenchant-dev
+        sudo apt install libbz2-dev
+        sudo apt install libsnappy-dev
+        sudo apt install libunwind-dev
+
     - name: Set up Python 3.x
       uses: actions/setup-python@v2
       with:
@@ -52,12 +59,6 @@ jobs:
     # Checkout sources
     - uses: actions/checkout@v2
 
-    # Use this Python
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-
     # Install OS packages, as we install Python packages from source:
     # libenchant-dev: needed for pyenchant, needed for sphinx-spellcheck
     # libbz2-dev, libsnappy-dev: needed for compression
@@ -68,6 +69,12 @@ jobs:
         sudo apt install libbz2-dev
         sudo apt install libsnappy-dev
         sudo apt install libunwind-dev
+
+    # Use this Python
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
     - name: Install Python package dependencies
       run: |
@@ -100,6 +107,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+
+    - name: Install OS package dependencies
+      run: |
+        sudo apt install libenchant-dev
+        sudo apt install libbz2-dev
+        sudo apt install libsnappy-dev
+        sudo apt install libunwind-dev
 
     - name: Set up Python 3.x
       uses: actions/setup-python@v2
