@@ -23,6 +23,7 @@ jobs:
 
     - name: Install OS package dependencies
       run: |
+        sudo apt update
         sudo apt install libenchant-dev
         sudo apt install libbz2-dev
         sudo apt install libsnappy-dev
@@ -75,10 +76,10 @@ jobs:
     # libunwind-dev: needed for vmprof
     - name: Install OS package dependencies
       run: |
-        sudo apt install libenchant-dev
-        sudo apt install libbz2-dev
-        sudo apt install libsnappy-dev
-        sudo apt install libunwind-dev
+        sudo apt update
+        sudo apt install build-essential libssl-dev libffi-dev libunwind-dev \
+          libreadline-dev zlib1g-dev libbz2-dev libsqlite3-dev libncurses5-dev \
+          libsnappy-dev
 
     # Use this Python
     # https://github.com/actions/setup-python/blob/main/README.md
@@ -122,6 +123,7 @@ jobs:
 
     - name: Install OS package dependencies
       run: |
+        sudo apt update
         sudo apt install libenchant-dev
         sudo apt install libbz2-dev
         sudo apt install libsnappy-dev
