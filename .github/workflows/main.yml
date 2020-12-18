@@ -10,13 +10,23 @@ on:
     branches: [ $default-branch ]
 
 jobs:
-  build:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.x
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+        architecture: 'x64'
+    - name: Display Python version
+      run: python -V
 
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.6', '3.7', '3.8', '3.9']
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
