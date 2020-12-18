@@ -73,7 +73,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
-        pip install -r requirements.txt
+
+    - name: Install Crossbar.io package dependencies
+      run: |
+        pip install -r requirements-latest.txt
+
+    - name: Display Crossbar.io version
+      run: |
+        python -c "import crossbar; print(crossbar.__version__)"
+        which crossbar
+        crossbar version
 
     - name: Run unit tests (Twisted Trial)
       run: |
