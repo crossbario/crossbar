@@ -56,8 +56,8 @@ all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate Intell
 .. |Version| image:: https://img.shields.io/pypi/v/crossbar.svg
    :target: https://pypi.python.org/pypi/crossbar
 
-.. |Build Status| image:: https://travis-ci.org/crossbario/crossbar.svg?branch=master
-   :target: https://travis-ci.org/crossbario/crossbar
+.. |Build Status| image:: https://github.com/crossbario/crossbar/workflows/main/badge.svg
+   :target: https://github.com/crossbario/crossbar/actions?query=workflow%3Amain
 
 .. |Coverage| image:: https://img.shields.io/codecov/c/github/crossbario/crossbar/master.svg
    :target: https://codecov.io/github/crossbario/crossbar
@@ -70,9 +70,3 @@ all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate Intell
 
 .. |Snap Status| image:: https://build.snapcraft.io/badge/crossbario/crossbar.svg
    :target: https://build.snapcraft.io/user/crossbario/crossbar
-
-.. |Bounty 45173769| image:: https://api.bountysource.com/badge/issue?issue_id=45173769
-   :target: https://www.bountysource.com/issues/45173769-register-option-to-kick-existing-registration
-
-.. |Bounty 44253224| image:: https://api.bountysource.com/badge/issue?issue_id=44253224
-   :target: https://www.bountysource.com/issues/44253224-kerberos-authentication
