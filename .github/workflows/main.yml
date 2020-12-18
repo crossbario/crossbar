@@ -1,6 +1,10 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
+# GitHub actions for Crossbar.io CI/CD
+#
+# See also:
+#
+#   * https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+#   * https://github.com/actions/starter-workflows/blob/main/ci/python-package.yml
+#
 name: Crossbar.io
 
 on:
@@ -11,47 +15,86 @@ on:
     branches:
       - master
 
-# on:
-#   push:
-#     branches: [ $default-branch ]
-#   pull_request:
-#     branches: [ $default-branch ]
-
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python 3.x
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
         architecture: 'x64'
+
     - name: Display Python version
       run: python -V
 
+    - name: Run Flake8
+      run: tox -c tox.ini -e flake8
+
+    - name: Run Bandit
+      run: tox -c tox.ini -e bandit
+
+    - name: Run Coverage
+      run: tox -c tox.ini -e coverage
+
   test:
+    # Test on Ubuntu latest release, CPython 3.6-3.9
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.6', '3.7', '3.8', '3.9']
+
     steps:
+    # Checkout sources
     - uses: actions/checkout@v2
+
+    # Use this Python
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+
+    # Install OS packages, as we install Python packages from source:
+    # libenchant-dev: needed for pyenchant, needed for sphinx-spellcheck
+    # libbz2-dev, libsnappy-dev: needed for compression
+    # libunwind-dev: needed for vmprof
+    - name: Install OS package dependencies
+      run: |
+        sudo apt install libenchant-dev
+        sudo apt install libbz2-dev
+        sudo apt install libsnappy-dev
+        sudo apt install libunwind-dev
+
+    - name: Install Python package dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
         pip install -r requirements.txt
+
     - name: Run unit tests (Twisted Trial)
       run: |
         python -m twisted.trial crossbar
+
     - name: Run integration tests (Autobahn Client)
       run: |
         ./test/test_ab_examples.sh
+
     - name: Run command line tests (Crossbar.io CLI)
       run: |
         ./test/test_cli.sh
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.x
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+        architecture: 'x64'
+
+    - name: Run Sphinx
+      run: tox -c tox.ini -e sphinx
