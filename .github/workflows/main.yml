@@ -52,12 +52,12 @@ jobs:
     env:
       CB_FULLTESTS: 1
 
-    # Test on Ubuntu latest release, CPython 3.6-3.9
+    # Test on Ubuntu latest release, CPython 3.6-3.9 and PyPy 3.6-3.7
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ['3.6', '3.7', '3.8', '3.9']
+        python-version: ['3.6', '3.7', '3.8', '3.9', 'pypy3.6', 'pypy3.7']
 
     # https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepscontinue-on-error
@@ -89,9 +89,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
 
-    - name: Install Crossbar.io package dependencies
+    - name: Install Crossbar.io package dependencies & Crossbar.io
       run: |
         pip install -r requirements-latest.txt
+        pip install .
 
     - name: Display Crossbar.io version
       run: |
