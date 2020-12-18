@@ -88,8 +88,6 @@ jobs:
     - name: Display Crossbar.io version
       run: |
         python -c "import crossbar; print(crossbar.__version__)"
-        which crossbar
-        crossbar version
 
     - name: Run unit tests (Twisted Trial)
       run: |
