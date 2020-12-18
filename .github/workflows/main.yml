@@ -27,8 +27,10 @@ jobs:
         python-version: '3.x'
         architecture: 'x64'
 
-    - name: Display Python version
-      run: python -V
+    - name: Install Python package dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
 
     - name: Run Flake8
       run: tox -c tox.ini -e flake8
@@ -95,6 +97,11 @@ jobs:
       with:
         python-version: '3.x'
         architecture: 'x64'
+
+    - name: Install Python package dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
 
     - name: Run Sphinx
       run: tox -c tox.ini -e sphinx
