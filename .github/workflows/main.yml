@@ -49,6 +49,9 @@ jobs:
       run: tox -c tox.ini -e coverage
 
   test:
+    env:
+      CB_FULLTESTS: 1
+
     # Test on Ubuntu latest release, CPython 3.6-3.9
     runs-on: ubuntu-latest
 
