@@ -1,3 +1,5 @@
 # NOT YET SUPPORTED: https://hub.docker.com/r/arm64v8/pypy/
 
-FROM arm64v8/pypy:3.5-7.0.0-stretch
+# FROM arm64v8/pypy:3.5-7.0.0-stretch
+FROM pypy:3.7-7.3.3-slim-buster
+

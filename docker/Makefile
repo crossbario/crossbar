@@ -166,17 +166,17 @@ version_cpy3: version_amd64_cpy3 version_armhf_cpy3 version_aarch64_cpy3
 version_amd64_cpy3:
 	docker run \
 		--rm --entrypoint=/usr/local/bin/crossbar -it \
-		crossbario/crossbar:cpy3 version
+		crossbario/crossbar:cpy3-${CROSSBAR_VERSION} version
 
 version_armhf_cpy3:
 	docker run \
 		--rm --entrypoint=/usr/local/bin/crossbar -it \
-		crossbario/crossbar-armhf:cpy3 version
+		crossbario/crossbar-armhf:cpy3-${CROSSBAR_VERSION} version
 
 version_aarch64_cpy3:
 	docker run \
 		--rm --entrypoint=/usr/local/bin/crossbar -it \
-		crossbario/crossbar-aarch64:cpy3 version
+		crossbario/crossbar-aarch64:cpy3-${CROSSBAR_VERSION} version
 
 
 #
@@ -187,7 +187,7 @@ version_pypy3: version_amd64_pypy3 version_armhf_pypy3 version_aarch64_pypy3
 version_amd64_pypy3:
 	docker run \
 		--rm --entrypoint=/usr/local/bin/crossbar -it \
-		crossbario/crossbar:pypy3 version
+		crossbario/crossbar:pypy3-${CROSSBAR_VERSION} version
 
 version_armhf_pypy3:
 	@echo "PyPy3 isn't available for armhf yet"
@@ -204,17 +204,17 @@ test_cpy3: test_amd64_cpy3 test_armhf_cpy3 test_aarch64_cpy3
 test_amd64_cpy3:
 	docker run \
 		--rm -it -p 8080:8080 --name crossbar \
-		crossbario/crossbar:cpy3
+		crossbario/crossbar:cpy3-${CROSSBAR_VERSION}
 
 test_armhf_cpy3:
 	docker run \
 		--rm -it -p 8080:8080 --name crossbar \
-		crossbario/crossbar-armhf:cpy3
+		crossbario/crossbar-armhf:cpy3-${CROSSBAR_VERSION}
 
 test_aarch64_cpy3:
 	docker run \
 		--rm -it -p 8080:8080 --name crossbar \
-		crossbario/crossbar-aarch64:cpy3
+		crossbario/crossbar-aarch64:cpy3-${CROSSBAR_VERSION}
 
 
 #
@@ -225,7 +225,7 @@ test_pypy3: test_amd64_pypy3 test_armhf_pypy3 test_aarch64_pypy3
 test_amd64_pypy3:
 	docker run \
 		--rm -it -p 8080:8080 --name crossbar \
-		crossbario/crossbar:pypy3
+		crossbario/crossbar:pypy3-${CROSSBAR_VERSION}
 
 test_armhf_pypy3:
 	@echo "PyPy3 isn't available for armhf yet"

@@ -5,6 +5,12 @@
 Changelog
 =========
 
+20.12.2
+-------
+
+* fix: depend on Autobahn v20.12.2
+* fix: CI/CD - disable MacOS CI, update Docker imaging scripts
+
 20.12.1
 -------
 
