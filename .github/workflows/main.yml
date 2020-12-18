@@ -52,12 +52,12 @@ jobs:
     env:
       CB_FULLTESTS: 1
 
-    # Test on Ubuntu, MacOS, Windows using CPython 3.6-3.9 and PyPy 3.6-3.7
+    # Test on Ubuntu, MacOS, Windows using CPython 3.6-3.9, PyPy 3.6-3.7
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
+        # os: [ubuntu-latest, macos-latest, windows-latest]
         # https://github.com/actions/setup-python#specifying-a-pypy-version
         python-version: ['3.6', '3.7', '3.8', '3.9', 'pypy-3.6', 'pypy-3.7']
 
@@ -99,6 +99,8 @@ jobs:
 
     - name: Display Crossbar.io version
       run: |
+        python -c "from twisted.conch.checkers import SSHPublicKeyDatabase"
+        python -c "from autobahn import xbr; print(xbr.HAS_XBR)"
         python -c "import crossbar; print(crossbar.__version__)"
 
     - name: Run unit tests (Twisted Trial)
