@@ -1,7 +1,7 @@
 appdirs==1.4.4
 argon2-cffi==20.1.0
 attrs==20.3.0
-autobahn==20.12.2
+autobahn==20.12.3
 Automat==20.2.0
 bcrypt==3.2.0
 bitstring==3.1.7
@@ -30,7 +30,7 @@ netaddr==0.8.0
 numpy==1.19.4
 passlib==1.7.4
 priority==1.3.0
-psutil==5.7.3
+psutil==5.8.0
 py-ubjson==0.16.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
@@ -53,7 +53,7 @@ six==1.15.0
 sortedcontainers==2.3.0
 treq==20.9.0
 Twisted==20.3.0
-txaio==20.4.1
+txaio==20.12.1
 txtorcon==20.0.0
 u-msgpack-python==2.7.1
 ujson==4.0.1

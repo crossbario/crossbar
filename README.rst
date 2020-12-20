@@ -1,19 +1,19 @@
 Crossbar.io
 ===========
 
-`Crossbar.io <http://crossbar.io>`__ is an open source networking platform for distributed and microservice applications. It implements the open Web Application Messaging Protocol (WAMP), is feature rich, scalable, robust and secure. Let Crossbar.io take care of the hard parts of messaging so you can focus on your app's features.
+`Crossbar.io <https://crossbar.io>`__ is an open source networking platform for distributed and microservice applications. It implements the open Web Application Messaging Protocol (WAMP), is feature rich, scalable, robust and secure. Let Crossbar.io take care of the hard parts of messaging so you can focus on your app's features.
 
 | |Version| |Build Status| |Coverage| |Docker| |Snap Status|
 
 Resources
 ---------
 
--  Read more on the `Project Homepage <http://crossbar.io>`__
--  Jump into the `Getting Started <http://crossbar.io/docs/Getting-Started/>`__
--  Checkout the complete `Documentation <http://crossbar.io/docs/>`__
+-  Read more on the `Project Homepage <https://crossbar.io>`__
+-  Jump into the `Getting Started <https://crossbar.io/docs/Getting-Started/>`__
+-  Checkout the complete `Documentation <https://crossbar.io/docs/>`__
 -  Join the `Mailing List <https://groups.google.com/forum/#!forum/crossbario>`__
 -  Follow us on `Twitter <https://twitter.com/crossbario>`__
--  Ask a question on `StackOverflow <http://stackoverflow.com/questions/ask?tags=crossbar,wamp>`__
+-  Ask a question on `StackOverflow <https://stackoverflow.com/questions/ask?tags=crossbar,wamp>`__
 -  Read our `Legal Notes <https://github.com/crossbario/crossbar/blob/master/legal/README.md>`__
 
 Docker images
@@ -63,7 +63,7 @@ all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate Intell
    :target: https://codecov.io/github/crossbario/crossbar
 
 .. |Docs| image:: https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat
-   :target: http://crossbar.io/docs/
+   :target: https://crossbar.io/docs/
 
 .. |Docker| image:: https://img.shields.io/badge/docker-ready-blue.svg?style=flat
    :target: https://hub.docker.com/r/crossbario/crossbar

@@ -5,6 +5,12 @@
 Changelog
 =========
 
+20.12.3
+-------
+
+* fix: update and migrate CI/CD pipeline to GitHub issues
+* fix: depend on Autobahn v20.12.3 - this fixes a potential security issue when enabling the Web status page (`enable_webstatus`) on WebSocket-WAMP listening transports-
+
 20.12.2
 -------
 
