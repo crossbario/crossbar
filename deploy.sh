@@ -27,6 +27,9 @@ ls -la ./dist
 
 # upload to S3: https://s3.eu-central-1.amazonaws.com/crossbarbuilder/wheels/
 echo 'uploading package ..'
+# "aws s3 ls" will return -1 when no files are found! but we don't want our script to exit
+aws s3 ls ${AWS_S3_BUCKET_NAME}/wheels/crossbar- || true
+
 # aws s3 cp --recursive ./dist s3://${AWS_S3_BUCKET_NAME}/wheels
 aws s3 rm s3://${AWS_S3_BUCKET_NAME}/wheels/crossbar-${CROSSBAR_VERSION}-py2.py3-none-any.whl
 aws s3 rm s3://${AWS_S3_BUCKET_NAME}/wheels/crossbar-latest-py2.py3-none-any.whl
