@@ -108,9 +108,9 @@ jobs:
       run: |
         python -m twisted.trial crossbar
 
-    # - name: Run integration tests (Autobahn Client)
-    #   run: |
-    #     ./test/test_ab_examples.sh
+    - name: Run integration tests (Autobahn|Python Client)
+      run: |
+        ./test/test_ab_examples.sh
 
     - name: Run command line tests (Crossbar.io CLI)
       run: |
