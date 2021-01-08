@@ -20,6 +20,7 @@ hpack==3.0.0
 hyperframe==5.2.0
 hyperlink==21.0.0
 idna==2.5
+importlib-resources==4.1.1
 incremental==17.5.0
 Jinja2==2.11.2
 lmdb==1.0.0
