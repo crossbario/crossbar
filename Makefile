@@ -34,6 +34,11 @@ clean:
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
 
+setup_service:
+	sudo cp github-actions-crossbar.service /etc/systemd/system/github-actions-crossbar.service
+	sudo systemctl daemon-reload
+	sudo systemctl enable github-actions-crossbar.service
+
 # Targets for Sphinx-based documentation
 #
 
