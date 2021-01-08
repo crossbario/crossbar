@@ -67,6 +67,7 @@ freeze:
 	virtualenv vers
 
 	# install and freeze latest versions of minimum requirements
+	vers/bin/pip3 install -U pip
 	vers/bin/pip3 install -r requirements-min.txt
 	vers/bin/pip3 freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-pinned.txt
 
