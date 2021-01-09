@@ -98,6 +98,12 @@ clean:
 	./removeall.sh
 
 
+download_wheels:
+	mkdir -p ./.wheels/
+	rm -f ./.wheels/*.whl
+	curl -o ./.wheels/txaio-latest-py2.py3-none-any.whl       https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/txaio-latest-py2.py3-none-any.whl
+	curl -o ./.wheels/autobahn-latest-py2.py3-none-any.whl    https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/autobahn-latest-py2.py3-none-any.whl
+	curl -o ./.wheels/zlmdb-latest-py2.py3-none-any.whl       https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/zlmdb-latest-py2.py3-none-any.whl
 
 #
 # BUILD: Community / CPython 3

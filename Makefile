@@ -33,15 +33,6 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
-
-setup_service:
-	sudo cp github-actions-crossbar.service /etc/systemd/system/github-actions-crossbar.service
-	sudo systemctl daemon-reload
-	sudo systemctl enable github-actions-crossbar.service
-
-restart_service:
-	sudo systemctl restart github-actions-crossbar.service
-
 logs_service:
 	sudo journalctl -f -u github-actions-crossbar.service
 
