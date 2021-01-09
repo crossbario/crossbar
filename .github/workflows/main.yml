@@ -149,8 +149,6 @@ jobs:
     #     # https://github.com/actions/setup-python#specifying-a-pypy-version
     #     # https://downloads.python.org/pypy/versions.json
     #     # python-version: ['3.9', 'pypy-3.7']
-    #     python-version: ['pypy-3.7']
-    #     pypy_version:	'nightly'
 
     # https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepscontinue-on-error
@@ -168,8 +166,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: pypy-3.7
-        pypy_version:	nightly
+        python-version: pypy-3.7-nightly
         architecture: aarch64
 
     - name: Install Python package dependencies
