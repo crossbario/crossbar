@@ -59,6 +59,7 @@ jobs:
         cd ./docker && \
         make download_wheels && \
         make build_amd64_cpy3 && \
+        pwd && ls -la . && \
         docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_PASSWORD }} docker.io && \
         make publish_amd64_cpy3
 
@@ -67,5 +68,6 @@ jobs:
         cd ./docker && \
         make download_wheels && \
         make build_amd64_pypy3 && \
+        pwd && ls -la . && \
         docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_PASSWORD }} docker.io && \
         make publish_amd64_pypy3

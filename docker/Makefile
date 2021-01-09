@@ -117,7 +117,7 @@ build_cpy3: build_amd64_cpy3 build_armhf_cpy3 build_aarch64_cpy3
 build_amd64_cpy3:
 	# enforce auto-generating a new key when using the images
 	rm -f node/.crossbar/key.*
-	time docker build \
+	docker build \
 		--build-arg BUILD_DATE=${BUILD_DATE} \
 		--build-arg CROSSBAR_VCS_REF=${CROSSBAR_VCS_REF} \
 		--build-arg CROSSBAR_VERSION=${CROSSBAR_VERSION} \
@@ -129,7 +129,7 @@ build_amd64_cpy3:
 build_armhf_cpy3:
 	# enforce auto-generating a new key when using the images
 	rm -f node/.crossbar/key.*
-	time docker build \
+	docker build \
 		--build-arg BUILD_DATE=${BUILD_DATE} \
 		--build-arg CROSSBAR_VCS_REF=${CROSSBAR_VCS_REF} \
 		--build-arg CROSSBAR_VERSION=${CROSSBAR_VERSION} \
@@ -141,7 +141,7 @@ build_armhf_cpy3:
 build_aarch64_cpy3:
 	# enforce auto-generating a new key when using the images
 	rm -f node/.crossbar/key.*
-	time docker build \
+	docker build \
 		--build-arg BUILD_DATE=${BUILD_DATE} \
 		--build-arg CROSSBAR_VCS_REF=${CROSSBAR_VCS_REF} \
 		--build-arg CROSSBAR_VERSION=${CROSSBAR_VERSION} \
@@ -159,7 +159,7 @@ build_pypy3: build_amd64_pypy3 build_armhf_pypy3 build_aarch64_pypy3
 build_amd64_pypy3:
 	# enforce auto-generating a new key when using the images
 	rm -f node/.crossbar/key.*
-	time docker build \
+	docker build \
 		--build-arg BUILD_DATE=${BUILD_DATE} \
 		--build-arg CROSSBAR_VCS_REF=${CROSSBAR_VCS_REF} \
 		--build-arg CROSSBAR_VERSION=${CROSSBAR_VERSION} \
