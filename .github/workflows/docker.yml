@@ -1,17 +1,18 @@
-name: deploy
+name: docker
 
 on:
   # Trigger this workflow when the "main" workflow has completed successfully
   # https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows#workflow_run
   workflow_run:
     workflows:
-      - main
+      - deploy
     branches:
       - master
     types:
       - completed
 
 jobs:
+
   image_amd64:
     # runs-on: ubuntu-20.04
 
