@@ -39,6 +39,12 @@ setup_service:
 	sudo systemctl daemon-reload
 	sudo systemctl enable github-actions-crossbar.service
 
+restart_service:
+	sudo systemctl restart github-actions-crossbar.service
+
+logs_service:
+	sudo journalctl -f -u github-actions-crossbar.service
+
 # Targets for Sphinx-based documentation
 #
 
