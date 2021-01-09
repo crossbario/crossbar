@@ -165,7 +165,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-        architecture: arm64
+        architecture: aarch64
 
     - name: Install Python package dependencies
       run: |
