@@ -50,8 +50,8 @@ jobs:
     - name: Prepare Qemu for Docker
       run: |
         mkdir -p ./docker/.qemu
-        touch ./docker/.qemu/qemu-aarch64-static
-        touch ./docker/.qemu/qemu-arm-static
+        touch ./docker/.qemu/qemu-system-aarch64
+        touch ./docker/.qemu/qemu-system-arm
         ls -la ./docker/.qemu
 
     - name: BuildFX Docker image for cpy-amd64
@@ -118,8 +118,8 @@ jobs:
     - name: Prepare Qemu for Docker
       run: |
         mkdir -p ./docker/.qemu
-        cp /usr/bin/qemu-aarch64-static ./docker/.qemu/
-        cp /usr/bin/qemu-arm-static ./docker/.qemu/
+        cp /usr/bin/qemu-system-aarch64 ./docker/.qemu/
+        cp /usr/bin/qemu-system-arm ./docker/.qemu/
         ls -la ./docker/.qemu
 
     - name: Build Docker image for cpy-arm64
@@ -135,4 +135,5 @@ jobs:
         cd ./docker && \
         make download_wheels && \
         make build_docker_pypy_slim_arm64 && \
+        docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_PASSWORD }} docker.io && \
         make publish_docker_pypy_slim_arm64
