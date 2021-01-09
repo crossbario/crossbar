@@ -16,6 +16,8 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/master'
 
+    runs-on: ubuntu-20.04
+
     # https://github.blog/changelog/2020-12-15-github-actions-environments-environment-protection-rules-and-environment-secrets-beta/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/environments
     environment: deploy_aws
@@ -27,7 +29,6 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       WAMP_PRIVATE_KEY:      ${{ secrets.WAMP_PRIVATE_KEY }}
 
-    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
 

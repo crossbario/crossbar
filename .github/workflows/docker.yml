@@ -14,10 +14,8 @@ on:
 jobs:
 
   image_amd64:
-    # runs-on: ubuntu-20.04
 
-    # run self-hosted builder on matterhorn
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
 
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
@@ -43,16 +41,6 @@ jobs:
         echo "  CROSSBAR_VCS_REF    = ${CROSSBAR_VCS_REF}"
         echo "  CROSSBAR_VERSION    = ${CROSSBAR_VERSION}"
         echo ""
-
-    # # we only have one Docker images for all archs, and we copy over Qemu runtime files
-    # # into the images. for amd64, we don't need anything actually, hence we create an
-    # # empty file at the expected location on the host
-    # - name: Prepare Qemu for Docker
-    #   run: |
-    #     mkdir -p ./docker/.qemu
-    #     touch ./docker/.qemu/qemu-system-aarch64
-    #     touch ./docker/.qemu/qemu-system-arm
-    #     ls -la ./docker/.qemu
 
     - name: Build & publish Docker image for cpy-amd64
       run: |
