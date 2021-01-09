@@ -3,16 +3,15 @@ Crossbar.io
 
 `Crossbar.io <https://crossbar.io>`__ is an open source networking platform for distributed and microservice applications. It implements the open Web Application Messaging Protocol (WAMP), is feature rich, scalable, robust and secure. Let Crossbar.io take care of the hard parts of messaging so you can focus on your app's features.
 
-| |Version| |Build Status| |Coverage| |Docker| |Snap Status|
+| |Version| |Build| |Deploy| |Coverage| |Docker| |Snap Status|
 
 Resources
 ---------
 
 -  Read more on the `Project Homepage <https://crossbar.io>`__
 -  Jump into the `Getting Started <https://crossbar.io/docs/Getting-Started/>`__
--  Checkout the complete `Documentation <https://crossbar.io/docs/>`__
--  Join the `Mailing List <https://groups.google.com/forum/#!forum/crossbario>`__
--  Follow us on `Twitter <https://twitter.com/crossbario>`__
+-  Read the reference `Documentation <https://crossbar.io/docs/>`__
+-  Join the `User forum <https://forum.crossbar.io/>`__
 -  Ask a question on `StackOverflow <https://stackoverflow.com/questions/ask?tags=crossbar,wamp>`__
 -  Read our `Legal Notes <https://github.com/crossbario/crossbar/blob/master/legal/README.md>`__
 
@@ -56,8 +55,11 @@ all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate Intell
 .. |Version| image:: https://img.shields.io/pypi/v/crossbar.svg
    :target: https://pypi.python.org/pypi/crossbar
 
-.. |Build Status| image:: https://github.com/crossbario/crossbar/workflows/main/badge.svg
+.. |Build| image:: https://github.com/crossbario/crossbar/workflows/main/badge.svg
    :target: https://github.com/crossbario/crossbar/actions?query=workflow%3Amain
+
+.. |Deploy| image:: https://github.com/crossbario/crossbar/workflows/deploy/badge.svg
+   :target: https://github.com/crossbario/crossbar/actions?query=workflow%3Adeploy
 
 .. |Coverage| image:: https://img.shields.io/codecov/c/github/crossbario/crossbar/master.svg
    :target: https://codecov.io/github/crossbario/crossbar

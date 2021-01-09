@@ -34,6 +34,17 @@ clean:
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
 
+setup_service:
+	sudo cp github-actions-crossbar.service /etc/systemd/system/github-actions-crossbar.service
+	sudo systemctl daemon-reload
+	sudo systemctl enable github-actions-crossbar.service
+
+restart_service:
+	sudo systemctl restart github-actions-crossbar.service
+
+logs_service:
+	sudo journalctl -f -u github-actions-crossbar.service
+
 # Targets for Sphinx-based documentation
 #
 
@@ -67,6 +78,7 @@ freeze:
 	virtualenv vers
 
 	# install and freeze latest versions of minimum requirements
+	vers/bin/pip3 install -U pip
 	vers/bin/pip3 install -r requirements-min.txt
 	vers/bin/pip3 freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-pinned.txt
 

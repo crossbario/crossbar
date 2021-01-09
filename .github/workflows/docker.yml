@@ -1,0 +1,137 @@
+name: deploy
+
+on:
+  # Trigger this workflow when the "main" workflow has completed successfully
+  # https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows#workflow_run
+  workflow_run:
+    workflows:
+      - main
+    branches:
+      - master
+    types:
+      - completed
+
+jobs:
+  image_amd64:
+    # runs-on: ubuntu-20.04
+
+    # run self-hosted builder on matterhorn
+    runs-on: self-hosted
+
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set environment
+      run: |
+        echo CROSSBAR_BUILD_DATE=`date -u +"%Y-%m-%d"` >> $GITHUB_ENV
+        echo CROSSBAR_VCS_REF=`git rev-parse --short ${GITHUB_SHA}` >> $GITHUB_ENV
+        echo CROSSBAR_BUILD_ID=$(date --utc +%Y%m%d)-$(git rev-parse --short ${GITHUB_SHA}) >> $GITHUB_ENV
+        echo CROSSBAR_VERSION=$(grep -E '^(__version__)' ./crossbar/_version.py | cut -d ' ' -f3 | sed -e 's|[u"'\'']||g') >> $GITHUB_ENV
+
+    - name: Print environment
+      run: |
+        echo ""
+        echo "Build environment configured:"
+        echo ""
+        echo "  CROSSBAR_BUILD_DATE = ${CROSSBAR_BUILD_DATE}"
+        echo "  CROSSBAR_BUILD_ID   = ${CROSSBAR_BUILD_ID}"
+        echo "  CROSSBAR_VCS_REF    = ${CROSSBAR_VCS_REF}"
+        echo "  CROSSBAR_VERSION    = ${CROSSBAR_VERSION}"
+        echo ""
+
+    # we only have one Docker images for all archs, and we copy over Qemu runtime files
+    # into the images. for amd64, we don't need anything actually, hence we create an
+    # empty file at the expected location on the host
+    - name: Prepare Qemu for Docker
+      run: |
+        mkdir -p ./docker/.qemu
+        touch ./docker/.qemu/qemu-aarch64-static
+        touch ./docker/.qemu/qemu-arm-static
+        ls -la ./docker/.qemu
+
+    - name: BuildFX Docker image for cpy-amd64
+      run: |
+        cd ./docker && \
+        make download_wheels && \
+        make build_docker_cpy_slim_amd64 && \
+        docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_PASSWORD }} docker.io && \
+        make publish_docker_cpy_slim_amd64
+
+    - name: BuildFX Docker image for pypy-amd64
+      run: |
+        cd ./docker && \
+        make download_wheels && \
+        make build_docker_pypy_slim_amd64 && \
+        docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_PASSWORD }} docker.io && \
+        make publish_docker_pypy_slim_amd64
+
+  image_arm64:
+    # runs-on: ubuntu-20.04
+
+    # run self-hosted builder on matterhorn
+    runs-on: self-hosted
+
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    # must be skipped on self-hosted build slaves (eg matterhorn)
+    #
+    # - name: Install OS package dependencies
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y qemu qemu-kvm qemu-system qemu-system-x86 qemu-system-arm
+    #     sudo apt-get install -y --no-install-recommends qemu-user-static binfmt-support
+    #     sudo update-binfmts --enable qemu-arm
+    #     sudo update-binfmts --enable qemu-aarch64
+    #     sudo update-binfmts --display qemu-arm
+    #     sudo update-binfmts --display qemu-aarch64
+
+    # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#setting-an-environment-variable
+    # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#adding-a-system-path
+    - name: Set environment
+      run: |
+        echo CROSSBAR_BUILD_DATE=`date -u +"%Y-%m-%d"` >> $GITHUB_ENV
+        echo CROSSBAR_VCS_REF=`git rev-parse --short ${GITHUB_SHA}` >> $GITHUB_ENV
+        echo CROSSBAR_BUILD_ID=$(date --utc +%Y%m%d)-$(git rev-parse --short ${GITHUB_SHA}) >> $GITHUB_ENV
+        echo CROSSBAR_VERSION=$(grep -E '^(__version__)' ./crossbar/_version.py | cut -d ' ' -f3 | sed -e 's|[u"'\'']||g') >> $GITHUB_ENV
+
+    - name: Print environment
+      run: |
+        echo ""
+        echo "Build environment configured:"
+        echo ""
+        echo "  CROSSBAR_BUILD_DATE = ${CROSSBAR_BUILD_DATE}"
+        echo "  CROSSBAR_BUILD_ID   = ${CROSSBAR_BUILD_ID}"
+        echo "  CROSSBAR_VCS_REF    = ${CROSSBAR_VCS_REF}"
+        echo "  CROSSBAR_VERSION    = ${CROSSBAR_VERSION}"
+        echo ""
+
+    - name: Prepare Qemu for Docker
+      run: |
+        mkdir -p ./docker/.qemu
+        cp /usr/bin/qemu-aarch64-static ./docker/.qemu/
+        cp /usr/bin/qemu-arm-static ./docker/.qemu/
+        ls -la ./docker/.qemu
+
+    - name: Build Docker image for cpy-arm64
+      run: |
+        cd ./docker && \
+        make download_wheels && \
+        make build_docker_cpy_slim_arm64 && \
+        docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_PASSWORD }} docker.io && \
+        make publish_docker_cpy_slim_arm64
+
+    - name: Build Docker image for pypy-arm64
+      run: |
+        cd ./docker && \
+        make download_wheels && \
+        make build_docker_pypy_slim_arm64 && \
+        make publish_docker_pypy_slim_arm64

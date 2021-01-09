@@ -1,0 +1,15 @@
+[Unit]
+Description=GitHub Actions self-hosted worker for Crossbar.io (ARM64)
+After=syslog.target network.target nss-lookup.target network-online.target
+Requires=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+Environment="PATH=/home/ubuntu/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
+ExecStart=/usr/bin/unbuffer /home/ubuntu/actions-runner-crossbar/run.sh
+Restart=on-abort

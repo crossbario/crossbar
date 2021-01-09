@@ -7,6 +7,7 @@ constantly>=15.1.0
 cryptography>=1.9
 h2>=3.0,<4.0
 idna<2.6,>=2.5
+importlib-resources>=4.1.1
 incremental>=17.5.0
 jinja2>=2.9.6
 lmdb>=0.92
