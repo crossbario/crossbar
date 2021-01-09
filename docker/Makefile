@@ -26,34 +26,38 @@ prepare:
 	crossbar init --appdir ./node
 	mkdir node/web/js -p
 
-publish:
+publish_amd64_cpy3:
 	# amd64 / community / cpy3
 	docker push crossbario/crossbar:latest
 	docker push crossbario/crossbar:cpy3
 	docker push crossbario/crossbar:cpy3-${CROSSBAR_VERSION}
 
+publish_amd64_pypy3:
+	# amd64 / community / pypy3
+	docker push crossbario/crossbar:pypy3
+	docker push crossbario/crossbar:pypy3-${CROSSBAR_VERSION}
+
+publish_armhf_cpy3:
 	# armhf / community / cpy3
 	docker push crossbario/crossbar-armhf:latest
 	docker push crossbario/crossbar-armhf:cpy3
 	docker push crossbario/crossbar-armhf:cpy3-${CROSSBAR_VERSION}
 
+	# armhf / community / pypy3
+	# docker push crossbario/crossbar-armhf:pypy3
+	# docker push crossbario/crossbar-armhf:pypy3-${CROSSBAR_VERSION}
+
+publish_aarch64_cpy3:
 	# aarch64 / community / cpy3
 	docker push crossbario/crossbar-aarch64:latest
 	docker push crossbario/crossbar-aarch64:cpy3
 	docker push crossbario/crossbar-aarch64:cpy3-${CROSSBAR_VERSION}
 
-	# amd64 / community / pypy3
-	docker push crossbario/crossbar:pypy3
-	docker push crossbario/crossbar:pypy3-${CROSSBAR_VERSION}
-
-	# armhf / community / pypy3
-	# docker push crossbario/crossbar-armhf:pypy3
-	# docker push crossbario/crossbar-armhf:pypy3-${CROSSBAR_VERSION}
-
 	# aarch64 / community / pypy3
 	# docker push crossbario/crossbar-aarch64:pypy3
 	# docker push crossbario/crossbar-aarch64:pypy3-${CROSSBAR_VERSION}
 
+trigger_microbadger:
 	# trigger updates of metainfo on https://microbadger.com/
 	curl -X POST https://hooks.microbadger.com/images/crossbario/crossbar/jA-pM9fXwd6v4Q7M3PWGG10XPAE=
 	curl -X POST https://hooks.microbadger.com/images/crossbario/crossbar-armhf/3hB5Fn-4Bf2VV9ihB8e7v687Y60=

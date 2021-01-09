@@ -74,7 +74,6 @@ jobs:
       CB_FULLTESTS: 1
 
     # Test on Ubuntu, MacOS, Windows using CPython 3.6-3.9, PyPy 3.6-3.7
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-20.04]
@@ -82,6 +81,8 @@ jobs:
 
         # https://github.com/actions/setup-python#specifying-a-pypy-version
         python-version: ['3.6', '3.7', '3.8', '3.9', 'pypy-3.6', 'pypy-3.7']
+
+    runs-on: ${{ matrix.os }}
 
     # https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepscontinue-on-error

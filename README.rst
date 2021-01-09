@@ -3,7 +3,7 @@ Crossbar.io
 
 `Crossbar.io <https://crossbar.io>`__ is an open source networking platform for distributed and microservice applications. It implements the open Web Application Messaging Protocol (WAMP), is feature rich, scalable, robust and secure. Let Crossbar.io take care of the hard parts of messaging so you can focus on your app's features.
 
-| |Version| |Build| |Deploy| |Docker| |Coverage| |Docker Image| |Snap|
+| |Version| |Build| |Deploy| |Docker| |Coverage| |Dockerhub| |Snapstore|
 
 Resources
 ---------
@@ -70,8 +70,8 @@ all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate Intell
 .. |Docs| image:: https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat
    :target: https://crossbar.io/docs/
 
-.. |Docker| image:: https://img.shields.io/badge/docker-ready-blue.svg?style=flat
+.. |Dockerhub| image:: https://img.shields.io/badge/docker-ready-blue.svg?style=flat
    :target: https://hub.docker.com/r/crossbario/crossbar
 
-.. |Snap| image:: https://build.snapcraft.io/badge/crossbario/crossbar.svg
+.. |Snapstore| image:: https://build.snapcraft.io/badge/crossbario/crossbar.svg
    :target: https://build.snapcraft.io/user/crossbario/crossbar

@@ -114,7 +114,7 @@ You can find a complete example
 
 E.g. here is part of a Crossbar.io node configuration:
 
-.. code:: json
+.. code:: javascript
 
     {
        "workers": [
@@ -218,7 +218,7 @@ You can find complete examples for different languages
 
 Here is part of a Crossbar.io node configuration:
 
-.. code:: json
+.. code:: javascript
 
     {
        "workers": [

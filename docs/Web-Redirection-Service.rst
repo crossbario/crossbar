@@ -41,7 +41,7 @@ WebSocket) on port 80 to secure HTTPS (and secure WebSocket) on port
        }
     }
 
-    The former example assumes the host's name is **example.com**
+The former example assumes the host's name is **example.com**.
 
 The single parameter to the *Redirection* service is ``url``, which can
 take different forms:
