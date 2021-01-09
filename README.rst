@@ -3,7 +3,7 @@ Crossbar.io
 
 `Crossbar.io <https://crossbar.io>`__ is an open source networking platform for distributed and microservice applications. It implements the open Web Application Messaging Protocol (WAMP), is feature rich, scalable, robust and secure. Let Crossbar.io take care of the hard parts of messaging so you can focus on your app's features.
 
-| |Version| |Build| |Deploy| |Coverage| |Docker| |Snap Status|
+| |Version| |Build| |Deploy| |Docker| |Coverage| |Docker Image| |Snap|
 
 Resources
 ---------
@@ -61,6 +61,9 @@ all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate Intell
 .. |Deploy| image:: https://github.com/crossbario/crossbar/workflows/deploy/badge.svg
    :target: https://github.com/crossbario/crossbar/actions?query=workflow%3Adeploy
 
+.. |Docker| image:: https://github.com/crossbario/crossbar/workflows/docker/badge.svg
+   :target: https://github.com/crossbario/crossbar/actions?query=workflow%3Adocker
+
 .. |Coverage| image:: https://img.shields.io/codecov/c/github/crossbario/crossbar/master.svg
    :target: https://codecov.io/github/crossbario/crossbar
 
@@ -70,5 +73,5 @@ all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate Intell
 .. |Docker| image:: https://img.shields.io/badge/docker-ready-blue.svg?style=flat
    :target: https://hub.docker.com/r/crossbario/crossbar
 
-.. |Snap Status| image:: https://build.snapcraft.io/badge/crossbario/crossbar.svg
+.. |Snap| image:: https://build.snapcraft.io/badge/crossbario/crossbar.svg
    :target: https://build.snapcraft.io/user/crossbario/crossbar
