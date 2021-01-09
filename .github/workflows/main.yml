@@ -147,7 +147,7 @@ jobs:
       matrix:
         # https://github.com/actions/setup-python#specifying-a-pypy-version
         # https://downloads.python.org/pypy/versions.json
-        python-version: ['3.9', 'pypy-3.7']
+        python-version: ['3.8', 'pypy-3.7']
 
     # https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepscontinue-on-error
@@ -158,6 +158,7 @@ jobs:
     - uses: actions/checkout@v2
 
     # Use this Python
+    # https://github.com/marketplace/actions/setup-python
     # https://github.com/actions/setup-python/blob/main/README.md
     # https://docs.github.com/en/free-pro-team@latest/actions/guides/building-and-testing-python#specifying-a-python-version
     # https://github.com/actions/setup-python/issues/45
@@ -165,7 +166,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-        architecture: aarch64
+        architecture: arm64
 
     - name: Install Python package dependencies
       run: |
