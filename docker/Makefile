@@ -54,8 +54,8 @@ publish_aarch64_cpy3:
 	docker push crossbario/crossbar-aarch64:cpy3-${CROSSBAR_VERSION}
 
 	# aarch64 / community / pypy3
-	# docker push crossbario/crossbar-aarch64:pypy3
-	# docker push crossbario/crossbar-aarch64:pypy3-${CROSSBAR_VERSION}
+	docker push crossbario/crossbar-aarch64:pypy3
+	docker push crossbario/crossbar-aarch64:pypy3-${CROSSBAR_VERSION}
 
 trigger_microbadger:
 	# trigger updates of metainfo on https://microbadger.com/
