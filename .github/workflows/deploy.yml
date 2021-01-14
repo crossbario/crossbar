@@ -14,6 +14,7 @@ on:
 jobs:
 
   deploy:
+    # wheels are only built and published (to our S3 bucket) when merging to master (not a yet unmerged PR!)
     if: github.ref == 'refs/heads/master'
 
     runs-on: ubuntu-20.04
@@ -36,14 +37,25 @@ jobs:
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#adding-a-system-path
     - name: Set environment
       run: |
-        echo BUILD_DATE=`date -u +"%Y-%m-%d"` >> $GITHUB_ENV
+        echo CROSSBAR_BUILD_DATE=`date -u +"%Y-%m-%d"` >> $GITHUB_ENV
         echo CROSSBAR_VCS_REF=`git rev-parse --short ${GITHUB_SHA}` >> $GITHUB_ENV
         echo CROSSBAR_BUILD_ID=$(date --utc +%Y%m%d)-$(git rev-parse --short ${GITHUB_SHA}) >> $GITHUB_ENV
         echo CROSSBAR_VERSION=$(grep -E '^(__version__)' ./crossbar/_version.py | cut -d ' ' -f3 | sed -e 's|[u"'\'']||g') >> $GITHUB_ENV
 
-    # - name: Set environment - 2
-    #   run: |
-    #     echo CROSSBAR_VCS_REF=`git --git-dir="./.git" rev-list -n 1 v${CROSSBAR_VERSION} --abbrev-commit` >> $GITHUB_ENV
+    - name: Print environment
+      run: |
+        echo ""
+        echo "Build environment configured:"
+        echo ""
+        echo "  CROSSBAR_BUILD_DATE = ${CROSSBAR_BUILD_DATE}"
+        echo "  CROSSBAR_BUILD_ID   = ${CROSSBAR_BUILD_ID}"
+        echo "  CROSSBAR_VCS_REF    = ${CROSSBAR_VCS_REF}"
+        echo "  CROSSBAR_VERSION    = ${CROSSBAR_VERSION}"
+        echo ""
+        echo "Wheels (publish):"
+        echo "  AWS_DEFAULT_REGION  = ${AWS_DEFAULT_REGION}"
+        echo "  AWS_S3_BUCKET_NAME  = ${AWS_S3_BUCKET_NAME}"
+        echo ""
 
     - name: Install OS package dependencies
       run: |
