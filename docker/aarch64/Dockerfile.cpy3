@@ -1,6 +1,6 @@
+FROM multiarch/qemu-user-static:x86_64-aarch64 as qemu
 FROM arm64v8/python:3.7-slim
-
-COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
+COPY --from=qemu /usr/bin/qemu-aarch64-static /usr/bin
 
 MAINTAINER The Crossbar.io Project <support@crossbario.com>
 
@@ -26,7 +26,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
 
 # install dependencies and Crossbar.io
-RUN    apt-get update \
+RUN apt-get update \
     && apt-get install -y --no-install-recommends \
                ca-certificates \
                expat \
