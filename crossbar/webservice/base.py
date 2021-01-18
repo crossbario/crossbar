@@ -83,7 +83,7 @@ class Resource404(Resource):
             peer = '?:?'
 
         s = self._page.render(cbVersion=crossbar.__version__,
-                              directory=self._directory,
+                              directory=self._directory.decode('utf8'),
                               workerPid=self._pid,
                               peer=peer)
 

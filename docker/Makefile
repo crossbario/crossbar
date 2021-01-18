@@ -54,8 +54,8 @@ publish_aarch64_cpy3:
 	docker push crossbario/crossbar-aarch64:cpy3-${CROSSBAR_VERSION}
 
 	# aarch64 / community / pypy3
-	# docker push crossbario/crossbar-aarch64:pypy3
-	# docker push crossbario/crossbar-aarch64:pypy3-${CROSSBAR_VERSION}
+	docker push crossbario/crossbar-aarch64:pypy3
+	docker push crossbario/crossbar-aarch64:pypy3-${CROSSBAR_VERSION}
 
 trigger_microbadger:
 	# trigger updates of metainfo on https://microbadger.com/
@@ -171,7 +171,15 @@ build_armhf_pypy3:
 	@echo "PyPy3 isn't available for armhf yet"
 
 build_aarch64_pypy3:
-	@echo "PyPy3 isn't available for aarch64 yet"
+	# enforce auto-generating a new key when using the images
+	rm -f node/.crossbar/key.*
+	docker build \
+		--build-arg BUILD_DATE=${BUILD_DATE} \
+		--build-arg CROSSBAR_VCS_REF=${CROSSBAR_VCS_REF} \
+		--build-arg CROSSBAR_VERSION=${CROSSBAR_VERSION} \
+		-t crossbario/crossbar:pypy3 \
+		-t crossbario/crossbar:pypy3-${CROSSBAR_VERSION} \
+		-f ./aarch64/Dockerfile.pypy3 .
 
 
 #
