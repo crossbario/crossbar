@@ -16,6 +16,72 @@ ENV CROSSBAR_VCS_REF $CROSSBAR_VCS_REF
 ENV CROSSBAR_VERSION $CROSSBAR_VERSION
 
 # we bindly copy over qemu deps for all archs regardless of arch
-COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
-COPY .qemu/qemu-arm-static /usr/bin/qemu-arm-static
+# do we really need this any more?
+#COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
+#COPY .qemu/qemu-arm-static /usr/bin/qemu-arm-static
 
+ENV LANG C.UTF-8
+
+ENV DEBIAN_FRONTEND noninteractive
+ENV PYTHONUNBUFFERED 1
+
+RUN    apt-get update \
+    && apt-get install -y --no-install-recommends \
+               ca-certificates \
+               procps \
+               iputils-ping \
+               net-tools \
+               htop \
+               curl \
+               expat \
+               build-essential \
+               libssl-dev \
+               libffi-dev \
+               libunwind-dev \
+               libreadline-dev \
+               zlib1g-dev \
+               libbz2-dev \
+               libsqlite3-dev \
+               libncurses5-dev \
+               libsnappy-dev \
+    && pip install --upgrade --no-cache-dir setuptools pip wheel \
+    && rm -rf ~/.cache \
+    && rm -rf /var/lib/apt/lists/*
+
+#
+# Install CrossbarFX
+#
+
+COPY ./.wheels /tmp
+RUN find /tmp
+
+RUN pip install --no-cache-dir \
+        /tmp/txaio-latest-py2.py3-none-any.whl \
+        /tmp/zlmdb-latest-py2.py3-none-any.whl \
+        /tmp/autobahn-latest-py2.py3-none-any.whl[accelerate,asyncio,twisted,encryption,compress,serialization,scram,xbr] \
+        /tmp/crossbar-latest-py2.py3-none-any.whl
+
+RUN pip install --no-cache-dir "wsaccel>=0.6.2"
+
+# test if everything installed properly
+RUN crossbar version
+
+# add our user and group
+RUN adduser --system --group --uid 242 --home /node crossbar
+
+# initialize a Crossbar.io node
+COPY ./.node/ /node/
+RUN chown -R crossbar:crossbar /node
+
+# make /node a volume to allow external configuration
+VOLUME /node
+
+# set the Crossbar.io node directory as working directory
+WORKDIR /node
+
+# run under this user, and expose default port
+USER crossbar
+EXPOSE 8080 8000
+
+# entrypoint for the Docker image is the Crossbar.io executable
+ENTRYPOINT ["crossbar", "start", "--cbdir", "/node/.crossbar"]
