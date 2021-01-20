@@ -35,20 +35,18 @@ prepare:
 
 publish_amd64_cpy3:
 	# amd64 / community / cpy3
-	docker push crossbario/crossbar:latest
-	docker push crossbario/crossbar:cpy3
-	docker push crossbario/crossbar:cpy3-${CROSSBAR_VERSION}
+	docker push crossbario/crossbar:cpy-amd64
+	docker push crossbario/crossbar:cpy-amd64-${CROSSBAR_VERSION}
 
 publish_amd64_pypy3:
 	# amd64 / community / pypy3
-	docker push crossbario/crossbar:pypy3
-	docker push crossbario/crossbar:pypy3-${CROSSBAR_VERSION}
+	docker push crossbario/crossbar:pypy-amd64
+	docker push crossbario/crossbar:pypy-amd64-${CROSSBAR_VERSION}
 
 publish_armhf_cpy3:
 	# armhf / community / cpy3
-	docker push crossbario/crossbar-armhf:latest
-	docker push crossbario/crossbar-armhf:cpy3
-	docker push crossbario/crossbar-armhf:cpy3-${CROSSBAR_VERSION}
+	docker push crossbario/crossbar:cpy-armhf
+	docker push crossbario/crossbar:cpy-armhf-${CROSSBAR_VERSION}
 
 	# armhf / community / pypy3
 	# docker push crossbario/crossbar-armhf:pypy3
@@ -56,14 +54,13 @@ publish_armhf_cpy3:
 
 publish_aarch64_cpy3:
 	# aarch64 / community / cpy3
-	docker push crossbario/crossbar-aarch64:latest
-	docker push crossbario/crossbar-aarch64:cpy3
-	docker push crossbario/crossbar-aarch64:cpy3-${CROSSBAR_VERSION}
+	docker push crossbario/crossbar:cpy-arm64v8
+	docker push crossbario/crossbar:cpy-arm64v8-${CROSSBAR_VERSION}
 
 publish_aarch64_pypy3:
 	# aarch64 / community / pypy3
-	docker push crossbario/crossbar-aarch64:pypy3
-	docker push crossbario/crossbar-aarch64:pypy3-${CROSSBAR_VERSION}
+	docker push crossbario/crossbar:pypy-arm64v8
+	docker push crossbario/crossbar:pypy-arm64v8-${CROSSBAR_VERSION}
 
 trigger_microbadger:
 	# trigger updates of metainfo on https://microbadger.com/
@@ -135,7 +132,6 @@ build_amd64_cpy3:
 		-t crossbario/crossbar:cpy-amd64-${CROSSBAR_VERSION} \
 		-f Dockerfile.cpy-slim \
 		.
-	docker run --rm crossbario/crossbar:cpy-amd64 master version
 	docker images crossbario/crossbar:cpy-amd64
 
 build_aarch64_cpy3:
@@ -149,7 +145,6 @@ build_aarch64_cpy3:
 		-t crossbario/crossbar:cpy-arm64v8 \
 		-t crossbario/crossbar:cpy-arm64v8-${CROSSBAR_VERSION} \
 		-f ./Dockerfile.cpy-slim .
-	docker run --rm crossbario/crossbar:cpy-arm64v8 master version
 	docker images crossbario/crossbar:cpy-arm64v8
 
 #build_amd64_cpy3:
@@ -174,7 +169,6 @@ build_armhf_cpy3:
 		-t crossbario/crossbar:cpy-armhf-${CROSSBAR_VERSION} \
 		-f Dockerfile.cpy-slim \
 		.
-	docker run --rm crossbario/crossbar:cpy-armhf master version
 	docker images crossbario/crossbar:cpy-armhf
 
 # build_aarch64_cpy3:
@@ -207,7 +201,6 @@ build_amd64_pypy3:
 		-t crossbario/crossbar:pypy-amd64-${CROSSBAR_VERSION} \
 		-f Dockerfile.pypy-slim \
 		.
-	docker run --rm crossbario/crossbar:pypy-amd64 master version
 	docker images crossbario/crossbar:pypy-amd64
 
 build_aarch64_pypy3:
@@ -221,7 +214,6 @@ build_aarch64_pypy3:
 		-t crossbario/crossbar:pypy-arm64v8 \
 		-t crossbario/crossbar:pypy-arm64v8-${CROSSBAR_VERSION} \
 		-f ./Dockerfile.pypy-slim .
-	docker run --rm crossbario/crossbar:pypy-arm64v8 master version
 	docker images crossbario/crossbar:pypy-arm64v8
 
 build_armhf_pypy3:
