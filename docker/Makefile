@@ -53,6 +53,7 @@ publish_aarch64_cpy3:
 	docker push crossbario/crossbar-aarch64:cpy3
 	docker push crossbario/crossbar-aarch64:cpy3-${CROSSBAR_VERSION}
 
+publish_aarch64_pypy3:
 	# aarch64 / community / pypy3
 	docker push crossbario/crossbar-aarch64:pypy3
 	docker push crossbario/crossbar-aarch64:pypy3-${CROSSBAR_VERSION}
