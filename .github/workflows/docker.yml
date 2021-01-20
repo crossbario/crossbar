@@ -18,7 +18,8 @@ jobs:
     # dockeer images only built and published (to DockerHub) when merging to master (not a yet unmerged PR!)
     if: github.ref == 'refs/heads/master'
 
-    runs-on: ubuntu-20.04
+    # runs-on: ubuntu-20.04
+    runs-on: [self-hosted, linux, X64] # means matterhorn
 
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
@@ -70,6 +71,47 @@ jobs:
         pwd && ls -la . && \
         docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_PASSWORD }} docker.io && \
         make publish_amd64_pypy3
+
+  image_arm64:
+
+    # dockeer images only built and published (to DockerHub) when merging to master (not a yet unmerged PR!)
+    if: github.ref == 'refs/heads/master'
+
+    # runs-on: ubuntu-20.04
+    runs-on: [self-hosted, linux, ARM64] # means matterhorn
+
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set environment
+      run: |
+        echo CROSSBAR_BUILD_DATE=`date -u +"%Y-%m-%d"` >> $GITHUB_ENV
+        echo CROSSBAR_VCS_REF=`git rev-parse --short ${GITHUB_SHA}` >> $GITHUB_ENV
+        echo CROSSBAR_BUILD_ID=$(date --utc +%Y%m%d)-$(git rev-parse --short ${GITHUB_SHA}) >> $GITHUB_ENV
+        echo CROSSBAR_VERSION=$(grep -E '^(__version__)' ./crossbar/_version.py | cut -d ' ' -f3 | sed -e 's|[u"'\'']||g') >> $GITHUB_ENV
+
+    - name: Print environment
+      run: |
+        echo ""
+        echo "Build environment configured:"
+        echo ""
+        echo "  CROSSBAR_BUILD_DATE = ${CROSSBAR_BUILD_DATE}"
+        echo "  CROSSBAR_BUILD_ID   = ${CROSSBAR_BUILD_ID}"
+        echo "  CROSSBAR_VCS_REF    = ${CROSSBAR_VCS_REF}"
+        echo "  CROSSBAR_VERSION    = ${CROSSBAR_VERSION}"
+        echo ""
+        echo "Wheels (source):"
+        echo "  AWS_DEFAULT_REGION  = ${AWS_DEFAULT_REGION}"
+        echo "  AWS_S3_BUCKET_NAME  = ${AWS_S3_BUCKET_NAME}"
+        echo ""
+        echo "Docker image (publish):"
+        echo "  DOCKERHUB_USER      = ${DOCKERHUB_USER}"
+        echo ""
 
     - name: Build & publish Docker image for cpy-arm64
       run: |
