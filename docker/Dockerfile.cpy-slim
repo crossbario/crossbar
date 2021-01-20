@@ -10,3 +10,12 @@ ARG CROSSBAR_BUILD_DATE
 ARG CROSSBAR_VCS_REF
 ARG CROSSBAR_VERSION
 
+# while these are defined, and we copy over to env vars (available in container at run-time)
+ENV CROSSBAR_BUILD_DATE $CROSSBAR_BUILD_DATE
+ENV CROSSBAR_VCS_REF $CROSSBAR_VCS_REF
+ENV CROSSBAR_VERSION $CROSSBAR_VERSION
+
+# we bindly copy over qemu deps for all archs regardless of arch
+COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
+COPY .qemu/qemu-arm-static /usr/bin/qemu-arm-static
+
