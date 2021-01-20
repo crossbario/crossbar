@@ -21,6 +21,15 @@ version: version_cpy3 version_pypy3
 
 test: test_cpy3 test_pypy3
 
+download_wheels:
+	mkdir -p ./.wheels/
+	rm -f ./.wheels/*.whl
+	curl -o ./.wheels/txaio-latest-py2.py3-none-any.whl       https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/txaio-latest-py2.py3-none-any.whl
+	curl -o ./.wheels/autobahn-latest-py2.py3-none-any.whl    https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/autobahn-latest-py2.py3-none-any.whl
+	curl -o ./.wheels/zlmdb-latest-py2.py3-none-any.whl       https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/zlmdb-latest-py2.py3-none-any.whl
+	curl -o ./.wheels/crossbar-latest-py2.py3-none-any.whl    https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/crossbar-latest-py2.py3-none-any.whl
+	curl -o ./.wheels/cfxdb-latest-py2.py3-none-any.whl       https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/cfxdb-latest-py2.py3-none-any.whl
+
 prepare:
 	-rm -rf ./node
 	crossbar init --appdir ./node
@@ -118,14 +127,27 @@ build_cpy3: build_amd64_cpy3 build_armhf_cpy3 build_aarch64_cpy3
 build_amd64_cpy3:
 	# enforce auto-generating a new key when using the images
 	rm -f node/.crossbar/key.*
-	docker build \
-		--build-arg BUILD_DATE=${BUILD_DATE} \
+	time docker build \
+		--build-arg CROSSBAR_ARCH=amd64 \
+		--build-arg CROSSBAR_BUILD_DATE=${CROSSBAR_BUILD_DATE} \
 		--build-arg CROSSBAR_VCS_REF=${CROSSBAR_VCS_REF} \
 		--build-arg CROSSBAR_VERSION=${CROSSBAR_VERSION} \
-		-t crossbario/crossbar:latest \
-		-t crossbario/crossbar:cpy3 \
-		-t crossbario/crossbar:cpy3-${CROSSBAR_VERSION} \
-		-f ./x86_64/Dockerfile.cpy3 .
+		-t crossbario/crossbar:cpy-slim-amd64 \
+		-t crossbario/crossbar:cpy-slim-amd64-${CROSSBAR_VERSION} \
+		-f Dockerfile.cpy-slim \
+		.
+	docker run --rm crossbario/crossbar:cpy-slim-amd64 master version
+	docker images crossbario/crossbar:cpy-slim-amd64
+
+#build_amd64_cpy3:
+#	docker build \
+#		--build-arg BUILD_DATE=${BUILD_DATE} \
+#		--build-arg CROSSBAR_VCS_REF=${CROSSBAR_VCS_REF} \
+#		--build-arg CROSSBAR_VERSION=${CROSSBAR_VERSION} \
+#		-t crossbario/crossbar:latest \
+#		-t crossbario/crossbar:cpy3 \
+#		-t crossbario/crossbar:cpy3-${CROSSBAR_VERSION} \
+#		-f ./x86_64/Dockerfile.cpy3 .
 
 build_armhf_cpy3:
 	# enforce auto-generating a new key when using the images
