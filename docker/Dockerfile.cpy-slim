@@ -61,7 +61,8 @@ RUN pip install --no-cache-dir \
         /tmp/autobahn-latest-py2.py3-none-any.whl[accelerate,asyncio,twisted,encryption,compress,serialization,scram,xbr] \
         /tmp/crossbar-latest-py2.py3-none-any.whl
 
-RUN pip install --no-cache-dir "wsaccel>=0.6.2" "vmprof>=0.4.12"
+RUN pip install --no-cache-dir "wsaccel>=0.6.2"
+RUN if [ "${CROSSBAR_ARCH}" = "amd64" ]; then RUN pip install --no-cache-dir "vmprof>=0.4.12"; fi
 
 # test if everything installed properly
 RUN crossbar version
