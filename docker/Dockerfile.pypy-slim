@@ -25,6 +25,7 @@ ENV LANG C.UTF-8
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
+ARG CROSSBAR_ARCH
 
 RUN    apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -62,7 +63,7 @@ RUN pip install --no-cache-dir \
         /tmp/autobahn-latest-py2.py3-none-any.whl[asyncio,twisted,encryption,compress,serialization,scram,xbr] \
         /tmp/crossbar-latest-py2.py3-none-any.whl
 
-RUN pip install --no-cache-dir "vmprof>=0.4.12"
+RUN if [ "$CROSSBAR_ARCH" = "amd64" ]; then pip install --no-cache-dir "vmprof>=0.4.12"; fi
 
 # test if everything installed properly
 RUN crossbar version
