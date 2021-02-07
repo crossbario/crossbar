@@ -719,6 +719,18 @@ class RouterController(TransportController):
                     self.log.error('    {path}', path=path)
             raise
 
+        # check component extra configuration
+        #
+        if hasattr(create_component, 'check_config') and callable(create_component.check_config) and extra:
+            try:
+                create_component.check_config(self.personality, extra)
+            except Exception as e:
+                emsg = 'invalid router component extra configuration: {}'.format(e)
+                self.log.debug(emsg)
+                raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+            else:
+                self.log.debug('starting router component "{component_id}" ..', component_id=id)
+
         # .. and create and add an WAMP application session to
         # run the component next to the router
         try:
