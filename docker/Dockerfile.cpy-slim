@@ -56,11 +56,10 @@ RUN    apt-get update \
 COPY ./.wheels /tmp
 RUN find /tmp
 
-RUN pip install --no-cache-dir \
-        /tmp/txaio-latest-py2.py3-none-any.whl \
-        /tmp/zlmdb-latest-py2.py3-none-any.whl \
-        /tmp/autobahn-latest-py2.py3-none-any.whl[accelerate,asyncio,twisted,encryption,compress,serialization,scram,xbr] \
-        /tmp/crossbar-latest-py2.py3-none-any.whl
+RUN pip install --no-cache-dir /tmp/txaio-latest-py2.py3-none-any.whl
+RUN pip install --no-cache-dir /tmp/zlmdb-latest-py2.py3-none-any.whl
+RUN pip install --no-cache-dir /tmp/autobahn-latest-py2.py3-none-any.whl[accelerate,asyncio,twisted,encryption,compress,serialization,scram,xbr]
+RUN pip install --no-cache-dir /tmp/crossbar-latest-py2.py3-none-any.whl
 
 RUN pip install --no-cache-dir "wsaccel>=0.6.2"
 RUN if [ "$CROSSBAR_ARCH" = "amd64" ]; then pip install --no-cache-dir "vmprof>=0.4.12"; fi
