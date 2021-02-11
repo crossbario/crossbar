@@ -3,6 +3,7 @@
 ARG CROSSBAR_ARCH
 # PyPy only comes in 3.7 for now
 FROM ${CROSSBAR_ARCH}/pypy:3.7-slim
+SHELL ["/bin/bash", "-c"]
 
 MAINTAINER The Crossbar.io Project <support@crossbario.com>
 
@@ -68,12 +69,12 @@ RUN pip install --no-cache-dir /tmp/autobahn-latest-py2.py3-none-any.whl[asyncio
 RUN pip install --no-cache-dir /tmp/crossbar-latest-py2.py3-none-any.whl
 
 RUN if [ "$CROSSBAR_ARCH" = "amd64" ]; then pip install --no-cache-dir "vmprof>=0.4.12"; fi
-RUN python -c '\
-import sys\
-try:\
-   import wsaccel\
-except ImportError:\
-   sys.exit(0)\
+RUN pypy -c $'\n\
+import sys\n\
+try:\n\
+   import wsaccel\n\
+except ImportError:\n\
+   sys.exit(0)\n\
 sys.exit(1)'
 
 # test if everything installed properly
