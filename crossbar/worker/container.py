@@ -248,6 +248,18 @@ class ContainerController(WorkerController):
                     self.log.error('    {path}', path=path)
             raise
 
+        # check component extra configuration
+        #
+        if hasattr(create_component, 'check_config') and callable(create_component.check_config) and extra:
+            try:
+                create_component.check_config(self.personality, extra)
+            except Exception as e:
+                emsg = 'invalid container component extra configuration: {}'.format(e)
+                self.log.debug(emsg)
+                raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+            else:
+                self.log.debug('starting container component "{component_id}" ..', component_id=component_id)
+
         # force reload of modules (user code)
         #
         if reload_modules:

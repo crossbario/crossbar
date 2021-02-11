@@ -122,7 +122,6 @@ jobs:
 
     - name: Display Crossbar.io version
       run: |
-        python -c "from autobahn import xbr; print(xbr.HAS_XBR)"
         python -c "import crossbar; print(crossbar.__version__)"
 
     - name: Run unit tests (Twisted Trial)

@@ -5,6 +5,15 @@
 Changelog
 =========
 
+21.1.1
+------
+
+* new: callback user component function "check_config" on container/router components
+* fix: support Docker images for ARM (32 bit and 64 bit)
+* fix: bake Docker multi-arch images
+* fix: PyPy3 CI
+* new: enable autobahn client unit tests
+
 20.12.3
 -------
 
