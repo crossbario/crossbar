@@ -69,6 +69,7 @@ RUN pip install --no-cache-dir /tmp/autobahn-latest-py2.py3-none-any.whl[asyncio
 RUN pip install --no-cache-dir /tmp/crossbar-latest-py2.py3-none-any.whl
 
 RUN if [ "$CROSSBAR_ARCH" = "amd64" ]; then pip install --no-cache-dir "vmprof>=0.4.12"; fi
+# make sure that we don't have wsaccel importable anywhere
 RUN pypy -c $'\n\
 import sys\n\
 try:\n\
