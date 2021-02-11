@@ -36,6 +36,7 @@ RUN    apt-get update \
                htop \
                curl \
                expat \
+	       rustc \
                build-essential \
                libssl-dev \
                libffi-dev \
@@ -53,6 +54,10 @@ RUN    apt-get update \
 #
 # Install Crossbar.io (OSS)
 #
+
+# make sure we install version of cryptography that does not require
+# crazy new rust compiler
+RUN pip install --no-cache-dir cryptography==3.3.2
 
 COPY ./.wheels /tmp
 RUN find /tmp
