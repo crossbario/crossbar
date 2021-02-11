@@ -8,6 +8,7 @@ Crossbar.io
 Resources
 ---------
 
+-  Download from `PyPI <https://pypi.org/project/crossbar/>`__
 -  Read more on the `Project Homepage <https://crossbar.io>`__
 -  Jump into the `Getting Started <https://crossbar.io/docs/Getting-Started/>`__
 -  Read the reference `Documentation <https://crossbar.io/docs/>`__
