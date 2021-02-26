@@ -5,6 +5,15 @@
 Changelog
 =========
 
+21.2.1
+------
+
+* new: minimum supported Python version now is 3.7
+* new: output more version infos on "crossbar(fx) version"
+* fix: pin to pip v19.3.1 because of "new resolver" and confluent dependencies with conflicts
+* fix: do _not_ use wsaccel on PyPy (the JIT is faster)
+* fix: Docker image baking scripts and CI automation for PyPy 3
+
 21.1.1
 ------
 

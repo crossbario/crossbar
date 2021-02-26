@@ -14,6 +14,7 @@ hashin
 coverage
 bandit
 towncrier
+pip==19.3.1
 pip-licenses
 pyenchant>=2.0.0
 pygments>=2.2.0
