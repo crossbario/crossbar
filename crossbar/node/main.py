@@ -263,6 +263,7 @@ class Versions(object):
         self.py_ver_string = ''
         self.py_ver_detail = ''
         self.py_is_frozen = ''
+        self.pip_ver = ''
         self.tx_ver = ''
         self.tx_loc = ''
         self.txaio_ver = ''
@@ -282,6 +283,8 @@ class Versions(object):
         self.crossbarfx_ver = ''
         self.numpy_ver = ''
         self.zlmdb_ver = ''
+        self.cfxdb_ver = ''
+        self.xbr_ver = ''
         self.release_pubkey = ''
         self.supported_serializers = ''
 
@@ -294,6 +297,7 @@ class Versions(object):
         obj['py_ver_string'] = self.py_ver_string
         obj['py_ver_detail'] = self.py_ver_detail
         obj['py_is_frozen'] = self.py_is_frozen
+        obj['pip_ver'] = self.pip_ver
         obj['tx_ver'] = self.tx_ver
         obj['tx_loc'] = self.tx_loc
         obj['txaio_ver'] = self.txaio_ver
@@ -313,6 +317,8 @@ class Versions(object):
         obj['crossbarfx_ver'] = self.crossbarfx_ver
         obj['numpy_ver'] = self.numpy_ver
         obj['zlmdb_ver'] = self.zlmdb_ver
+        obj['cfxdb_ver'] = self.cfxdb_ver
+        obj['xbr_ver'] = self.xbr_ver
         obj['release_pubkey'] = self.release_pubkey
         obj['supported_serializers'] = self.supported_serializers
         return obj
@@ -445,10 +451,31 @@ def _get_versions(reactor):
     except ImportError:
         pass
 
+    # cfxdb
+    try:
+        import cfxdb  # noqa
+        v.cfxdb_ver = _get_version(cfxdb)
+    except ImportError:
+        pass
+
+    # xbr
+    try:
+        import xbr  # noqa
+        v.xbr_ver = _get_version(xbr)
+    except ImportError:
+        pass
+
     # numpy
     try:
         import numpy  # noqa
         v.numpy_ver = _get_version(numpy)
+    except ImportError:
+        pass
+
+    # pip
+    try:
+        import pip  # noqa
+        v.pip_ver = _get_version(pip)
     except ImportError:
         pass
 
@@ -487,10 +514,13 @@ def _run_command_version(options, reactor, personality):
     log.info("   Twisted          : {ver}", ver=decorate(v.tx_ver))
     log.info("   LMDB             : {ver}", ver=decorate(v.lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(v.py_ver), impl=decorate(v.py_ver_detail))
+    log.info("   PIP              : {ver}", ver=decorate(v.pip_ver))
     if personality.NAME in ('edge', 'master'):
         log.info(" CrossbarFX         : {ver}", ver=decorate(v.crossbarfx_ver))
         log.info("   NumPy            : {ver}", ver=decorate(v.numpy_ver))
         log.info("   zLMDB            : {ver}", ver=decorate(v.zlmdb_ver))
+        log.info("   CFXDB            : {ver}", ver=decorate(v.cfxdb_ver))
+        log.info("   XBR              : {ver}", ver=decorate(v.xbr_ver))
     log.info(" Frozen executable  : {py_is_frozen}", py_is_frozen=decorate('yes' if v.py_is_frozen else 'no'))
     log.info(" Operating system   : {ver}", ver=decorate(v.platform))
     log.info(" Host machine       : {ver}", ver=decorate(v.machine))
