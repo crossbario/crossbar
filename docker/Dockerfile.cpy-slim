@@ -1,16 +1,19 @@
 # this build argument must be defined _before_ FROM, so the value is available in FROM.
 # however, CROSSBAR_ARCH will _not_ be available further down the line because of this ordering!
 ARG CROSSBAR_ARCH
+
 FROM ${CROSSBAR_ARCH}/python:3.9-slim
 
 MAINTAINER The Crossbar.io Project <support@crossbario.com>
 
 # these build arguments should be defined _after_ FROM, so the values are available later on
+ARG CROSSBAR_BUILD_ID
 ARG CROSSBAR_BUILD_DATE
 ARG CROSSBAR_VCS_REF
 ARG CROSSBAR_VERSION
 
 # while these are defined, and we copy over to env vars (available in container at run-time)
+ENV CROSSBAR_BUILD_ID $CROSSBAR_BUILD_ID
 ENV CROSSBAR_BUILD_DATE $CROSSBAR_BUILD_DATE
 ENV CROSSBAR_VCS_REF $CROSSBAR_VCS_REF
 ENV CROSSBAR_VERSION $CROSSBAR_VERSION
@@ -21,10 +24,8 @@ ENV CROSSBAR_VERSION $CROSSBAR_VERSION
 #COPY .qemu/qemu-arm-static /usr/bin/qemu-arm-static
 
 ENV LANG C.UTF-8
-
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
-ARG CROSSBAR_ARCH
 
 RUN    apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -49,20 +50,22 @@ RUN    apt-get update \
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/*
 
-#
-# Install Crossbar.io (OSS)
-#
+# install Rust: don't bother with old distro rust (pun), use the source my jedi
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH /root/.cargo/bin:${PATH}
+RUN rustc --version
+
+# install vmprof: until it supports arm64, only on amd64
+RUN if [ "$AUTOBAHN_ARCH" = "amd64" ]; then pip install --no-cache-dir "vmprof>=0.4.12"; fi
 
 COPY ./.wheels /tmp
 RUN find /tmp
-
 RUN pip install --no-cache-dir /tmp/txaio-latest-py2.py3-none-any.whl
 RUN pip install --no-cache-dir /tmp/zlmdb-latest-py2.py3-none-any.whl
 RUN pip install --no-cache-dir /tmp/autobahn-latest-py2.py3-none-any.whl[accelerate,asyncio,twisted,encryption,compress,serialization,scram,xbr]
 RUN pip install --no-cache-dir /tmp/crossbar-latest-py2.py3-none-any.whl
 
 RUN pip install --no-cache-dir "wsaccel>=0.6.2"
-RUN if [ "$CROSSBAR_ARCH" = "amd64" ]; then pip install --no-cache-dir "vmprof>=0.4.12"; fi
 
 # test if everything installed properly
 RUN crossbar version

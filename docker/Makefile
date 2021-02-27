@@ -147,16 +147,6 @@ build_aarch64_cpy3:
 		-f ./Dockerfile.cpy-slim .
 	docker images crossbario/crossbar:cpy-arm64v8
 
-#build_amd64_cpy3:
-#	docker build \
-#		--build-arg BUILD_DATE=${BUILD_DATE} \
-#		--build-arg CROSSBAR_VCS_REF=${CROSSBAR_VCS_REF} \
-#		--build-arg CROSSBAR_VERSION=${CROSSBAR_VERSION} \
-#		-t crossbario/crossbar:latest \
-#		-t crossbario/crossbar:cpy3 \
-#		-t crossbario/crossbar:cpy3-${CROSSBAR_VERSION} \
-#		-f ./x86_64/Dockerfile.cpy3 .
-
 build_armhf_cpy3:
 	# enforce auto-generating a new key when using the images
 	rm -f node/.crossbar/key.*
@@ -170,18 +160,6 @@ build_armhf_cpy3:
 		-f Dockerfile.cpy-slim \
 		.
 	docker images crossbario/crossbar:cpy-armhf
-
-# build_aarch64_cpy3:
-# 	# enforce auto-generating a new key when using the images
-# 	rm -f node/.crossbar/key.*
-# 	docker build \
-# 		--build-arg BUILD_DATE=${BUILD_DATE} \
-# 		--build-arg CROSSBAR_VCS_REF=${CROSSBAR_VCS_REF} \
-# 		--build-arg CROSSBAR_VERSION=${CROSSBAR_VERSION} \
-# 		-t crossbario/crossbar-aarch64:latest \
-# 		-t crossbario/crossbar-aarch64:cpy3 \
-# 		-t crossbario/crossbar-aarch64:cpy3-${CROSSBAR_VERSION} \
-# 		-f ./aarch64/Dockerfile.cpy3 .
 
 
 #
