@@ -76,13 +76,11 @@ freeze:
 	# persist OSS license list of our exact dependencies
 	vers/bin/pip3 install pip-licenses
 	vers/bin/pip-licenses --from=classifier -a -o name > crossbar/LICENSES-OSS
-	# vers/bin/pip-licenses --from=classifier -a -o name -r > docs/oss_licenses_table.rst
 
 	# hash all dependencies for repeatable builds
-	# FIXME: packaging.requirements.InvalidRequirement: Parse error at "'@'": Expected W:(abcd...)
-	# vers/bin/pip3 install hashin
-	# -rm requirements.txt
-	# cat requirements-pinned.txt | xargs vers/bin/hashin > requirements.txt
+	vers/bin/pip3 install hashin
+	-rm requirements.txt
+	cat requirements-pinned.txt | xargs vers/bin/hashin > requirements.txt
 
 
 wheel:
