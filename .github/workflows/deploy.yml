@@ -17,7 +17,8 @@ jobs:
     # wheels are only built and published (to our S3 bucket) when merging to master (not a yet unmerged PR!)
     if: github.ref == 'refs/heads/master'
 
-    runs-on: ubuntu-20.04
+    # runs-on: ubuntu-20.04 # means github.com
+    runs-on: [self-hosted, linux, X64] # means matterhorn
 
     # https://github.blog/changelog/2020-12-15-github-actions-environments-environment-protection-rules-and-environment-secrets-beta/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/environments
@@ -57,12 +58,14 @@ jobs:
         echo "  AWS_S3_BUCKET_NAME  = ${AWS_S3_BUCKET_NAME}"
         echo ""
 
-    - name: Install OS package dependencies
-      run: |
-        sudo apt update
-        sudo apt install build-essential libssl-dev libffi-dev libunwind-dev \
-          libreadline-dev zlib1g-dev libbz2-dev libsqlite3-dev libncurses5-dev \
-          libsnappy-dev
+    # must be skipped on self-hosted build slaves (eg matterhorn)
+    #
+    # - name: Install OS package dependencies
+    #   run: |
+    #     sudo apt update
+    #     sudo apt install build-essential libssl-dev libffi-dev libunwind-dev \
+    #       libreadline-dev zlib1g-dev libbz2-dev libsqlite3-dev libncurses5-dev \
+    #       libsnappy-dev
 
     - name: Set up Python 3.x
       uses: actions/setup-python@v2
