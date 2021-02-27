@@ -10,17 +10,21 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-20.04
+    # runs-on: ubuntu-20.04 # means github.com
+    runs-on: [self-hosted, linux, X64] # means matterhorn
+
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install OS package dependencies
-      run: |
-        sudo apt update
-        sudo apt install libenchant-dev
-        sudo apt install libbz2-dev
-        sudo apt install libsnappy-dev
-        sudo apt install libunwind-dev
+    # must be skipped on self-hosted build slaves (eg matterhorn)
+    #
+    # - name: Install OS package dependencies
+    #   run: |
+    #     sudo apt update
+    #     sudo apt install libenchant-dev
+    #     sudo apt install libbz2-dev
+    #     sudo apt install libsnappy-dev
+    #     sudo apt install libunwind-dev
 
     - name: Set up Python 3.x
       uses: actions/setup-python@v2
@@ -43,17 +47,21 @@ jobs:
       run: tox -c tox.ini -e coverage
 
   docs:
-    runs-on: ubuntu-20.04
+    # runs-on: ubuntu-20.04 # means github.com
+    runs-on: [self-hosted, linux, X64] # means matterhorn
+
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install OS package dependencies
-      run: |
-        sudo apt update
-        sudo apt install libenchant-dev
-        sudo apt install libbz2-dev
-        sudo apt install libsnappy-dev
-        sudo apt install libunwind-dev
+    # must be skipped on self-hosted build slaves (eg matterhorn)
+    #
+    # - name: Install OS package dependencies
+    #   run: |
+    #     sudo apt update
+    #     sudo apt install libenchant-dev
+    #     sudo apt install libbz2-dev
+    #     sudo apt install libsnappy-dev
+    #     sudo apt install libunwind-dev
 
     - name: Set up Python 3.x
       uses: actions/setup-python@v2
@@ -70,19 +78,17 @@ jobs:
       run: tox -c tox.ini -e sphinx
 
   test-amd64:
+    # runs-on: ubuntu-20.04 # means github.com
+    runs-on: [self-hosted, linux, X64] # means matterhorn
+
     env:
       CB_FULLTESTS: 1
 
     # Test on Ubuntu, MacOS, Windows using CPython 3.7-3.9, PyPy 3.7+
     strategy:
       matrix:
-        os: [ubuntu-20.04]
-        # os: [ubuntu-20.04, macos-latest, windows-latest]
-
         # https://github.com/actions/setup-python#specifying-a-pypy-version
         python-version: ['3.7', '3.8', '3.9', 'pypy-3.7']
-
-    runs-on: ${{ matrix.os }}
 
     # https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepscontinue-on-error
@@ -92,16 +98,18 @@ jobs:
     # Checkout sources
     - uses: actions/checkout@v2
 
+    # must be skipped on self-hosted build slaves (eg matterhorn)
+    #
     # Install OS packages, as we install Python packages from source:
     # libenchant-dev: needed for pyenchant, needed for sphinx-spellcheck
     # libbz2-dev, libsnappy-dev: needed for compression
     # libunwind-dev: needed for vmprof
-    - name: Install OS package dependencies
-      run: |
-        sudo apt update
-        sudo apt install build-essential libssl-dev libffi-dev libunwind-dev \
-          libreadline-dev zlib1g-dev libbz2-dev libsqlite3-dev libncurses5-dev \
-          libsnappy-dev
+    # - name: Install OS package dependencies
+    #   run: |
+    #     sudo apt update
+    #     sudo apt install build-essential libssl-dev libffi-dev libunwind-dev \
+    #       libreadline-dev zlib1g-dev libbz2-dev libsqlite3-dev libncurses5-dev \
+    #       libsnappy-dev
 
     # Use this Python
     # https://github.com/actions/setup-python/blob/main/README.md
