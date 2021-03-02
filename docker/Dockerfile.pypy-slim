@@ -20,17 +20,25 @@ ENV CROSSBAR_VCS_REF $CROSSBAR_VCS_REF
 ENV CROSSBAR_VERSION $CROSSBAR_VERSION
 
 # we bindly copy over qemu deps for all archs regardless of arch
-# do we really need this any more?
-#COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
-#COPY .qemu/qemu-arm-static /usr/bin/qemu-arm-static
+COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
+COPY .qemu/qemu-arm-static /usr/bin/qemu-arm-static
 
+# http://bugs.python.org/issue19846
+# > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
 ENV LANG C.UTF-8
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
 
+# ensure local pypy is preferred over distribution pypy
+ENV PATH /opt/pypy/bin:$PATH
+
 # cross-compatibility with CPython
 RUN ln -s /opt/pypy/bin/pypy3 /opt/pypy/bin/python3
 RUN ln -s /opt/pypy/bin/pypy3 /opt/pypy/bin/python
+
+# Use Bash (yes, we want bash for both building the image, and later inside containers)
+# https://github.com/moby/moby/issues/7281#issuecomment-389440503
+SHELL ["/bin/bash", "-c"]
 
 RUN    apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -51,9 +59,17 @@ RUN    apt-get update \
                libsqlite3-dev \
                libncurses5-dev \
                libsnappy-dev \
-    && pip install --upgrade --no-cache-dir setuptools pip wheel \
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/*
+
+# Install pip v19.3.1 (yes, absolutely, we do not want the "new resolver" shit)
+RUN curl -sSL -o get-pip.py https://bootstrap.pypa.io/get-pip.py && \
+    pypy3 get-pip.py \
+        --disable-pip-version-check \
+        --no-cache-dir \
+        "pip<20" && \
+    pip --version && \
+    rm -f get-pip.py
 
 # install Rust: don't bother with old distro rust (pun), use the source my jedi
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -63,15 +79,29 @@ RUN rustc --version
 # install vmprof: until it supports arm64, only on amd64
 RUN if [ "$CROSSBAR_ARCH" = "amd64" ]; then pip install --no-cache-dir "vmprof>=0.4.12"; fi
 
-COPY ./.wheels /tmp
-RUN find /tmp
 RUN pip install --no-cache-dir /tmp/txaio-latest-py2.py3-none-any.whl
 RUN pip install --no-cache-dir /tmp/zlmdb-latest-py2.py3-none-any.whl
 RUN pip install --no-cache-dir /tmp/autobahn-latest-py2.py3-none-any.whl[asyncio,twisted,encryption,compress,serialization,scram,xbr]
 RUN pip install --no-cache-dir /tmp/crossbar-latest-py2.py3-none-any.whl
 
-# test if everything installed properly
-RUN crossbar version
+# Copy built wheels from host.
+# IMPORTANT: there must be exactly one wheel version per packages below
+COPY ./.wheels /tmp
+RUN ls -la /tmp
+
+# Install wheels.
+# IMPORTANT: do NOT touch (uses globbing and find to make it work together with pip extras)
+# IMPORTANT: we do include autobahn[accelerate] for cpy (but not pypy)
+RUN pip install /tmp/txaio-*-py2.py3-none-any.whl && \
+    pip install /tmp/zlmdb-*-py2.py3-none-any.whl && \
+    pip install `find /tmp/autobahn-*-py2.py3-none-any.whl`[asyncio,twisted,encryption,compress,serialization,scram,xbr] && \
+    pip install /tmp/crossbar-*-py2.py3-none-any.whl
+
+# Check versions of CLI
+RUN /usr/local/bin/xbrnetwork version && \
+    /usr/local/bin/crossbar version
+
+## SETUP RUNTIME ENVIRONMENT #############################################################
 
 # add our user and group
 RUN adduser --system --group --uid 242 --home /node crossbar
@@ -90,5 +120,5 @@ WORKDIR /node
 USER crossbar
 EXPOSE 8080 8000
 
-# entrypoint for the Docker image is the Crossbar.io executable
-ENTRYPOINT ["crossbar", "start", "--cbdir", "/node/.crossbar"]
+ENTRYPOINT ["/usr/local/bin/crossbar"]
+CMD ["start", "--cbdir", "/node/.crossbar", "--loglevel", "info"]
