@@ -5,6 +5,11 @@
 Changelog
 =========
 
+21.3.1
+------
+
+* fix: depend on hotfix in Autobahn for Twisted v21.2.0 (see: https://github.com/crossbario/autobahn-python/issues/1470)
+
 21.2.1
 ------
 

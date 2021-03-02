@@ -1,5 +1,5 @@
 attrs>=17.2.0
-autobahn[asyncio,twisted,encryption,compress,serialization,scram]>=21.2.2
+autobahn[asyncio,twisted,encryption,compress,serialization,scram]>=21.3.1
 bitstring>=3.1.5
 bcrypt>=3.1.6
 cbor>=1.0.0
