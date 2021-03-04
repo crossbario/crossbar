@@ -313,10 +313,10 @@ class PendingAuthCryptosign(PendingAuth):
             # what we expected => accept the client
             return self._accept()
 
+        # should not arrive here .. but who knows
         except Exception as e:
-
-            # should not arrive here .. but who knows
-            return types.Deny(message='internal error: {}'.format(e))
+            self.log.failure()
+            return types.Deny(message='INTERNAL ERROR ({})'.format(e))
 
 
 class PendingAuthCryptosignProxy(PendingAuthCryptosign):
