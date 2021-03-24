@@ -81,15 +81,15 @@ RUN rustc --version
 # install vmprof: until it supports arm64, only on amd64
 RUN if [ "$CROSSBAR_ARCH" = "amd64" ]; then pip install --no-cache-dir "vmprof>=0.4.12"; fi
 
-RUN pip install --no-cache-dir /tmp/txaio-latest-py2.py3-none-any.whl
-RUN pip install --no-cache-dir /tmp/zlmdb-latest-py2.py3-none-any.whl
-RUN pip install --no-cache-dir /tmp/autobahn-latest-py2.py3-none-any.whl[asyncio,twisted,encryption,compress,serialization,scram,xbr]
-RUN pip install --no-cache-dir /tmp/crossbar-latest-py2.py3-none-any.whl
-
 # Copy built wheels from host.
 # IMPORTANT: there must be exactly one wheel version per packages below
 COPY ./.wheels /tmp
 RUN ls -la /tmp
+
+RUN pip install --no-cache-dir /tmp/txaio-latest-py2.py3-none-any.whl
+RUN pip install --no-cache-dir /tmp/zlmdb-latest-py2.py3-none-any.whl
+RUN pip install --no-cache-dir /tmp/autobahn-latest-py2.py3-none-any.whl[asyncio,twisted,encryption,compress,serialization,scram,xbr]
+RUN pip install --no-cache-dir /tmp/crossbar-latest-py2.py3-none-any.whl
 
 # Install wheels.
 # IMPORTANT: do NOT touch (uses globbing and find to make it work together with pip extras)
