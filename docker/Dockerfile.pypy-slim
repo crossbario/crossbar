@@ -100,8 +100,8 @@ RUN pip install /tmp/txaio-*-py2.py3-none-any.whl && \
     pip install /tmp/crossbar-*-py2.py3-none-any.whl
 
 # Check versions of CLI
-RUN /usr/local/bin/xbrnetwork version && \
-    /usr/local/bin/crossbar version
+RUN xbrnetwork version && \
+    crossbar version
 
 ## SETUP RUNTIME ENVIRONMENT #############################################################
 
