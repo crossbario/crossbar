@@ -122,5 +122,5 @@ WORKDIR /node
 USER crossbar
 EXPOSE 8080 8000
 
-ENTRYPOINT ["/usr/local/bin/crossbar"]
+ENTRYPOINT ["crossbar"]
 CMD ["start", "--cbdir", "/node/.crossbar", "--loglevel", "info"]
