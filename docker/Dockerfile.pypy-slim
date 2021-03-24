@@ -2,6 +2,8 @@
 # however, CROSSBAR_ARCH will _not_ be available further down the line because of this ordering!
 ARG CROSSBAR_ARCH
 
+FROM multiarch/qemu-user-static:x86_64-aarch64 as qemu
+FROM multiarch/qemu-user-static:x86_64-arm as qemuarm
 # PyPy only comes in 3.7 for now
 FROM ${CROSSBAR_ARCH}/pypy:3.7-slim
 
@@ -20,8 +22,8 @@ ENV CROSSBAR_VCS_REF $CROSSBAR_VCS_REF
 ENV CROSSBAR_VERSION $CROSSBAR_VERSION
 
 # we bindly copy over qemu deps for all archs regardless of arch
-COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
-COPY .qemu/qemu-arm-static /usr/bin/qemu-arm-static
+COPY --from=qemu /usr/bin/qemu-aarch64-static /usr/bin/
+COPY --from=qemuarm /usr/bin/qemu-arm-static /usr/bin/
 
 # http://bugs.python.org/issue19846
 # > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
