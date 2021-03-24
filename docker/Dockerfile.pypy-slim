@@ -2,6 +2,8 @@
 # however, CROSSBAR_ARCH will _not_ be available further down the line because of this ordering!
 ARG CROSSBAR_ARCH
 
+FROM multiarch/qemu-user-static:x86_64-aarch64 as qemu
+FROM multiarch/qemu-user-static:x86_64-arm as qemuarm
 # PyPy only comes in 3.7 for now
 FROM ${CROSSBAR_ARCH}/pypy:3.7-slim
 
@@ -20,8 +22,8 @@ ENV CROSSBAR_VCS_REF $CROSSBAR_VCS_REF
 ENV CROSSBAR_VERSION $CROSSBAR_VERSION
 
 # we bindly copy over qemu deps for all archs regardless of arch
-COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
-COPY .qemu/qemu-arm-static /usr/bin/qemu-arm-static
+COPY --from=qemu /usr/bin/qemu-aarch64-static /usr/bin/
+COPY --from=qemuarm /usr/bin/qemu-arm-static /usr/bin/
 
 # http://bugs.python.org/issue19846
 # > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
@@ -79,15 +81,15 @@ RUN rustc --version
 # install vmprof: until it supports arm64, only on amd64
 RUN if [ "$CROSSBAR_ARCH" = "amd64" ]; then pip install --no-cache-dir "vmprof>=0.4.12"; fi
 
-RUN pip install --no-cache-dir /tmp/txaio-latest-py2.py3-none-any.whl
-RUN pip install --no-cache-dir /tmp/zlmdb-latest-py2.py3-none-any.whl
-RUN pip install --no-cache-dir /tmp/autobahn-latest-py2.py3-none-any.whl[asyncio,twisted,encryption,compress,serialization,scram,xbr]
-RUN pip install --no-cache-dir /tmp/crossbar-latest-py2.py3-none-any.whl
-
 # Copy built wheels from host.
 # IMPORTANT: there must be exactly one wheel version per packages below
 COPY ./.wheels /tmp
 RUN ls -la /tmp
+
+RUN pip install --no-cache-dir /tmp/txaio-latest-py2.py3-none-any.whl
+RUN pip install --no-cache-dir /tmp/zlmdb-latest-py2.py3-none-any.whl
+RUN pip install --no-cache-dir /tmp/autobahn-latest-py2.py3-none-any.whl[asyncio,twisted,encryption,compress,serialization,scram,xbr]
+RUN pip install --no-cache-dir /tmp/crossbar-latest-py2.py3-none-any.whl
 
 # Install wheels.
 # IMPORTANT: do NOT touch (uses globbing and find to make it work together with pip extras)
@@ -98,8 +100,8 @@ RUN pip install /tmp/txaio-*-py2.py3-none-any.whl && \
     pip install /tmp/crossbar-*-py2.py3-none-any.whl
 
 # Check versions of CLI
-RUN /usr/local/bin/xbrnetwork version && \
-    /usr/local/bin/crossbar version
+RUN xbrnetwork version && \
+    crossbar version
 
 ## SETUP RUNTIME ENVIRONMENT #############################################################
 
@@ -120,5 +122,5 @@ WORKDIR /node
 USER crossbar
 EXPOSE 8080 8000
 
-ENTRYPOINT ["/usr/local/bin/crossbar"]
+ENTRYPOINT ["crossbar"]
 CMD ["start", "--cbdir", "/node/.crossbar", "--loglevel", "info"]

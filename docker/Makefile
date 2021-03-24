@@ -80,9 +80,7 @@ requirements:
 
 # Install Qemu (this is needed for cross-building armhf/aarch64 on amd64)
 qemu_deps:
-	mkdir -p ./.qemu
-	cp /usr/bin/qemu-system-aarch64 ./.qemu
-	cp /usr/bin/qemu-system-arm ./.qemu
+	@echo "this target is no longer needed"
 
 #
 # Copy over current AutobahnJS into the default node directory
