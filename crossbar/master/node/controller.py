@@ -111,9 +111,7 @@ class DomainManager(object):
         """
         assert isinstance(details, CallDetails)
 
-        self.log.info('{klass}.get_version(details={details})',
-                      klass=self.__class__.__name__,
-                      details=details)
+        self.log.info('{klass}.get_version(details={details})', klass=self.__class__.__name__, details=details)
 
         # FIXME
         from twisted.internet import reactor
@@ -136,9 +134,7 @@ class DomainManager(object):
         """
         assert isinstance(details, CallDetails)
 
-        self.log.info('{klass}.get_license(details={details})',
-                      klass=self.__class__.__name__,
-                      details=details)
+        self.log.info('{klass}.get_license(details={details})', klass=self.__class__.__name__, details=details)
 
         # FIXME: check blockchain for license information
         license = {
@@ -179,8 +175,7 @@ class DomainController(ApplicationSession):
         self._node_key = nacl.signing.SigningKey(self._node_key_hex, encoder=nacl.encoding.HexEncoder)
 
         # Metering knobs - FIXME: read and honor all knobs
-        self._meterurl = self.config.extra.get('metering',
-                                               {}).get('submit', {}).get('url', '${CROSSBAR_METERING_URL}')
+        self._meterurl = self.config.extra.get('metering', {}).get('submit', {}).get('url', '${CROSSBAR_METERING_URL}')
 
         self._meterurl = checkconfig.maybe_from_env('metering.submit.url', self._meterurl)
 
@@ -243,8 +238,7 @@ class DomainController(ApplicationSession):
                 user.registered = datetime.utcnow()
                 self.schema.users[txn, user.oid] = user
                 self.log.info(
-                    hl('SUPERUSER created and stored in database (oid={}, email={})'.format(
-                        user.oid, user.email),
+                    hl('SUPERUSER created and stored in database (oid={}, email={})'.format(user.oid, user.email),
                        color='green',
                        bold=True))
             else:
@@ -328,18 +322,17 @@ class DomainController(ApplicationSession):
 
                     @inlineCallbacks
                     def watch_and_pair():
-                        self.log.debug(
-                            '{klass}::watch_and_pair[counter={cnt}, watch_to_pair="{watch_to_pair}"]',
-                            cnt=hlval(self._watch_and_pair_count),
-                            watch_to_pair=self._watch_to_pair,
-                            klass=self.__class__.__name__)
+                        self.log.debug('{klass}::watch_and_pair[counter={cnt}, watch_to_pair="{watch_to_pair}"]',
+                                       cnt=hlval(self._watch_and_pair_count),
+                                       watch_to_pair=self._watch_to_pair,
+                                       klass=self.__class__.__name__)
                         try:
                             self._watch_and_pair_count += 1
 
                             if node_dir_pat:
                                 node_dirs = [
-                                    x.name for x in os.scandir(self._watch_to_pair) if x.is_dir(
-                                        follow_symlinks=follow_symlinks) and node_dir_pat.match(x.name)
+                                    x.name for x in os.scandir(self._watch_to_pair)
+                                    if x.is_dir(follow_symlinks=follow_symlinks) and node_dir_pat.match(x.name)
                                 ]
                             else:
                                 node_dirs = [
@@ -417,9 +410,7 @@ class DomainController(ApplicationSession):
                                         management_url = self._auto_default_mrealm.get('management_url', None)
                                         if management_url:
                                             management_url = checkconfig.maybe_from_env(
-                                                'auto_default_mrealm.management_url',
-                                                management_url,
-                                                hide_value=False)
+                                                'auto_default_mrealm.management_url', management_url, hide_value=False)
 
                                         activation_code = None
                                         if self._auto_default_mrealm.get('include_activation_code', False):
@@ -430,8 +421,7 @@ class DomainController(ApplicationSession):
                                         if not os.path.exists(activation_file):
                                             file_tags = OrderedDict([
                                                 ('created-at', utcnow()),
-                                                ('management-url', management_url
-                                                 or 'wss://master.xbr.network/ws'),
+                                                ('management-url', management_url or 'wss://master.xbr.network/ws'),
                                                 ('management-realm', 'default'),
                                                 ('management-realm-oid', str(node.mrealm_oid)),
                                                 ('node-oid', str(node.oid)),
@@ -464,9 +454,7 @@ class DomainController(ApplicationSession):
 
                                     topic = 'crossbarfabriccenter.mrealm.on_node_paired'
                                     payload = node.marshal()
-                                    yield self.publish(topic,
-                                                       payload,
-                                                       options=PublishOptions(acknowledge=True))
+                                    yield self.publish(topic, payload, options=PublishOptions(acknowledge=True))
 
                                     self.log.info(
                                         '{klass}::watch_and_pair: {action} with pubkey={pubkey}, oid={node_oid}, authid={authid} to default management realm {mrealm}!',
@@ -489,9 +477,8 @@ class DomainController(ApplicationSession):
                     self._watch_and_pair_count = 0
                     self._watch_and_pair_lc.start(10)
                 else:
-                    self.log.warn(
-                        'skipping to watch "{watch_to_pair}" for node auto-pairing - not a directory!',
-                        watch_to_pair=self._watch_to_pair)
+                    self.log.warn('skipping to watch "{watch_to_pair}" for node auto-pairing - not a directory!',
+                                  watch_to_pair=self._watch_to_pair)
 
         # initialize management backends
         #
@@ -560,17 +547,14 @@ class DomainController(ApplicationSession):
 
             # publish master heartbeat
             ticked = {'now': utcnow(), 'tick': self._tick}
-            yield self.publish('{}on_tick'.format(_CFC_DOMAIN),
-                               ticked,
-                               options=PublishOptions(acknowledge=True))
+            yield self.publish('{}on_tick'.format(_CFC_DOMAIN), ticked, options=PublishOptions(acknowledge=True))
 
             # master heartbeat loop finished!
             duration = int(round((time_ns() - started) / 1000000.))
             if duration > 500:
-                self.log.warn(
-                    'Master heartbeat loop iteration {tick} finished: excessive run-time of {duration} ms!',
-                    tick=self._tick,
-                    duration=duration)
+                self.log.warn('Master heartbeat loop iteration {tick} finished: excessive run-time of {duration} ms!',
+                              tick=self._tick,
+                              duration=duration)
             self.log.info(
                 'Master heartbeat loop iteration {tick} finished in {duration} ms (database {used} used, {free}% free)',
                 tick=self._tick,
@@ -630,12 +614,11 @@ class DomainController(ApplicationSession):
             # compute aggregate sum grouped by node_id
             res = {}
             with db.begin() as txn:
-                for (ts,
-                     node_id) in schema.mnode_logs.select(txn,
-                                                          from_key=(from_ts, uuid.UUID(bytes=b'\x00' * 16)),
-                                                          to_key=(until_ts, uuid.UUID(bytes=b'\xff' * 16)),
-                                                          return_values=False,
-                                                          reverse=False):
+                for (ts, node_id) in schema.mnode_logs.select(txn,
+                                                              from_key=(from_ts, uuid.UUID(bytes=b'\x00' * 16)),
+                                                              to_key=(until_ts, uuid.UUID(bytes=b'\xff' * 16)),
+                                                              return_values=False,
+                                                              reverse=False):
 
                     rec = schema.mnode_logs[txn, (ts, node_id)]
 
@@ -677,12 +660,11 @@ class DomainController(ApplicationSession):
             }
             nodes = set()
             with db.begin() as txn:
-                for (ts,
-                     node_id) in schema.mnode_logs.select(txn,
-                                                          from_key=(from_ts, uuid.UUID(bytes=b'\x00' * 16)),
-                                                          to_key=(until_ts, uuid.UUID(bytes=b'\xff' * 16)),
-                                                          return_values=False,
-                                                          reverse=False):
+                for (ts, node_id) in schema.mnode_logs.select(txn,
+                                                              from_key=(from_ts, uuid.UUID(bytes=b'\x00' * 16)),
+                                                              to_key=(until_ts, uuid.UUID(bytes=b'\xff' * 16)),
+                                                              return_values=False,
+                                                              reverse=False):
 
                     rec = schema.mnode_logs[txn, (ts, node_id)]
 
@@ -755,12 +737,12 @@ class DomainController(ApplicationSession):
         nodes = set()
         with db.begin() as txn:
             # go over all worker heartbeat records in given time interval ..
-            for (ts, node_id, worker_id) in schema.mworker_logs.select(
-                    txn,
-                    from_key=(from_ts, uuid.UUID(bytes=b'\x00' * 16), ''),
-                    to_key=(until_ts, uuid.UUID(bytes=b'\xff' * 16), ''),
-                    return_values=False,
-                    reverse=False):
+            for (ts, node_id,
+                 worker_id) in schema.mworker_logs.select(txn,
+                                                          from_key=(from_ts, uuid.UUID(bytes=b'\x00' * 16), ''),
+                                                          to_key=(until_ts, uuid.UUID(bytes=b'\xff' * 16), ''),
+                                                          return_values=False,
+                                                          reverse=False):
 
                 rec = schema.mworker_logs[txn, (ts, node_id, worker_id)]
 
@@ -836,8 +818,7 @@ class DomainController(ApplicationSession):
 
                     if rec.sent_invocation > wres[wkey]['msgs_invocation_max']:
                         wres[wkey]['msgs_invocation_max'] = rec.sent_invocation
-                    if not wres[wkey][
-                            'msgs_invocation_min'] or rec.sent_invocation < wres[wkey]['msgs_invocation_min']:
+                    if not wres[wkey]['msgs_invocation_min'] or rec.sent_invocation < wres[wkey]['msgs_invocation_min']:
                         wres[wkey]['msgs_invocation_min'] = rec.sent_invocation
 
                     # FIXME
@@ -858,8 +839,7 @@ class DomainController(ApplicationSession):
 
                     if rec.sent_published > wres[wkey]['msgs_published_max']:
                         wres[wkey]['msgs_published_max'] = rec.sent_published
-                    if not wres[wkey][
-                            'msgs_published_min'] or rec.sent_published < wres[wkey]['msgs_published_min']:
+                    if not wres[wkey]['msgs_published_min'] or rec.sent_published < wres[wkey]['msgs_published_min']:
                         wres[wkey]['msgs_published_min'] = rec.sent_published
 
                     if rec.sent_event > wres[wkey]['msgs_event_max']:
@@ -869,26 +849,22 @@ class DomainController(ApplicationSession):
 
                     if rec.recv_register > wres[wkey]['msgs_register_max']:
                         wres[wkey]['msgs_register_max'] = rec.recv_register
-                    if not wres[wkey][
-                            'msgs_register_min'] or rec.recv_register < wres[wkey]['msgs_register_min']:
+                    if not wres[wkey]['msgs_register_min'] or rec.recv_register < wres[wkey]['msgs_register_min']:
                         wres[wkey]['msgs_register_min'] = rec.recv_register
 
                     if rec.sent_registered > wres[wkey]['msgs_registered_max']:
                         wres[wkey]['msgs_registered_max'] = rec.sent_registered
-                    if not wres[wkey][
-                            'msgs_registered_min'] or rec.sent_registered < wres[wkey]['msgs_registered_min']:
+                    if not wres[wkey]['msgs_registered_min'] or rec.sent_registered < wres[wkey]['msgs_registered_min']:
                         wres[wkey]['msgs_registered_min'] = rec.sent_registered
 
                     if rec.recv_subscribe > wres[wkey]['msgs_subscribe_max']:
                         wres[wkey]['msgs_subscribe_max'] = rec.recv_subscribe
-                    if not wres[wkey][
-                            'msgs_subscribe_min'] or rec.recv_subscribe < wres[wkey]['msgs_subscribe_min']:
+                    if not wres[wkey]['msgs_subscribe_min'] or rec.recv_subscribe < wres[wkey]['msgs_subscribe_min']:
                         wres[wkey]['msgs_subscribe_min'] = rec.recv_subscribe
 
                     if rec.sent_subscribed > wres[wkey]['msgs_subscribed_max']:
                         wres[wkey]['msgs_subscribed_max'] = rec.sent_subscribed
-                    if not wres[wkey][
-                            'msgs_subscribed_min'] or rec.sent_subscribed < wres[wkey]['msgs_subscribed_min']:
+                    if not wres[wkey]['msgs_subscribed_min'] or rec.sent_subscribed < wres[wkey]['msgs_subscribed_min']:
                         wres[wkey]['msgs_subscribed_min'] = rec.sent_subscribed
 
         res['nodes'] = len(nodes)
@@ -922,10 +898,9 @@ class DomainController(ApplicationSession):
 
     @inlineCallbacks
     def _do_metering(self, started):
-        self.log.debug(
-            'Usage metering: aggregating heartbeat records .. [started="{started}", thread_id={thread_id}]',
-            started=np.datetime64(started, 'ns'),
-            thread_id=threading.get_ident())
+        self.log.debug('Usage metering: aggregating heartbeat records .. [started="{started}", thread_id={thread_id}]',
+                       started=np.datetime64(started, 'ns'),
+                       thread_id=threading.get_ident())
 
         # FIXME: make this tunable from the master node config
         agg_mins = 5
@@ -946,14 +921,12 @@ class DomainController(ApplicationSession):
                     if not last_ts or ts < last_ts:
                         last_ts = ts
                 if not last_ts:
-                    last_ts = np.datetime64(
-                        np.datetime64(time_ns(), 'ns') - np.timedelta64(agg_mins, 'm'), 'ns')
+                    last_ts = np.datetime64(np.datetime64(time_ns(), 'ns') - np.timedelta64(agg_mins, 'm'), 'ns')
 
                 last_ts = np.datetime64(last_ts.astype('datetime64[m]'), 'ns')
                 self.log.debug('Usage metering: first metering timestamp set to "{last_ts}"', last_ts=last_ts)
             else:
-                self.log.debug('Usage metering: last metering timestamp stored is "{last_ts}"',
-                               last_ts=last_ts)
+                self.log.debug('Usage metering: last metering timestamp stored is "{last_ts}"', last_ts=last_ts)
 
             until_ts = np.datetime64(last_ts + np.timedelta64(agg_mins, 'm'), 'ns')
 
@@ -982,15 +955,14 @@ class DomainController(ApplicationSession):
                 for mrealm_id in mrealm_ids:
                     try:
                         # aggregate all _worker_ heartbeat data for interval (from_ts, until_ts) and mrealm_id
-                        mrealm_res = yield deferToThread(self._agg_metering_mworker_logs, from_ts, until_ts,
-                                                         mrealm_id)
+                        mrealm_res = yield deferToThread(self._agg_metering_mworker_logs, from_ts, until_ts, mrealm_id)
 
                         self.log.debug('Usage metering: worker aggregate result\n{mrealm_node_res}',
                                        mrealm_node_res=pprint.pformat(mrealm_res))
 
                         # aggregate all _node_ heartbeat data for interval (from_ts, until_ts) and mrealm_id
-                        mrealm_node_res = yield deferToThread(self._agg_metering_mnode_logs, from_ts,
-                                                              until_ts, mrealm_id)
+                        mrealm_node_res = yield deferToThread(self._agg_metering_mnode_logs, from_ts, until_ts,
+                                                              mrealm_id)
 
                         self.log.debug('Usage metering: node aggregate result\n{mrealm_node_res}',
                                        mrealm_node_res=pprint.pformat(mrealm_node_res))
@@ -1000,9 +972,7 @@ class DomainController(ApplicationSession):
                         # overwrite "nodes" with what the node-based aggregate says (which is correct):
                         mrealm_res['nodes'] = mrealm_node_res['nodes']
 
-                        for key in [
-                                'routers', 'guests', 'containers', 'proxies', 'marketmakers', 'controllers'
-                        ]:
+                        for key in ['routers', 'guests', 'containers', 'proxies', 'marketmakers', 'controllers']:
                             if mrealm_res[key] != mrealm_node_res[key]:
                                 self.log.warn(
                                     'Usage metering: node/worker aggregate for worker type "{key}" differ on worker seconds: {worker_res} != {node_res} (worker-based / node-based aggregate)',
@@ -1016,8 +986,7 @@ class DomainController(ApplicationSession):
                         mrealm_res['seq'] = self._tick
 
                         # set master (!) node public key
-                        mrealm_res['pubkey'] = self._node_key.verify_key.encode(
-                            encoder=nacl.encoding.RawEncoder)
+                        mrealm_res['pubkey'] = self._node_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)
 
                         # usage records start in status "RECEIVED"
                         mrealm_res['status'] = 1
@@ -1072,11 +1041,7 @@ class DomainController(ApplicationSession):
         from_key = (from_ts, uuid.UUID(bytes=b'\x00' * 16))
 
         with self.db.begin() as txn:
-            for rec in self.schema.usage.select(txn,
-                                                reverse=False,
-                                                return_keys=False,
-                                                from_key=from_key,
-                                                limit=limit):
+            for rec in self.schema.usage.select(txn, reverse=False, return_keys=False, from_key=from_key, limit=limit):
                 if rec.status in filter_status:
                     keys.append((rec.timestamp, rec.mrealm_id))
 
@@ -1133,10 +1098,9 @@ class DomainController(ApplicationSession):
                 rec.status_message = 'failed to submit metering record: {}'.format(e)
                 rec.processed = np.datetime64(time_ns(), 'ns')
                 failed += 1
-                self.log.warn(
-                    'Usage metering: failed to submit metering record for "{timestamp}" - "{errmsg}"',
-                    timestamp=rec.timestamp,
-                    errmsg=str(e))
+                self.log.warn('Usage metering: failed to submit metering record for "{timestamp}" - "{errmsg}"',
+                              timestamp=rec.timestamp,
+                              errmsg=str(e))
             else:
                 try:
                     metering_id = uuid.UUID(bytes=rdata)

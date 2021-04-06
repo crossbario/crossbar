@@ -36,12 +36,7 @@ class MockPublisherSession(object):
         def publish(topic, *args, **kwargs):
             messageID = random.randint(0, 100000)
 
-            self._published_messages.append({
-                "id": messageID,
-                "topic": topic,
-                "args": args,
-                "kwargs": kwargs
-            })
+            self._published_messages.append({"id": messageID, "topic": topic, "args": args, "kwargs": kwargs})
 
             return publishedMessage(id=messageID)
 
@@ -72,8 +67,16 @@ def makeSignedArguments(params, signKey, signSecret, body):
     return params
 
 
-def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecure=False,
-                   headers=None, sign=False, signKey=None, signSecret=None):
+def renderResource(resource,
+                   path,
+                   params=None,
+                   method=b"GET",
+                   body=b"",
+                   isSecure=False,
+                   headers=None,
+                   sign=False,
+                   signKey=None,
+                   signSecret=None):
 
     params = {} if params is None else params
     headers = {} if params is None else headers
@@ -84,8 +87,7 @@ def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecur
     if sign:
         params = makeSignedArguments(params, signKey, signSecret, body)
 
-    req = request(path, args=params, method=method, isSecure=isSecure,
-                  headers=headers, body=body)
+    req = request(path, args=params, method=method, isSecure=isSecure, headers=headers, body=body)
 
     d = _render(resource, req)
     d.addCallback(_cb, req)
@@ -96,13 +98,11 @@ MockResponse = namedtuple("MockResponse", ["code", "headers"])
 
 
 class MockHeaders(object):
-
     def getAllRawHeaders(self):
         return {b"foo": [b"bar"]}
 
 
 class MockWebTransport(object):
-
     def __init__(self, testCase):
         self.testCase = testCase
         self._code = None
@@ -115,8 +115,7 @@ class MockWebTransport(object):
 
     def request(self, *args, **kwargs):
         self.maderequest = {"args": args, "kwargs": kwargs}
-        resp = MockResponse(headers=MockHeaders(),
-                            code=self._code)
+        resp = MockResponse(headers=MockHeaders(), code=self._code)
         d = Deferred()
         reactor.callLater(0.0, d.callback, resp)
         return d
@@ -129,7 +128,6 @@ class MockWebTransport(object):
 
 
 class MockTransport(object):
-
     def __init__(self, handler):
         self._log = False
         self._handler = handler

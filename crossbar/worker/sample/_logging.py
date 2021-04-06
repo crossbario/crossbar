@@ -15,7 +15,6 @@ class LogTester(ApplicationSession):
     """
     Sample WAMP component to test logging at run-time.
     """
-
     @inlineCallbacks
     def onJoin(self, details):
         LOG_PREFIX = '*** SAMPLE *** [{}]'.format(details.session)
@@ -27,11 +26,8 @@ class LogTester(ApplicationSession):
         self._tick = 1
         for i in range(config['iterations']):
             self.log.info('{prefix} TICK:', prefix=LOG_PREFIX)
-            for fn, lvl in [(self.log.trace, 'TRACE'),
-                            (self.log.debug, 'DEBUG'),
-                            (self.log.info, 'INFO '),
-                            (self.log.warn, 'WARN '),
-                            (self.log.error, 'ERROR')]:
+            for fn, lvl in [(self.log.trace, 'TRACE'), (self.log.debug, 'DEBUG'), (self.log.info, 'INFO '),
+                            (self.log.warn, 'WARN '), (self.log.error, 'ERROR')]:
                 fn('{prefix} {lvl} - TICK {tick}', prefix=LOG_PREFIX, lvl=lvl, tick=self._tick)
             self._tick += 1
             yield sleep(config['delay'])

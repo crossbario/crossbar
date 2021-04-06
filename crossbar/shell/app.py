@@ -221,8 +221,8 @@ class Application(object):
         if output_style in Application.OUTPUT_STYLE:
             self._output_style = output_style
         else:
-            raise Exception('invalid value {} for output_style (not in {})'.format(
-                output_style, Application.OUTPUT_STYLE))
+            raise Exception('invalid value {} for output_style (not in {})'.format(output_style,
+                                                                                   Application.OUTPUT_STYLE))
 
     def error(self, msg):
         click.echo()
@@ -252,11 +252,7 @@ class Application(object):
         cmd_str = ' '.join(["crossbar", "shell"] + sys.argv[1:])
         if self._output_format in [Application.OUTPUT_FORMAT_JSON, Application.OUTPUT_FORMAT_JSON_COLORED]:
 
-            json_str = json.dumps(result.result,
-                                  separators=(', ', ': '),
-                                  sort_keys=True,
-                                  indent=4,
-                                  ensure_ascii=False)
+            json_str = json.dumps(result.result, separators=(', ', ': '), sort_keys=True, indent=4, ensure_ascii=False)
 
             if self._output_format == Application.OUTPUT_FORMAT_JSON_COLORED:
                 console_str = highlight(json_str, lexers.JsonLexer(),
@@ -280,8 +276,7 @@ class Application(object):
 
         else:
             # should not arrive here
-            raise Exception('internal error: unprocessed value "{}" for output format'.format(
-                self._output_format))
+            raise Exception('internal error: unprocessed value "{}" for output format'.format(self._output_format))
 
         # output command metadata (such as runtime)
         if self._output_verbosity == Application.OUTPUT_VERBOSITY_SILENT:
@@ -294,9 +289,7 @@ class Application(object):
                 pass
             elif self._output_verbosity == Application.OUTPUT_VERBOSITY_NORMAL:
                 if result.duration:
-                    click.echo(
-                        style_finished_line(u'Finished command in {} ms: {}'.format(result.duration,
-                                                                                    cmd_str)))
+                    click.echo(style_finished_line(u'Finished command in {} ms: {}'.format(result.duration, cmd_str)))
                 else:
                     click.echo(style_finished_line(u'Finished command successfully: {}'.format(cmd_str)))
             elif self._output_verbosity == Application.OUTPUT_VERBOSITY_EXTENDED:
@@ -305,8 +298,7 @@ class Application(object):
                         style_finished_line(u'Finished command in {} ms on {}: {}'.format(
                             result.duration, localnow(), cmd_str)))
                 else:
-                    click.echo(
-                        style_finished_line(u'Finished successfully on {}: {}'.format(localnow(), cmd_str)))
+                    click.echo(style_finished_line(u'Finished successfully on {}: {}'.format(localnow(), cmd_str)))
             else:
                 # should not arrive here
                 raise Exception('internal error')
@@ -334,9 +326,7 @@ class Application(object):
         cfg = ctx.obj
         cmd = ctx.command.name
 
-        self.log.info('{klass}.run_context: running shell command "{cmd}"',
-                      klass=self.__class__.__name__,
-                      cmd=cmd)
+        self.log.info('{klass}.run_context: running shell command "{cmd}"', klass=self.__class__.__name__, cmd=cmd)
 
         yes_to_all = cfg.yes_to_all if hasattr(cfg, 'yes_to_all') else False
 
@@ -410,9 +400,7 @@ class Application(object):
         connect_done = runner.run(self.session, start_reactor=False)
 
         def on_connect_success(res):
-            self.log.info('{klass}.on_connect_success(res={res})',
-                          klass=self.__class__.__name__,
-                          res=pformat(res))
+            self.log.info('{klass}.on_connect_success(res={res})', klass=self.__class__.__name__, res=pformat(res))
 
         def on_connect_error(err):
             self.log.warn('{klass}.on_connect_error(err={err})', klass=self.__class__.__name__, err=err)
@@ -505,11 +493,8 @@ class Application(object):
                         click.echo()
                         click.echo(style_ok(message))
                         click.echo()
-                        click.echo(
-                            'Tip: to activate, run "crossbar shell auth --code <THE CODE YOU GOT BY EMAIL>"'
-                        )
-                        click.echo(
-                            'Tip: you can request sending a new code with "crossbar shell auth --new-code"')
+                        click.echo('Tip: to activate, run "crossbar shell auth --code <THE CODE YOU GOT BY EMAIL>"')
+                        click.echo('Tip: you can request sending a new code with "crossbar shell auth --new-code"')
                         click.echo()
 
                     elif error == u'no-pending-activation':
@@ -576,10 +561,9 @@ class Application(object):
     def _print_welcome(self, url, session_details):
         click.echo(self.WELCOME)
         click.echo(
-            self.CONNECTED.format(
-                url=url,
-                realm=style_crossbar(session_details.realm) if session_details else None,
-                authmethod=session_details.authmethod if session_details else None,
-                authid=style_crossbar(session_details.authid) if session_details else None,
-                authrole=style_crossbar(session_details.authrole) if session_details else None,
-                session=session_details.session if session_details else None))
+            self.CONNECTED.format(url=url,
+                                  realm=style_crossbar(session_details.realm) if session_details else None,
+                                  authmethod=session_details.authmethod if session_details else None,
+                                  authid=style_crossbar(session_details.authid) if session_details else None,
+                                  authrole=style_crossbar(session_details.authrole) if session_details else None,
+                                  session=session_details.session if session_details else None))

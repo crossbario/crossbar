@@ -53,9 +53,7 @@ class XbrDelegate(ApplicationSession):
         self.join(self.config.realm, authmethods=['cryptosign'], authextra=authextra)
 
     def onChallenge(self, challenge):
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
             signed_challenge = self._key.sign_challenge(self, challenge)

@@ -149,8 +149,8 @@ class Authenticator(ApplicationSession):
                 pubkey_file = os.path.abspath(os.environ['CROSSBAR_FABRIC_SUPERUSER'])
                 if not os.path.exists(pubkey_file):
                     raise Exception(
-                        'superuser public key file {} (set from CROSSBAR_FABRIC_SUPERUSER env var) does not exist'
-                        .format(pubkey_file))
+                        'superuser public key file {} (set from CROSSBAR_FABRIC_SUPERUSER env var) does not exist'.
+                        format(pubkey_file))
                 with open(pubkey_file, 'r') as f:
                     data = f.read()
                     pubkey_hex = None
@@ -214,8 +214,7 @@ class Authenticator(ApplicationSession):
             if u'MAILGUN_KEY' in os.environ:
                 access_key = os.environ[u'MAILGUN_KEY']
             else:
-                self.log.warn(
-                    'Mailgun access key unconfigured (not in config, and no env var MAILGUN_KEY set)')
+                self.log.warn('Mailgun access key unconfigured (not in config, and no env var MAILGUN_KEY set)')
 
         # Mailgun mail submit URL
         # eg https://api.mailgun.net/v3/mailing.crossbar.io/messages
@@ -229,8 +228,7 @@ class Authenticator(ApplicationSession):
             if u'MAILGUN_URL' in os.environ:
                 submit_url = os.environ[u'MAILGUN_URL']
             else:
-                self.log.warn(
-                    'Mailgun submit URL unconfigured (not in config, and no env var MAILGUN_URL set)')
+                self.log.warn('Mailgun submit URL unconfigured (not in config, and no env var MAILGUN_URL set)')
 
         # Quick hack - the above code doesn't work properly
         access_key = os.environ.get('MAILGUN_KEY', access_key)
@@ -266,10 +264,7 @@ class Authenticator(ApplicationSession):
         Main authenticator for Crossbar.io FX. This authenticates both users and user nodes
         to Crossbar.io FX by authenticating against information stored in controller database.
         """
-        self.log.debug('authenticate({realm}, {authid}, {details})',
-                       realm=realm,
-                       authid=authid,
-                       details=details)
+        self.log.debug('authenticate({realm}, {authid}, {details})', realm=realm, authid=authid, details=details)
 
         # proceed according to authmethod
         #
@@ -412,8 +407,7 @@ class Authenticator(ApplicationSession):
         # to care, so we plainly bail out here ..
         #
         self.log.info('denied unpaired CF node with pubkey {pubkey}', pubkey=pubkey)
-        raise ApplicationError(Authenticator.ERROR_AUTH_NODE_UNPAIRED,
-                               Authenticator.ERROR_AUTH_NODE_UNPAIRED_MSG)
+        raise ApplicationError(Authenticator.ERROR_AUTH_NODE_UNPAIRED, Authenticator.ERROR_AUTH_NODE_UNPAIRED_MSG)
 
     async def _auth_user(self,
                          realm,
@@ -526,10 +520,9 @@ class Authenticator(ApplicationSession):
             if is_new_user:
                 # send user message with activation code
                 await self._messenger.send_user_registration_mail(authid, activation.code)
-                self.log.info(
-                    'User registration mail sent to {authid} with activation code {activation_code}',
-                    authid=hlid(authid),
-                    activation_code=hl(activation.code, color='red', bold=True))
+                self.log.info('User registration mail sent to {authid} with activation code {activation_code}',
+                              authid=hlid(authid),
+                              activation_code=hl(activation.code, color='red', bold=True))
 
                 # deny authentication by raising an error and providing feedback to client
                 raise ApplicationError(Authenticator.ERROR_AUTH_NEW_USER,
@@ -570,9 +563,8 @@ class Authenticator(ApplicationSession):
                         u'extra': None,
                         u'cache': False
                     }
-                    self.log.info(
-                        'Found user {authid} with active pubkey, authenticating for global user realm',
-                        authid=authid)
+                    self.log.info('Found user {authid} with active pubkey, authenticating for global user realm',
+                                  authid=authid)
 
                     return auth
 
@@ -594,9 +586,7 @@ class Authenticator(ApplicationSession):
                     if not user_roles:
                         raise Exception('no realm "{}" or user not permitted'.format(realm))
                     else:
-                        self.log.info('user has {roles} roles on realm {realm}',
-                                      roles=user_roles.roles,
-                                      realm=realm)
+                        self.log.info('user has {roles} roles on realm {realm}', roles=user_roles.roles, realm=realm)
 
                     if authrole is None:
                         # the user did not request a specific role, so take the first one?

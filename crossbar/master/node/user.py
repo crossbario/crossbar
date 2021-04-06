@@ -59,9 +59,7 @@ class UserManager(object):
         """
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{klass}.list_organizations(details={details})',
-                      klass=self.__class__.__name__,
-                      details=details)
+        self.log.info('{klass}.list_organizations(details={details})', klass=self.__class__.__name__, details=details)
 
         with self.db.begin() as txn:
             org_oids = self.schema.organizations.select(txn, return_keys=True, return_values=False)
@@ -120,8 +118,7 @@ class UserManager(object):
                 self.log.info('Organization loaded:\n{org}', org=org)
                 return org.marshal()
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no organization with oid {}'.format(org_oid))
+                raise ApplicationError('crossbar.error.no_such_object', 'no organization with oid {}'.format(org_oid))
 
     @wamp.register(None)
     async def create_organization(self, organization, details=None):
@@ -150,9 +147,7 @@ class UserManager(object):
 
         res_obj = obj.marshal()
 
-        await self._session.publish('{}on_organization_created'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}on_organization_created'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         self.log.info('Management API event <on_organization_created> published:\n{res_obj}', res_obj=res_obj)
 
@@ -183,9 +178,7 @@ class UserManager(object):
         assert type(org_oid) == str
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{klass}.delete_organization(details={details})',
-                      klass=self.__class__.__name__,
-                      details=details)
+        self.log.info('{klass}.delete_organization(details={details})', klass=self.__class__.__name__, details=details)
 
         try:
             oid = uuid.UUID(org_oid)
@@ -197,16 +190,13 @@ class UserManager(object):
             if obj:
                 del self.schema.organizations[txn, oid]
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(oid))
+                raise ApplicationError('crossbar.error.no_such_object', 'no object with oid {} found'.format(oid))
 
         self.log.info('Organization object deleted from database:\n{obj}', obj=obj)
 
         res_obj = obj.marshal()
 
-        await self._session.publish('{}on_organization_deleted'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}on_organization_deleted'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         return res_obj
 
@@ -260,8 +250,7 @@ class UserManager(object):
                 assert user
                 return user.marshal()
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no user with pubkey {}'.format(pubkey))
+                raise ApplicationError('crossbar.error.no_such_object', 'no user with pubkey {}'.format(pubkey))
 
     @wamp.register(None)
     def get_user_by_email(self, email, details=None):
@@ -282,8 +271,7 @@ class UserManager(object):
                 assert user
                 return user.marshal()
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no user with email "{}"'.format(email))
+                raise ApplicationError('crossbar.error.no_such_object', 'no user with email "{}"'.format(email))
 
     @wamp.register(None)
     async def modify_user(self, user_id, user_delta, details=None):

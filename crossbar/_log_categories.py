@@ -7,7 +7,6 @@
 
 # The log categories
 log_categories = {
-
     "DBG100": "DEBUG {x} {y} {z}",
 
     # CBXXX - Generic Crossbar logs
@@ -62,9 +61,6 @@ log_categories = {
     "MQ503": "Error handling a QoS 0 Publish from '{client_id}', dropping connection",
     "MQ504": "Error handling a QoS 1 Publish from '{client_id}', dropping connection",
     "MQ505": "Error handling a QoS 2 Publish from '{client_id}', dropping connection",
-
-
 }
-
 
 log_keys = log_categories.keys()

@@ -11,8 +11,7 @@ from autobahn.wamp import types
 from crossbar.router.auth.pending import PendingAuth
 import txaio
 
-
-__all__ = ('PendingAuthTLS',)
+__all__ = ('PendingAuthTLS', )
 
 
 class PendingAuthTLS(PendingAuth):
@@ -24,7 +23,10 @@ class PendingAuthTLS(PendingAuth):
 
     def __init__(self, pending_session_id, transport_info, realm_container, config):
         super(PendingAuthTLS, self).__init__(
-            pending_session_id, transport_info, realm_container, config,
+            pending_session_id,
+            transport_info,
+            realm_container,
+            config,
         )
 
         # https://tools.ietf.org/html/rfc5056
@@ -115,12 +117,14 @@ class PendingAuthTLS(PendingAuth):
 
                 d.addCallbacks(on_authenticate_ok, on_authenticate_error)
                 return d
+
             init_d.addBoth(init)
             return init_d
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
+                              format(self._config['type']))
 
     def authenticate(self, signature):
         # should not arrive here!

@@ -9,7 +9,6 @@ from bitstring import pack
 
 from autobahn.websocket.utf8validator import Utf8Validator
 
-
 _validator = Utf8Validator()
 
 
@@ -67,8 +66,7 @@ def build_header(packet_id, flags, payload_length):
     else:
         length_bytes = [0]
 
-    return header.bytes + pack(','.join(['uint:8'] * len(length_bytes)),
-                               *length_bytes).bytes
+    return header.bytes + pack(','.join(['uint:8'] * len(length_bytes)), *length_bytes).bytes
 
 
 def iterbytes(b):

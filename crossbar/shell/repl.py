@@ -81,8 +81,7 @@ def _help_internal():
         info_table = defaultdict(list)  # type: ignore
         for mnemonic, target_info in six.iteritems(_internal_commands):
             info_table[target_info[1]].append(mnemonic)
-        formatter.write_dl((', '.join((':{0}'.format(mnemonic)
-                                       for mnemonic in sorted(mnemonics))), description)
+        formatter.write_dl((', '.join((':{0}'.format(mnemonic) for mnemonic in sorted(mnemonics))), description)
                            for description, mnemonics in six.iteritems(info_table))
     return formatter.getvalue()
 
@@ -147,8 +146,7 @@ class ClickCompleter(Completer):
         if isinstance(ctx.command, click.MultiCommand):
             for name in ctx.command.list_commands(ctx):
                 command = ctx.command.get_command(ctx, name)  # type: ignore
-                choices.append(Completion(name, -len(incomplete), display_meta=getattr(command,
-                                                                                       'short_help')))
+                choices.append(Completion(name, -len(incomplete), display_meta=getattr(command, 'short_help')))
 
         for item in choices:
             if item.text.startswith(incomplete):

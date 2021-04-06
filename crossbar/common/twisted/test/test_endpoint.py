@@ -42,10 +42,7 @@ class ListeningEndpointTests(TestCase):
         self.addCleanup(os.remove, path)
 
         reactor = SelectReactor()
-        config = {
-            "type": "unix",
-            "path": path
-        }
+        config = {"type": "unix", "path": path}
 
         endpoint = create_listening_endpoint_from_config(config, self.cbdir, reactor, self.log)
         self.assertTrue(isinstance(endpoint, UNIXServerEndpoint))
@@ -53,9 +50,7 @@ class ListeningEndpointTests(TestCase):
         factory = Factory.forProtocol(Echo)
         endpoint.listen(factory)
 
-        self.assertIn(
-            factory,
-            [getattr(x, "factory", None) for x in reactor.getReaders()])
+        self.assertIn(factory, [getattr(x, "factory", None) for x in reactor.getReaders()])
 
     def test_unix_already_listening(self):
         """
@@ -69,21 +64,15 @@ class ListeningEndpointTests(TestCase):
         open(path, "w").close()
 
         reactor = SelectReactor()
-        config = {
-            "type": "unix",
-            "path": path
-        }
+        config = {"type": "unix", "path": path}
 
-        endpoint = create_listening_endpoint_from_config(config, self.cbdir,
-                                                         reactor, self.log)
+        endpoint = create_listening_endpoint_from_config(config, self.cbdir, reactor, self.log)
         self.assertTrue(isinstance(endpoint, UNIXServerEndpoint))
 
         factory = Factory.forProtocol(Echo)
         endpoint.listen(factory)
 
-        self.assertIn(
-            factory,
-            [getattr(x, "factory", None) for x in reactor.getReaders()])
+        self.assertIn(factory, [getattr(x, "factory", None) for x in reactor.getReaders()])
 
     def test_unix_already_listening_cant_delete(self):
         """
@@ -101,14 +90,10 @@ class ListeningEndpointTests(TestCase):
         os.chmod(parent_fp, 0o544)
 
         reactor = SelectReactor()
-        config = {
-            "type": "unix",
-            "path": fp
-        }
+        config = {"type": "unix", "path": fp}
 
         with self.assertRaises(OSError) as e:
-            create_listening_endpoint_from_config(config, self.cbdir,
-                                                  reactor, self.log)
+            create_listening_endpoint_from_config(config, self.cbdir, reactor, self.log)
         self.assertEqual(e.exception.errno, 13)  # Permission Denied
 
         os.chmod(parent_fp, 0o700)

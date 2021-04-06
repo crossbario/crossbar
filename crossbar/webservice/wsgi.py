@@ -21,7 +21,6 @@ class RouterWebServiceWsgi(RouterWebService):
     """
     WSGI application Web service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -39,11 +38,14 @@ class RouterWebServiceWsgi(RouterWebService):
         try:
             mod = importlib.import_module(mod_name)
         except ImportError as e:
-            raise ApplicationError('crossbar.error.invalid_configuration', 'WSGI app module "{}" import failed: {} - Python search path was {}'.format(mod_name, e, sys.path))
+            raise ApplicationError(
+                'crossbar.error.invalid_configuration',
+                'WSGI app module "{}" import failed: {} - Python search path was {}'.format(mod_name, e, sys.path))
 
         obj_name = config['object']
         if obj_name not in mod.__dict__:
-            raise ApplicationError('crossbar.error.invalid_configuration', 'WSGI app object "{}" not in module "{}"'.format(obj_name, mod_name))
+            raise ApplicationError('crossbar.error.invalid_configuration',
+                                   'WSGI app object "{}" not in module "{}"'.format(obj_name, mod_name))
         else:
             app = getattr(mod, obj_name)
 
@@ -60,6 +62,7 @@ class RouterWebServiceWsgi(RouterWebService):
             if path == '/':
                 resource = WSGIRootResource(resource, {})
         except Exception as e:
-            raise ApplicationError('crossbar.error.invalid_configuration', 'could not instantiate WSGI resource: {}'.format(e))
+            raise ApplicationError('crossbar.error.invalid_configuration',
+                                   'could not instantiate WSGI resource: {}'.format(e))
         else:
             return RouterWebServiceWsgi(transport, path, config, resource)

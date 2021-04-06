@@ -11,7 +11,6 @@ from pytrie import StringTrie
 
 
 class TestPyTrie(unittest.TestCase):
-
     def test_empty_tree(self):
         """
         Test trie ctor, and that is doesn't match on "any" prefix.

@@ -19,16 +19,14 @@ def main(accounts):
         balance_xbr = xbr.xbrtoken.functions.balanceOf(acct).call()
         count_markets = xbr.xbrmarket.functions.countMarketsByOwner(acct).call()
 
-        print('acct {}: {:>28} ETH, {:>28} XBR, {:>4} markets'.format(acct, balance_eth, balance_xbr,
-                                                                      count_markets))
+        print('acct {}: {:>28} ETH, {:>28} XBR, {:>4} markets'.format(acct, balance_eth, balance_xbr, count_markets))
 
     print()
 
 
 if __name__ == '__main__':
     if not xbr.HAS_XBR:
-        raise RuntimeError(
-            'fatal: missing xbr support in autobahn (install using "pip install autobahn [xbr]")')
+        raise RuntimeError('fatal: missing xbr support in autobahn (install using "pip install autobahn [xbr]")')
     else:
         print('using autobahn v{}, web3.py v{}'.format(autobahn.__version__, web3.__version__))
 

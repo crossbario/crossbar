@@ -4,7 +4,6 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-
 """Crossbar.io FX is a decentralized data plane for XBR/WAMP based application
 service and data routing, built on Crossbar.io OSS."""
 
@@ -316,9 +315,7 @@ def personalities():
     #
     from crossbar import personality as standalone
 
-    personality_classes = {
-        'standalone': standalone.Personality
-    }
+    personality_classes = {'standalone': standalone.Personality}
 
     try:
         from crossbar import edge  # noqa

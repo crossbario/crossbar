@@ -39,7 +39,6 @@ class Resource404(Resource):
     """
     Custom error page (404) Twisted Web resource.
     """
-
     def __init__(self, templates, directory):
         Resource.__init__(self)
         self._page = templates.get_template('cb_web_404.html')
@@ -73,7 +72,6 @@ class RootResource(Resource):
     resource for a Twisted Web site, but have sub-paths served by different
     resources.
     """
-
     def __init__(self, rootResource, children):
         """
 
@@ -196,14 +194,16 @@ class ExtReverseProxyResource(ReverseProxyResource):
 
         # forward information of outside listening port and protocol (http vs https)
         if self._forwarded_port:
-            request.requestHeaders.setRawHeaders(b'X-Forwarded-Port', ['{}'.format(self._forwarded_port).encode('ascii')])
+            request.requestHeaders.setRawHeaders(b'X-Forwarded-Port',
+                                                 ['{}'.format(self._forwarded_port).encode('ascii')])
         else:
             request.requestHeaders.setRawHeaders(b'X-Forwarded-Port', [server_port])
 
         if self._forwarded_proto:
             request.requestHeaders.setRawHeaders(b'X-Forwarded-Proto', [self._forwarded_proto])
         else:
-            request.requestHeaders.setRawHeaders(b'X-Forwarded-Proto', [('https' if server_port == 443 else 'http').encode('ascii')])
+            request.requestHeaders.setRawHeaders(b'X-Forwarded-Proto',
+                                                 [('https' if server_port == 443 else 'http').encode('ascii')])
 
         # rewind cursor to begin of request data
         request.content.seek(0, 0)
@@ -216,28 +216,29 @@ class ExtReverseProxyResource(ReverseProxyResource):
             rest = self.path
 
         self.log.info('forwarding HTTP request to "{rest}" with HTTP request headers {headers}',
-                      rest=rest, headers=request.getAllHeaders())
+                      rest=rest,
+                      headers=request.getAllHeaders())
 
         # now issue the forwarded request to the HTTP server that is being reverse-proxied
-        clientFactory = self.proxyClientFactoryClass(
-            request.method, rest, request.clientproto,
-            request.getAllHeaders(), request.content.read(), request)
+        clientFactory = self.proxyClientFactoryClass(request.method, rest, request.clientproto,
+                                                     request.getAllHeaders(), request.content.read(), request)
         self.reactor.connectTCP(self.host, self.port, clientFactory)
 
         # the proxy client request created ^ is taking care of actually finishing the request ..
         return NOT_DONE_YET
 
     def getChild(self, path, request):
-        return ExtReverseProxyResource(
-            self.host, self.port, self.path + b'/' + urlquote(path, safe=b"").encode('utf-8'),
-            forwarded_port=self._forwarded_port, forwarded_proto=self._forwarded_proto)
+        return ExtReverseProxyResource(self.host,
+                                       self.port,
+                                       self.path + b'/' + urlquote(path, safe=b"").encode('utf-8'),
+                                       forwarded_port=self._forwarded_port,
+                                       forwarded_proto=self._forwarded_proto)
 
 
 class RouterWebServiceReverseWeb(RouterWebService):
     """
     Reverse Web proxy service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -287,7 +288,6 @@ class RouterWebServiceRedirect(RouterWebService):
     """
     Redirecting Web service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -303,7 +303,6 @@ class RouterWebServiceTwistedWeb(RouterWebService):
     """
     Generic Twisted Web base service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -327,7 +326,6 @@ class RouterWebServiceNestedPath(RouterWebService):
     """
     Nested sub-URL path (pseudo-)service.
     """
-
     @staticmethod
     @inlineCallbacks
     def create(transport, path, config):

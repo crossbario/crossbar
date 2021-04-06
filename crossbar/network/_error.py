@@ -18,8 +18,7 @@ class UsernameAlreadyExists(ApplicationError):
     """
     def __init__(self, username, alt_username=None):
         if alt_username:
-            msg = 'username "{}" already exists. alternative available username "{}"'.format(
-                username, alt_username)
+            msg = 'username "{}" already exists. alternative available username "{}"'.format(username, alt_username)
         else:
             msg = 'username "{}" already exists'.format(username)
         super().__init__('xbr.network.error.username_already_exists', msg, alt_username=alt_username)

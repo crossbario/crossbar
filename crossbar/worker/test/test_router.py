@@ -32,7 +32,6 @@ except (ImportError, SyntaxError):
 else:
     WSGI_TESTS = False
 
-
 WSGI_TESTS = True
 
 
@@ -58,19 +57,17 @@ class FakeWAMPTransport(object):
 
         if isinstance(message, Hello):
             self._session.onMessage(
-                Welcome(1, {"broker": RoleBrokerFeatures(),
-                            "dealer": RoleDealerFeatures()},
-                        authrole="anonymous"))
+                Welcome(1, {
+                    "broker": RoleBrokerFeatures(),
+                    "dealer": RoleDealerFeatures()
+                }, authrole="anonymous"))
         elif isinstance(message, Register):
-            self._session.onMessage(
-                Registered(message.request, message.request))
+            self._session.onMessage(Registered(message.request, message.request))
         elif isinstance(message, Publish):
             if message.acknowledge:
-                self._session.onMessage(
-                    Published(message.request, message.request))
+                self._session.onMessage(Published(message.request, message.request))
         elif isinstance(message, Subscribe):
-            self._session.onMessage(
-                Subscribed(message.request, message.request))
+            self._session.onMessage(Subscribed(message.request, message.request))
         else:
             assert False, message
 
@@ -87,8 +84,7 @@ class RouterWorkerSessionTests(TestCase):
         Set up the common component config.
         """
         self.realm = "realm1"
-        config_extras = DottableDict({"worker": "worker1",
-                                      "cbdir": self.mktemp()})
+        config_extras = DottableDict({"worker": "worker1", "cbdir": self.mktemp()})
         self.config = ComponentConfig(self.realm, extra=config_extras)
 
     def test_basic(self):
@@ -118,11 +114,18 @@ class RouterWorkerSessionTests(TestCase):
         r.onOpen(transport)
 
         realm_config = {
-            "name": "realm1",
-            'roles': [{'name': 'anonymous',
-                       'permissions': [{'subscribe': True,
-                                        'register': True, 'call': True,
-                                        'uri': '*', 'publish': True}]}]
+            "name":
+            "realm1",
+            'roles': [{
+                'name': 'anonymous',
+                'permissions': [{
+                    'subscribe': True,
+                    'register': True,
+                    'call': True,
+                    'uri': '*',
+                    'publish': True
+                }]
+            }]
         }
 
         r.start_router_realm("realm1", realm_config)
@@ -140,8 +143,7 @@ class RouterWorkerSessionTests(TestCase):
         r.start_router_component("newcomponent", component_config)
 
         self.assertEqual(len(r.get_router_components()), 1)
-        self.assertEqual(r.get_router_components()[0]["id"],
-                         "newcomponent")
+        self.assertEqual(r.get_router_components()[0]["id"], "newcomponent")
 
         self.assertEqual(len(_), 1)
         _.pop()  # clear this global state
@@ -161,27 +163,28 @@ class RouterWorkerSessionTests(TestCase):
         r.onOpen(transport)
 
         realm_config = {
-            "name": "realm1",
-            'roles': [{'name': 'anonymous',
-                       'permissions': [{'subscribe': True,
-                                        'register': True, 'call': True,
-                                        'uri': '*', 'publish': True}]}]
+            "name":
+            "realm1",
+            'roles': [{
+                'name': 'anonymous',
+                'permissions': [{
+                    'subscribe': True,
+                    'register': True,
+                    'call': True,
+                    'uri': '*',
+                    'publish': True
+                }]
+            }]
         }
 
         r.start_router_realm("realm1", realm_config)
 
-        component_config = {
-            "type": "class",
-            "classname": "thisisathing.thatdoesnot.exist",
-            "realm": "realm1"
-        }
+        component_config = {"type": "class", "classname": "thisisathing.thatdoesnot.exist", "realm": "realm1"}
 
         with self.assertRaises(ApplicationError) as e:
             r.start_router_component("newcomponent", component_config)
 
-        self.assertIn(
-            "Failed to import class 'thisisathing.thatdoesnot.exist'",
-            str(e.exception.args[0]))
+        self.assertIn("Failed to import class 'thisisathing.thatdoesnot.exist'", str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
 
@@ -198,17 +201,11 @@ class RouterWorkerSessionTests(TestCase):
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {
-            "name": "realm1",
-            'roles': []
-        }
+        realm_config = {"name": "realm1", 'roles': []}
 
         r.start_router_realm("realm1", realm_config)
 
-        component_config = {
-            "type": "notathingcrossbarsupports",
-            "realm": "realm1"
-        }
+        component_config = {"type": "notathingcrossbarsupports", "realm": "realm1"}
 
         with self.assertRaises(ApplicationError) as e:
             r.start_router_component("newcomponent", component_config)
@@ -228,10 +225,7 @@ class RouterWorkerSessionTests(TestCase):
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {
-            "name": "realm1",
-            'roles': []
-        }
+        realm_config = {"name": "realm1", 'roles': []}
 
         r.start_router_realm("realm1", realm_config)
 
@@ -244,9 +238,7 @@ class RouterWorkerSessionTests(TestCase):
         with self.assertRaises(ApplicationError) as e:
             r.start_router_component("newcomponent", component_config)
 
-        self.assertIn(
-            ("session not derived of ApplicationSession"),
-            str(e.exception.args[0]))
+        self.assertIn(("session not derived of ApplicationSession"), str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
 
@@ -285,10 +277,12 @@ class WebTests(TestCase):
     def setUp(self):
         self.cbdir = self.mktemp()
         os.makedirs(self.cbdir)
-        config_extras = DottableDict({"worker": "worker1",
-                                      "cbdir": self.cbdir.decode('utf8')
-                                      if not isinstance(self.cbdir, str)
-                                      else self.cbdir})
+        config_extras = DottableDict({
+            "worker":
+            "worker1",
+            "cbdir":
+            self.cbdir.decode('utf8') if not isinstance(self.cbdir, str) else self.cbdir
+        })
         self.config = ComponentConfig("realm1", extra=config_extras)
 
     def test_root_not_required(self):
@@ -297,17 +291,13 @@ class WebTests(TestCase):
         will still be routed correctly.
         """
         temp_reactor = SelectReactor()
-        r = router.RouterController(config=self.config,
-                                    reactor=temp_reactor)
+        r = router.RouterController(config=self.config, reactor=temp_reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {
-            "name": "realm1",
-            'roles': []
-        }
+        realm_config = {"name": "realm1", 'roles': []}
 
         # Make a file
         with open(os.path.join(self.cbdir, 'file.txt'), "wb") as f:
@@ -315,8 +305,7 @@ class WebTests(TestCase):
 
         r.start_router_realm("realm1", realm_config)
         r.start_router_transport(
-            "component1",
-            {
+            "component1", {
                 "type": "web",
                 "endpoint": {
                     "type": "tcp",
@@ -333,8 +322,7 @@ class WebTests(TestCase):
         d1 = treq.get("http://localhost:8080/", reactor=temp_reactor)
         d1.addCallback(lambda resp: self.assertEqual(resp.code, 404))
 
-        d2 = treq.get("http://localhost:8080/static/file.txt",
-                      reactor=temp_reactor)
+        d2 = treq.get("http://localhost:8080/static/file.txt", reactor=temp_reactor)
         d2.addCallback(treq.content)
         d2.addCallback(self.assertEqual, b"hello!")
 
@@ -362,8 +350,7 @@ class WSGITests(TestCase):
     def setUp(self):
         self.cbdir = self.mktemp()
         os.makedirs(self.cbdir)
-        config_extras = DottableDict({"worker": "worker1",
-                                      "cbdir": self.cbdir})
+        config_extras = DottableDict({"worker": "worker1", "cbdir": self.cbdir})
         self.config = ComponentConfig("realm1", extra=config_extras)
 
     def test_basic(self):
@@ -371,22 +358,17 @@ class WSGITests(TestCase):
         A basic WSGI app can be ran.
         """
         temp_reactor = SelectReactor()
-        r = router.RouterController(config=self.config,
-                                    reactor=temp_reactor)
+        r = router.RouterController(config=self.config, reactor=temp_reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {
-            "name": "realm1",
-            'roles': []
-        }
+        realm_config = {"name": "realm1", 'roles': []}
 
         r.start_router_realm("realm1", realm_config)
         r.start_router_transport(
-            "component1",
-            {
+            "component1", {
                 "type": "web",
                 "endpoint": {
                     "type": "tcp",
@@ -421,22 +403,17 @@ class WSGITests(TestCase):
         A basic WSGI app can be ran, with subresources
         """
         temp_reactor = SelectReactor()
-        r = router.RouterController(config=self.config,
-                                    reactor=temp_reactor)
+        r = router.RouterController(config=self.config, reactor=temp_reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {
-            "name": "realm1",
-            'roles': []
-        }
+        realm_config = {"name": "realm1", 'roles': []}
 
         r.start_router_realm("realm1", realm_config)
         r.start_router_transport(
-            "component1",
-            {
+            "component1", {
                 "type": "web",
                 "endpoint": {
                     "type": "tcp",

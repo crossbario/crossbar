@@ -183,23 +183,15 @@ flake8_stats:
 version:
 	PYTHONPATH=. python -m crossbar.controller.cli version
 
-pyflakes:
-	pyflakes crossbar
 
-pep8:
-	pep8 --statistics --ignore=E501 -qq .
+# auto-format code - WARNING: this my change files, in-place!
+autoformat:
+	yapf -ri --style=yapf.ini \
+		--exclude="crossbar/shell/reflection/*" \
+		--exclude="crossbar/master/database/*" \
+		--exclude="crossbar/worker/test/examples/syntaxerror.py" \
+		crossbar
 
-pep8_show_e231:
-	pep8 --select=E231 --show-source
-
-autopep8:
-	autopep8 -ri --aggressive --ignore=E501 .
-
-pylint:
-	pylint -d line-too-long,invalid-name crossbar
-
-find_classes:
-	find crossbar -name "*.py" -exec grep -Hi "^class" {} \; | grep -iv test
 
 # sudo apt install gource ffmpeg
 gource:

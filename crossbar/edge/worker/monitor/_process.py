@@ -117,8 +117,8 @@ class ProcessMonitor(Monitor):
                     proc = current[u'processes'][proc_id]
                     last = self._last_value[u'processes'][proc_id]
                     for key in [
-                            u'read_ios', u'write_ios', u'read_bytes', u'write_bytes', u'cpu_user',
-                            u'cpu_system', u'num_ctx_switches_voluntary', u'num_ctx_switches_involuntary'
+                            u'read_ios', u'write_ios', u'read_bytes', u'write_bytes', u'cpu_user', u'cpu_system',
+                            u'num_ctx_switches_voluntary', u'num_ctx_switches_involuntary'
                     ]:
                         proc[u'{}_per_sec'.format(key)] = float(proc[key] - last[key]) / diff
                 else:

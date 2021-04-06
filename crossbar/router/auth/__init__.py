@@ -12,7 +12,6 @@ from crossbar.router.auth.ticket import PendingAuthTicket  # noqa
 from crossbar.router.auth.tls import PendingAuthTLS  # noqa
 from crossbar.router.auth.scram import PendingAuthScram  # noqa
 
-
 AUTHMETHODS = set([
     'ticket',
     'wampcra',

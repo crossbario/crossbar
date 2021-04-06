@@ -150,8 +150,7 @@ if HAS_DOCKER:
                     expired += 1
                     self.close(id)
             if (channels != self._last_channels) or (expired != self._last_expired):
-                self.log.info('Docker console expire - updated :: channels={}, expired={}'.format(
-                    channels, expired))
+                self.log.info('Docker console expire - updated :: channels={}, expired={}'.format(channels, expired))
                 self._last_channels = channels
                 self._last_expired = expired
 
@@ -296,8 +295,8 @@ if HAS_DOCKER:
                             continue
                         etype = event.get('Type')
                         eactn = event.get('Action')
-                        topic = u'crossbar.worker.{}.docker.on_{}_{}'.format(self._controller._uri_prefix,
-                                                                             etype, eactn)
+                        topic = u'crossbar.worker.{}.docker.on_{}_{}'.format(self._controller._uri_prefix, etype,
+                                                                             eactn)
                         if etype == 'container' and eactn == 'restart':
                             self.watch(ident, self._channels.get_tty(ident))
                         try:
@@ -581,20 +580,12 @@ if HAS_DOCKER:
 
                 if self._channels.exists(id) or self._channels.tty_exists(tty_id):
                     self._channels.set_tty(id, tty_id)
-                    buffer = container.logs(stdout=1,
-                                            stderr=1,
-                                            stream=0,
-                                            timestamps=0,
-                                            tail=self.CONSOLE_HISTORY)
+                    buffer = container.logs(stdout=1, stderr=1, stream=0, timestamps=0, tail=self.CONSOLE_HISTORY)
                 else:
                     client = self._docker.APIClient()
                     params = {'stdin': 1, 'stdout': 1, 'stderr': 1, 'stream': 1, 'timestamps': 0, 'logs': 0}
                     socket = client.attach_socket(id, params)
-                    buffer = container.logs(stdout=1,
-                                            stderr=1,
-                                            stream=0,
-                                            timestamps=0,
-                                            tail=self.CONSOLE_HISTORY)
+                    buffer = container.logs(stdout=1, stderr=1, stream=0, timestamps=0, tail=self.CONSOLE_HISTORY)
                     self._channels.create(id, socket, tty_id)
 
                 buffer = buffer.decode('utf-8')
@@ -651,8 +642,7 @@ if HAS_DOCKER:
                 return client.exec_create(container, cmd, **kwargs)
 
             self.log.debug('docker shell :: {container} -> {kw}', container=container, kw=kwargs)
-            execId = (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, container,
-                                                      **kwargs))
+            execId = (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, container, **kwargs))
             id = execId.get('Id')
 
             def shim2():

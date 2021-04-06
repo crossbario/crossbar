@@ -44,7 +44,6 @@ def default_native_workers():
 
         # only check router worker options
         'checkconfig_options': checkconfig.check_router_options,
-
         'logname': 'Router',
         'topics': {
             'starting': 'crossbar.on_router_starting',
@@ -60,7 +59,6 @@ def default_native_workers():
 
         # only check container worker options
         'checkconfig_options': checkconfig.check_container_options,
-
         'logname': 'Container',
         'topics': {
             'starting': 'crossbar.on_container_starting',
@@ -76,7 +74,6 @@ def default_native_workers():
 
         # only check websocket testee worker worker options
         'checkconfig_options': checkconfig.check_websocket_testee_options,
-
         'logname': 'WebSocketTestee',
         'topics': {
             'starting': 'crossbar.on_websocket_testee_starting',
@@ -203,29 +200,21 @@ class Personality(object):
 
     WEB_SERVICE_CHECKERS = {
         'none': None,
-
         'path': checkconfig.check_web_path_service_path,
         'redirect': checkconfig.check_web_path_service_redirect,
         'resource': checkconfig.check_web_path_service_resource,
         'reverseproxy': checkconfig.check_web_path_service_reverseproxy,
-
         'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
         'json': checkconfig.check_web_path_service_json,
         'cgi': checkconfig.check_web_path_service_cgi,
-
         'wsgi': checkconfig.check_web_path_service_wsgi,
-
         'static': checkconfig.check_web_path_service_static,
-
         'websocket': checkconfig.check_web_path_service_websocket,
         'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
-
         'longpoll': checkconfig.check_web_path_service_longpoll,
-
         'caller': checkconfig.check_web_path_service_caller,
         'publisher': checkconfig.check_web_path_service_publisher,
         'webhook': checkconfig.check_web_path_service_webhook,
-
         'archive': archive.RouterWebServiceArchive.check,
         'wap': wap.RouterWebServiceWap.check,
     }
@@ -233,39 +222,28 @@ class Personality(object):
     WEB_SERVICE_FACTORIES = {
         # renders to 404
         'none': base.RouterWebService,
-
         'path': base.RouterWebServiceNestedPath,
         'redirect': base.RouterWebServiceRedirect,
         'resource': base.RouterWebServiceTwistedWeb,
         'reverseproxy': base.RouterWebServiceReverseWeb,
-
         'nodeinfo': misc.RouterWebServiceNodeInfo,
         'json': misc.RouterWebServiceJson,
         'cgi': misc.RouterWebServiceCgi,
-
         'wsgi': wsgi.RouterWebServiceWsgi,
-
         'static': static.RouterWebServiceStatic,
-
         'websocket': websocket.RouterWebServiceWebSocket,
         'websocket-reverseproxy': websocket.RouterWebServiceWebSocketReverseProxy,
-
         'longpoll': longpoll.RouterWebServiceLongPoll,
-
         'caller': rest.RouterWebServiceRestCaller,
         'publisher': rest.RouterWebServiceRestPublisher,
         'webhook': rest.RouterWebServiceWebhook,
-
         'archive': archive.RouterWebServiceArchive,
         'wap': wap.RouterWebServiceWap,
     }
 
-    EXTRA_AUTH_METHODS = {
-    }
+    EXTRA_AUTH_METHODS = {}
 
-    REALM_STORES = {
-        'memory': MemoryRealmStore
-    }
+    REALM_STORES = {'memory': MemoryRealmStore}
 
     Node = node.Node
     NodeOptions = node.NodeOptions

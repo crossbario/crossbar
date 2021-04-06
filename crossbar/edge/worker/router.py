@@ -254,17 +254,14 @@ class ExtRouterController(RouterController):
         # parameter to control trace duration (in secs): if given, automatically stop the trace
         # after the given period of time. if not given, the trace runs until stopped explicitly
         duration = trace_options.get(u'duration', None)
-        if duration is not None and (type(duration) not in six.integer_types or duration < 1
-                                     or duration > 86400):
-            emsg = 'invalid tracing options: duration must be an integer [1, 86400], was "{}"'.format(
-                type(duration))
+        if duration is not None and (type(duration) not in six.integer_types or duration < 1 or duration > 86400):
+            emsg = 'invalid tracing options: duration must be an integer [1, 86400], was "{}"'.format(type(duration))
             self.log.error(emsg)
             raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
 
         # check user provided trace_id
         if trace_id in self._traces:
-            emsg = 'could not start trace: a trace with ID "{}" is already running (or starting)'.format(
-                trace_id)
+            emsg = 'could not start trace: a trace with ID "{}" is already running (or starting)'.format(trace_id)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.already_running', emsg)
 
@@ -347,8 +344,7 @@ class ExtRouterController(RouterController):
         if interface_id in self.realms[realm_id].interfaces:
             raise ApplicationError(
                 u"crossbar.error.already_exists",
-                "An interface with ID '{}' already exists in realm with ID '{}'".format(
-                    interface_id, realm_id))
+                "An interface with ID '{}' already exists in realm with ID '{}'".format(interface_id, realm_id))
 
         self.realms[realm_id].interfaces[interface_id] = RouterRealmInterface(interface_id, interface_config)
 
@@ -366,9 +362,8 @@ class ExtRouterController(RouterController):
             raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         if interface_id not in self.realms[realm_id].interfaces:
-            raise ApplicationError(
-                u"crossbar.error.no_such_object",
-                "No interface with ID '{}' in realm with ID '{}'".format(interface_id, realm_id))
+            raise ApplicationError(u"crossbar.error.no_such_object",
+                                   "No interface with ID '{}' in realm with ID '{}'".format(interface_id, realm_id))
 
         del self.realms[realm_id].interfaces[interface_id]
 

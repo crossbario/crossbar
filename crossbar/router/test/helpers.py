@@ -43,8 +43,7 @@ def make_router():
     return router_factory, server_factory, session_factory
 
 
-def add_realm_to_router(router_factory, session_factory, realm_name='default',
-                        realm_options={}):
+def add_realm_to_router(router_factory, session_factory, realm_name='default', realm_options={}):
 
     opts = dict(realm_options)
     opts.update({'name': realm_name})
@@ -100,7 +99,6 @@ def connect_application_session(server_factory, MyApplicationSession, component_
     server_transport = FakeTransport(server_protocol, True)
     client_transport = FakeTransport(client_protocol, False)
 
-    pump = connect(server_protocol, server_transport, client_protocol,
-                   client_transport, debug=False)
+    pump = connect(server_protocol, server_transport, client_protocol, client_transport, debug=False)
 
     return client_protocol._session, pump

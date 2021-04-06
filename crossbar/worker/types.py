@@ -12,11 +12,9 @@ from crossbar.worker.rlink import RLinkManager
 
 
 class RouterComponent(object):
-
     """
     A application component hosted and running inside a router worker.
     """
-
     def __init__(self, id, config, session):
         """
 
@@ -50,11 +48,9 @@ class RouterComponent(object):
 
 
 class RouterRealm(object):
-
     """
     A realm running in a router worker.
     """
-
     def __init__(self, controller, id, config, router=None, session=None):
         """
 
@@ -114,11 +110,9 @@ class RouterRealm(object):
 
 
 class RouterRealmRole(object):
-
     """
     A role in a realm running in a router worker.
     """
-
     def __init__(self, id, config):
         """
 

@@ -72,7 +72,6 @@ class Profiler(object):
 if _HAS_VMPROF:
 
     class VMprof(Profiler):
-
         def __init__(self, id, config=None):
             Profiler.__init__(self, id, config)
 
@@ -89,7 +88,8 @@ if _HAS_VMPROF:
             if self._state != Profiler.STATE_STOPPED:
                 raise Exception("profile currently not stopped - cannot start")
 
-            self._profile_filename = os.path.join(self._profile_dir, "cb_vmprof_{}_{}.dat".format(os.getpid(), utcnow()))
+            self._profile_filename = os.path.join(self._profile_dir,
+                                                  "cb_vmprof_{}_{}.dat".format(os.getpid(), utcnow()))
             profile_fd = os.open(self._profile_filename, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
 
             vmprof.enable(profile_fd, period=0.01)
@@ -129,34 +129,32 @@ if _HAS_VMPROF:
 
                     if parts == 3:
                         block_type, funname, funline, filename = node.name.split(':')
-                        res.append(
-                            {
-                                'type': 'py',
-                                'level': level,
-                                'parent': parent_name,
-                                'fun': funname,
-                                'filename': filename,
-                                'dirname': os.path.dirname(filename),
-                                'basename': os.path.basename(filename),
-                                'line': funline,
-                                'perc': perc,
-                                'perc_of_parent': perc_of_parent,
-                                'count': node.count,
-                                'parent_count': parent.count if parent else None,
-                            })
+                        res.append({
+                            'type': 'py',
+                            'level': level,
+                            'parent': parent_name,
+                            'fun': funname,
+                            'filename': filename,
+                            'dirname': os.path.dirname(filename),
+                            'basename': os.path.basename(filename),
+                            'line': funline,
+                            'perc': perc,
+                            'perc_of_parent': perc_of_parent,
+                            'count': node.count,
+                            'parent_count': parent.count if parent else None,
+                        })
                     elif parts == 1:
                         block_type, funname = node.name.split(':')
-                        res.append(
-                            {
-                                'type': 'jit',
-                                'level': level,
-                                'parent': parent_name,
-                                'fun': funname,
-                                'perc': perc,
-                                'perc_of_parent': perc_of_parent,
-                                'count': node.count,
-                                'parent_count': parent.count if parent else None,
-                            })
+                        res.append({
+                            'type': 'jit',
+                            'level': level,
+                            'parent': parent_name,
+                            'fun': funname,
+                            'perc': perc,
+                            'perc_of_parent': perc_of_parent,
+                            'count': node.count,
+                            'parent_count': parent.count if parent else None,
+                        })
                     else:
                         raise Exception("fail!")
 
@@ -191,7 +189,9 @@ if _HAS_VMPROF:
 
                 d.addBoth(cleanup)
 
-            self.log.info("Starting profiling using {profiler} for {runtime} seconds.", profiler=self._id, runtime=runtime)
+            self.log.info("Starting profiling using {profiler} for {runtime} seconds.",
+                          profiler=self._id,
+                          runtime=runtime)
 
             from twisted.internet import reactor
             reactor.callLater(runtime, finish_profile)

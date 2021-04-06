@@ -96,8 +96,8 @@ def maybe_from_env(value):
                 new_value = os.environ[var]
                 return True, new_value
             else:
-                print('WARNING: environment variable "{}" not set, but needed in XBR backend configuration'.
-                      format(var))
+                print(
+                    'WARNING: environment variable "{}" not set, but needed in XBR backend configuration'.format(var))
                 return False, None
         else:
             return False, value

@@ -10,8 +10,7 @@ from twisted.internet.address import _ProcessAddress
 from twisted.internet import defer
 from twisted.python.runtime import platform
 
-__all__ = ('WorkerProcessEndpoint',)
-
+__all__ = ('WorkerProcessEndpoint', )
 
 if platform.isWindows():
     # On Windows, we're only using FDs 0, 1, and 2.
@@ -43,7 +42,6 @@ else:
         Wraps an IProtocol into an IProcessProtocol which forwards data
         received on Worker._log_fds to WorkerProcess.log().
         """
-
         def childDataReceived(self, childFD, data):
             """
             Some data has come in from the process child. If it's one of our
@@ -86,10 +84,8 @@ class WorkerProcessEndpoint(ProcessEndpoint):
             wrapped = _WorkerWrapIProtocol(proto, self._executable, self._errFlag)
             wrapped._worker = self._worker
 
-            self._spawnProcess(wrapped,
-                               self._executable, self._args, self._env,
-                               self._path, self._uid, self._gid, self._usePTY,
-                               self._childFDs)
+            self._spawnProcess(wrapped, self._executable, self._args, self._env, self._path, self._uid, self._gid,
+                               self._usePTY, self._childFDs)
         except:
             return defer.fail()
         else:

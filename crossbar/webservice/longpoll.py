@@ -18,7 +18,6 @@ class WampLongPollResourceSession(longpoll.WampLongPollResourceSession):
     """
 
     """
-
     def __init__(self, parent, transport_details):
         longpoll.WampLongPollResourceSession.__init__(self, parent, transport_details)
         self._transport_info = {
@@ -57,7 +56,6 @@ class RouterWebServiceLongPoll(RouterWebService):
     """
     HTTP-Long-Polling based WAMP transport wrapped as a Web service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality

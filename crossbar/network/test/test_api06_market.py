@@ -64,9 +64,7 @@ class XbrDelegate(ApplicationSession):
         self.join(self.config.realm, authmethods=['cryptosign'], authextra=authextra)
 
     def onChallenge(self, challenge):
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
             signed_challenge = self._key.sign_challenge(self, challenge)
@@ -110,12 +108,12 @@ class XbrDelegate(ApplicationSession):
                 h.update(meta_data)
                 meta_hash = multihash.to_b58_string(multihash.encode(h.digest(), 'sha2-256'))
 
-                signature = sign_eip712_market_join(self._ethkey_raw, verifyingChain, verifyingContract,
-                                                    member_adr, block_number, marketId, actorType, meta_hash)
+                signature = sign_eip712_market_join(self._ethkey_raw, verifyingChain, verifyingContract, member_adr,
+                                                    block_number, marketId, actorType, meta_hash)
 
                 request_submitted = await self.call('xbr.network.join_market', member_id.bytes, marketId,
-                                                    verifyingChain, block_number, verifyingContract,
-                                                    actorType, meta_hash, meta_data, signature)
+                                                    verifyingChain, block_number, verifyingContract, actorType,
+                                                    meta_hash, meta_data, signature)
 
                 self.log.info(
                     'Join market request submitted (actorType={actorType}, member_id={member_id}, member_adr=0x{member_adr}): \n{request_submitted}\n',
@@ -128,8 +126,8 @@ class XbrDelegate(ApplicationSession):
                 assert 'created' in request_submitted and type(
                     request_submitted['created']) == int and request_submitted['created'] > 0
                 assert 'action' in request_submitted and request_submitted['action'] == 'join_market'
-                assert 'vaction_oid' in request_submitted and type(
-                    request_submitted['vaction_oid']) == bytes and len(request_submitted['vaction_oid']) == 16
+                assert 'vaction_oid' in request_submitted and type(request_submitted['vaction_oid']) == bytes and len(
+                    request_submitted['vaction_oid']) == 16
 
                 vaction_oid = UUID(bytes=request_submitted['vaction_oid'])
                 self.log.info('Join market verification "{vaction_oid}" created', vaction_oid=vaction_oid)
@@ -148,19 +146,17 @@ class XbrDelegate(ApplicationSession):
 
                 vaction_code = verified_data['vcode']
 
-                self.log.info(
-                    'Verifying join market using vaction_oid={vaction_oid}, vaction_code={vaction_code} ..',
-                    vaction_oid=vaction_oid,
-                    vaction_code=vaction_code)
+                self.log.info('Verifying join market using vaction_oid={vaction_oid}, vaction_code={vaction_code} ..',
+                              vaction_oid=vaction_oid,
+                              vaction_code=vaction_code)
 
-                request_verified = await self.call('xbr.network.verify_join_market', vaction_oid.bytes,
-                                                   vaction_code)
+                request_verified = await self.call('xbr.network.verify_join_market', vaction_oid.bytes, vaction_code)
                 self.log.info('Join market request verified: \n{request_verified}\n',
                               request_verified=pformat(request_verified))
 
                 assert type(request_verified) == dict
-                assert 'market_oid' in request_verified and type(
-                    request_verified['market_oid']) == bytes and len(request_verified['market_oid']) == 16
+                assert 'market_oid' in request_verified and type(request_verified['market_oid']) == bytes and len(
+                    request_verified['market_oid']) == 16
                 assert 'created' in request_verified and type(
                     request_verified['created']) == int and request_verified['created'] > 0
 

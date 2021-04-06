@@ -55,9 +55,7 @@ class XbrDelegate(ApplicationSession):
         self.join(self.config.realm, authmethods=['cryptosign'], authextra=authextra)
 
     def onChallenge(self, challenge):
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
             signed_challenge = self._key.sign_challenge(self, challenge)
@@ -82,13 +80,11 @@ class XbrDelegate(ApplicationSession):
             self.log.info('SUCCESS: backend status\n\n{status}\n', status=pformat(status))
 
             member_data = await self.call('xbr.network.get_member', member_id.bytes)
-            self.log.info('SUCCESS: got member information\n\n{member_data}\n',
-                          member_data=pformat(member_data))
+            self.log.info('SUCCESS: got member information\n\n{member_data}\n', member_data=pformat(member_data))
 
             member_adr = member_data['address']
             member_data2 = await self.call('xbr.network.get_member_by_wallet', member_adr)
-            self.log.info('SUCCESS: got member information\n\n{member_data2}\n',
-                          member_data2=pformat(member_data2))
+            self.log.info('SUCCESS: got member information\n\n{member_data2}\n', member_data2=pformat(member_data2))
 
             assert member_data == member_data2
 

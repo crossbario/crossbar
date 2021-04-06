@@ -66,9 +66,7 @@ class XbrDelegate(ApplicationSession):
         self.join(self.config.realm, authmethods=['cryptosign'], authextra=authextra)
 
     def onChallenge(self, challenge):
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
             signed_challenge = self._key.sign_challenge(self, challenge)
@@ -112,8 +110,7 @@ class XbrDelegate(ApplicationSession):
             # collect information for market creation that is stored on-chain
 
             # terms text: encode in utf8 and compute BIP58 multihash string
-            terms_data = 'these are my market terms (randint={})'.format(random.randint(0,
-                                                                                        1000)).encode('utf8')
+            terms_data = 'these are my market terms (randint={})'.format(random.randint(0, 1000)).encode('utf8')
             h = hashlib.sha256()
             h.update(terms_data)
             terms_hash = str(multihash.to_b58_string(multihash.encode(h.digest(), 'sha2-256')))
@@ -144,10 +141,9 @@ class XbrDelegate(ApplicationSession):
             meta_hash = multihash.to_b58_string(multihash.encode(h.digest(), 'sha2-256'))
 
             # create signature for pre-signed transaction
-            signature = sign_eip712_market_create(self._ethkey_raw, verifyingChain, verifyingContract,
-                                                  member_adr, block_number, market_oid.bytes, coin_adr,
-                                                  terms_hash, meta_hash, maker, provider_security,
-                                                  consumer_security, market_fee)
+            signature = sign_eip712_market_create(self._ethkey_raw, verifyingChain, verifyingContract, member_adr,
+                                                  block_number, market_oid.bytes, coin_adr, terms_hash, meta_hash,
+                                                  maker, provider_security, consumer_security, market_fee)
 
             # for wire transfer, convert to bytes
             provider_security = pack_uint256(provider_security)
@@ -169,18 +165,16 @@ class XbrDelegate(ApplicationSession):
             #   - settings
             createmarket_request_submitted = await self.call('xbr.network.create_market', member_id.bytes,
                                                              market_oid.bytes, verifyingChain, block_number,
-                                                             verifyingContract, coin_adr, terms_hash,
-                                                             meta_hash, meta_data, maker, provider_security,
-                                                             consumer_security, market_fee, signature,
-                                                             attributes)
+                                                             verifyingContract, coin_adr, terms_hash, meta_hash,
+                                                             meta_data, maker, provider_security, consumer_security,
+                                                             market_fee, signature, attributes)
 
             self.log.info('Create market request submitted: \n{createmarket_request_submitted}\n',
                           createmarket_request_submitted=pformat(createmarket_request_submitted))
 
             assert type(createmarket_request_submitted) == dict
             assert 'timestamp' in createmarket_request_submitted and type(
-                createmarket_request_submitted['timestamp']
-            ) == int and createmarket_request_submitted['timestamp'] > 0
+                createmarket_request_submitted['timestamp']) == int and createmarket_request_submitted['timestamp'] > 0
             assert 'action' in createmarket_request_submitted and createmarket_request_submitted[
                 'action'] == 'create_market'
             assert 'vaction_oid' in createmarket_request_submitted and type(
@@ -204,13 +198,12 @@ class XbrDelegate(ApplicationSession):
 
             vaction_code = verified_data['vcode']
 
-            self.log.info(
-                'Verifying create market using vaction_oid={vaction_oid}, vaction_code={vaction_code} ..',
-                vaction_oid=vaction_oid,
-                vaction_code=vaction_code)
+            self.log.info('Verifying create market using vaction_oid={vaction_oid}, vaction_code={vaction_code} ..',
+                          vaction_oid=vaction_oid,
+                          vaction_code=vaction_code)
 
-            create_market_request_verified = await self.call('xbr.network.verify_create_market',
-                                                             vaction_oid.bytes, vaction_code)
+            create_market_request_verified = await self.call('xbr.network.verify_create_market', vaction_oid.bytes,
+                                                             vaction_code)
 
             self.log.info('Create market request verified: \n{create_market_request_verified}\n',
                           create_market_request_verified=pformat(create_market_request_verified))
@@ -220,8 +213,7 @@ class XbrDelegate(ApplicationSession):
                 create_market_request_verified['market_oid']) == bytes and len(
                     create_market_request_verified['market_oid']) == 16
             assert 'created' in create_market_request_verified and type(
-                create_market_request_verified['created']
-            ) == int and create_market_request_verified['created'] > 0
+                create_market_request_verified['created']) == int and create_market_request_verified['created'] > 0
 
             market_oid = create_market_request_verified['market_oid']
             self.log.info('SUCCESS! New XBR market created: market_oid={market_oid}, result=\n{result}',
@@ -240,8 +232,7 @@ class XbrDelegate(ApplicationSession):
                 UUID(bytes=market_oid), len(market_oids))
 
             market_oids = await self.call('xbr.network.get_markets_by_owner', member_id.bytes)
-            self.log.info('SUCCESS - get_markets_by_owner: found {cnt_markets} markets',
-                          cnt_markets=len(market_oids))
+            self.log.info('SUCCESS - get_markets_by_owner: found {cnt_markets} markets', cnt_markets=len(market_oids))
 
             # count all markets after we created a new market:
             cnt_market_by_owner_after = len(market_oids)

@@ -107,9 +107,7 @@ class MetadataManager(object):
         """
         assert self._started is None, 'cannot start Metadata manager - already running!'
 
-        regs = yield self._session.register(self,
-                                            prefix=prefix,
-                                            options=RegisterOptions(details_arg='details'))
+        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
         self._prefix = prefix
         procs = [reg.procedure for reg in regs]
         self.log.debug('Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n',

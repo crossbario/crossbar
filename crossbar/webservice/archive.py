@@ -160,15 +160,13 @@ class ZipArchiveResource(resource.Resource):
                     data = self._archive.open(search_path).read()
                     if self._cache:
                         self._zipfiles[search_path] = data
-                        self.log.debug(
-                            'contents for file {search_path} from archive {archive_file} cached in memory',
-                            search_path=search_path,
-                            archive_file=self._archive_file)
+                        self.log.debug('contents for file {search_path} from archive {archive_file} cached in memory',
+                                       search_path=search_path,
+                                       archive_file=self._archive_file)
                     else:
-                        self.log.debug(
-                            'contents for file {search_path} from archive {archive_file} read from file',
-                            search_path=search_path,
-                            archive_file=self._archive_file)
+                        self.log.debug('contents for file {search_path} from archive {archive_file} read from file',
+                                       search_path=search_path,
+                                       archive_file=self._archive_file)
                 else:
                     self.log.debug('cache archive not loaded')
                     return resource.NoResource()
@@ -200,7 +198,6 @@ class RouterWebServiceArchive(RouterWebService):
     """
     Static Web from ZIP archive service.
     """
-
     @staticmethod
     def check(personality, config):
         """
@@ -218,40 +215,43 @@ class RouterWebServiceArchive(RouterWebService):
         if config['type'] != 'archive':
             raise InvalidConfigException('unexpected Web service type "{}"'.format(config['type']))
 
-        check_dict_args({
-            # ID of webservice (must be unique for the web transport)
-            'id': (False, [str]),
+        check_dict_args(
+            {
+                # ID of webservice (must be unique for the web transport)
+                'id': (False, [str]),
 
-            # must be equal to "archive"
-            'type': (True, [six.text_type]),
+                # must be equal to "archive"
+                'type': (True, [six.text_type]),
 
-            # local path to archive file (relative to node directory)
-            'archive': (True, [six.text_type]),
+                # local path to archive file (relative to node directory)
+                'archive': (True, [six.text_type]),
 
-            # download URL for achive to auto-fetch
-            'origin': (False, [six.text_type]),
+                # download URL for achive to auto-fetch
+                'origin': (False, [six.text_type]),
 
-            # flag to control automatic downloading from origin
-            'download': (False, [bool]),
+                # flag to control automatic downloading from origin
+                'download': (False, [bool]),
 
-            # cache archive contents in memory
-            'cache': (False, [bool]),
+                # cache archive contents in memory
+                'cache': (False, [bool]),
 
-            # default filename in archive when fetched URL is "" or "/"
-            'default_object': (False, [six.text_type]),
+                # default filename in archive when fetched URL is "" or "/"
+                'default_object': (False, [six.text_type]),
 
-            # archive object prefix: this is prefixed to the path before looking within the archive file
-            'object_prefix': (False, [six.text_type]),
+                # archive object prefix: this is prefixed to the path before looking within the archive file
+                'object_prefix': (False, [six.text_type]),
 
-            # configure additional MIME types, sending correct HTTP response headers
-            'mime_types': (False, [Mapping]),
+                # configure additional MIME types, sending correct HTTP response headers
+                'mime_types': (False, [Mapping]),
 
-            # list of SHA3-256 hashes (HEX string) the archive file is to be verified against
-            'hashes': (False, [Sequence]),
+                # list of SHA3-256 hashes (HEX string) the archive file is to be verified against
+                'hashes': (False, [Sequence]),
 
-            # FIXME
-            'options': (False, [Mapping]),
-        }, config, "Static Web from Archive service configuration".format(config))
+                # FIXME
+                'options': (False, [Mapping]),
+            },
+            config,
+            "Static Web from Archive service configuration: {}".format(config))
 
     @staticmethod
     @inlineCallbacks
@@ -273,20 +273,16 @@ class RouterWebServiceArchive(RouterWebService):
         archive_file = os.path.abspath(os.path.join(transport.worker.cbdir, config['archive']))
         if os.path.exists(archive_file):
             if os.path.isfile(archive_file):
-                log.info(
-                    'ZipArchiveResource: file already cached locally [{archive_file}]',
-                    archive_file=archive_file)
+                log.info('ZipArchiveResource: file already cached locally [{archive_file}]', archive_file=archive_file)
             else:
-                raise Exception(
-                    'path "{archive_file}" exists but is not a file'.format(archive_file=archive_file))
+                raise Exception('path "{archive_file}" exists but is not a file'.format(archive_file=archive_file))
         else:
             if 'origin' not in config:
                 raise Exception('missing origin')
 
             _url = urlparse(config['origin'])
             if _url.scheme not in ['http', 'https']:
-                raise Exception('invalid scheme "{}" in attribute "archive" for archive file'.format(
-                    _url.scheme))
+                raise Exception('invalid scheme "{}" in attribute "archive" for archive file'.format(_url.scheme))
 
             # download the file and cache locally ..
             if config.get('download', False):
@@ -294,9 +290,8 @@ class RouterWebServiceArchive(RouterWebService):
                 log.info('ZipArchiveResource: downloading from "{source_url}"', source_url=source_url)
                 yield _download(transport.worker._reactor, source_url, archive_file)
 
-                log.info(
-                    'ZipArchiveResource: file downloaded and cached locally [{archive_file}]',
-                    archive_file=archive_file)
+                log.info('ZipArchiveResource: file downloaded and cached locally [{archive_file}]',
+                         archive_file=archive_file)
             else:
                 log.warn('ZipArchiveResource: file download skipped by configuration!')
 
@@ -304,16 +299,14 @@ class RouterWebServiceArchive(RouterWebService):
         if hashes:
             h = _sha256file(archive_file)
             if h in hashes:
-                log.info(
-                    'ZipArchiveResource: archive file "{archive_file}" verified (fingerprint {hash}..)',
-                    archive_file=archive_file,
-                    hash=h[:12])
+                log.info('ZipArchiveResource: archive file "{archive_file}" verified (fingerprint {hash}..)',
+                         archive_file=archive_file,
+                         hash=h[:12])
             else:
                 raise Exception('archive "{}" does not match any of configured SHA256 fingerprints {}'.format(
                     archive_file, hashes))
         else:
-            log.warn(
-                'ZipArchiveResource: archive file "{archive_file}" is unverified', archive_file=archive_file)
+            log.warn('ZipArchiveResource: archive file "{archive_file}" is unverified', archive_file=archive_file)
 
         res = ZipArchiveResource(transport.worker, config, path, archive_file)
         svc = RouterWebServiceArchive(transport, path, config, res)

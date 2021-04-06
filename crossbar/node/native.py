@@ -15,7 +15,7 @@ from txaio import make_logger
 
 from crossbar._util import hltype
 
-__all__ = ('create_native_worker_client_factory',)
+__all__ = ('create_native_worker_client_factory', )
 
 
 class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
@@ -62,16 +62,19 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
                 if not self.factory._on_exit.called:
                     self.factory._on_exit.errback(reason)
                 else:
-                    self.log.error("unhandled code path (1) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
+                    self.log.error("unhandled code path (1) in WorkerClientProtocol.connectionLost: {reason}",
+                                   reason=reason.value)
         elif isinstance(reason.value, (ProcessDone, ConnectionDone)):
             # the worker exited cleanly
             if not self.factory._on_exit.called:
                 self.factory._on_exit.callback(None)
             else:
-                self.log.error("unhandled code path (2) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
+                self.log.error("unhandled code path (2) in WorkerClientProtocol.connectionLost: {reason}",
+                               reason=reason.value)
         else:
             # should not arrive here
-            self.log.error("unhandled code path (3) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
+            self.log.error("unhandled code path (3) in WorkerClientProtocol.connectionLost: {reason}",
+                           reason=reason.value)
 
 
 class NativeWorkerClientFactory(WampWebSocketClientFactory):
@@ -79,7 +82,9 @@ class NativeWorkerClientFactory(WampWebSocketClientFactory):
     log = make_logger()
 
     def __init__(self, *args, **kwargs):
-        self.log.debug('{func}(*args={_args}, **kwargs={_kwargs})', _args=args, _kwargs=kwargs,
+        self.log.debug('{func}(*args={_args}, **kwargs={_kwargs})',
+                       _args=args,
+                       _kwargs=kwargs,
                        func=hltype(NativeWorkerClientFactory.__init__))
         self._authrole = kwargs.pop('authrole')
         WampWebSocketClientFactory.__init__(self, *args, **kwargs)

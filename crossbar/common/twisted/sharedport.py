@@ -83,7 +83,6 @@ class SharedPort(tcp.Port):
     """
     A custom TCP port which allows to set socket options for sharing TCP ports between multiple processes.
     """
-
     def __init__(self, port, factory, backlog=50, interface='', reactor=None, shared=False):
         if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
             raise Exception("shared sockets unsupported on this system")
@@ -113,7 +112,6 @@ class SharedTLSPort(SharedPort, ssl.Port):
     """
     A custom TLS port which allows to set socket options for sharing (the underlying) TCP ports between multiple processes.
     """
-
     def __init__(self, port, factory, ctxFactory, backlog=50, interface='', reactor=None, shared=False):
         if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
             raise Exception("shared sockets unsupported on this system")

@@ -14,9 +14,7 @@ _ = []
 
 
 class AppSession(ApplicationSession):
-
     @inlineCallbacks
     def onJoin(self, details):
         yield self.subscribe(_.append, "com.test")
-        yield self.publish("com.test", "woo",
-                           options=PublishOptions(exclude_me=False))
+        yield self.publish("com.test", "woo", options=PublishOptions(exclude_me=False))

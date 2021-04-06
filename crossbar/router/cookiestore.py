@@ -131,7 +131,9 @@ class CookieStore(object):
         else:
             cookie_auth_info = None, None, None, None, None
 
-        self.log.debug("Cookie auth info for {cbtid} retrieved: {cookie_auth_info}", cbtid=cbtid, cookie_auth_info=cookie_auth_info)
+        self.log.debug("Cookie auth info for {cbtid} retrieved: {cookie_auth_info}",
+                       cbtid=cbtid,
+                       cookie_auth_info=cookie_auth_info)
 
         return cookie_auth_info
 
@@ -203,7 +205,6 @@ class CookieStoreFileBacked(CookieStore):
     record is appended. When the store is booting, the file is sequentially scanned.
     The last record for a given cookie ID is remembered in memory.
     """
-
     def __init__(self, cookie_file_name, config):
         CookieStore.__init__(self, config)
 
@@ -237,13 +238,17 @@ class CookieStoreFileBacked(CookieStore):
 
     def _persist(self, id, c, status='created'):
 
-        self._cookie_file.write(json.dumps({
-            'id': id, status: c['created'], 'max_age': c['max_age'],
-            'authid': c['authid'], 'authrole': c['authrole'],
-            'authmethod': c['authmethod'],
-            'authrealm': c['authrealm'],
-            'authextra': c['authextra'],
-        }) + '\n')
+        self._cookie_file.write(
+            json.dumps({
+                'id': id,
+                status: c['created'],
+                'max_age': c['max_age'],
+                'authid': c['authid'],
+                'authrole': c['authrole'],
+                'authmethod': c['authmethod'],
+                'authrealm': c['authrealm'],
+                'authextra': c['authextra'],
+            }) + '\n')
         self._cookie_file.flush()
         os.fsync(self._cookie_file.fileno())
 
@@ -256,7 +261,9 @@ class CookieStoreFileBacked(CookieStore):
             self._cookies[id].update(cookie)
             n += 1
 
-        self.log.info("Loaded {cnt_cookie_records} cookie records from file. Cookie store has {cnt_cookies} entries.", cnt_cookie_records=n, cnt_cookies=len(self._cookies))
+        self.log.info("Loaded {cnt_cookie_records} cookie records from file. Cookie store has {cnt_cookies} entries.",
+                      cnt_cookie_records=n,
+                      cnt_cookies=len(self._cookies))
 
     def create(self):
         cbtid, header = CookieStore.create(self)
@@ -276,7 +283,8 @@ class CookieStoreFileBacked(CookieStore):
             cookie = self._cookies[cbtid]
 
             # only set the changes and write them to the file if any of the values changed
-            if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod'] or authrealm != cookie['authrealm'] or authextra != cookie['authextra']:
+            if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie[
+                    'authmethod'] or authrealm != cookie['authrealm'] or authextra != cookie['authextra']:
                 CookieStore.setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm)
                 self._persist(cbtid, cookie, status='modified')
 

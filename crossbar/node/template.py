@@ -13,14 +13,12 @@ import jinja2
 
 from txaio import make_logger
 
-__all__ = ('Templates',)
-
+__all__ = ('Templates', )
 
 log = make_logger()
 
 
 class Templates:
-
     """
     Crossbar.io application templates.
     """
@@ -35,15 +33,13 @@ class Templates:
             'name': 'default',
             'help': 'A WAMP router speaking WebSocket plus a static Web server.',
             'basedir': "node/templates/default",
-            'params': {
-            },
+            'params': {},
             'skip_jinja': ['autobahn.js', 'autobahn.min.js', 'autobahn.min.jgz']
         }
     }
     """
     Application template definitions.
     """
-
     @staticmethod
     def help():
         """

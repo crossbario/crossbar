@@ -54,8 +54,7 @@ class HostMonitor(WorkerController):
 
     @inlineCallbacks
     def onJoin(self, details):
-        self.log.info('HostMonitor connected (monitors available: {monitors})',
-                      monitors=sorted(MONITORS.keys()))
+        self.log.info('HostMonitor connected (monitors available: {monitors})', monitors=sorted(MONITORS.keys()))
 
         yield WorkerController.onJoin(self, details, publish_ready=False)
 
@@ -142,8 +141,7 @@ class HostMonitor(WorkerController):
             if monitor_key not in MONITORS.keys():
                 raise ApplicationError(
                     u'crossbar.error.invalid_configuration',
-                    u'unknown monitor type "{}" (available monitors: {})'.format(
-                        monitor_key, sorted(MONITORS.keys())))
+                    u'unknown monitor type "{}" (available monitors: {})'.format(monitor_key, sorted(MONITORS.keys())))
 
             # get submonitor class
             klass = MONITORS[monitor_key]
@@ -180,8 +178,7 @@ class HostMonitor(WorkerController):
 
         if not self._run:
             if self._is_running:
-                self.log.warn(
-                    'cannot stop host monitoring - monitoring already told to stop (but still running)')
+                self.log.warn('cannot stop host monitoring - monitoring already told to stop (but still running)')
             else:
                 self.log.info('cannot stop host monitoring - monitoring already stopped')
             return None
@@ -254,9 +251,7 @@ class HostMonitor(WorkerController):
 
         dl = []
         for monitor_id, monitor_data in hdata.items():
-            d = self.publish(u'{}.on_{}_sample'.format(self._uri_prefix, monitor_id),
-                             monitor_data,
-                             options=options)
+            d = self.publish(u'{}.on_{}_sample'.format(self._uri_prefix, monitor_id), monitor_data, options=options)
             dl.append(d)
 
         d = DeferredList(dl)

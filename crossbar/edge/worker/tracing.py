@@ -96,8 +96,8 @@ class TracedMessage(object):
 
 class TracedAction(object):
 
-    __slots__ = ('correlation_id', 'correlation_uri', 'ts', 'pc', 'seq', 'realm', 'action', 'originator',
-                 'responders', 'originator_enc', 'responders_enc', 'success')
+    __slots__ = ('correlation_id', 'correlation_uri', 'ts', 'pc', 'seq', 'realm', 'action', 'originator', 'responders',
+                 'originator_enc', 'responders_enc', 'success')
 
     def __init__(self, correlation_id, correlation_uri, seq, realm, action, originator, responders):
         self.correlation_id = correlation_id
@@ -252,8 +252,7 @@ class FabricRouterTrace(object):
             self._batch_looper = LoopingCall(self._batch_loop)
             self._batch_looper.start(float(self._batching_period) / 1000.)
         else:
-            self.log.warn('skip starting of Trace not in status "created", but "{status}"',
-                          status=self._status)
+            self.log.warn('skip starting of Trace not in status "created", but "{status}"', status=self._status)
 
     def stop(self):
         if self._status == u'running':
@@ -264,8 +263,7 @@ class FabricRouterTrace(object):
             self._status = u'stopped'
             self._ended = datetime.utcnow()
         else:
-            self.log.warn('skip stopping of Trace not in status "running", but "{status}"',
-                          status=self._status)
+            self.log.warn('skip stopping of Trace not in status "running", but "{status}"', status=self._status)
 
     def marshal(self):
         if self._started:

@@ -9,7 +9,7 @@ from collections import deque
 
 from txaio import make_logger, time_ns
 
-__all__ = ('MemoryRealmStore',)
+__all__ = ('MemoryRealmStore', )
 
 
 class QueuedCall(object):
@@ -34,7 +34,6 @@ class MemoryCallQueue(object):
     """
     The global call queue limit, in case not overridden.
     """
-
     def __init__(self, config=None):
         """
 
@@ -96,7 +95,6 @@ class MemoryEventStore(object):
     """
     The global history limit, in case not overridden.
     """
-
     def __init__(self, config=None):
         """
 
@@ -135,7 +133,9 @@ class MemoryEventStore(object):
         for sub in self._config.get('event-history', []):
             uri = sub['uri']
             match = sub.get('match', 'exact')
-            observation, was_already_observed, was_first_observer = subscription_map.add_observer(self, uri=uri, match=match)
+            observation, was_already_observed, was_first_observer = subscription_map.add_observer(self,
+                                                                                                  uri=uri,
+                                                                                                  match=match)
             subscription_id = observation.id
 
             # for in-memory history, we just use a double-ended queue
@@ -143,11 +143,17 @@ class MemoryEventStore(object):
 
     def store_session_joined(self, session, session_details):
         self.log.debug('{klass}.store_session_join(session={session}, session_details={session_details})',
-                       klass=self.__class__.__name__, session=session, session_details=session_details)
+                       klass=self.__class__.__name__,
+                       session=session,
+                       session_details=session_details)
 
     def store_session_left(self, session, session_details, close_details):
-        self.log.debug('{klass}.store_session_left(session={session}, session_details={session_details}, close_details={close_details})',
-                       klass=self.__class__.__name__, session=session, session_details=session_details, close_details=close_details)
+        self.log.debug(
+            '{klass}.store_session_left(session={session}, session_details={session_details}, close_details={close_details})',
+            klass=self.__class__.__name__,
+            session=session,
+            session_details=session_details,
+            close_details=close_details)
 
     def store_event(self, session, publication_id, publish):
         """
@@ -162,7 +168,7 @@ class MemoryEventStore(object):
         :param publish: The WAMP publish message.
         :type publish: :class:`autobahn.wamp.messages.Publish`
         """
-        assert(publication_id not in self._event_store)
+        assert (publication_id not in self._event_store)
         evt = {
             'time_ns': time_ns(),
             'realm': session._realm,
@@ -176,7 +182,8 @@ class MemoryEventStore(object):
         }
         self._event_store[publication_id] = evt
         self.log.debug("Event {publication_id} stored in {store_type}-store",
-                       store_type=self.STORE_TYPE, publication_id=publication_id)
+                       store_type=self.STORE_TYPE,
+                       publication_id=publication_id)
 
     def store_event_history(self, publication_id, subscription_id, receiver):
         """
@@ -193,11 +200,14 @@ class MemoryEventStore(object):
         # assert(subscription_id in self._event_history)
 
         if publication_id not in self._event_store:
-            self.log.warn('INTERNAL WARNING: event for publication {publication_id} not in event store', publication_id=publication_id)
+            self.log.warn('INTERNAL WARNING: event for publication {publication_id} not in event store',
+                          publication_id=publication_id)
 
         if subscription_id not in self._event_history:
-            self.log.warn('INTERNAL WARNING: subscription {subscription_id} for publication {publication_id} not in event store',
-                          subscription_id=subscription_id, publication_id=publication_id)
+            self.log.warn(
+                'INTERNAL WARNING: subscription {subscription_id} for publication {publication_id} not in event store',
+                subscription_id=subscription_id,
+                publication_id=publication_id)
             return
 
         limit, history = self._event_history[subscription_id]
@@ -210,8 +220,11 @@ class MemoryEventStore(object):
 
         self._event_subscriptions[publication_id].add(subscription_id)
 
-        self.log.debug("Event {publication_id} history stored in {store_type}-store for subscription {subscription_id}",
-                       store_type=self.STORE_TYPE, publication_id=publication_id, subscription_id=subscription_id)
+        self.log.debug(
+            "Event {publication_id} history stored in {store_type}-store for subscription {subscription_id}",
+            store_type=self.STORE_TYPE,
+            publication_id=publication_id,
+            subscription_id=subscription_id)
 
         # purge history if over limit
         if len(history) > limit:
@@ -222,7 +235,9 @@ class MemoryEventStore(object):
             # remove the purged publication from event subscriptions
             self._event_subscriptions[purged_publication_id].remove(subscription_id)
 
-            self.log.debug("Event {publication_id} purged from history for subscription {subscription_id}", publication_id=purged_publication_id, subscription_id=subscription_id)
+            self.log.debug("Event {publication_id} purged from history for subscription {subscription_id}",
+                           publication_id=purged_publication_id,
+                           subscription_id=subscription_id)
 
             # if no more event subscriptions exist for publication, remove that too
             if not self._event_subscriptions[purged_publication_id]:
@@ -292,7 +307,6 @@ class MemoryRealmStore(object):
     """
     Store for call queueing.
     """
-
     def __init__(self, personality, factory, config):
         """
 

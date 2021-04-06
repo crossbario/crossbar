@@ -61,9 +61,9 @@ app.secret_key = str(uuid.uuid4())
 app.config['DEBUG'] = True
 app.config['WEBSITE_URL'] = 'http://localhost:8090'
 # app.config['WEBSITE_URL'] = 'https://xbr.network'
-app.config['MAILGUN'] = MailGateway(
-    os.environ.get('MAILGUN_URL', None), os.environ.get('MAILGUN_KEY', None),
-    os.environ.get('MAILGUN_FROM', 'XBR Network <no-reply@mailing.xbr.network>'), app.config['WEBSITE_URL'])
+app.config['MAILGUN'] = MailGateway(os.environ.get('MAILGUN_URL', None), os.environ.get('MAILGUN_KEY', None),
+                                    os.environ.get('MAILGUN_FROM', 'XBR Network <no-reply@mailing.xbr.network>'),
+                                    app.config['WEBSITE_URL'])
 
 
 @app.route('/')
@@ -143,16 +143,14 @@ def page_xbr_submit_onboard():
 
     # eg, onboard_wallet_address = 0x6231eECbA6e7983efe5ce6d16972E16cCcD97CE7
     if len(onboard_wallet_address) != 42:
-        return render_template(
-            'xbr_onboard_submit_error.html',
-            onboard_member_error='Invalid wallet address "{}"'.format(onboard_wallet_address))
+        return render_template('xbr_onboard_submit_error.html',
+                               onboard_member_error='Invalid wallet address "{}"'.format(onboard_wallet_address))
 
     try:
         onboard_wallet_address = binascii.a2b_hex(onboard_wallet_address[2:])
     except:
-        return render_template(
-            'xbr_onboard_submit_error.html',
-            onboard_member_error='Invalid wallet address "{}"'.format(onboard_wallet_address))
+        return render_template('xbr_onboard_submit_error.html',
+                               onboard_member_error='Invalid wallet address "{}"'.format(onboard_wallet_address))
 
     if not validate_email(onboard_member_email, check_mx=False, verify=False):
         return render_template('xbr_onboard_submit_error.html',
@@ -161,8 +159,8 @@ def page_xbr_submit_onboard():
     if not is_valid_username(onboard_member_name):
         return render_template(
             'xbr_onboard_submit_error.html',
-            onboard_member_error='Invalid username "{}" - must be a string matching the regular expression {}'
-            .format(onboard_member_name, _USERNAME_PAT_STR))
+            onboard_member_error='Invalid username "{}" - must be a string matching the regular expression {}'.format(
+                onboard_member_name, _USERNAME_PAT_STR))
 
     db = app.config['DB']
     schema = app.config['DBSCHEMA']
@@ -170,9 +168,8 @@ def page_xbr_submit_onboard():
     with db.begin() as txn:
         account_oid = schema.idx_accounts_by_username[txn, onboard_member_name]
         if account_oid:
-            return render_template(
-                'xbr_onboard_submit_error.html',
-                onboard_member_error='Username "{}" already exists'.format(onboard_member_name))
+            return render_template('xbr_onboard_submit_error.html',
+                                   onboard_member_error='Username "{}" already exists'.format(onboard_member_name))
 
     vaction_oid = uuid.uuid4()
     vaction_code = generate_activation_code()
@@ -180,9 +177,8 @@ def page_xbr_submit_onboard():
     try:
         mailgw.send_onboard_verification(onboard_member_email, vaction_oid, vaction_code)
     except Exception as e:
-        return render_template(
-            'xbr_onboard_submit_error.html',
-            onboard_member_error='Failed to submit email via mailgun (exception {})'.format(e))
+        return render_template('xbr_onboard_submit_error.html',
+                               onboard_member_error='Failed to submit email via mailgun (exception {})'.format(e))
 
     on_success_url = '{}/member'.format(app.config['WEBSITE_URL'])
     on_error_url = None
@@ -200,9 +196,8 @@ def page_xbr_submit_onboard():
         # we initially checked for collision
         account_oid = schema.idx_accounts_by_username[txn, onboard_member_name]
         if account_oid:
-            return render_template(
-                'xbr_onboard_submit_error.html',
-                onboard_member_error='Username "{}" already exists'.format(onboard_member_name))
+            return render_template('xbr_onboard_submit_error.html',
+                                   onboard_member_error='Username "{}" already exists'.format(onboard_member_name))
 
         vaction = VerifiedAction()
         vaction.oid = vaction_oid
@@ -296,11 +291,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output.")
-    parser.add_argument(
-        "-n",
-        "--nonetwork",
-        action="store_true",
-        help="No public internet/networking, disable external code (Google Analytics, Disqus).")
+    parser.add_argument("-n",
+                        "--nonetwork",
+                        action="store_true",
+                        help="No public internet/networking, disable external code (Google Analytics, Disqus).")
     parser.add_argument("-f", "--freeze", action="store_true", help="Enable freeze mode.")
     parser.add_argument("--port",
                         type=int,
@@ -310,11 +304,10 @@ if __name__ == "__main__":
                         type=str,
                         default=None,
                         help='Mailgun key (eg "key-00000000000000000000000000000000")')
-    parser.add_argument(
-        "--mailgun_url",
-        type=str,
-        default=None,
-        help='Mailgun posting URL (eg "https://api.mailgun.net/v3/mailing.crossbar.io/messages")')
+    parser.add_argument("--mailgun_url",
+                        type=str,
+                        default=None,
+                        help='Mailgun posting URL (eg "https://api.mailgun.net/v3/mailing.crossbar.io/messages")')
     options = parser.parse_args()
 
     if options.mailgun_key:

@@ -30,11 +30,10 @@ from crossbar.common.profiler import PROFILERS
 from crossbar.common.key import _read_node_key, _read_release_key
 from crossbar._util import term_print
 
-__all__ = ('WorkerController',)
+__all__ = ('WorkerController', )
 
 
 class WorkerController(NativeProcess):
-
     """
     A native Crossbar.io worker process. The worker will be connected
     to the node's management router running inside the node controller
@@ -78,8 +77,7 @@ class WorkerController(NativeProcess):
         for package, directory in self.personality.TEMPLATE_DIRS:
             dir_path = os.path.abspath(pkg_resources.resource_filename(package, directory))
             template_dirs.append(dir_path)
-        self.log.debug("Using Web templates from {template_dirs}",
-                       template_dirs=template_dirs)
+        self.log.debug("Using Web templates from {template_dirs}", template_dirs=template_dirs)
         self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs), autoescape=True)
 
         self.join(self.config.realm)
@@ -97,12 +95,14 @@ class WorkerController(NativeProcess):
         Called when worker process has joined the node management realm.
         """
         yield NativeProcess.onJoin(self, details)
+
         # above upcall registers all our "@wamp.register(None)" methods
 
         # setup SIGTERM handler to orderly shutdown the worker
         def shutdown(sig, frame):
             self.log.warn("Native worker received SIGTERM - shutting down ..")
             self.shutdown()
+
         signal.signal(signal.SIGTERM, shutdown)
 
         # the worker is ready for work!
@@ -127,18 +127,14 @@ class WorkerController(NativeProcess):
         # signal that this worker is ready for setup. the actual setup procedure
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
-        yield self.publish(
-            '{}.on_worker_ready'.format(self._uri_prefix),
-            {
-                'type': self.WORKER_TYPE,
-                'id': self.config.extra.worker,
-                'pid': os.getpid(),
-            },
-            options=PublishOptions(acknowledge=True)
-        )
+        yield self.publish('{}.on_worker_ready'.format(self._uri_prefix), {
+            'type': self.WORKER_TYPE,
+            'id': self.config.extra.worker,
+            'pid': os.getpid(),
+        },
+                           options=PublishOptions(acknowledge=True))
 
-        self.log.debug("Worker '{worker}' running as PID {pid}",
-                       worker=self.config.extra.worker, pid=os.getpid())
+        self.log.debug("Worker '{worker}' running as PID {pid}", worker=self.config.extra.worker, pid=os.getpid())
         term_print('CROSSBAR[{}]:WORKER_STARTED'.format(self.config.extra.worker))
 
     @wamp.register(None)
@@ -159,14 +155,11 @@ class WorkerController(NativeProcess):
 
         # publish management API event
         #
-        yield self.publish(
-            '{}.on_shutdown_requested'.format(self._uri_prefix),
-            {
-                'who': details.caller if details else None,
-                'when': utcnow()
-            },
-            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
-        )
+        yield self.publish('{}.on_shutdown_requested'.format(self._uri_prefix), {
+            'who': details.caller if details else None,
+            'when': utcnow()
+        },
+                           options=PublishOptions(exclude=details.caller if details else None, acknowledge=True))
 
         # we now call self.leave() to initiate the clean, orderly shutdown of the native worker.
         # the call is scheduled to run on the next reactor iteration only, because we want to first
@@ -248,11 +241,7 @@ class WorkerController(NativeProcess):
             'async': start_async,
         }
 
-        self.publish(
-            on_profile_started,
-            profile_started,
-            options=publish_options
-        )
+        self.publish(on_profile_started, profile_started, options=publish_options)
 
         def on_profile_success(profile_result):
             self._profiles[profile_id] = {
@@ -262,30 +251,24 @@ class WorkerController(NativeProcess):
                 'profile': profile_result
             }
 
-            self.publish(
-                on_profile_finished,
-                {
-                    'id': profile_id,
-                    'error': None,
-                    'profile': profile_result
-                },
-                options=publish_options
-            )
+            self.publish(on_profile_finished, {
+                'id': profile_id,
+                'error': None,
+                'profile': profile_result
+            },
+                         options=publish_options)
 
             return profile_result
 
         def on_profile_failed(error):
             self.log.warn('profiling failed: {error}', error=error)
 
-            self.publish(
-                on_profile_finished,
-                {
-                    'id': profile_id,
-                    'error': '{0}'.format(error),
-                    'profile': None
-                },
-                options=publish_options
-            )
+            self.publish(on_profile_finished, {
+                'id': profile_id,
+                'error': '{0}'.format(error),
+                'profile': None
+            },
+                         options=publish_options)
 
             return error
 
@@ -355,7 +338,8 @@ class WorkerController(NativeProcess):
             if os.path.isdir(path_to_add):
                 paths_added.append({'requested': p, 'resolved': path_to_add})
             else:
-                emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(p, path_to_add)
+                emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(
+                    p, path_to_add)
                 self.log.error(emsg)
                 raise ApplicationError('crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
 
@@ -380,12 +364,7 @@ class WorkerController(NativeProcess):
         # publish event "on_pythonpath_add" to all but the caller
         #
         topic = '{}.on_pythonpath_add'.format(self._uri_prefix)
-        res = {
-            'paths': sys.path,
-            'paths_added': paths_added,
-            'prepend': prepend,
-            'who': details.caller
-        }
+        res = {'paths': sys.path, 'paths_added': paths_added, 'prepend': prepend, 'who': details.caller}
         self.publish(topic, res, options=PublishOptions(exclude=details.caller))
 
         return res

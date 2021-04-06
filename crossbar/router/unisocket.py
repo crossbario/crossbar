@@ -14,7 +14,6 @@ from twisted.internet.protocol import Factory, Protocol
 from twisted.internet.interfaces import IProtocolNegotiationFactory
 from zope.interface import implementer
 
-
 __all__ = (
     'UniSocketServerProtocol',
     'UniSocketServerFactory',
@@ -77,7 +76,8 @@ class UniSocketServerProtocol(Protocol):
                 # we switch to (as only the specific protocol knows what is allowed for the other
                 # parts). iow, we solely switch based on the HTTP Request-URI.
                 if len(rl) != 3:
-                    self.log.warn('received invalid HTTP request line for HTTP protocol subswitch: "{request_line}"', request_line=request_line)
+                    self.log.warn('received invalid HTTP request line for HTTP protocol subswitch: "{request_line}"',
+                                  request_line=request_line)
                     self.transport.loseConnection()
                     return
 
@@ -95,16 +95,25 @@ class UniSocketServerProtocol(Protocol):
                 else:
                     request_uri_first_component = ''
 
-                self.log.debug('switching to HTTP on Request-URI {request_uri}, mapping part {request_uri_first_component}', request_uri=request_uri, request_uri_first_component=request_uri_first_component)
+                self.log.debug(
+                    'switching to HTTP on Request-URI {request_uri}, mapping part {request_uri_first_component}',
+                    request_uri=request_uri,
+                    request_uri_first_component=request_uri_first_component)
 
                 # _first_ try to find a matching URL prefix in the WebSocket factory map ..
                 if self._factory._websocket_factory_map:
                     for uri_component, websocket_factory in self._factory._websocket_factory_map.items():
                         if request_uri_first_component == uri_component:
                             self._proto = websocket_factory.buildProtocol(self._addr)
-                            self.log.debug('found and build websocket protocol for request URI {request_uri}, mapping part {request_uri_first_component}', request_uri=request_uri, request_uri_first_component=request_uri_first_component)
+                            self.log.debug(
+                                'found and build websocket protocol for request URI {request_uri}, mapping part {request_uri_first_component}',
+                                request_uri=request_uri,
+                                request_uri_first_component=request_uri_first_component)
                             break
-                    self.log.debug('no mapping found for request URI {request_uri}, trying to map part {request_uri_first_component}', request_uri=request_uri, request_uri_first_component=request_uri_first_component)
+                    self.log.debug(
+                        'no mapping found for request URI {request_uri}, trying to map part {request_uri_first_component}',
+                        request_uri=request_uri,
+                        request_uri_first_component=request_uri_first_component)
 
                 if not self._proto:
                     # mmh, still no protocol, so there has to be a Twisted Web (a "Site") factory

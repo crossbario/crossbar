@@ -14,7 +14,6 @@ class NativeStringTestCase(TestCase):
     """
     Tests for C{crossbar._compat.native_string}.
     """
-
     def test_bytes_always_native(self):
         """
         C{native_string}, with a bytes input, will always give a str output.

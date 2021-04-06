@@ -189,14 +189,13 @@ class MailGateway(object):
         :param vaction_code:
         :return:
         """
-        email_body = _ONBOARD_VERIFICATION_EMAIL_BODY.format(
-            website_url=self._website_url,
-            vaction_oid=vaction_oid,
-            vaction_code=vaction_code,
-            vaction_type=VerificationType.MEMBER_ONBOARD_EMAIL,
-            expiration_date=expiration_date,
-            member_email=receiver_email,
-            operator_email='support@crossbario.com')
+        email_body = _ONBOARD_VERIFICATION_EMAIL_BODY.format(website_url=self._website_url,
+                                                             vaction_oid=vaction_oid,
+                                                             vaction_code=vaction_code,
+                                                             vaction_type=VerificationType.MEMBER_ONBOARD_EMAIL,
+                                                             expiration_date=expiration_date,
+                                                             member_email=receiver_email,
+                                                             operator_email='support@crossbario.com')
 
         email_data = {
             "from": self._mailgun_from,
@@ -207,9 +206,8 @@ class MailGateway(object):
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
         if res.status_code != 200:
-            raise RuntimeError(
-                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                    self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                self._mailgun_url, self._mailgun_from, res.status_code))
 
     def send_login_verification(self,
                                 receiver_email,
@@ -236,14 +234,13 @@ class MailGateway(object):
                 operator_email='support@crossbario.com',
                 wallet_address=wallet_address)
         else:
-            email_body = _LOGIN_VERIFICATION_EMAIL_BODY.format(
-                website_url=self._website_url,
-                vaction_oid=vaction_oid,
-                vaction_code=vaction_code,
-                vaction_type=VerificationType.MEMBER_LOGIN_EMAIL,
-                expiration_date=expiration_date,
-                member_email=receiver_email,
-                operator_email='support@crossbario.com')
+            email_body = _LOGIN_VERIFICATION_EMAIL_BODY.format(website_url=self._website_url,
+                                                               vaction_oid=vaction_oid,
+                                                               vaction_code=vaction_code,
+                                                               vaction_type=VerificationType.MEMBER_LOGIN_EMAIL,
+                                                               expiration_date=expiration_date,
+                                                               member_email=receiver_email,
+                                                               operator_email='support@crossbario.com')
 
         email_data = {
             "from": self._mailgun_from,
@@ -254,9 +251,8 @@ class MailGateway(object):
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
         if res.status_code != 200:
-            raise RuntimeError(
-                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                    self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                self._mailgun_url, self._mailgun_from, res.status_code))
 
     def send_wrong_wallet_email(self, receiver_email, actual_address, address_used):
         email_body = _ACCOUNT_EXISTS_EMAIL_BODY.format(website_url=self._website_url,
@@ -273,9 +269,8 @@ class MailGateway(object):
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
         if res.status_code != 200:
-            raise RuntimeError(
-                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                    self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                self._mailgun_url, self._mailgun_from, res.status_code))
 
     def send_create_market_verification(self, receiver_email, vaction_oid, vaction_code, expiration_date=''):
         """
@@ -303,9 +298,8 @@ class MailGateway(object):
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
         if res.status_code != 200:
-            raise RuntimeError(
-                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                    self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                self._mailgun_url, self._mailgun_from, res.status_code))
 
     def send_join_market_verification(self,
                                       receiver_email,
@@ -322,32 +316,27 @@ class MailGateway(object):
         :param vaction_code:
         :return:
         """
-        email_body = _JOIN_MARKET_VERIFICATION_EMAIL_BODY.format(
-            website_url=self._website_url,
-            vaction_oid=vaction_oid,
-            vaction_code=vaction_code,
-            vaction_type=VerificationType.MEMBER_JOINMARKET_EMAIL,
-            expiration_date=expiration_date,
-            member_email=receiver_email,
-            member_id=member_id,
-            market_id=market_id,
-            roles=roles,
-            operator_email='support@crossbario.com')
+        email_body = _JOIN_MARKET_VERIFICATION_EMAIL_BODY.format(website_url=self._website_url,
+                                                                 vaction_oid=vaction_oid,
+                                                                 vaction_code=vaction_code,
+                                                                 vaction_type=VerificationType.MEMBER_JOINMARKET_EMAIL,
+                                                                 expiration_date=expiration_date,
+                                                                 member_email=receiver_email,
+                                                                 member_id=member_id,
+                                                                 market_id=market_id,
+                                                                 roles=roles,
+                                                                 operator_email='support@crossbario.com')
 
         email_data = {
-            "from":
-            self._mailgun_from,
+            "from": self._mailgun_from,
             "to": [receiver_email],
-            "subject":
-            _JOIN_MARKET_VERIFICATION_EMAIL_TITLE.format(member_id=member_id,
-                                                         market_id=market_id,
-                                                         roles=roles),
-            "text":
-            email_body
+            "subject": _JOIN_MARKET_VERIFICATION_EMAIL_TITLE.format(member_id=member_id,
+                                                                    market_id=market_id,
+                                                                    roles=roles),
+            "text": email_body
         }
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
         if res.status_code != 200:
-            raise RuntimeError(
-                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                    self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                self._mailgun_url, self._mailgun_from, res.status_code))

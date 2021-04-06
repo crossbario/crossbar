@@ -67,9 +67,7 @@ class ShellClient(ApplicationSession):
                   authextra=extra)
 
     def onChallenge(self, challenge):  # noqa: N802
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         # sign and send back the challenge with our private key.
         return self._key.sign_challenge(self, challenge)
@@ -82,9 +80,7 @@ class ShellClient(ApplicationSession):
         result = None
         error = None
         if self._command:
-            self.log.info('{klass}: running command {command}',
-                          klass=self.__class__.__name__,
-                          command=self._command)
+            self.log.info('{klass}: running command {command}', klass=self.__class__.__name__, command=self._command)
             try:
                 result = await self._command.run(self)
                 self.log.info('command run with result {result}', result=result)
@@ -92,9 +88,7 @@ class ShellClient(ApplicationSession):
                 self.log.warn('command failed: {error}', error=e)
                 error = e
         elif self._main:
-            self.log.info('{klass}: running main function {main}',
-                          klass=self.__class__.__name__,
-                          main=self._main)
+            self.log.info('{klass}: running main function {main}', klass=self.__class__.__name__, main=self._main)
             try:
                 result = await self._main(self)
                 self.log.info('main run with result {result}', result=result)

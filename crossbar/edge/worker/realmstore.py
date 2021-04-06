@@ -96,8 +96,7 @@ class CfxDbCallQueue(object):
         if registration.id not in self._queued_calls:
             self._queued_calls[registration.id] = deque()
 
-        self._queued_calls[registration.id].append(CfxDbQueuedCall(session, call, registration,
-                                                                   authorization))
+        self._queued_calls[registration.id].append(CfxDbQueuedCall(session, call, registration, authorization))
 
         return True
 
@@ -261,13 +260,11 @@ class CfxDbEventStore(object):
             session_details=session_details,
             close_details=close_details)
 
-        assert isinstance(session,
-                          RouterSession), 'session must be RouterSession, not {}'.format(type(session))
-        assert isinstance(session_details,
-                          SessionDetails), 'session_details must be SessionDetails, not {}'.format(
-                              type(session_details))
-        assert isinstance(close_details, CloseDetails), 'close_details must be CloseDetails, not {}'.format(
-            type(close_details))
+        assert isinstance(session, RouterSession), 'session must be RouterSession, not {}'.format(type(session))
+        assert isinstance(session_details, SessionDetails), 'session_details must be SessionDetails, not {}'.format(
+            type(session_details))
+        assert isinstance(close_details,
+                          CloseDetails), 'close_details must be CloseDetails, not {}'.format(type(close_details))
 
         self._buffer.append([self._store_session_left, session, session_details, close_details])
 
@@ -307,8 +304,7 @@ class CfxDbEventStore(object):
         """
         # FIXME: builtins.AssertionError: invalid type <class 'crossbar.router.service.RouterServiceAgent'> for "session"
         # assert isinstance(session, RouterSession), 'invalid type {} for "session"'.format(type(session))
-        assert type(publication_id) == int, 'invalid type {} for "publication_id"'.format(
-            type(publication_id))
+        assert type(publication_id) == int, 'invalid type {} for "publication_id"'.format(type(publication_id))
         assert isinstance(publish, message.Publish), 'invalid type {} for "publish"'.format(type(publish))
 
         self._buffer.append([self._store_event, session, publication_id, publish])
@@ -433,11 +429,7 @@ class CfxDbEventStore(object):
         assert type(subscription_id) == int
         assert limit is None or type(limit) == int
 
-        return self.get_event_history(subscription_id,
-                                      from_ts=0,
-                                      until_ts=time_ns(),
-                                      reverse=True,
-                                      limit=limit)
+        return self.get_event_history(subscription_id, from_ts=0, until_ts=time_ns(), reverse=True, limit=limit)
 
     def get_event_history(self, subscription_id, from_ts, until_ts, reverse=False, limit=None):
         """

@@ -64,9 +64,7 @@ class XbrDelegate(ApplicationSession):
         self.join(self.config.realm, authmethods=['cryptosign'], authextra=authextra)
 
     def onChallenge(self, challenge):
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
             signed_challenge = self._key.sign_challenge(self, challenge)
@@ -134,8 +132,8 @@ class XbrDelegate(ApplicationSession):
             # .. compute the sha256 multihash b58-encoded string from that ..
             schema_hash = multihash.to_b58_string(multihash.encode(h.digest(), 'sha2-256'))
 
-            signature = sign_eip712_api_publish(wallet_raw, verifyingChain, verifyingContract, wallet_adr,
-                                                created, catalog_id, api_id, schema_hash, meta_hash)
+            signature = sign_eip712_api_publish(wallet_raw, verifyingChain, verifyingContract, wallet_adr, created,
+                                                catalog_id, api_id, schema_hash, meta_hash)
 
             # https://xbr.network/docs/network/api.html#xbrnetwork.XbrNetworkApi.onboard_member
             try:
@@ -184,8 +182,7 @@ class XbrDelegate(ApplicationSession):
                 raise e
 
             assert type(result) == dict
-            assert 'member_oid' in result and type(result['member_oid']) == bytes and len(
-                result['member_oid']) == 16
+            assert 'member_oid' in result and type(result['member_oid']) == bytes and len(result['member_oid']) == 16
             assert 'catalog_oid' in result and type(result['catalog_oid']) == bytes and \
                    len(result['catalog_oid']) == 16 and result['catalog_oid'] == catalog_id
             assert 'api_oid' in result and type(result['api_oid']) == bytes and len(result['api_oid']) == 16

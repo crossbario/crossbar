@@ -123,8 +123,7 @@ class ApplicationRealmMonitor(object):
                     # collect roles associated with the arealm
                     roles = []
                     for _, role_oid in self._manager.schema.arealm_role_associations.select(
-                            txn, from_key=(self._arealm_oid, uuid.UUID(bytes=b'\0' * 16)),
-                            return_values=False):
+                            txn, from_key=(self._arealm_oid, uuid.UUID(bytes=b'\0' * 16)), return_values=False):
                         role = self._manager.schema.roles[txn, role_oid]
                         roles.append(role)
 
@@ -134,13 +133,13 @@ class ApplicationRealmMonitor(object):
                         # idx_clusterplacement_by_workername: (workergroup_oid, cluster_oid, node_oid, worker_name) -> placement_oid
                         workergroup_placements = [
                             placement_oid
-                            for placement_oid in self._manager.schema.idx_clusterplacement_by_workername.
-                            select(txn,
-                                   from_key=(workergroup.oid, uuid.UUID(bytes=b'\0' * 16),
-                                             uuid.UUID(bytes=b'\0' * 16), ''),
-                                   to_key=(uuid.UUID(int=(int(workergroup.oid) + 1)),
-                                           uuid.UUID(bytes=b'\0' * 16), uuid.UUID(bytes=b'\0' * 16), ''),
-                                   return_keys=False)
+                            for placement_oid in self._manager.schema.idx_clusterplacement_by_workername.select(
+                                txn,
+                                from_key=(workergroup.oid, uuid.UUID(bytes=b'\0' * 16), uuid.UUID(bytes=b'\0' * 16),
+                                          ''),
+                                to_key=(uuid.UUID(int=(int(workergroup.oid) + 1)), uuid.UUID(bytes=b'\0' * 16),
+                                        uuid.UUID(bytes=b'\0' * 16), ''),
+                                return_keys=False)
                         ]
                         if not workergroup_placements:
                             self.log.info(
@@ -153,8 +152,7 @@ class ApplicationRealmMonitor(object):
                             xx_fixme = {}
                             with self._manager.gdb.begin() as txn2:
                                 for placement_oid in workergroup_placements:
-                                    placement = self._manager.schema.router_workergroup_placements[
-                                        txn, placement_oid]
+                                    placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
                                     node = self._manager.gschema.nodes[txn2, placement.node_oid]
                                     placement_nodes_keys[node.oid] = (node.pubkey, node.authid)
                                 for node in self._manager.gschema.nodes.select(txn2, return_keys=False):
@@ -172,10 +170,9 @@ class ApplicationRealmMonitor(object):
                                 is_running_completely = False
 
                     else:
-                        self.log.warn(
-                            '{func} application realm in status {status}, but no worker group associated!',
-                            func=hltype(self.check_and_apply),
-                            status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
+                        self.log.warn('{func} application realm in status {status}, but no worker group associated!',
+                                      func=hltype(self.check_and_apply),
+                                      status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
                         is_running_completely = False
 
                     # if the application realm has a (frontend) webcluster assigned (to accept incoming client
@@ -208,10 +205,9 @@ class ApplicationRealmMonitor(object):
                                 arealm,
                             )
                     else:
-                        self.log.warn(
-                            '{func} application realm in status {status}, but no web cluster associated!',
-                            func=hltype(self.check_and_apply),
-                            status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
+                        self.log.warn('{func} application realm in status {status}, but no web cluster associated!',
+                                      func=hltype(self.check_and_apply),
+                                      status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
                         is_running_completely = False
 
             if arealm.status in [ApplicationRealm.STATUS_STARTING] and is_running_completely:
@@ -246,8 +242,8 @@ class ApplicationRealmMonitor(object):
                       arealm_oid=hlid(self._arealm_oid))
 
     @inlineCallbacks
-    def _apply_worker_backends(self, txn, wc_node_oid, wc_worker_id, workergroup_placements,
-                               placement_nodes_keys, arealm):
+    def _apply_worker_backends(self, txn, wc_node_oid, wc_worker_id, workergroup_placements, placement_nodes_keys,
+                               arealm):
         for placement_oid in workergroup_placements:
             placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
             self.log.info('{func} applying router cluster worker group placement:\n{placement}',
@@ -306,8 +302,8 @@ class ApplicationRealmMonitor(object):
                     }
                 }
                 connection = yield self._manager._session.call(
-                    'crossbarfabriccenter.remote.proxy.start_proxy_connection', str(wc_node_oid),
-                    wc_worker_id, connection_id, config)
+                    'crossbarfabriccenter.remote.proxy.start_proxy_connection', str(wc_node_oid), wc_worker_id,
+                    connection_id, config)
 
                 self.log.info('{func} Proxy backend connection started:\n{connection}',
                               func=hltype(self.check_and_apply),
@@ -320,8 +316,8 @@ class ApplicationRealmMonitor(object):
 
                 try:
                     routes = yield self._manager._session.call(
-                        'crossbarfabriccenter.remote.proxy.list_proxy_realm_routes', str(wc_node_oid),
-                        wc_worker_id, realm_name)
+                        'crossbarfabriccenter.remote.proxy.list_proxy_realm_routes', str(wc_node_oid), wc_worker_id,
+                        realm_name)
                 except ApplicationError as e:
                     if e.error != 'crossbar.error.no_such_object':
                         # anything but "no_such_object" is unexpected (and fatal)
@@ -386,8 +382,8 @@ class ApplicationRealmMonitor(object):
             if not existing:
                 try:
                     route = yield self._manager._session.call(
-                        'crossbarfabriccenter.remote.proxy.start_proxy_realm_route', str(wc_node_oid),
-                        wc_worker_id, realm_name, config)
+                        'crossbarfabriccenter.remote.proxy.start_proxy_realm_route', str(wc_node_oid), wc_worker_id,
+                        realm_name, config)
                 except Exception as e:
                     self.log.error('Proxy route failed: {e}', e=e)
                 else:
@@ -400,8 +396,7 @@ class ApplicationRealmMonitor(object):
         returnValue(routes)
 
     @inlineCallbacks
-    def _apply_placements(self, txn, arealm, workergroup, workergroup_placements, placement_nodes_keys,
-                          xx_fixme):
+    def _apply_placements(self, txn, arealm, workergroup, workergroup_placements, placement_nodes_keys, xx_fixme):
 
         modified_placements = {}
         is_running_completely = True
@@ -450,11 +445,10 @@ class ApplicationRealmMonitor(object):
                     self.log.failure()
                     raise
                 else:
-                    self.log.info(
-                        '{func} Ok, router cluster worker {worker_name} already running on node {node_oid}!',
-                        func=hltype(self.check_and_apply),
-                        node_oid=hlid(node_oid),
-                        worker_name=hlid(worker_name))
+                    self.log.info('{func} Ok, router cluster worker {worker_name} already running on node {node_oid}!',
+                                  func=hltype(self.check_and_apply),
+                                  node_oid=hlid(node_oid),
+                                  worker_name=hlid(worker_name))
 
                 # if there isn't a worker running (with worker ID as we expect) already,
                 # start a new router worker ..
@@ -468,10 +462,10 @@ class ApplicationRealmMonitor(object):
                     }
                     try:
                         worker_started = yield self._manager._session.call(
-                            'crossbarfabriccenter.remote.node.start_worker', str(node_oid), worker_name,
-                            'router', worker_options)
-                        worker = yield self._manager._session.call(
-                            'crossbarfabriccenter.remote.node.get_worker', str(node_oid), worker_name)
+                            'crossbarfabriccenter.remote.node.start_worker', str(node_oid), worker_name, 'router',
+                            worker_options)
+                        worker = yield self._manager._session.call('crossbarfabriccenter.remote.node.get_worker',
+                                                                   str(node_oid), worker_name)
                         self.log.info(
                             '{func} Router cluster worker {worker_name} started on node {node_oid} [{worker_started}]',
                             func=hltype(self.check_and_apply),
@@ -490,8 +484,8 @@ class ApplicationRealmMonitor(object):
 
                     try:
                         transport = yield self._manager._session.call(
-                            'crossbarfabriccenter.remote.router.get_router_transport', str(node_oid),
-                            worker_name, transport_id)
+                            'crossbarfabriccenter.remote.router.get_router_transport', str(node_oid), worker_name,
+                            transport_id)
                     except ApplicationError as e:
                         if e.error != 'crossbar.error.no_such_object':
                             # anything but "no_such_object" is unexpected (and fatal)
@@ -569,8 +563,8 @@ class ApplicationRealmMonitor(object):
                                 'crossbarfabriccenter.remote.router.start_router_transport', str(node_oid),
                                 worker_name, transport_id, transport_config)
                             transport = yield self._manager._session.call(
-                                'crossbarfabriccenter.remote.router.get_router_transport', str(node_oid),
-                                worker_name, transport_id)
+                                'crossbarfabriccenter.remote.router.get_router_transport', str(node_oid), worker_name,
+                                transport_id)
                             self.log.info(
                                 '{func} Transport {transport_id} started on router cluster worker {worker_name} [{transport_started}]',
                                 func=hltype(self.check_and_apply),
@@ -583,8 +577,7 @@ class ApplicationRealmMonitor(object):
                         else:
                             tcp_listening_port = transport_started['config']['endpoint']['port']
 
-                            placement_obj = self._manager.schema.router_workergroup_placements[txn,
-                                                                                               placement_oid]
+                            placement_obj = self._manager.schema.router_workergroup_placements[txn, placement_oid]
                             placement_obj.changed = time_ns()
                             placement_obj.status = WorkerGroupStatus.RUNNING
                             placement_obj.tcp_listening_port = tcp_listening_port
@@ -659,11 +652,11 @@ class ApplicationRealmMonitor(object):
                         try:
                             # start the application realm on the remote node worker
                             realm_started = yield self._manager._session.call(
-                                'crossbarfabriccenter.remote.router.start_router_realm', str(node_oid),
-                                worker_name, runtime_realm_id, realm_config)
+                                'crossbarfabriccenter.remote.router.start_router_realm', str(node_oid), worker_name,
+                                runtime_realm_id, realm_config)
                             running_arealm = yield self._manager._session.call(
-                                'crossbarfabriccenter.remote.router.get_router_realm', str(node_oid),
-                                worker_name, runtime_realm_id)
+                                'crossbarfabriccenter.remote.router.get_router_realm', str(node_oid), worker_name,
+                                runtime_realm_id)
                             self.log.info(
                                 '{func} Application realm {runtime_realm_id} started on router cluster worker {worker_name} [{realm_started}]',
                                 func=hltype(self.check_and_apply),
@@ -680,8 +673,8 @@ class ApplicationRealmMonitor(object):
                                 runtime_role_id = 'rle_{}_{}'.format(str(arealm.oid)[:8], i)
 
                                 role_started = yield self._manager._session.call(
-                                    'crossbarfabriccenter.remote.router.start_router_realm_role',
-                                    str(node_oid), worker_name, runtime_realm_id, runtime_role_id, role)
+                                    'crossbarfabriccenter.remote.router.start_router_realm_role', str(node_oid),
+                                    worker_name, runtime_realm_id, runtime_role_id, role)
 
                                 running_role = yield self._manager._session.call(
                                     'crossbarfabriccenter.remote.router.get_router_realm_role', str(node_oid),
@@ -700,8 +693,8 @@ class ApplicationRealmMonitor(object):
                     # between this worker, and every other worker in this router worker group
                     if running_arealm:
                         for other_placement_oid in workergroup_placements:
-                            other_placement = self._manager.schema.router_workergroup_placements[
-                                txn, other_placement_oid]
+                            other_placement = self._manager.schema.router_workergroup_placements[txn,
+                                                                                                 other_placement_oid]
                             other_node_oid = placement.node_oid
                             other_worker_name = other_placement.worker_name
 
@@ -726,8 +719,8 @@ class ApplicationRealmMonitor(object):
                                     worker = None
                                     try:
                                         worker = yield self._manager._session.call(
-                                            'crossbarfabriccenter.remote.node.get_worker',
-                                            str(other_node_oid), other_worker_name)
+                                            'crossbarfabriccenter.remote.node.get_worker', str(other_node_oid),
+                                            other_worker_name)
                                     except ApplicationError as e:
                                         if e.error != 'crossbar.error.no_such_worker':
                                             # anything but "no_such_worker" is unexpected (and fatal)
@@ -751,12 +744,10 @@ class ApplicationRealmMonitor(object):
                                     try:
                                         running_rlink = yield self._manager._session.call(
                                             'crossbarfabriccenter.remote.router.get_router_realm_link',
-                                            str(other_node_oid), other_worker_name, runtime_realm_id,
-                                            runtime_rlink_id)
+                                            str(other_node_oid), other_worker_name, runtime_realm_id, runtime_rlink_id)
                                     except ApplicationError as e:
                                         if e.error not in [
-                                                'crossbar.error.no_such_object',
-                                                'wamp.error.no_such_procedure'
+                                                'crossbar.error.no_such_object', 'wamp.error.no_such_procedure'
                                         ]:
                                             # anything but "no_such_object" is unexpected (and fatal)
                                             raise
@@ -811,8 +802,7 @@ class ApplicationRealmMonitor(object):
                                                 print(pformat(running_rlink))
                                             except ApplicationError as e:
                                                 if e.error not in [
-                                                        'crossbar.error.no_such_object',
-                                                        'wamp.error.no_such_procedure'
+                                                        'crossbar.error.no_such_object', 'wamp.error.no_such_procedure'
                                                 ]:
                                                     # anything but "no_such_object" is unexpected (and fatal)
                                                     raise
@@ -824,11 +814,10 @@ class ApplicationRealmMonitor(object):
                                   node_oid=hlid(node_oid),
                                   status=hl(node.status if node else 'offline'))
                 else:
-                    self.log.warn(
-                        '{func} Router cluster node {node_oid} from placement not found! [nodes={nodes}]',
-                        func=hltype(self.check_and_apply),
-                        node_oid=node_oid,
-                        nodes=list(self._manager._session.nodes.keys()))
+                    self.log.warn('{func} Router cluster node {node_oid} from placement not found! [nodes={nodes}]',
+                                  func=hltype(self.check_and_apply),
+                                  node_oid=node_oid,
+                                  nodes=list(self._manager._session.nodes.keys()))
                 is_running_completely = False
 
         if modified_placements:
@@ -919,9 +908,7 @@ class ApplicationRealmManager(object):
     def start(self, prefix):
         assert self._started is None, 'cannot start arealm manager - already running!'
 
-        regs = yield self._session.register(self,
-                                            prefix=prefix,
-                                            options=RegisterOptions(details_arg='details'))
+        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
         procs = [reg.procedure for reg in regs]
         self.log.info('Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n',
                       api=hl('Application realm manager API', color='green', bold=True),
@@ -975,9 +962,7 @@ class ApplicationRealmManager(object):
         self._started = None
 
     @wamp.register(None, check_types=True)
-    def list_arealms(self,
-                     return_names: Optional[bool] = None,
-                     details: Optional[CallDetails] = None) -> List[str]:
+    def list_arealms(self, return_names: Optional[bool] = None, details: Optional[CallDetails] = None) -> List[str]:
         """
         Returns list of application realms defined. Detail information for an application realm
         can be retrieved using :meth:`crossbar.master.arealm.ApplicationRealmManager.get_arealm`.
@@ -1075,8 +1060,7 @@ class ApplicationRealmManager(object):
         if arealm:
             return arealm.marshal()
         else:
-            raise ApplicationError('crossbar.error.no_such_object',
-                                   'no arealm with oid {}'.format(arealm_oid_))
+            raise ApplicationError('crossbar.error.no_such_object', 'no arealm with oid {}'.format(arealm_oid_))
 
     @wamp.register(None, check_types=True)
     def get_arealm_by_name(self, arealm_name: str, details: Optional[CallDetails] = None):
@@ -1160,8 +1144,7 @@ class ApplicationRealmManager(object):
                                            'no user found for authid "{}"'.format(details.caller_authid))
             obj.owner_oid = caller_oid
         else:
-            raise ApplicationError('wamp.error.no_such_principal',
-                                   'cannot map user - no caller authid available')
+            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
 
         # set initial status of application realm
         obj.status = ApplicationRealm.STATUS_STOPPED
@@ -1174,9 +1157,7 @@ class ApplicationRealmManager(object):
 
         res_obj = obj.marshal()
 
-        await self._session.publish('{}.on_arealm_created'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_arealm_created'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         self.log.info('Management API event <on_arealm_created> published:\n{res_obj}', res_obj=res_obj)
 
@@ -1215,8 +1196,7 @@ class ApplicationRealmManager(object):
                 if arealm.status != 'STOPPED':
                     raise ApplicationError(
                         'crossbar.error.not_stopped',
-                        'application realm with oid {} found, but currently in status "{}"'.format(
-                            oid, arealm.status))
+                        'application realm with oid {} found, but currently in status "{}"'.format(oid, arealm.status))
                 del self.schema.arealms[txn, oid]
             else:
                 raise ApplicationError('crossbar.error.no_such_object',
@@ -1226,9 +1206,7 @@ class ApplicationRealmManager(object):
 
         arealm_obj = arealm.marshal()
 
-        await self._session.publish('{}.on_arealm_deleted'.format(self._prefix),
-                                    arealm_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_arealm_deleted'.format(self._prefix), arealm_obj, options=self._PUBOPTS)
 
         return arealm_obj
 
@@ -1279,8 +1257,7 @@ class ApplicationRealmManager(object):
         try:
             arealm_oid_ = uuid.UUID(arealm_oid)
         except Exception:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid arealm_oid "{}"'.format(arealm_oid))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid arealm_oid "{}"'.format(arealm_oid))
 
         try:
             router_workergroup_oid_ = uuid.UUID(router_workergroup_oid)
@@ -1291,8 +1268,7 @@ class ApplicationRealmManager(object):
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid webcluster_oid "{}"'.format(webcluster_oid))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid webcluster_oid "{}"'.format(webcluster_oid))
 
         with self.db.begin(write=True) as txn:
             arealm = self.schema.arealms[txn, arealm_oid_]
@@ -1496,10 +1472,7 @@ class ApplicationRealmManager(object):
                 return res
 
     @wamp.register(None, check_types=True)
-    def get_principal(self,
-                      arealm_oid: str,
-                      principal_oid: str,
-                      details: Optional[CallDetails] = None) -> dict:
+    def get_principal(self, arealm_oid: str, principal_oid: str, details: Optional[CallDetails] = None) -> dict:
         """
         Return definition of principal.
 
@@ -1526,18 +1499,14 @@ class ApplicationRealmManager(object):
 
             principal = self.schema.principals[txn, principal_oid_]
             if not principal or principal.arealm_oid != arealm_oid_:
-                raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no principal with oid {} found in application realm'.format(principal_oid_))
+                raise ApplicationError('crossbar.error.no_such_object',
+                                       'no principal with oid {} found in application realm'.format(principal_oid_))
 
         obj = principal.marshal()
         return obj
 
     @wamp.register(None, check_types=True)
-    def get_principal_by_name(self,
-                              arealm_oid: str,
-                              principal_name: str,
-                              details: Optional[CallDetails] = None):
+    def get_principal_by_name(self, arealm_oid: str, principal_name: str, details: Optional[CallDetails] = None):
         """
         Return definition of principal by principal name (WAMP authid).
 
@@ -1565,18 +1534,14 @@ class ApplicationRealmManager(object):
 
             principal = self.schema.principals[txn, principal_oid]
             if not principal or principal.arealm_oid != arealm_oid_:
-                raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no principal with oid {} found in application realm'.format(principal_oid))
+                raise ApplicationError('crossbar.error.no_such_object',
+                                       'no principal with oid {} found in application realm'.format(principal_oid))
 
         obj = principal.marshal()
         return obj
 
     @wamp.register(None, check_types=True)
-    async def add_principal(self,
-                            arealm_oid: str,
-                            principal: dict,
-                            details: Optional[CallDetails] = None) -> dict:
+    async def add_principal(self, arealm_oid: str, principal: dict, details: Optional[CallDetails] = None) -> dict:
         """
         Add a new principal to the given application realm.
 
@@ -1624,8 +1589,7 @@ class ApplicationRealmManager(object):
 
             role = self.schema.roles[txn, obj.role_oid]
             if not role:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no role with oid {} found'.format(role_oid_))
+                raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
             principal_oid = self.schema.idx_principals_by_name[txn, (obj.arealm_oid, obj.authid)]
             if principal_oid:
                 raise ApplicationError(
@@ -1638,9 +1602,7 @@ class ApplicationRealmManager(object):
 
         res_obj = obj.marshal()
 
-        await self._session.publish('{}.on_principal_created'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_principal_created'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         self.log.info('Management API event <on_principal_created> published:\n{res_obj}', res_obj=res_obj)
 
@@ -1684,14 +1646,12 @@ class ApplicationRealmManager(object):
         try:
             arealm_oid_ = uuid.UUID(arealm_oid)
         except Exception:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid arealm_oid "{}"'.format(arealm_oid))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid arealm_oid "{}"'.format(arealm_oid))
 
         try:
             principal_oid_ = uuid.UUID(principal_oid)
         except Exception:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid principal_oid "{}"'.format(principal_oid))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid principal_oid "{}"'.format(principal_oid))
 
         with self.db.begin() as txn:
             arealm = self.schema.arealms[txn, arealm_oid_]
@@ -1701,9 +1661,8 @@ class ApplicationRealmManager(object):
 
             principal = self.schema.principals[txn, principal_oid_]
             if not principal or principal.arealm_oid != arealm_oid_:
-                raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no principal with oid {} found in application realm'.format(principal_oid_))
+                raise ApplicationError('crossbar.error.no_such_object',
+                                       'no principal with oid {} found in application realm'.format(principal_oid_))
 
             res = []
             for credential_oid in self.schema.idx_credentials_by_principal.select(
@@ -1828,14 +1787,12 @@ class ApplicationRealmManager(object):
         try:
             arealm_oid_ = uuid.UUID(arealm_oid)
         except Exception:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid arealm_oid "{}"'.format(arealm_oid))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid arealm_oid "{}"'.format(arealm_oid))
 
         try:
             principal_oid_ = uuid.UUID(principal_oid)
         except Exception:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid principal_oid "{}"'.format(principal_oid))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid principal_oid "{}"'.format(principal_oid))
 
         with self.db.begin(write=True) as txn:
             arealm = self.schema.arealms[txn, arealm_oid_]
@@ -1845,9 +1802,8 @@ class ApplicationRealmManager(object):
 
             principal = self.schema.principals[txn, principal_oid_]
             if not principal or principal.arealm_oid != arealm_oid_:
-                raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no principal with oid {} found in application realm'.format(principal_oid_))
+                raise ApplicationError('crossbar.error.no_such_object',
+                                       'no principal with oid {} found in application realm'.format(principal_oid_))
 
             try:
                 credential_ = Credential.parse(credential)
@@ -1860,12 +1816,12 @@ class ApplicationRealmManager(object):
             credential_.authid = principal.authid
             credential_.principal_oid = principal_oid_
 
-            if self.schema.idx_credentials_by_auth[txn, (credential_.authmethod, credential_.realm,
-                                                         credential_.authid)]:
+            if self.schema.idx_credentials_by_auth[txn,
+                                                   (credential_.authmethod, credential_.realm, credential_.authid)]:
                 raise ApplicationError(
                     'crossbar.error.already_running',
-                    'duplicate credential for authmethod "{}", realm "{}" and authid "{}" in application realm'
-                    .format(credential_.authmethod, credential_.realm, credential_.authid))
+                    'duplicate credential for authmethod "{}", realm "{}" and authid "{}" in application realm'.format(
+                        credential_.authmethod, credential_.realm, credential_.authid))
 
             self.schema.credentials[txn, credential_.oid] = credential_
 
@@ -1974,8 +1930,7 @@ class ApplicationRealmManager(object):
         with self.db.begin() as txn:
             role_oid = self.schema.idx_roles_by_name[txn, role_name]
             if not role_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no role named "{}"'.format(role_name))
+                raise ApplicationError('crossbar.error.no_such_object', 'no role named "{}"'.format(role_name))
 
             role = self.schema.roles[txn, role_oid]
             assert role
@@ -2047,8 +2002,7 @@ class ApplicationRealmManager(object):
             if obj:
                 del self.schema.roles[txn, oid]
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(oid))
+                raise ApplicationError('crossbar.error.no_such_object', 'no object with oid {} found'.format(oid))
 
         self.log.info('Role object deleted from database:\n{obj}', obj=obj)
 
@@ -2089,8 +2043,7 @@ class ApplicationRealmManager(object):
         with self.db.begin() as txn:
             role = self.schema.roles[txn, role_oid_]
             if not role:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no role with oid {} found'.format(role_oid_))
+                raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
 
         return role.marshal()
 
@@ -2131,18 +2084,15 @@ class ApplicationRealmManager(object):
         with self.db.begin(write=True) as txn:
             role = self.schema.roles[txn, role_permission.role_oid]
             if not role:
-                raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no application realm with oid {} found'.format(role_permission.role_oid))
+                raise ApplicationError('crossbar.error.no_such_object',
+                                       'no application realm with oid {} found'.format(role_permission.role_oid))
 
             self.schema.permissions[txn, role_permission.oid] = role_permission
 
         res_obj = role_permission.marshal()
         self.log.info('role added to permission:\n{permission}', permission=res_obj)
 
-        await self._session.publish('{}.on_permission_added'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_permission_added'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         return res_obj
 
@@ -2171,8 +2121,7 @@ class ApplicationRealmManager(object):
         try:
             permission_oid_ = uuid.UUID(permission_oid)
         except Exception:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid permission_oid "{}"'.format(permission_oid))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid permission_oid "{}"'.format(permission_oid))
 
         self.log.info('{func}(role_oid={role_oid}, permission_oid={permission_oid}, details={details})',
                       role_oid=hlid(role_oid_),
@@ -2183,8 +2132,7 @@ class ApplicationRealmManager(object):
         with self.db.begin(write=True) as txn:
             role = self.schema.roles[txn, role_oid_]
             if not role:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no role with oid {} found'.format(role_oid_))
+                raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
 
             role_permission = self.schema.permissions[txn, permission_oid_]
             del self.schema.permissions[txn, permission_oid_]
@@ -2192,17 +2140,12 @@ class ApplicationRealmManager(object):
         res_obj = role_permission.marshal()
         self.log.info('role removed from arealm:\n{res_obj}', membership=res_obj)
 
-        await self._session.publish('{}.on_arealm_role_removed'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_arealm_role_removed'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    def get_role_permission(self,
-                            role_oid: str,
-                            permission_oid: str,
-                            details: Optional[CallDetails] = None) -> dict:
+    def get_role_permission(self, role_oid: str, permission_oid: str, details: Optional[CallDetails] = None) -> dict:
         """
         Get information for the permission on a role.
 
@@ -2223,8 +2166,7 @@ class ApplicationRealmManager(object):
         try:
             permission_oid_ = uuid.UUID(permission_oid)
         except Exception:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid permission_oid "{}"'.format(permission_oid))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid permission_oid "{}"'.format(permission_oid))
 
         self.log.info('{func}(role_oid={role_oid}, permission_oid={permission_oid}, details={details})',
                       role_oid=hlid(role_oid),
@@ -2235,8 +2177,7 @@ class ApplicationRealmManager(object):
         with self.db.begin() as txn:
             role = self.schema.roles[txn, role_oid_]
             if not role:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no role with oid {} found'.format(role_oid_))
+                raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
 
             permission = self.schema.permissions[txn, permission_oid_]
             if not permission:
@@ -2276,8 +2217,10 @@ class ApplicationRealmManager(object):
                                        'no application realm with oid {} found'.format(arealm_oid_))
 
             res = []
-            for _, role_oid in self.schema.arealm_role_associations.select(
-                    txn, from_key=(arealm_oid_, uuid.UUID(bytes=b'\0' * 16)), return_values=False):
+            for _, role_oid in self.schema.arealm_role_associations.select(txn,
+                                                                           from_key=(arealm_oid_,
+                                                                                     uuid.UUID(bytes=b'\0' * 16)),
+                                                                           return_values=False):
                 res.append(str(role_oid))
             return res
 
@@ -2299,13 +2242,12 @@ class ApplicationRealmManager(object):
         """
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info(
-            '{func}(arealm_oid={arealm_oid}, role_oid={role_oid}, config={config}, details={details})',
-            func=hltype(self.add_arealm_role),
-            arealm_oid=hlid(arealm_oid),
-            role_oid=hlid(role_oid),
-            config=config,
-            details=details)
+        self.log.info('{func}(arealm_oid={arealm_oid}, role_oid={role_oid}, config={config}, details={details})',
+                      func=hltype(self.add_arealm_role),
+                      arealm_oid=hlid(arealm_oid),
+                      role_oid=hlid(role_oid),
+                      config=config,
+                      details=details)
 
         config = config or {}
         config['arealm_oid'] = arealm_oid
@@ -2315,19 +2257,15 @@ class ApplicationRealmManager(object):
         with self.db.begin(write=True) as txn:
             arealm = self.schema.arealms[txn, association.arealm_oid]
             if not arealm:
-                raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no application realm with oid {} found'.format(association.arealm_oid))
+                raise ApplicationError('crossbar.error.no_such_object',
+                                       'no application realm with oid {} found'.format(association.arealm_oid))
 
-            self.schema.arealm_role_associations[txn,
-                                                 (association.arealm_oid, association.role_oid)] = association
+            self.schema.arealm_role_associations[txn, (association.arealm_oid, association.role_oid)] = association
 
         res_obj = association.marshal()
         self.log.info('role added to application realm:\n{association}', association=res_obj)
 
-        await self._session.publish('{}.on_arealm_role_added'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_arealm_role_added'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         return res_obj
 
@@ -2369,8 +2307,7 @@ class ApplicationRealmManager(object):
 
             role = self.schema.roles[txn, role_oid_]
             if not role:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no role with oid {} found'.format(role_oid_))
+                raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
 
             arealm_role_association = self.schema.arealm_role_associations[txn, (arealm_oid, role_oid_)]
             del self.schema.arealm_role_associations[txn, (arealm_oid, role_oid_)]
@@ -2378,9 +2315,7 @@ class ApplicationRealmManager(object):
         res_obj = arealm_role_association.marshal()
         self.log.info('role removed from arealm:\n{res_obj}', membership=res_obj)
 
-        await self._session.publish('{}.on_arealm_role_removed'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_arealm_role_removed'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         return res_obj
 
@@ -2422,8 +2357,7 @@ class ApplicationRealmManager(object):
 
             role = self.schema.roles[txn, role_oid_]
             if not role:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no role with oid {} found'.format(role_oid_))
+                raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
 
             association = self.schema.arealm_role_associations[txn, (arealm_oid_, role_oid_)]
             if not association:

@@ -37,10 +37,7 @@ def main(accounts, owner):
         if not joined:
             eula = xbr.xbrnetwork.functions.eula().call()
             profile = ''
-            xbr.xbrnetwork.functions.registerMember(eula, profile).transact({
-                'from': acct.address,
-                'gas': 200000
-            })
+            xbr.xbrnetwork.functions.registerMember(eula, profile).transact({'from': acct.address, 'gas': 200000})
             print('New member {} address registered in the XBR Network (eula={}, profile={})'.format(
                 acct.address, eula, profile))
         else:
@@ -69,23 +66,23 @@ def main(accounts, owner):
             coin = xbr.xbrtoken.address
             print('Using coin {}'.format(coin))
 
-            xbr.xbrmarket.functions.createMarket(market['id'], coin, market['terms'], market['meta'],
-                                                 market['maker'], providerSecurity, consumerSecurity,
-                                                 market['marketFee']).transact({
-                                                     'from': market['owner'],
-                                                     'gas': gas
+            xbr.xbrmarket.functions.createMarket(market['id'], coin, market['terms'], market['meta'], market['maker'],
+                                                 providerSecurity, consumerSecurity, market['marketFee']).transact({
+                                                     'from':
+                                                     market['owner'],
+                                                     'gas':
+                                                     gas
                                                  })
 
-            print('Market {} created with owner {} and market maket {}'.format(
-                market['id'], market['owner'], market['maker']))
+            print('Market {} created with owner {} and market maket {}'.format(market['id'], market['owner'],
+                                                                               market['maker']))
 
         print('Market actors:')
         for actor in market['actors']:
 
             is_actor = xbr.xbrmarket.functions.isActor(market['id'], actor['addr'], actor['type']).call()
             if is_actor:
-                print('   Account {} is already actor (type={}) in the market'.format(
-                    actor['addr'], actor['type']))
+                print('   Account {} is already actor (type={}) in the market'.format(actor['addr'], actor['type']))
             else:
                 channel_amount = actor['amount']
                 if channel_amount:
@@ -100,15 +97,13 @@ def main(accounts, owner):
                         print('   Failed to allow transfer of {} tokens for market security!\n{}'.format(
                             int(channel_amount / 10**18), result))
                     else:
-                        print('   Allowed transfer of {} XBR from {} to {} as security for joining market'.
-                              format(int(channel_amount / 10**18), actor['addr'], xbr.xbrnetwork.address))
+                        print('   Allowed transfer of {} XBR from {} to {} as security for joining market'.format(
+                            int(channel_amount / 10**18), actor['addr'], xbr.xbrnetwork.address))
 
                 security_bytes = xbr.xbrmarket.functions.joinMarket(market['id'], actor['type'],
                                                                     actor['meta']).transact({
-                                                                        'from':
-                                                                        actor['addr'],
-                                                                        'gas':
-                                                                        gas
+                                                                        'from': actor['addr'],
+                                                                        'gas': gas
                                                                     })
                 if security_bytes:
                     security = web3.Web3.toInt(security_bytes)
@@ -119,8 +114,7 @@ def main(accounts, owner):
 
 if __name__ == '__main__':
     if not xbr.HAS_XBR:
-        raise RuntimeError(
-            'fatal: missing xbr support in autobahn (install using "pip install autobahn [xbr]")')
+        raise RuntimeError('fatal: missing xbr support in autobahn (install using "pip install autobahn [xbr]")')
     else:
         print('using autobahn v{}, web3.py v{}'.format(autobahn.__version__, web3.__version__))
 

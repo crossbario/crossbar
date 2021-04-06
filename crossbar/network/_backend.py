@@ -132,8 +132,7 @@ class Backend(object):
     """
     def __init__(self, session: ApplicationSession, db: zlmdb.Database, meta_schema: cfxdb.meta.Schema,
                  xbr_schema: cfxdb.xbr.Schema, xbrnetwork_schema: cfxdb.xbrnetwork.Schema, chain_id: int,
-                 eth_privkey_raw: bytes, w3: web3.Web3, mailgw: MailGateway, bc_config: Dict,
-                 ipfs_cache_dir: str):
+                 eth_privkey_raw: bytes, w3: web3.Web3, mailgw: MailGateway, bc_config: Dict, ipfs_cache_dir: str):
         """
 
         :param db:
@@ -178,14 +177,13 @@ class Backend(object):
         self._reactor = reactor
 
         # monitor/pull blockchain from a background thread
-        self._monitor_blockchain_thread = self._reactor.callInThread(self._monitor_blockchain,
-                                                                     self._bc_gw_config, scan_from_block)
+        self._monitor_blockchain_thread = self._reactor.callInThread(self._monitor_blockchain, self._bc_gw_config,
+                                                                     scan_from_block)
 
-        self.log.info(
-            'XBR Network backend initialized (version={version}, chain_id={chain_id}, eth_adr={eth_adr})',
-            version=__version__,
-            chain_id=self._chain_id,
-            eth_adr=self._eth_adr)
+        self.log.info('XBR Network backend initialized (version={version}, chain_id={chain_id}, eth_adr={eth_adr})',
+                      version=__version__,
+                      chain_id=self._chain_id,
+                      eth_adr=self._eth_adr)
 
     def stop(self):
         """
@@ -223,10 +221,9 @@ class Backend(object):
                     os.mkdir(fd)
                 new_verification_file = os.path.abspath(os.path.join(fd, fn))
                 os.rename(verification_file, new_verification_file)
-                self.log.info(
-                    'Verification file renamed from "{verification_file}" to "{new_verification_file}"',
-                    verification_file=hlval(verification_file),
-                    new_verification_file=hlval(new_verification_file))
+                self.log.info('Verification file renamed from "{verification_file}" to "{new_verification_file}"',
+                              verification_file=hlval(verification_file),
+                              new_verification_file=hlval(new_verification_file))
                 return True
             else:
                 os.remove(verification_file)
@@ -425,8 +422,7 @@ class Backend(object):
                 self._reactor.callFromThread(self._session.publish,
                                              'xbr.network.on_onboard_member_complete',
                                              onboard_member_registered,
-                                             options=PublishOptions(acknowledge=True,
-                                                                    eligible_authid=eligible_authid))
+                                             options=PublishOptions(acknowledge=True, eligible_authid=eligible_authid))
 
                 self.log.info('new {contract}(member_adr={member_adr}) record stored database!',
                               contract=hlcontract('MemberCreated'),
@@ -625,8 +621,7 @@ class Backend(object):
                     last_processed=hlval(last_processed),
                     thread_id=hlval(int(threading.get_ident())),
                     period=hlval(period),
-                    cnt_xbr_events=hlval(cnt_xbr_events, color='green')
-                    if cnt_xbr_events else hlval(cnt_xbr_events),
+                    cnt_xbr_events=hlval(cnt_xbr_events, color='green') if cnt_xbr_events else hlval(cnt_xbr_events),
                     cnt_blocks_success=hlval(cnt_blocks_success, color='green')
                     if cnt_xbr_events else hlval(cnt_blocks_success),
                     cnt_blocks_error=hlval(cnt_blocks_error, color='red')
@@ -671,12 +666,11 @@ class Backend(object):
                     else:
                         all_res = Event().processReceipt(receipt)
                     for res in all_res:
-                        self.log.info(
-                            '{handler} processing block {block_number} / txn {txn} with args {args}',
-                            handler=hl(handler.__name__),
-                            block_number=hlid(block_number),
-                            txn=hlid('0x' + binascii.b2a_hex(evt['transactionHash']).decode()),
-                            args=hlval(res.args))
+                        self.log.info('{handler} processing block {block_number} / txn {txn} with args {args}',
+                                      handler=hl(handler.__name__),
+                                      block_number=hlid(block_number),
+                                      txn=hlid('0x' + binascii.b2a_hex(evt['transactionHash']).decode()),
+                                      args=hlval(res.args))
                         handler(res.transactionHash, res.blockHash, res.args)
                         cnt += 1
 
@@ -755,21 +749,19 @@ class Backend(object):
 
         # compute signed transaction from above serialized raw transaction
         signed_txn = self._w3.eth.account.sign_transaction(raw_transaction, private_key=self._eth_privkey_raw)
-        self.log.info(
-            '{klass}._send_for ({func}) [3/4] - Ethereum transaction signed: signed_txn=\n{signed_txn}\n',
-            klass=hl(self.__class__.__name__),
-            func=function.fn_name,
-            signed_txn=hlval(binascii.b2a_hex(signed_txn.rawTransaction).decode()))
+        self.log.info('{klass}._send_for ({func}) [3/4] - Ethereum transaction signed: signed_txn=\n{signed_txn}\n',
+                      klass=hl(self.__class__.__name__),
+                      func=function.fn_name,
+                      signed_txn=hlval(binascii.b2a_hex(signed_txn.rawTransaction).decode()))
 
         # now send the pre-signed transaction to the blockchain via the gateway ..
         # https://web3py.readthedocs.io/en/stable/web3.eth.html  # web3.eth.Eth.sendRawTransaction
         txn_hash = self._w3.eth.sendRawTransaction(signed_txn.rawTransaction)
         txn_hash = bytes(txn_hash)
-        self.log.info(
-            '{klass}._send_for ({func}) [4/4] - Ethereum transaction submitted: txn_hash=0x{txn_hash}',
-            klass=hl(self.__class__.__name__),
-            func=function.fn_name,
-            txn_hash=hlval(binascii.b2a_hex(txn_hash).decode()))
+        self.log.info('{klass}._send_for ({func}) [4/4] - Ethereum transaction submitted: txn_hash=0x{txn_hash}',
+                      klass=hl(self.__class__.__name__),
+                      func=function.fn_name,
+                      txn_hash=hlval(binascii.b2a_hex(txn_hash).decode()))
 
         return txn_hash
 
@@ -785,8 +777,7 @@ class Backend(object):
         :param signature:
         :return:
         """
-        return self._send_for(xbr.xbrnetwork.functions.registerMemberFor, member, registered, eula, profile,
-                              signature)
+        return self._send_for(xbr.xbrnetwork.functions.registerMemberFor, member, registered, eula, profile, signature)
 
     def _send_createMarketFor(self, member, created, marketId, coin, terms, meta, maker, providerSecurity,
                               consumerSecurity, marketFee, signature):
@@ -801,8 +792,8 @@ class Backend(object):
         :param signature:
         :return:
         """
-        return self._send_for(xbr.xbrmarket.functions.createMarketFor, member, created, marketId, coin, terms,
-                              meta, maker, providerSecurity, consumerSecurity, marketFee, signature)
+        return self._send_for(xbr.xbrmarket.functions.createMarketFor, member, created, marketId, coin, terms, meta,
+                              maker, providerSecurity, consumerSecurity, marketFee, signature)
 
     def _send_joinMarketFor(self, member, joined, marketId, actorType, meta, signature):
         """
@@ -817,12 +808,12 @@ class Backend(object):
         :param signature:
         :return:
         """
-        return self._send_for(xbr.xbrmarket.functions.joinMarketFor, member, joined, marketId, actorType,
-                              meta, signature)
+        return self._send_for(xbr.xbrmarket.functions.joinMarketFor, member, joined, marketId, actorType, meta,
+                              signature)
 
     def _send_createCatalogFor(self, member, created, catalog_id, terms, meta, signature):
-        return self._send_for(xbr.xbrcatalog.functions.createCatalogFor, member, created, catalog_id, terms,
-                              meta, signature)
+        return self._send_for(xbr.xbrcatalog.functions.createCatalogFor, member, created, catalog_id, terms, meta,
+                              signature)
 
     def get_config(self, include_eula_text=False):
         """
@@ -904,15 +895,13 @@ class Backend(object):
         }
         return status
 
-    async def onboard_member(self, member_username, member_email, client_pubkey, wallet_type, wallet_adr,
-                             chain_id, block_number, contract_adr, eula_hash, profile_hash, profile_data,
-                             signature):
+    async def onboard_member(self, member_username, member_email, client_pubkey, wallet_type, wallet_adr, chain_id,
+                             block_number, contract_adr, eula_hash, profile_hash, profile_data, signature):
         ts_started = time_ns()
 
         if type(member_username) != str or not is_valid_username(member_username):
-            raise RuntimeError(
-                'Invalid username "{}" - must be a string matching the regular expression {}'.format(
-                    member_username, _USERNAME_PAT_STR))
+            raise RuntimeError('Invalid username "{}" - must be a string matching the regular expression {}'.format(
+                member_username, _USERNAME_PAT_STR))
 
         if type(member_email) != str or not validate_email(member_email, check_mx=False, verify=False):
             raise RuntimeError('Invalid email address "{}"'.format(member_email))
@@ -1000,10 +989,9 @@ class Backend(object):
                                    'EIP712 signature recovery failed ({})'.format(e))
 
         if signer_address != wallet_adr:
-            self.log.warn(
-                'EIP712 signature invalid: signer_address={signer_address}, wallet_adr={wallet_adr}',
-                signer_address=signer_address,
-                wallet_adr=wallet_adr)
+            self.log.warn('EIP712 signature invalid: signer_address={signer_address}, wallet_adr={wallet_adr}',
+                          signer_address=signer_address,
+                          wallet_adr=wallet_adr)
             raise ApplicationError('xbr.network.error.invalid_signature', 'EIP712 signature invalid')
 
         with self._db.begin() as txn:
@@ -1192,10 +1180,9 @@ class Backend(object):
             else:
                 raise RuntimeError('unknown verification type {}'.format(vaction.vtype))
 
-        self.log.info(
-            'ok, new account member_oid={member_oid} successfully created for user username="{username}"!',
-            member_oid=account.oid,
-            username=account.username)
+        self.log.info('ok, new account member_oid={member_oid} successfully created for user username="{username}"!',
+                      member_oid=account.oid,
+                      username=account.username)
 
         try:
             self._remove_verification_file(vaction_oid, 'onboard-member-email-verification')
@@ -1203,8 +1190,7 @@ class Backend(object):
             self.log.warn('error while removing verification file: {err}', err=err)
 
         try:
-            txn_hash = await deferToThread(self._send_registerFor,
-                                           vaction.verified_data['onboard_wallet_address'],
+            txn_hash = await deferToThread(self._send_registerFor, vaction.verified_data['onboard_wallet_address'],
                                            vaction.verified_data['onboard_registered'],
                                            vaction.verified_data['onboard_eula'],
                                            vaction.verified_data['onboard_profile'],
@@ -1212,8 +1198,7 @@ class Backend(object):
         except Exception as e:
             self.log.failure()
             if isinstance(e, ValueError) and e.args[0]['message'].endswith("MEMBER_ALREADY_REGISTERED"):
-                raise ApplicationError("xbr.network.error.member_already_registered",
-                                       "Member is already registered")
+                raise ApplicationError("xbr.network.error.member_already_registered", "Member is already registered")
             # FIXME: we have to retry, but not in-line before returning from this call
             raise e
         else:
@@ -1270,8 +1255,8 @@ class Backend(object):
             raise RuntimeError('Invalid signature length {} - must be 65'.format(len(signature)))
 
         try:
-            signer_address = recover_eip712_member_login(chain_id, contract_adr, wallet_adr, block_number,
-                                                         timestamp, member_email, client_pubkey, signature)
+            signer_address = recover_eip712_member_login(chain_id, contract_adr, wallet_adr, block_number, timestamp,
+                                                         member_email, client_pubkey, signature)
         except Exception as e:
             self.log.warn('EIP712 signature recovery failed (wallet_adr={wallet_adr}): {err}',
                           wallet_adr=wallet_adr,
@@ -1280,10 +1265,9 @@ class Backend(object):
                                    'EIP712 signature recovery failed ({})'.format(e))
 
         if signer_address != wallet_adr:
-            self.log.warn(
-                'EIP712 signature invalid: signer_address={signer_address}, wallet_adr={wallet_adr}',
-                signer_address=signer_address,
-                wallet_adr=wallet_adr)
+            self.log.warn('EIP712 signature invalid: signer_address={signer_address}, wallet_adr={wallet_adr}',
+                          signer_address=signer_address,
+                          wallet_adr=wallet_adr)
             raise ApplicationError('xbr.network.error.invalid_signature', 'EIP712 signature invalid')
 
         with self._db.begin() as txn:
@@ -1318,15 +1302,13 @@ class Backend(object):
 
             member_address = self._xbrnetwork.accounts[txn, account_oid].wallet_address
             if member_address != wallet_adr:
-                self.log.warn(
-                    "Signer address ({signer_address}) does not match member's address ({member_address})",
-                    signer_address=wallet_adr,
-                    member_address=bytes(member_address))
+                self.log.warn("Signer address ({signer_address}) does not match member's address ({member_address})",
+                              signer_address=wallet_adr,
+                              member_address=bytes(member_address))
                 raise ApplicationError('xbr.network.error.invalid_wallet',
                                        "Signer address does not match member's address")
 
-        return await self._really_login(account_oid, member_email, client_pubkey, timestamp, wallet_adr,
-                                        ts_started)
+        return await self._really_login(account_oid, member_email, client_pubkey, timestamp, wallet_adr, ts_started)
 
     async def _really_login(self,
                             account_oid,
@@ -1481,12 +1463,11 @@ class Backend(object):
 
         wallet_adr = bytes(account.wallet_address)
 
-        self.log.info(
-            '{klass}.get_member(member_oid={member_oid}, wallet_adr={wallet_adr}) [xbrtoken={xbrtoken}]',
-            klass=self.__class__.__name__,
-            xbrtoken=str(xbr.xbrtoken.address),
-            member_oid=member_oid,
-            wallet_adr=wallet_adr)
+        self.log.info('{klass}.get_member(member_oid={member_oid}, wallet_adr={wallet_adr}) [xbrtoken={xbrtoken}]',
+                      klass=self.__class__.__name__,
+                      xbrtoken=str(xbr.xbrtoken.address),
+                      member_oid=member_oid,
+                      wallet_adr=wallet_adr)
 
         def do_get_member(wallet_adr):
             # check latest on-chain ETH/XBR balance on member wallet
@@ -1535,8 +1516,7 @@ class Backend(object):
         :param block_no:
         :return:
         """
-        assert type(block_no) == bytes and len(block_no) == 32, 'block_no must be bytes[32], was "{}"'.format(
-            block_no)
+        assert type(block_no) == bytes and len(block_no) == 32, 'block_no must be bytes[32], was "{}"'.format(block_no)
 
         with self._db.begin() as txn:
             block = self._xbr.blocks[txn, block_no]
@@ -1577,8 +1557,8 @@ class Backend(object):
                     attribute.value = attributes[attribute_name]
                     self._meta.attributes[txn, (table_oid, market_oid, attribute_name)] = attribute
 
-    async def create_coin(self, member_oid, coin_oid, chain_id, block_number, contract_adr, name, symbol,
-                          decimals, initial_supply, meta_hash, meta_data, signature, attributes):
+    async def create_coin(self, member_oid, coin_oid, chain_id, block_number, contract_adr, name, symbol, decimals,
+                          initial_supply, meta_hash, meta_data, signature, attributes):
         raise NotImplementedError()
 
     async def verify_create_coin(self, vaction_oid, vaction_code):
@@ -1591,8 +1571,7 @@ class Backend(object):
         :return:
         """
         assert isinstance(market_oid, uuid.UUID), 'market_oid must be bytes[16], was "{}"'.format(market_oid)
-        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(
-            type(include_attributes))
+        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
 
         with self._db.begin() as txn:
             market = self._xbr.markets[txn, market_oid]
@@ -1609,9 +1588,7 @@ class Backend(object):
                 # Note: uuid.UUID(int=market_oid.int + 1) is a trick to get a correct upper search key here
                 from_key = (table_oid, market_oid, '')
                 to_key = (table_oid, uuid.UUID(int=market_oid.int + 1), '')
-                for attribute in self._meta.attributes.select(txn,
-                                                              return_keys=False,
-                                                              from_key=from_key,
+                for attribute in self._meta.attributes.select(txn, return_keys=False, from_key=from_key,
                                                               to_key=to_key):
                     attributes[attribute.attribute] = attribute.value
 
@@ -1624,9 +1601,9 @@ class Backend(object):
         result['terms_text'] = terms_text
         return result
 
-    async def create_market(self, member_id, market_id, chain_id, block_number, contract_adr, coin_adr,
-                            terms_hash, meta_hash, meta_data, maker, provider_security, consumer_security,
-                            market_fee, signature, attributes):
+    async def create_market(self, member_id, market_id, chain_id, block_number, contract_adr, coin_adr, terms_hash,
+                            meta_hash, meta_data, maker, provider_security, consumer_security, market_fee, signature,
+                            attributes):
         ts_started = time_ns()
 
         with self._db.begin() as txn:
@@ -1659,9 +1636,8 @@ class Backend(object):
 
         try:
             signer_address = recover_eip712_market_create(chain_id, contract_adr, member_adr, block_number,
-                                                          market_id.bytes, coin_adr, terms_hash, meta_hash,
-                                                          maker, providerSecurity_, consumerSecurity_,
-                                                          marketFee_, signature)
+                                                          market_id.bytes, coin_adr, terms_hash, meta_hash, maker,
+                                                          providerSecurity_, consumerSecurity_, marketFee_, signature)
         except Exception as e:
             self.log.warn('EIP712 signature recovery failed (member_adr={member_adr}): {err}',
                           member_adr=member_adr,
@@ -1670,10 +1646,9 @@ class Backend(object):
                                    'EIP712 signature recovery failed ({})'.format(e))
 
         if signer_address != member_adr:
-            self.log.warn(
-                'EIP712 signature invalid: signer_address={signer_address}, member_adr={member_adr}',
-                signer_address=signer_address,
-                member_adr=member_adr)
+            self.log.warn('EIP712 signature invalid: signer_address={signer_address}, member_adr={member_adr}',
+                          signer_address=signer_address,
+                          member_adr=member_adr)
             raise ApplicationError('xbr.network.error.invalid_signature', 'EIP712 signature invalid')
 
         with self._db.begin() as txn:
@@ -1725,9 +1700,8 @@ class Backend(object):
             v = verified_data[k]
             if type(v) == type(memoryview):
                 verified_data[k] = bytes(v)
-                self.log.warn(
-                    'Monkey-patched (memoryview => bytes) dict "verified_data" for key "{key_name}"',
-                    key_name=k)
+                self.log.warn('Monkey-patched (memoryview => bytes) dict "verified_data" for key "{key_name}"',
+                              key_name=k)
 
         # db creation time
         created = np.datetime64(time_ns(), 'ns')
@@ -1847,8 +1821,7 @@ class Backend(object):
             else:
                 raise RuntimeError('unknown verification type {}'.format(vaction.vtype))
 
-        self.log.info('ok, new market market_oid={market_oid} successfully created!',
-                      market_oid=market.market)
+        self.log.info('ok, new market market_oid={market_oid} successfully created!', market_oid=market.market)
 
         try:
             self._remove_verification_file(vaction_oid, 'create-market-email-verification')
@@ -1871,13 +1844,10 @@ class Backend(object):
 
             signature = vaction.verified_data['signature']
 
-            txn_hash = await deferToThread(self._send_createMarketFor, member, created, marketId, coin, terms,
-                                           meta, maker, providerSecurity, consumerSecurity, marketFee,
-                                           signature)
+            txn_hash = await deferToThread(self._send_createMarketFor, member, created, marketId, coin, terms, meta,
+                                           maker, providerSecurity, consumerSecurity, marketFee, signature)
         except Exception as e:
-            if isinstance(
-                    e,
-                    ValueError) and e.args[0]['message'].endswith("MAKER_ALREADY_WORKING_FOR_OTHER_MARKET"):
+            if isinstance(e, ValueError) and e.args[0]['message'].endswith("MAKER_ALREADY_WORKING_FOR_OTHER_MARKET"):
                 raise ApplicationError("xbr.network.error.maker_already_working_for_other_market",
                                        "The market maker is already working for another market")
             # FIXME:...
@@ -1892,8 +1862,8 @@ class Backend(object):
 
             return create_market_request_verified
 
-    async def join_market(self, member_id, market_id, chain_id, block_number, contract_adr, actor_type,
-                          meta_hash, meta_data, signature):
+    async def join_market(self, member_id, market_id, chain_id, block_number, contract_adr, actor_type, meta_hash,
+                          meta_data, signature):
         """
 
         :param member_id:
@@ -1959,10 +1929,9 @@ class Backend(object):
                                    'EIP712 signature recovery failed ({})'.format(e))
 
         if signer_address != member_adr:
-            self.log.warn(
-                'EIP712 signature invalid: signer_address={signer_address}, member_adr={member_adr}',
-                signer_address=signer_address,
-                member_adr=member_adr)
+            self.log.warn('EIP712 signature invalid: signer_address={signer_address}, member_adr={member_adr}',
+                          signer_address=signer_address,
+                          member_adr=member_adr)
             raise ApplicationError('xbr.network.error.invalid_signature', 'EIP712 signature invalid')
 
         with self._db.begin() as txn:
@@ -2116,8 +2085,8 @@ class Backend(object):
             meta = vaction.verified_data['meta_hash']
 
             signature = vaction.verified_data['signature']
-            txn_hash = await deferToThread(self._send_joinMarketFor, member, joined, marketId, actorType,
-                                           meta, signature)
+            txn_hash = await deferToThread(self._send_joinMarketFor, member, joined, marketId, actorType, meta,
+                                           signature)
         except Exception as e:
             self.log.warn('Failed to submit _send_joinMarketFor: {err}', err=e)
             if isinstance(e, ValueError) and e.args[0]['message'].endswith("SENDER_IS_OWNER"):
@@ -2135,8 +2104,8 @@ class Backend(object):
             return request_verified
 
     async def create_catalog(self, member_oid: uuid.UUID, catalog_oid: uuid.UUID, verifying_chain_id: int,
-                             current_block_number: int, verifying_contract_adr: bytes, terms_hash: str,
-                             meta_hash: str, meta_data: bytes, attributes: dict, signature: bytes):
+                             current_block_number: int, verifying_contract_adr: bytes, terms_hash: str, meta_hash: str,
+                             meta_data: bytes, attributes: dict, signature: bytes):
 
         if not isinstance(member_oid, uuid.UUID):
             raise RuntimeError('member_oid must be UUID, was {}'.format(type(member_oid)))
@@ -2148,8 +2117,7 @@ class Backend(object):
             raise RuntimeError('verifying_chain_id must be int, was "{}"'.format(type(verifying_chain_id)))
 
         if type(current_block_number) != int:
-            raise RuntimeError('current_block_number must be int, was "{}"'.format(
-                type(current_block_number)))
+            raise RuntimeError('current_block_number must be int, was "{}"'.format(type(current_block_number)))
 
         if type(verifying_contract_adr) != bytes and len(verifying_contract_adr) != 20:
             raise RuntimeError('Invalid verifying_contract_adr "{!r}"'.format(verifying_contract_adr))
@@ -2176,18 +2144,15 @@ class Backend(object):
             member_email = account.email
 
         try:
-            signer_address = recover_eip712_catalog_create(verifying_chain_id, verifying_contract_adr,
-                                                           member_adr, current_block_number,
-                                                           catalog_oid.bytes, terms_hash, meta_hash,
-                                                           signature)
+            signer_address = recover_eip712_catalog_create(verifying_chain_id, verifying_contract_adr, member_adr,
+                                                           current_block_number, catalog_oid.bytes, terms_hash,
+                                                           meta_hash, signature)
         except Exception as e:
             self.log.warn('EIP712 signature recovery failed (member_adr={}): {}', member_adr, str(e))
-            raise ApplicationError('xbr.network.error.invalid_signature',
-                                   f'EIP712 signature recovery failed ({e})')
+            raise ApplicationError('xbr.network.error.invalid_signature', f'EIP712 signature recovery failed ({e})')
 
         if member_adr != signer_address:
-            self.log.warn('EIP712 signature invalid: signer_address={}, member_adr={}', signer_address,
-                          member_adr)
+            self.log.warn('EIP712 signature invalid: signer_address={}, member_adr={}', signer_address, member_adr)
             raise ApplicationError('xbr.network.error.invalid_signature', 'EIP712 signature invalid')
 
         # create new verification action ID and code
@@ -2331,8 +2296,8 @@ class Backend(object):
             meta = vaction.verified_data['meta_hash']
             signature = vaction.verified_data['signature']
 
-            txn_hash = await deferToThread(self._send_createCatalogFor, member, created, catalog_oid,
-                                           terms_hash, meta, signature)
+            txn_hash = await deferToThread(self._send_createCatalogFor, member, created, catalog_oid, terms_hash, meta,
+                                           signature)
         except Exception as e:
             self.log.warn('Failed to submit _send_createCatalogFor: {err}', err=e)
             raise e
@@ -2347,10 +2312,8 @@ class Backend(object):
         return request_verified
 
     def get_catalog(self, catalog_oid, include_attributes):
-        assert isinstance(catalog_oid,
-                          uuid.UUID), 'catalog_oid must be bytes[16], was "{}"'.format(catalog_oid)
-        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(
-            type(include_attributes))
+        assert isinstance(catalog_oid, uuid.UUID), 'catalog_oid must be bytes[16], was "{}"'.format(catalog_oid)
+        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
 
         with self._db.begin() as txn:
             catalog = self._xbr.catalogs[txn, catalog_oid]
@@ -2360,8 +2323,7 @@ class Backend(object):
             return catalog
 
     def publish_api(self, member_oid, catalog_oid, api_oid, verifying_chain_id, current_block_number,
-                    verifying_contract_adr, schema_hash, schema_data, meta_hash, meta_data, signature,
-                    attributes):
+                    verifying_contract_adr, schema_hash, schema_data, meta_hash, meta_data, signature, attributes):
 
         if not isinstance(member_oid, uuid.UUID):
             raise RuntimeError('member_oid must be UUID, was {}'.format(type(member_oid)))
@@ -2376,8 +2338,7 @@ class Backend(object):
             raise RuntimeError('verifying_chain_id must be int, was "{}"'.format(type(verifying_chain_id)))
 
         if type(current_block_number) != int:
-            raise RuntimeError('current_block_number must be int, was "{}"'.format(
-                type(current_block_number)))
+            raise RuntimeError('current_block_number must be int, was "{}"'.format(type(current_block_number)))
 
         if type(verifying_contract_adr) != bytes and len(verifying_contract_adr) != 20:
             raise RuntimeError('Invalid verifying_contract_adr "{!r}"'.format(verifying_contract_adr))
@@ -2408,17 +2369,15 @@ class Backend(object):
             member_email = account.email
 
         try:
-            signer_address = recover_eip712_api_publish(verifying_chain_id, verifying_contract_adr,
-                                                        member_adr, current_block_number, catalog_oid.bytes,
-                                                        api_oid.bytes, schema_hash, meta_hash, signature)
+            signer_address = recover_eip712_api_publish(verifying_chain_id, verifying_contract_adr, member_adr,
+                                                        current_block_number, catalog_oid.bytes, api_oid.bytes,
+                                                        schema_hash, meta_hash, signature)
         except Exception as e:
             self.log.warn('EIP712 signature recovery failed (member_adr={}): {}', member_adr, str(e))
-            raise ApplicationError('xbr.network.error.invalid_signature',
-                                   f'EIP712 signature recovery failed ({e})')
+            raise ApplicationError('xbr.network.error.invalid_signature', f'EIP712 signature recovery failed ({e})')
 
         if member_adr != signer_address:
-            self.log.warn('EIP712 signature invalid: signer_address={}, member_adr={}', signer_address,
-                          member_adr)
+            self.log.warn('EIP712 signature invalid: signer_address={}, member_adr={}', signer_address, member_adr)
             raise ApplicationError('xbr.network.error.invalid_signature', 'EIP712 signature invalid')
 
         # create new verification action ID and code
@@ -2557,8 +2516,7 @@ class Backend(object):
 
     def get_api(self, api_oid, include_attributes):
         assert isinstance(api_oid, uuid.UUID), 'api_oid must be UUID, was "{}"'.format(api_oid)
-        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(
-            type(include_attributes))
+        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
 
         with self._db.begin() as txn:
             api = self._xbr.apis[txn, api_oid]

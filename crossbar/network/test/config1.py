@@ -26,8 +26,8 @@ _INITDATA = [
 
     # ABPy buyer
     ('0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC',
-     '0x395df67f0c2d2d9fe1ad08d1bc8b6627011959b79c53d7dd6a3536a33ab8a4fd', 'buyer1-delegate1',
-     'XBR Buyer 1 Delegate 1'),
+     '0x395df67f0c2d2d9fe1ad08d1bc8b6627011959b79c53d7dd6a3536a33ab8a4fd', 'buyer1-delegate1', 'XBR Buyer 1 Delegate 1'
+     ),
 
     # Market Maker
     ('0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9',
@@ -41,8 +41,8 @@ _INITDATA = [
 
     # ABJS NodeJS buyer
     ('0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E',
-     '0x829e924fdf021ba3dbbc4225edfece9aca04b929d6e75613329ca6f1d31c0bb4', 'buyer1-delegate2',
-     'XBR Buyer 1 Delegate 2'),
+     '0x829e924fdf021ba3dbbc4225edfece9aca04b929d6e75613329ca6f1d31c0bb4', 'buyer1-delegate2', 'XBR Buyer 1 Delegate 2'
+     ),
     ('0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e',
      '0xb0057716d5917badaf911b193b12b910811c1497b5bada8d7711f758981c3773', 'marketop2',
      'Example XBR Market (marketplace operator).'),

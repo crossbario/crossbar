@@ -45,9 +45,7 @@ class XbrDelegate(ApplicationSession):
         self.join(self.config.realm, authmethods=['cryptosign'], authextra=authextra)
 
     def onChallenge(self, challenge):
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
             signed_challenge = self._key.sign_challenge(self, challenge)
@@ -68,8 +66,7 @@ class XbrDelegate(ApplicationSession):
             _prefix = 'anonymous-'
             assert details.authid.startswith(_prefix)
             _suffix = details.authid[len(_prefix):]
-            pat = re.compile(
-                r"^[A-Z0-9]{4,4}-[A-Z0-9]{4,4}-[A-Z0-9]{4,4}-[A-Z0-9]{4,4}-[A-Z0-9]{4,4}-[A-Z0-9]{4,4}")
+            pat = re.compile(r"^[A-Z0-9]{4,4}-[A-Z0-9]{4,4}-[A-Z0-9]{4,4}-[A-Z0-9]{4,4}-[A-Z0-9]{4,4}-[A-Z0-9]{4,4}")
             assert pat.match(_suffix)
 
             # test API procedure "xbr.network.get_status"
@@ -134,8 +131,7 @@ class XbrDelegate(ApplicationSession):
         assert type(status['status']) == str and status['status'] == 'ready'
         assert type(status['block']) == dict
 
-        assert 'number' in status['block'] and type(
-            status['block']['number']) == int and status['block']['number'] > 0
+        assert 'number' in status['block'] and type(status['block']['number']) == int and status['block']['number'] > 0
         assert 'hash' in status['block'] and type(status['block']['hash']) == bytes and len(
             status['block']['hash']) == 32
         assert 'gas_limit' in status['block'] and type(

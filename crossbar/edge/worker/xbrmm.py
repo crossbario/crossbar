@@ -136,16 +136,15 @@ class MarketplaceController(WorkerController):
         # processed and locally persisted block record in the database
         if 'from_block' in self._blockchain_config:
             scan_from_block = self._blockchain_config['from_block']
-            self.log.info(
-                'Initial scanning of blockchain beginning with block {scan_from_block} from configuration',
-                scan_from_block=scan_from_block)
+            self.log.info('Initial scanning of blockchain beginning with block {scan_from_block} from configuration',
+                          scan_from_block=scan_from_block)
         else:
             scan_from_block = 1
             self.log.info('Initial scanning of blockchain from block 1 (!)')
 
         # monitor/pull blockchain from a background thread
-        self._monitor_blockchain_thread = self._reactor.callInThread(self._monitor_blockchain,
-                                                                     self._bc_gw_config, scan_from_block)
+        self._monitor_blockchain_thread = self._reactor.callInThread(self._monitor_blockchain, self._bc_gw_config,
+                                                                     scan_from_block)
         self._status = self.STATUS_RUNNING
 
         yield self.publish_ready()
@@ -752,8 +751,7 @@ class MarketplaceController(WorkerController):
                     last_processed=hlval(last_processed),
                     thread_id=hlval(int(threading.get_ident())),
                     period=hlval(period),
-                    cnt_xbr_events=hlval(cnt_xbr_events, color='green')
-                    if cnt_xbr_events else hlval(cnt_xbr_events),
+                    cnt_xbr_events=hlval(cnt_xbr_events, color='green') if cnt_xbr_events else hlval(cnt_xbr_events),
                     cnt_blocks_success=hlval(cnt_blocks_success, color='green')
                     if cnt_xbr_events else hlval(cnt_blocks_success),
                     cnt_blocks_error=hlval(cnt_blocks_error, color='red')
@@ -803,12 +801,11 @@ class MarketplaceController(WorkerController):
                     else:
                         all_res = Event().processReceipt(receipt)
                     for res in all_res:
-                        self.log.info(
-                            '{handler} processing block {block_number} / txn {txn} with args {args}',
-                            handler=hl(handler.__name__),
-                            block_number=hlid(block_number),
-                            txn=hlid('0x' + binascii.b2a_hex(evt['transactionHash']).decode()),
-                            args=hlval(res.args))
+                        self.log.info('{handler} processing block {block_number} / txn {txn} with args {args}',
+                                      handler=hl(handler.__name__),
+                                      block_number=hlid(block_number),
+                                      txn=hlid('0x' + binascii.b2a_hex(evt['transactionHash']).decode()),
+                                      args=hlval(res.args))
                         handler(res.transactionHash, res.blockHash, res.args)
                         cnt += 1
 
@@ -918,8 +915,7 @@ class MarketplaceController(WorkerController):
             raise ApplicationError('wamp.error.invalid_argument', emsg)
 
         if maker_id not in self._makers:
-            emsg = 'could not stop market maker: no market maker with ID "{}" is currently running'.format(
-                maker_id)
+            emsg = 'could not stop market maker: no market maker with ID "{}" is currently running'.format(maker_id)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
         yield self._makers[maker_id].stop()

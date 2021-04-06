@@ -91,14 +91,12 @@ class PostgresConnectionPool(object):
             checkconfig.check_id(connection['id'])
 
         if 'type' not in connection:
-            raise checkconfig.InvalidConfigException(
-                "missing mandatory attribute 'type' in connection configuration")
+            raise checkconfig.InvalidConfigException("missing mandatory attribute 'type' in connection configuration")
 
         valid_types = ['postgres']
         if connection['type'] not in valid_types:
             raise checkconfig.InvalidConfigException(
-                "invalid type '{}' for connection type - must be one of {}".format(
-                    connection['type'], valid_types))
+                "invalid type '{}' for connection type - must be one of {}".format(connection['type'], valid_types))
 
         if connection['type'] == 'postgres':
             checkconfig.check_dict_args(
@@ -132,8 +130,8 @@ class PostgresConnectionPool(object):
         Connections can be present in controller, router and container processes.
         """
         if not isinstance(connections, Sequence):
-            raise checkconfig.InvalidConfigException(
-                "'connections' items must be lists ({} encountered)".format(type(connections)))
+            raise checkconfig.InvalidConfigException("'connections' items must be lists ({} encountered)".format(
+                type(connections)))
 
         for i, connection in enumerate(connections):
             personality.check_connection(personality, connection)

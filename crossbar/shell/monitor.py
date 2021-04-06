@@ -127,14 +127,13 @@ def twisted_main(reactor, stdscr=None, mrealms=None, management_url=None, privke
                         # node_pubkey = node['pubkey']
                         if node and node['status'] == 'online':
 
-                            node_status = yield session.call('crossbarfabriccenter.remote.node.get_status',
-                                                             node_oid)
+                            node_status = yield session.call('crossbarfabriccenter.remote.node.get_status', node_oid)
 
                             if not stdscr:
                                 pprint(node_status)
 
-                            node_system_stats = yield session.call(
-                                'crossbarfabriccenter.remote.node.get_system_stats', node_oid)
+                            node_system_stats = yield session.call('crossbarfabriccenter.remote.node.get_system_stats',
+                                                                   node_oid)
 
                             if not stdscr:
                                 pprint(node_system_stats)
@@ -163,13 +162,12 @@ def twisted_main(reactor, stdscr=None, mrealms=None, management_url=None, privke
                             # get IDs for all workers running in this node
                             worker_info = {}
                             router_info = {}
-                            workers = yield session.call('crossbarfabriccenter.remote.node.get_workers',
-                                                         node_oid)
+                            workers = yield session.call('crossbarfabriccenter.remote.node.get_workers', node_oid)
                             for worker_id in workers:
                                 # get worker detail information
                                 # {'id': 'xbr1', 'pid': 11507, 'type': 'marketplace', 'status': 'started', 'created': '2020-06-22T06:15:44.589Z', 'started': '2020-06-22T06:15:48.224Z', 'startup_time': 3.635574, 'uptime': 13949.814363}
-                                worker = yield session.call('crossbarfabriccenter.remote.node.get_worker',
-                                                            node_oid, worker_id)
+                                worker = yield session.call('crossbarfabriccenter.remote.node.get_worker', node_oid,
+                                                            worker_id)
                                 if not stdscr:
                                     pprint(worker)
 
@@ -186,16 +184,16 @@ def twisted_main(reactor, stdscr=None, mrealms=None, management_url=None, privke
                                         for realm_oid in realm_oids:
                                             # get realm detail information
                                             realm = yield session.call(
-                                                'crossbarfabriccenter.remote.router.get_router_realm',
-                                                node_oid, worker_id, realm_oid)
+                                                'crossbarfabriccenter.remote.router.get_router_realm', node_oid,
+                                                worker_id, realm_oid)
 
                                             if not stdscr:
                                                 pprint(realm)
 
                                             # get per-realm messaging statistics
                                             realm_stats = yield session.call(
-                                                'crossbarfabriccenter.remote.router.get_router_realm_stats',
-                                                node_oid, worker_id, realm_oid)
+                                                'crossbarfabriccenter.remote.router.get_router_realm_stats', node_oid,
+                                                worker_id, realm_oid)
 
                                             if not stdscr:
                                                 pprint(realm_stats)
@@ -205,18 +203,12 @@ def twisted_main(reactor, stdscr=None, mrealms=None, management_url=None, privke
                                             realm_created = realm['created']
 
                                             ri_obj = {
-                                                'node_oid':
-                                                node_oid,
-                                                'worker_id':
-                                                worker_id,
-                                                'id':
-                                                realm_id,
-                                                'name':
-                                                realm_name,
-                                                'created':
-                                                realm_created,
-                                                'rlinks':
-                                                len([1 for rlink in realm['rlinks'] if rlink['connected']]),
+                                                'node_oid': node_oid,
+                                                'worker_id': worker_id,
+                                                'id': realm_id,
+                                                'name': realm_name,
+                                                'created': realm_created,
+                                                'rlinks': len([1 for rlink in realm['rlinks'] if rlink['connected']]),
                                             }
 
                                             sw_latest = '20.6.2.dev2' in node_status['title']
@@ -346,8 +338,7 @@ def twisted_main(reactor, stdscr=None, mrealms=None, management_url=None, privke
 
                         if stdscr:
                             x += 4
-                            stdscr.addstr(y, x + 0, '{0: >4}'.format(len(router_info.keys())),
-                                          curses.color_pair(227))
+                            stdscr.addstr(y, x + 0, '{0: >4}'.format(len(router_info.keys())), curses.color_pair(227))
                             stdscr.addstr(y, x + 5, '{0: >4}'.format(roles))
                             stdscr.addstr(y, x + 10, '{0: >4}'.format(rlinks))
                             stdscr.addstr(y, x + 15, '{0: >10}'.format(sessions), curses.color_pair(41))

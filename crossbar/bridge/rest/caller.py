@@ -12,21 +12,17 @@ from autobahn.wamp.types import CallResult
 from crossbar._util import dump_json
 from crossbar.bridge.rest.common import _CommonResource
 
-__all__ = ('CallerResource',)
+__all__ = ('CallerResource', )
 
 
 class CallerResource(_CommonResource):
     """
     A HTTP/POST to WAMP-Caller bridge.
     """
-
     def _process(self, request, event):
 
         if 'procedure' not in event:
-            return self._deny_request(
-                request, 400,
-                key='procedure',
-                log_category="AR455")
+            return self._deny_request(request, 400, key='procedure', log_category="AR455")
 
         procedure = event.pop('procedure')
 
@@ -53,15 +49,12 @@ class CallerResource(_CommonResource):
 
             body = dump_json(res, True).encode('utf8')
 
-            return self._complete_request(
-                request, 200, body,
-                log_category="AR202")
+            return self._complete_request(request, 200, body, log_category="AR202")
 
         def on_call_error(err):
             # a WAMP procedure call returning with error should be forwarded
             # to the HTTP-requestor still successfully
             #
-            return self._fail_request(request, failure=err,
-                                      log_category="AR458")
+            return self._fail_request(request, failure=err, log_category="AR458")
 
         return d.addCallbacks(on_call_ok, on_call_error)

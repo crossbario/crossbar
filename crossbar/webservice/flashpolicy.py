@@ -9,10 +9,7 @@ import re
 
 from twisted.internet.protocol import Protocol, Factory
 
-__all__ = (
-    'FlashPolicyProtocol',
-    'FlashPolicyFactory'
-)
+__all__ = ('FlashPolicyProtocol', 'FlashPolicyFactory')
 
 
 class FlashPolicyProtocol(Protocol):
@@ -51,6 +48,7 @@ class FlashPolicyProtocol(Protocol):
         def dropConnection():
             self.transport.abortConnection()
             self.dropConnection = None
+
         self.dropConnection = self.factory.reactor.callLater(FlashPolicyProtocol.REQUESTTIMEOUT, dropConnection)
 
     def connectionLost(self, reason):
@@ -76,7 +74,6 @@ class FlashPolicyProtocol(Protocol):
 
 
 class FlashPolicyFactory(Factory):
-
     def __init__(self, allowedDomain=None, allowedPorts=None, reactor=None):
         """
 
