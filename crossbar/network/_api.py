@@ -1620,7 +1620,7 @@ class Network(ApplicationSession):
 
         .. note::
             Given a ``market_adr``, this API here provides the same market information as the
-            `Market-maker API <https://crossbario.com/docs/crossbarfx/xbr/api-reference.html#crossbar.edge.worker.xbr._marketmaker.MarketMaker.get_market>`__
+            `Market-maker API <https://crossbario.com/docs/crossbar/xbr/api-reference.html#crossbar.edge.worker.xbr._marketmaker.MarketMaker.get_market>`__
             for the respective market. The difference is, the procedure is more general, in that
             it can return (basic) market information for any market, and in that the procedure is
             implemented in the `planet.xbr.network` backend rather than the XBR market maker running

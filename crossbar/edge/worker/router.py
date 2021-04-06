@@ -40,7 +40,7 @@ class RouterInterface(object):
 
 class ExtRouter(Router):
     """
-    Router extended with CrossbarFX features.
+    Router extended with crossbar features.
     """
     def __init__(self, factory, realm, options=None, store=None):
         Router.__init__(self, factory, realm, options, store)
@@ -67,7 +67,7 @@ class ExtRouter(Router):
 
 class ExtRouterFactory(RouterFactory):
     """
-    Router factory extended with CrossbarFX features.
+    Router factory extended with crossbar features.
     """
     router = ExtRouter
 
@@ -100,7 +100,7 @@ class ExtRouterFactory(RouterFactory):
 
 class ExtRouterRealm(RouterRealm):
     """
-    Router realm run-time representation, extended with CrossbarFX features:
+    Router realm run-time representation, extended with crossbar features:
 
     1. router links
     2. interfaces
@@ -138,7 +138,7 @@ class ExtRouterRealm(RouterRealm):
 
 class ExtRouterController(RouterController):
     """
-    Controller session for CrossbarFX router workers.
+    Controller session for crossbar router workers.
     """
 
     log = make_logger()

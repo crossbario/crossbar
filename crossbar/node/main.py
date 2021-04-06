@@ -257,7 +257,6 @@ class Versions(object):
         self.flatbuffers_ver = ''
         self.lmdb_ver = ''
         self.crossbar_ver = ''
-        self.crossbarfx_ver = ''
         self.numpy_ver = ''
         self.zlmdb_ver = ''
         self.cfxdb_ver = ''
@@ -291,7 +290,6 @@ class Versions(object):
         obj['flatbuffers_ver'] = self.flatbuffers_ver
         obj['lmdb_ver'] = self.lmdb_ver
         obj['crossbar_ver'] = self.crossbar_ver
-        obj['crossbarfx_ver'] = self.crossbarfx_ver
         obj['numpy_ver'] = self.numpy_ver
         obj['zlmdb_ver'] = self.zlmdb_ver
         obj['cfxdb_ver'] = self.cfxdb_ver
@@ -412,12 +410,9 @@ def _get_versions(reactor):
         pass
 
     # crossbar
-    v.crossbar_ver = crossbar.__version__
-
-    # crossbarfx
     try:
-        import crossbarfx  # noqa
-        v.crossbarfx_ver = _get_version(crossbarfx)
+        import crossbar  # noqa
+        v.crossbar_ver = _get_version(crossbar)
     except ImportError:
         pass
 
@@ -492,12 +487,10 @@ def _run_command_version(options, reactor, personality):
     log.info("   LMDB             : {ver}", ver=decorate(v.lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(v.py_ver), impl=decorate(v.py_ver_detail))
     log.info("   PIP              : {ver}", ver=decorate(v.pip_ver))
-    if personality.NAME in ('edge', 'master'):
-        log.info(" CrossbarFX         : {ver}", ver=decorate(v.crossbarfx_ver))
-        log.info("   NumPy            : {ver}", ver=decorate(v.numpy_ver))
-        log.info("   zLMDB            : {ver}", ver=decorate(v.zlmdb_ver))
-        log.info("   CFXDB            : {ver}", ver=decorate(v.cfxdb_ver))
-        log.info("   XBR              : {ver}", ver=decorate(v.xbr_ver))
+    log.info("   NumPy            : {ver}", ver=decorate(v.numpy_ver))
+    log.info("   zLMDB            : {ver}", ver=decorate(v.zlmdb_ver))
+    log.info("   CFXDB            : {ver}", ver=decorate(v.cfxdb_ver))
+    log.info("   XBR              : {ver}", ver=decorate(v.xbr_ver))
     log.info(" Frozen executable  : {py_is_frozen}", py_is_frozen=decorate('yes' if v.py_is_frozen else 'no'))
     log.info(" Operating system   : {ver}", ver=decorate(v.platform))
     log.info(" Host machine       : {ver}", ver=decorate(v.machine))

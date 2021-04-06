@@ -345,7 +345,7 @@ if HAS_DOCKER:
             """
             Recover information about our docker installation.
 
-            Shell command: ``crossbarfx shell --realm mrealm1 show docker node1``
+            Shell command: ``crossbar shell --realm mrealm1 show docker node1``
             """
             def shim():
                 return self._docker.from_env().info()
@@ -383,7 +383,7 @@ if HAS_DOCKER:
             """
             Recover a list of image ID's
 
-            Shell command: ``crossbarfx shell --realm mrealm1 list docker-images node1``
+            Shell command: ``crossbar shell --realm mrealm1 list docker-images node1``
             """
             def shim():
                 return [c.id for c in self._docker.from_env().images.list()]
@@ -412,7 +412,7 @@ if HAS_DOCKER:
             """
             Recover information about one specific image (by id)
 
-            Shell command: ``crossbarfx shell --realm mrealm1 show docker-image node1 4bbb66``
+            Shell command: ``crossbar shell --realm mrealm1 show docker-image node1 4bbb66``
             """
             def shim(id):
                 try:

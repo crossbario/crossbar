@@ -34,15 +34,30 @@ reqs = 'requirements-min.txt'
 # as setuptools doesn't understand hashes ..
 # reqs = 'requirements.txt'
 
+# https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
+dependency_links = []
+
 with open(reqs) as f:
     for line in f.read().splitlines():
         line = line.strip()
         if not line.startswith('#'):
             parts = line.strip().split(';')
             if len(parts) > 1:
-                print('Warning: requirements line "{}" ignored, as it uses env markers, which are not supported in setuptools'.format(line))
+                parts[0] = parts[0].strip()
+                parts[1] = ':{}'.format(parts[1].strip())
+                if parts[1] not in extras_require:
+                    extras_require[parts[1]] = []
+                extras_require[parts[1]].append(parts[0])
             else:
-                install_requires.append(parts)
+                name = parts[0]
+                if name.startswith('git+'):
+                    dependency_links.append(name)
+                    # #egg=zlmdb
+                    # http://github.com/user/repo/tarball/master#egg=package-1.0
+                    pkgname = name.split('=')[1]
+                    install_requires.append(pkgname)
+                else:
+                    install_requires.append(name)
 
 with open('requirements-dev.txt') as f:
     for line in f.read().splitlines():

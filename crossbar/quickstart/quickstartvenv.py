@@ -98,15 +98,15 @@ etcd:
 \t\t\t--listen-client-urls http://0.0.0.0:2379
 
 cfc:
-\t{venv}/bin/crossbarfx master start --cbdir {top_level}/master/.crossbar
+\t{venv}/bin/crossbar master start --cbdir {top_level}/master/.crossbar
 
 app0:
-\t{venv}/bin/crossbarfx edge start --cbdir {top_level}/app0/.crossbar
+\t{venv}/bin/crossbar edge start --cbdir {top_level}/app0/.crossbar
 """.format(**template_args))
 
 
 def _create_applications(location, venv, cfc):
-    cbfx = join(venv, "bin", "crossbarfx")
+    cbfx = join(venv, "bin", "crossbar")
     app0 = join(location, "app0")
     master = join(location, "master")
 

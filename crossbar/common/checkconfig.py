@@ -2973,13 +2973,13 @@ def check_native_worker_options(personality, options, ignore=[]):
     if 'env' in options:
         check_process_env(options['env'])
 
-    # this feature requires crossbarfx
+    # this feature requires crossbar
     if 'expose_controller' in options:
         expose_controller = options['expose_controller']
         if not isinstance(expose_controller, bool):
             raise InvalidConfigException("'expose_controller' in 'options' in worker configuration must be a boolean ({} encountered)".format(type(expose_controller)))
 
-    # this feature requires crossbarfx
+    # this feature requires crossbar
     if 'expose_shared' in options:
         expose_shared = options['expose_shared']
         if not isinstance(expose_shared, bool):
@@ -3150,7 +3150,7 @@ def check_worker(personality, worker):
     else:
         # all native worker types:
         # default: router, container, websocket-testee
-        # but also (crossbarfx): proxy, hostmonitor, xbr, ..
+        # but also (crossbar): proxy, hostmonitor, xbr, ..
         worker_plugin = personality.native_workers[worker_type]
         check_worker = worker_plugin['checkconfig_item']
         check_worker(personality, worker)

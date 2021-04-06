@@ -90,12 +90,12 @@ def get_argument_parser(parser=None):
     parser.add_argument('--expose_controller',
                         type=bool,
                         default=False,
-                        help='Expose node controller session to all components (this feature requires crossbarfx).')
+                        help='Expose node controller session to all components (this feature requires crossbar).')
 
     parser.add_argument('--expose_shared',
                         type=bool,
                         default=False,
-                        help='Expose a shared object to all components (this feature requires crossbarfx).')
+                        help='Expose a shared object to all components (this feature requires crossbar).')
 
     parser.add_argument('--shutdown',
                         type=str,

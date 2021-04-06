@@ -187,7 +187,7 @@ def create_management_session(url='wss://master.xbr.network/ws',
 
     txaio.start_logging(level='info')
 
-    privkey_file = os.path.join(os.path.expanduser('~/.crossbarfx'), privkey_file)
+    privkey_file = os.path.join(os.path.expanduser('~/.crossbar'), privkey_file)
     # print('usering keyfile from', privkey_file)
 
     # for authenticating the management client, we need a Ed25519 public/private key pair

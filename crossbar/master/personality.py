@@ -17,7 +17,7 @@ from crossbar.node.node import NodeOptions
 from crossbar.personality import Personality as CrossbarPersonality
 from crossbar.edge.personality import Personality as CrossbarFabricPersonality
 
-import crossbarfx
+import crossbar
 from crossbar.master.node.node import FabricCenterNode
 
 from crossbar.master.webservice import RouterWebServiceRegisterMe
@@ -58,7 +58,7 @@ def check_controller_fabric_center(personality, config):
         #
         # also possible to read the URL from an env var:
         #
-        # "url": "${CROSSBARFX_METERING_URL}"
+        # "url": "${crossbar_METERING_URL}"
         #
         metering = config['metering']
         checkconfig.check_dict_args({
@@ -128,11 +128,11 @@ class Personality(CrossbarFabricPersonality):
                             build=crossbar.__build__,
                             year=time.strftime('%Y'))
 
-    LEGAL = ('crossbarfx', 'LEGAL')
-    LICENSE = ('crossbarfx', 'LICENSE')
-    LICENSES_OSS = ('crossbarfx', 'LICENSES-OSS')
+    LEGAL = ('crossbar', 'LEGAL')
+    LICENSE = ('crossbar', 'LICENSE')
+    LICENSES_OSS = ('crossbar', 'LICENSES-OSS')
 
-    TEMPLATE_DIRS = [('crossbarfx', 'master/webservice/templates')] + CrossbarFabricPersonality.TEMPLATE_DIRS
+    TEMPLATE_DIRS = [('crossbar', 'master/webservice/templates')] + CrossbarFabricPersonality.TEMPLATE_DIRS
 
     WEB_SERVICE_CHECKERS = {
         'registerme': RouterWebServiceRegisterMe.check,

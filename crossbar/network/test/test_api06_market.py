@@ -134,7 +134,7 @@ class XbrDelegate(ApplicationSession):
                 vaction_oid = UUID(bytes=request_submitted['vaction_oid'])
                 self.log.info('Join market verification "{vaction_oid}" created', vaction_oid=vaction_oid)
 
-                # fd = 'cloud/planet_xbr_crossbarfx/.crossbar/.verifications'
+                # fd = 'cloud/planet_xbr_crossbar/.crossbar/.verifications'
                 fd = self._verifications
                 if not os.path.isdir(fd):
                     os.mkdir(fd)

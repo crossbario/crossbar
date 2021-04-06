@@ -18,7 +18,7 @@ from crossbar.common import checkconfig
 from crossbar.node.node import NodeOptions
 from crossbar.node.worker import RouterWorkerProcess
 
-import crossbarfx
+import crossbar
 from crossbar.edge.node.node import FabricNode
 from crossbar.edge.worker.realmstore import CfxDbRealmStore
 from crossbar.edge.worker.router import ExtRouterController
@@ -386,11 +386,11 @@ class Personality(CrossbarPersonality):
                             build=crossbar.__build__,
                             year=time.strftime('%Y'))
 
-    LEGAL = ('crossbarfx', 'LEGAL')
-    LICENSE = ('crossbarfx', 'LICENSE')
-    LICENSES_OSS = ('crossbarfx', 'LICENSES-OSS')
+    LEGAL = ('crossbar', 'LEGAL')
+    LICENSE = ('crossbar', 'LICENSE')
+    LICENSES_OSS = ('crossbar', 'LICENSES-OSS')
 
-    TEMPLATE_DIRS = [('crossbarfx', 'edge/webservice/templates')] + CrossbarPersonality.TEMPLATE_DIRS
+    TEMPLATE_DIRS = [('crossbar', 'edge/webservice/templates')] + CrossbarPersonality.TEMPLATE_DIRS
 
     WEB_SERVICE_CHECKERS = {
         'pairme': RouterWebServicePairMe.check,

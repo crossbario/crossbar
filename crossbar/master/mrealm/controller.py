@@ -150,7 +150,7 @@ class MrealmController(ApplicationSession):
     def __init__(self, config=None):
         ApplicationSession.__init__(self, config)
 
-        # comes from "crossbarfx/master/node/node.py" (L299, L282)
+        # comes from "crossbar/master/node/node.py" (L299, L282)
         assert config.extra
 
         self._uri_prefix = 'crossbarfabriccenter.mrealm.'
@@ -317,7 +317,7 @@ class MrealmController(ApplicationSession):
 
     @inlineCallbacks
     def _initialize(self, details):
-        # "self.config.extra" comes from "crossbarfx/master/node/node.py"
+        # "self.config.extra" comes from "crossbar/master/node/node.py"
         self.log.debug('{klass} starting realm "{realm}" with config:\n{config}',
                        klass=self.__class__.__name__,
                        realm=self._realm,

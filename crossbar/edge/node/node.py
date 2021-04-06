@@ -592,7 +592,7 @@ class FabricNode(node.Node):
         self._management_url = None
 
         # when running in managed mode, this will hold the management uplink session to
-        # the CrossbarFX master node
+        # the crossbar master node
         self._manager = None
         self._manager_runner = None
 
@@ -633,7 +633,7 @@ class FabricNode(node.Node):
 
         # if the node hasn't been configured from XBR network, fallback to loading config from local config file
         if not self._config:
-            default_filename = pkg_resources.resource_filename('crossbarfx', self.DEFAULT_CONFIG_PATH)
+            default_filename = pkg_resources.resource_filename('crossbar', self.DEFAULT_CONFIG_PATH)
             with open(default_filename) as f:
                 default_config = json.load(f)
             config_source, config_path = node.Node.load_config(self, configfile, default_config)

@@ -63,7 +63,7 @@ class WebSocketURL(click.ParamType):
 
 def _prompt_for_url(yes_to_all):
     """
-    Prompt user for CFC URL to create a new ~/.crossbarfx/config.ini file
+    Prompt user for CFC URL to create a new ~/.crossbar/config.ini file
     """
     if yes_to_all:
         value = _DEFAULT_CFC_URL
@@ -72,7 +72,7 @@ def _prompt_for_url(yes_to_all):
     return value
 
 
-# default configuration stored in $HOME/.crossbarfx/config.ini
+# default configuration stored in $HOME/.crossbar/config.ini
 _DEFAULT_CONFIG = """[default]
 
 url={url}
@@ -156,7 +156,7 @@ class Application(object):
     @staticmethod
     def load_profile(dotdir=None, profile=None, yes_to_all=False):
 
-        dotdir = dotdir or '~/.crossbarfx'
+        dotdir = dotdir or '~/.crossbar'
         profile = profile or 'default'
 
         cbf_dir = os.path.expanduser(dotdir)
@@ -249,7 +249,7 @@ class Application(object):
             self._output_result(result)
 
     def _output_result(self, result):
-        cmd_str = ' '.join(["crossbarfx", "shell"] + sys.argv[1:])
+        cmd_str = ' '.join(["crossbar", "shell"] + sys.argv[1:])
         if self._output_format in [Application.OUTPUT_FORMAT_JSON, Application.OUTPUT_FORMAT_JSON_COLORED]:
 
             json_str = json.dumps(result.result,
@@ -489,7 +489,7 @@ class Application(object):
                         click.echo('\nThanks for registering! {}'.format(message))
                         click.echo(
                             style_ok(
-                                'Please check your inbox and run "crossbarfx shell auth --code <THE CODE YOU GOT BY EMAIL>.\n'
+                                'Please check your inbox and run "crossbar shell auth --code <THE CODE YOU GOT BY EMAIL>.\n'
                             ))
 
                     elif error == u'registered-user-auth-code-sent':
@@ -497,7 +497,7 @@ class Application(object):
                         click.echo('\nWelcome back! {}'.format(message))
                         click.echo(
                             style_ok(
-                                'Please check your inbox and run "crossbarfx shell auth --code <THE CODE YOU GOT BY EMAIL>.\n'
+                                'Please check your inbox and run "crossbar shell auth --code <THE CODE YOU GOT BY EMAIL>.\n'
                             ))
 
                     elif error == u'pending-activation':
@@ -506,10 +506,10 @@ class Application(object):
                         click.echo(style_ok(message))
                         click.echo()
                         click.echo(
-                            'Tip: to activate, run "crossbarfx shell auth --code <THE CODE YOU GOT BY EMAIL>"'
+                            'Tip: to activate, run "crossbar shell auth --code <THE CODE YOU GOT BY EMAIL>"'
                         )
                         click.echo(
-                            'Tip: you can request sending a new code with "crossbarfx shell auth --new-code"')
+                            'Tip: you can request sending a new code with "crossbar shell auth --new-code"')
                         click.echo()
 
                     elif error == u'no-pending-activation':

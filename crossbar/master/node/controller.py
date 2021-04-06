@@ -142,8 +142,8 @@ class DomainManager(object):
 
         # FIXME: check blockchain for license information
         license = {
-            'product': 'crossbarfx-free-tier',
-            'description': 'CrossbarFX free usage tier including 5 managed nodes.',
+            'product': 'crossbar-free-tier',
+            'description': 'crossbar free usage tier including 5 managed nodes.',
             'terms': 'https://crossbario.com/license',
             'features': {
                 'xbr': False
@@ -167,7 +167,7 @@ class DomainController(ApplicationSession):
         # self.config.controller
         # self.config.shared
 
-        # comes from "crossbarfx/master/node/config.json"
+        # comes from "crossbar/master/node/config.json"
         assert self.config.extra
         cbdir = self.config.extra['cbdir']
 
@@ -180,7 +180,7 @@ class DomainController(ApplicationSession):
 
         # Metering knobs - FIXME: read and honor all knobs
         self._meterurl = self.config.extra.get('metering',
-                                               {}).get('submit', {}).get('url', '${CROSSBARFX_METERING_URL}')
+                                               {}).get('submit', {}).get('url', '${CROSSBAR_METERING_URL}')
 
         self._meterurl = checkconfig.maybe_from_env('metering.submit.url', self._meterurl)
 

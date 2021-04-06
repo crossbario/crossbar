@@ -159,7 +159,7 @@ class XbrDelegate(ApplicationSession):
             vaction_oid = uuid.UUID(bytes=result['vaction_oid'])
             self.log.info('Publish API - verification "{vaction_oid}" created', vaction_oid=vaction_oid)
 
-            # fd = 'cloud/planet_xbr_crossbarfx/.crossbar/.verifications'
+            # fd = 'cloud/planet_xbr_crossbar/.crossbar/.verifications'
             fd = self._verifications
             if not os.path.isdir(fd):
                 os.mkdir(fd)

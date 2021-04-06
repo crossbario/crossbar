@@ -95,13 +95,13 @@ Usage: {executable} <command>
     <command>:
 
     standalone       Run a Crossbar.io node (default when no command is given)
-    edge             Run a CrossbarFX Edge node
-    master           Run a CrossbarFX Master node
-    network          Run a CrossbarFX XBR Network node
+    edge             Run a crossbar Edge node
+    master           Run a crossbar Master node
+    network          Run a crossbar XBR Network node
     shell            Run a management shell command
     quickstart       Create a WAMP/XBR application skeleton
-    version          Print CrossbarFX software versions
-    legal            Print CrossbarFX license terms
+    version          Print crossbar software versions
+    legal            Print crossbar license terms
 
 Command help: {executable} <command> --help
 """
@@ -207,12 +207,12 @@ def run():
         args = [command] + args
         command = 'edge'
 
-    # redirect a plain "crossbarfx legal" to "crossbarfx master legal"
+    # redirect a plain "crossbar legal" to "crossbar master legal"
     if command == 'legal':
         command = 'master'
         args = ['legal']
 
-    # redirect a plain "crossbarfx version" to "crossbarfx master version"
+    # redirect a plain "crossbar version" to "crossbar master version"
     if command == 'version':
         command = 'master'
         args = ['version']
@@ -278,18 +278,18 @@ def run():
 
         elif command == 'edge':
 
-            from crossbarfx import edge
+            from crossbar import edge
 
             personality = edge.Personality
 
         elif command == 'network':
 
-            from crossbarfx import network
+            from crossbar import network
 
             personality = network.Personality
 
         elif command == 'master':
-            from crossbarfx import master
+            from crossbar import master
 
             personality = master.Personality
 
@@ -321,14 +321,14 @@ def personalities():
     }
 
     try:
-        from crossbarfx import edge  # noqa
+        from crossbar import edge  # noqa
     except ImportError:
         pass
     else:
         personality_classes['edge'] = edge.Personality
 
     try:
-        from crossbarfx import master  # noqa
+        from crossbar import master  # noqa
     except ImportError:
         pass
     else:

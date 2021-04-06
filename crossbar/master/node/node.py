@@ -47,7 +47,7 @@ class License(object):
         self._type = license_type
 
         if license_type == 20010:
-            self._title = 'CrossbarFX Trial'
+            self._title = 'crossbar Trial'
             self._mrealms = 1
             self._routers = 2
             self._proxies = 2
@@ -300,7 +300,7 @@ class FabricServiceNodeManager(ApplicationSession):
                     u'dbfile': os.path.join(self.config.extra['cbdir'], u'.db-mrealm-{}'.format(mrealm.oid)),
 
                     # hard-code max mrealm database size to 2GB
-                    # https://github.com/crossbario/crossbarfx/issues/235
+                    # https://github.com/crossbario/crossbar/issues/235
                     u'maxsize': 2**30 * 2,
                 },
                 u'controller-database': {
@@ -411,7 +411,7 @@ class FabricCenterNode(node.FabricNode):
 
         # load builtin node configuration as default
         #
-        filename = pkg_resources.resource_filename('crossbarfx', self.DEFAULT_CONFIG_PATH)
+        filename = pkg_resources.resource_filename('crossbar', self.DEFAULT_CONFIG_PATH)
         with open(filename) as f:
             config = json.load(f)
             config_path = filename
