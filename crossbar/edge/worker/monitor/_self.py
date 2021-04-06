@@ -36,8 +36,7 @@ class SelfMonitor(Monitor):
 
         hdata['io_counters'] = self._process.io_counters()._asdict()
         hdata['cpu_times'] = self._process.cpu_times()._asdict()
-        a = round(((self._process.cpu_times().user + self._process.cpu_times().system) * 100) /
-                  (time.time() - self._process.create_time()), 3)
+        a = round(((self._process.cpu_times().user + self._process.cpu_times().system) * 100) / (time.time() - self._process.create_time()), 3)
         hdata['percent'] = a
 
         for sensor in sensors:

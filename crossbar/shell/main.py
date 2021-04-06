@@ -713,8 +713,7 @@ def cmd_delete(ctx):
 @click.option(
     '--cascade',
     is_flag=True,
-    help=
-    'Automatically unpair (but not delete) any nodes currently paired with and unassign (but not delete) any users currently assigned to the management realm to be deleted.'
+    help='Automatically unpair (but not delete) any nodes currently paired with and unassign (but not delete) any users currently assigned to the management realm to be deleted.'
 )
 @click.pass_context
 def cmd_delete_management_realm(ctx, realm, cascade=False):

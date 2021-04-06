@@ -128,8 +128,7 @@ class RouterClusterMonitor(object):
                     'status': cluster.STATUS_BY_CODE[routercluster.status],
                     'changed': routercluster.changed,
                 }
-                yield self._manager._session.publish('{}.on_routercluster_started'.format(
-                    self._manager._prefix),
+                yield self._manager._session.publish('{}.on_routercluster_started'.format(self._manager._prefix),
                                                      routercluster_started,
                                                      options=self._manager._PUBOPTS)
         except:

@@ -31,8 +31,6 @@ from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
 from crossbar.common.key import _maybe_generate_key, _read_node_key, _read_release_key
 
-import crossbar
-
 from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull

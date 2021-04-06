@@ -851,9 +851,7 @@ class MrealmManager(object):
                 str(mrealm.name),
                 str(node_oid),
                 reason='wamp.close.auth-changed',
-                message=
-                'Authentication information or permissions changed for node with authid "{}" - killing all currently active sessions for this authid'
-                .format(node_oid))
+                message='Authentication information or permissions changed for node with authid "{}" - killing all currently active sessions for this authid'.format(node_oid))
         except:
             self.log.failure()
 

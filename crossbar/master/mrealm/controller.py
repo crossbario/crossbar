@@ -429,8 +429,7 @@ class MrealmController(ApplicationSession):
                         else:
                             self._nodes[node_id].status = 'offline'
                             self.log.warn('{action} [status={status}] {func}',
-                                          action=hl('Warning: check on managed node "{}" failed: {}'.format(
-                                              node_id, e),
+                                          action=hl('Warning: check on managed node "{}" failed: {}'.format(node_id, e),
                                                     color='red',
                                                     bold=True),
                                           status=hlval(self._nodes[node_id].status),
