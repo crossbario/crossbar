@@ -41,6 +41,7 @@ class PairMeResource(Resource):
         # self._service_realm = 'com.crossbario.fabric'
         # self._service_agent = self._worker.realm_by_name(self._service_realm).session
 
+        # ./crossbar/edge/node/config/pairme.json
         self._page = templates.get_template('pairme.html')
         self._pid = '{}'.format(os.getpid())
         self._node_type = node_type.strip().upper()
