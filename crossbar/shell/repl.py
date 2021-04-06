@@ -280,7 +280,7 @@ def dispatch_repl_commands(command):
 
     """
     if command.startswith('!'):
-        os.system(command[1:])
+        os.system(command[1:])  # nosec
         return True
 
     return False

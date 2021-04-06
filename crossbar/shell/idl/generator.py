@@ -26,7 +26,7 @@ def process(schema, template_paths=['templates', 'tests/idl']):
     # http://jinja.pocoo.org/docs/latest/api/#loaders
     loader = FileSystemLoader(template_paths, encoding='utf-8', followlinks=False)
 
-    env = Environment(loader=loader)
+    env = Environment(loader=loader, autoescape=True)
     env.filters['rst'] = rst_filter
 
     tmpl = env.get_template('service.py')

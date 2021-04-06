@@ -557,8 +557,7 @@ class FabricNode(node.Node):
     """
     Crossbar.io FX node personality.
     """
-    # DEFAULT_CONFIG_PATH = 'edge/node/config/pairme.json'
-    DEFAULT_CONFIG_PATH = 'crossbar/edge/node/config/pairme.json'
+    DEFAULT_CONFIG_PATH = 'edge/node/config/pairme.json'
     NODE_CONTROLLER = FabricNodeControllerSession
 
     def __init__(self, personality, cbdir=None, reactor=None, native_workers=None, options=None):
