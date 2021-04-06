@@ -29,7 +29,7 @@ from autobahn.twisted.wamp import ApplicationSession
 from crossbar._util import hltype, hlid, hl, hlval
 from crossbar.common import checkconfig
 
-from crossbar.util import merge_config
+from crossbar._util import merge_config
 from crossbar.edge.node import node
 from crossbar.master.node.roles import BUILTIN_ROLES
 from crossbar.master.mrealm.mrealm import ManagementRealm
