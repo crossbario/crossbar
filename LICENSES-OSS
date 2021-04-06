@@ -45,6 +45,7 @@
  eth-utils            1.10.0     MIT License                                                                                          The Ethereum Foundation                                        
  flatbuffers          1.12       Apache Software License                                                                              FlatBuffers Contributors                                       
  h2                   4.0.0      MIT License                                                                                          Cory Benfield                                                  
+ hashin               0.15.0     MIT License                                                                                          Peter Bengtsson                                                
  hexbytes             0.2.1      MIT License                                                                                          The Ethereum Foundation                                        
  hpack                4.0.0      MIT License                                                                                          Cory Benfield                                                  
  humanize             3.3.0      MIT License                                                                                          Jason Moiron                                                   
@@ -69,8 +70,10 @@
  mypy-extensions      0.4.3      MIT License                                                                                          The mypy developers                                            
  netaddr              0.8.0      BSD License, MIT License                                                                             David P. D. Moss, Stefan Nordhausen et al                      
  numpy                1.20.2     BSD License                                                                                          Travis E. Oliphant et al.                                      
+ packaging            20.9       Apache Software License, BSD License                                                                 Donald Stufft and individual contributors                      
  parsimonious         0.8.1      MIT License                                                                                          Erik Rose                                                      
  passlib              1.7.4      UNKNOWN                                                                                              Eli Collins                                                    
+ pip-api              0.0.20     Apache Software License                                                                              Dustin Ingram                                                  
  poyo                 0.5.0      MIT License                                                                                          Raphael Pierzina                                               
  priority             1.3.0      MIT License                                                                                          Cory Benfield                                                  
  prompt-toolkit       3.0.18     BSD License                                                                                          Jonathan Slenders                                              
@@ -88,6 +91,7 @@
  pyasn1-modules       0.2.8      BSD License                                                                                          Ilya Etingof                                                   
  pycparser            2.20       BSD License                                                                                          Eli Bendersky                                                  
  pycryptodome         3.10.1     BSD License, Apache Software License, Public Domain                                                  Helder Eijs                                                    
+ pyparsing            2.4.7      MIT License                                                                                          Paul McGuire                                                   
  pyrsistent           0.17.3     MIT License                                                                                          Tobias Gustafsson                                              
  python-baseconv      1.2.2      Python Software Foundation License                                                                   Drew Perttula, Guilherme Gondim, Simon Willison                
  python-dateutil      2.8.1      BSD License, Apache Software License                                                                 Gustavo Niemeyer                                               
