@@ -1,0 +1,24 @@
+{
+    "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
+    "version": 2,
+    "workers": [
+        {
+            "type": "router",
+            "realms": [],
+            "transports": [
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "pairme"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

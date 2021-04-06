@@ -61,27 +61,25 @@ docs_run: docs
 docs_clean:
 	-rm -rf ./docs/_build
 
-
 # freeze our dependencies
 freeze:
 	# do everything in a fresh environment
-	rm -rf vers
+	-rm -rf vers
 	virtualenv vers
+	vers/bin/pip3 install -U "pip==19.3.1" wheel hashin pip-licenses
 
 	# install and freeze latest versions of minimum requirements
-	vers/bin/pip3 install -U "pip==19.3.1"
 	vers/bin/pip3 install -r requirements-min.txt
 	vers/bin/pip3 freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-pinned.txt
 
 	# persist OSS license list of our exact dependencies
-	vers/bin/pip3 install pip-licenses
-	vers/bin/pip-licenses --from=classifier -a -o name > crossbar/LICENSES-OSS
+	vers/bin/pip-licenses --from=classifier -a -o name > LICENSES-OSS
+	vers/bin/pip-licenses --from=classifier -a -o name --format=rst > docs/soss_licenses_table.rst
 
 	# hash all dependencies for repeatable builds
 	vers/bin/pip3 install hashin
 	-rm requirements.txt
 	cat requirements-pinned.txt | xargs vers/bin/hashin > requirements.txt
-
 
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt

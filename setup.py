@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -57,15 +34,30 @@ reqs = 'requirements-min.txt'
 # as setuptools doesn't understand hashes ..
 # reqs = 'requirements.txt'
 
+# https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
+dependency_links = []
+
 with open(reqs) as f:
     for line in f.read().splitlines():
         line = line.strip()
         if not line.startswith('#'):
             parts = line.strip().split(';')
             if len(parts) > 1:
-                print('Warning: requirements line "{}" ignored, as it uses env markers, which are not supported in setuptools'.format(line))
+                parts[0] = parts[0].strip()
+                parts[1] = ':{}'.format(parts[1].strip())
+                if parts[1] not in extras_require:
+                    extras_require[parts[1]] = []
+                extras_require[parts[1]].append(parts[0])
             else:
-                install_requires.append(parts)
+                name = parts[0]
+                if name.startswith('git+'):
+                    dependency_links.append(name)
+                    # #egg=zlmdb
+                    # http://github.com/user/repo/tarball/master#egg=package-1.0
+                    pkgname = name.split('=')[1]
+                    install_requires.append(pkgname)
+                else:
+                    install_requires.append(name)
 
 with open('requirements-dev.txt') as f:
     for line in f.read().splitlines():
@@ -89,7 +81,7 @@ setup(
     author='Crossbar.io Technologies GmbH',
     url='http://crossbar.io/',
     platforms=('Any'),
-    license="AGPL3",
+    license="European Union Public Licence 1.2 (EUPL 1.2)",
     install_requires=install_requires,
     extras_require=extras_require,
     entry_points={
@@ -105,7 +97,7 @@ setup(
     python_requires='>=3.7',
 
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
-    classifiers=["License :: OSI Approved :: GNU Affero General Public License v3",
+    classifiers=["License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)",
                  "Development Status :: 5 - Production/Stable",
                  "Environment :: No Input/Output (Daemon)",
                  "Environment :: Console",

@@ -1,0 +1,688 @@
+{
+    "meta": {
+        "filename": "reflection.bfbs",
+        "filepath": "/home/oberstet/scm/crossbario/crossbar-shell/reflection.bfbs",
+        "file_ident": "BFBS",
+        "file_ext": "bfbs",
+        "root": "reflection.Schema"
+    },
+    "uri": {
+        "reflection.BaseType": {
+            "def": "enum",
+            "name": "reflection.BaseType",
+            "values": [
+                {
+                    "name": "Bool",
+                    "docs": []
+                },
+                {
+                    "name": "Byte",
+                    "docs": []
+                },
+                {
+                    "name": "Double",
+                    "docs": []
+                },
+                {
+                    "name": "Float",
+                    "docs": []
+                },
+                {
+                    "name": "Int",
+                    "docs": []
+                },
+                {
+                    "name": "Long",
+                    "docs": []
+                },
+                {
+                    "name": "None",
+                    "docs": []
+                },
+                {
+                    "name": "Obj",
+                    "docs": []
+                },
+                {
+                    "name": "Short",
+                    "docs": []
+                },
+                {
+                    "name": "String",
+                    "docs": []
+                },
+                {
+                    "name": "UByte",
+                    "docs": []
+                },
+                {
+                    "name": "UInt",
+                    "docs": []
+                },
+                {
+                    "name": "ULong",
+                    "docs": []
+                },
+                {
+                    "name": "UShort",
+                    "docs": []
+                },
+                {
+                    "name": "UType",
+                    "docs": []
+                },
+                {
+                    "name": "Union",
+                    "docs": []
+                },
+                {
+                    "name": "Vector",
+                    "docs": []
+                }
+            ],
+            "docs": []
+        },
+        "reflection.Enum": {
+            "def": "table",
+            "name": "reflection.Enum",
+            "fields": {
+                "attributes": {
+                    "def": "field",
+                    "name": "attributes",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 3
+                    },
+                    "id": 4,
+                    "offset": 12
+                },
+                "documentation": {
+                    "def": "field",
+                    "name": "documentation",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "String",
+                        "index": -1
+                    },
+                    "id": 5,
+                    "offset": 14
+                },
+                "is_union": {
+                    "def": "field",
+                    "name": "is_union",
+                    "type": {
+                        "base_type": "Bool",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 2,
+                    "offset": 8
+                },
+                "name": {
+                    "def": "field",
+                    "name": "name",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 0,
+                    "offset": 4
+                },
+                "underlying_type": {
+                    "def": "field",
+                    "name": "underlying_type",
+                    "type": {
+                        "base_type": "Obj",
+                        "element": "None",
+                        "index": 8
+                    },
+                    "id": 3,
+                    "offset": 10
+                },
+                "values": {
+                    "def": "field",
+                    "name": "values",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 1
+                    },
+                    "id": 1,
+                    "offset": 6
+                }
+            },
+            "docs": []
+        },
+        "reflection.EnumVal": {
+            "def": "table",
+            "name": "reflection.EnumVal",
+            "fields": {
+                "documentation": {
+                    "def": "field",
+                    "name": "documentation",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "String",
+                        "index": -1
+                    },
+                    "id": 4,
+                    "offset": 12
+                },
+                "name": {
+                    "def": "field",
+                    "name": "name",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 0,
+                    "offset": 4
+                },
+                "object": {
+                    "def": "field",
+                    "name": "object",
+                    "type": {
+                        "base_type": "Obj",
+                        "element": "None",
+                        "index": 4
+                    },
+                    "id": 2,
+                    "offset": 8
+                },
+                "union_type": {
+                    "def": "field",
+                    "name": "union_type",
+                    "type": {
+                        "base_type": "Obj",
+                        "element": "None",
+                        "index": 8
+                    },
+                    "id": 3,
+                    "offset": 10
+                },
+                "value": {
+                    "def": "field",
+                    "name": "value",
+                    "type": {
+                        "base_type": "Long",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 1,
+                    "offset": 6
+                }
+            },
+            "docs": []
+        },
+        "reflection.Field": {
+            "def": "table",
+            "name": "reflection.Field",
+            "fields": {
+                "attributes": {
+                    "def": "field",
+                    "name": "attributes",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 3
+                    },
+                    "id": 9,
+                    "offset": 22
+                },
+                "default_integer": {
+                    "def": "field",
+                    "name": "default_integer",
+                    "type": {
+                        "base_type": "Long",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 4,
+                    "offset": 12
+                },
+                "default_real": {
+                    "def": "field",
+                    "name": "default_real",
+                    "type": {
+                        "base_type": "Double",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 5,
+                    "offset": 14
+                },
+                "deprecated": {
+                    "def": "field",
+                    "name": "deprecated",
+                    "type": {
+                        "base_type": "Bool",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 6,
+                    "offset": 16
+                },
+                "documentation": {
+                    "def": "field",
+                    "name": "documentation",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "String",
+                        "index": -1
+                    },
+                    "id": 10,
+                    "offset": 24
+                },
+                "id": {
+                    "def": "field",
+                    "name": "id",
+                    "type": {
+                        "base_type": "UShort",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 2,
+                    "offset": 8
+                },
+                "key": {
+                    "def": "field",
+                    "name": "key",
+                    "type": {
+                        "base_type": "Bool",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 8,
+                    "offset": 20
+                },
+                "name": {
+                    "def": "field",
+                    "name": "name",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 0,
+                    "offset": 4
+                },
+                "offset": {
+                    "def": "field",
+                    "name": "offset",
+                    "type": {
+                        "base_type": "UShort",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 3,
+                    "offset": 10
+                },
+                "required": {
+                    "def": "field",
+                    "name": "required",
+                    "type": {
+                        "base_type": "Bool",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 7,
+                    "offset": 18
+                },
+                "type": {
+                    "def": "field",
+                    "name": "type",
+                    "type": {
+                        "base_type": "Obj",
+                        "element": "None",
+                        "index": 8
+                    },
+                    "id": 1,
+                    "offset": 6
+                }
+            },
+            "docs": []
+        },
+        "reflection.KeyValue": {
+            "def": "table",
+            "name": "reflection.KeyValue",
+            "fields": {
+                "key": {
+                    "def": "field",
+                    "name": "key",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 0,
+                    "offset": 4
+                },
+                "value": {
+                    "def": "field",
+                    "name": "value",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 1,
+                    "offset": 6
+                }
+            },
+            "docs": []
+        },
+        "reflection.Object": {
+            "def": "table",
+            "name": "reflection.Object",
+            "fields": {
+                "attributes": {
+                    "def": "field",
+                    "name": "attributes",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 3
+                    },
+                    "id": 5,
+                    "offset": 14
+                },
+                "bytesize": {
+                    "def": "field",
+                    "name": "bytesize",
+                    "type": {
+                        "base_type": "Int",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 4,
+                    "offset": 12
+                },
+                "documentation": {
+                    "def": "field",
+                    "name": "documentation",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "String",
+                        "index": -1
+                    },
+                    "id": 6,
+                    "offset": 16
+                },
+                "fields": {
+                    "def": "field",
+                    "name": "fields",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 2
+                    },
+                    "id": 1,
+                    "offset": 6
+                },
+                "is_struct": {
+                    "def": "field",
+                    "name": "is_struct",
+                    "type": {
+                        "base_type": "Bool",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 2,
+                    "offset": 8
+                },
+                "minalign": {
+                    "def": "field",
+                    "name": "minalign",
+                    "type": {
+                        "base_type": "Int",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 3,
+                    "offset": 10
+                },
+                "name": {
+                    "def": "field",
+                    "name": "name",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 0,
+                    "offset": 4
+                }
+            },
+            "docs": []
+        },
+        "reflection.RPCCall": {
+            "def": "table",
+            "name": "reflection.RPCCall",
+            "fields": {
+                "attributes": {
+                    "def": "field",
+                    "name": "attributes",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 3
+                    },
+                    "id": 3,
+                    "offset": 10
+                },
+                "documentation": {
+                    "def": "field",
+                    "name": "documentation",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "String",
+                        "index": -1
+                    },
+                    "id": 4,
+                    "offset": 12
+                },
+                "name": {
+                    "def": "field",
+                    "name": "name",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 0,
+                    "offset": 4
+                },
+                "request": {
+                    "def": "field",
+                    "name": "request",
+                    "type": {
+                        "base_type": "Obj",
+                        "element": "None",
+                        "index": 4
+                    },
+                    "id": 1,
+                    "offset": 6
+                },
+                "response": {
+                    "def": "field",
+                    "name": "response",
+                    "type": {
+                        "base_type": "Obj",
+                        "element": "None",
+                        "index": 4
+                    },
+                    "id": 2,
+                    "offset": 8
+                }
+            },
+            "docs": []
+        },
+        "reflection.Schema": {
+            "def": "table",
+            "name": "reflection.Schema",
+            "fields": {
+                "enums": {
+                    "def": "field",
+                    "name": "enums",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 0
+                    },
+                    "id": 1,
+                    "offset": 6
+                },
+                "file_ext": {
+                    "def": "field",
+                    "name": "file_ext",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 4,
+                    "offset": 12
+                },
+                "file_ident": {
+                    "def": "field",
+                    "name": "file_ident",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 3,
+                    "offset": 10
+                },
+                "objects": {
+                    "def": "field",
+                    "name": "objects",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 4
+                    },
+                    "id": 0,
+                    "offset": 4
+                },
+                "root_table": {
+                    "def": "field",
+                    "name": "root_table",
+                    "type": {
+                        "base_type": "Obj",
+                        "element": "None",
+                        "index": 4
+                    },
+                    "id": 5,
+                    "offset": 14
+                },
+                "services": {
+                    "def": "field",
+                    "name": "services",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 7
+                    },
+                    "id": 2,
+                    "offset": 8
+                }
+            },
+            "docs": []
+        },
+        "reflection.Service": {
+            "def": "table",
+            "name": "reflection.Service",
+            "fields": {
+                "attributes": {
+                    "def": "field",
+                    "name": "attributes",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 3
+                    },
+                    "id": 2,
+                    "offset": 8
+                },
+                "calls": {
+                    "def": "field",
+                    "name": "calls",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "Obj",
+                        "index": 5
+                    },
+                    "id": 1,
+                    "offset": 6
+                },
+                "documentation": {
+                    "def": "field",
+                    "name": "documentation",
+                    "type": {
+                        "base_type": "Vector",
+                        "element": "String",
+                        "index": -1
+                    },
+                    "id": 3,
+                    "offset": 10
+                },
+                "name": {
+                    "def": "field",
+                    "name": "name",
+                    "type": {
+                        "base_type": "String",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 0,
+                    "offset": 4
+                }
+            },
+            "docs": []
+        },
+        "reflection.Type": {
+            "def": "table",
+            "name": "reflection.Type",
+            "fields": {
+                "base_type": {
+                    "def": "field",
+                    "name": "base_type",
+                    "type": {
+                        "base_type": "Byte",
+                        "element": "None",
+                        "index": 0
+                    },
+                    "id": 0,
+                    "offset": 4
+                },
+                "element": {
+                    "def": "field",
+                    "name": "element",
+                    "type": {
+                        "base_type": "Byte",
+                        "element": "None",
+                        "index": 0
+                    },
+                    "id": 1,
+                    "offset": 6
+                },
+                "index": {
+                    "def": "field",
+                    "name": "index",
+                    "type": {
+                        "base_type": "Int",
+                        "element": "None",
+                        "index": -1
+                    },
+                    "id": 2,
+                    "offset": 8
+                }
+            },
+            "docs": []
+        }
+    }
+}

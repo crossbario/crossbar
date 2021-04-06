@@ -1,0 +1,11 @@
+{
+    "controller": {
+        "id": "mynode1",
+        "options": {
+            "title": "Kernreaktor 7",
+            "shutdown": ["shutdown_on_last_worker_exit"]
+        },
+        "fabric-center": {
+        }
+    }
+}

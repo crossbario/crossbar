@@ -1,0 +1,217 @@
+{
+    "version": 2,
+    "controller": {
+        "id": "cfc1",
+        "fabric-center": {
+        }
+    },
+    "workers": [
+        {
+            "id": "cfrouter1",
+            "type": "router",
+            "realms": [
+                {
+                    "name": "com.crossbario.fabric",
+                    "roles": [
+                        {
+                            "name": "public",
+                            "permissions": [
+                                {
+                                    "uri": "crossbarfabriccenter.public.",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": false,
+                                        "publish": false,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "user",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "user-backend",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "authenticator",
+                            "permissions": [
+                                {
+                                    "uri": "com.crossbario.fabric.authenticate",
+                                    "match": "exact",
+                                    "allow": {
+                                        "register": true
+                                    },
+                                    "cache": true
+                                },
+                                {
+                                    "uri": "crossbarfabriccenter.node.",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "subscribe": true
+                                    },
+                                    "cache": true
+                                },
+                                {
+                                    "uri": "crossbarfabriccenter.mrealm.",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "subscribe": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "rawsocket",
+                    "serializers": ["cbor"],
+                    "endpoint": {
+                        "type": "unix",
+                        "path": "sock1"
+                    },
+                    "auth": {
+                        "anonymous": {
+                            "type": "static",
+                            "role": "trusted"
+                        }
+                    }
+                },
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 443,
+                        "backlog": 500,
+                        "tls": {
+                            "certificate": "server.crt",
+                            "key": "server.key",
+                            "dhparam": "dhparam.pem",
+                            "ca_certificates": [
+                                "intermediate.cert.pem",
+                                "ca.cert.pem"
+                            ]
+                        }
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "archive",
+                            "archive": ".crossbarfx-ui.zip",
+                            "origin": "https://s3.eu-central-1.amazonaws.com/download.crossbario.com/crossbarfx-ui/crossbarfx-ui-latest.zip",
+                            "cache": true,
+                            "default_object": "index.html",
+                            "mime_types": {
+                                ".ttf": "font/ttf",
+                                ".woff": "font/woff",
+                                ".woff2": "font/woff2"
+                            },
+                            "options": {
+                                "default_file": "index.html"
+                            }
+                        },
+                        "ws": {
+                            "type": "websocket",
+                            "auth": {
+                                "anonymous": {
+                                    "type": "static",
+                                    "role": "public"
+                                },
+                                "cryptosign": {
+                                    "type": "dynamic",
+                                    "authenticator": "com.crossbario.fabric.authenticate",
+                                    "authenticator-realm": "com.crossbario.fabric"
+                                }
+                            }
+                        },
+                        "info": {
+                            "type": "nodeinfo"
+                        }
+                    }
+                }
+            ],
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "crossbar.master.node.authenticator.Authenticator",
+                    "realm": "com.crossbario.fabric",
+                    "role": "authenticator",
+                    "extra": {
+                        "mailgun": {
+                            "submit_url": "https://api.mailgun.net/v3/mailing.crossbar.io/messages",
+                            "access_key": null
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "cfrealmmanager1",
+            "type": "container",
+            "options": {
+                "pythonpath": [".."],
+                "expose_shared": true,
+                "expose_controller": true
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "crossbar.master.node.controller.DomainController",
+                    "realm": "com.crossbario.fabric",
+                    "extra": {
+                    },
+                    "transport": {
+                        "type": "rawsocket",
+                        "serializer": "cbor",
+                        "endpoint": {
+                           "type": "unix",
+                           "path": "sock1"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
