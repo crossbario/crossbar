@@ -27,15 +27,15 @@ import click
 # see: http://cffi.readthedocs.io/en/latest/cdef.html
 import _cffi_backend  # noqa
 
-# import and select network framework in txaio _before_ any further crossbarfx.shell imports
+# import and select network framework in txaio _before_ any further crossbar.shell imports
 import txaio
 txaio.use_twisted()  # noqa
 
 from cfxdb.exporter import Exporter
 
-from crossbarfx.shell import __version__, __build__  # noqa: E402
-from crossbarfx.shell import command
-from crossbarfx.shell.app import Application
+from crossbar.shell import __version__, __build__  # noqa: E402
+from crossbar.shell import command
+from crossbar.shell.app import Application
 
 _HEXKEY = re.compile(r'^[0-9a-fA-F]{64,64}$')
 
@@ -832,7 +832,7 @@ def cmd_start(ctx):
 # def cmd_start_worker(ctx, node, worker, worker_type, options=None):
 #    cmd = command.CmdStartWorker(node, worker, worker_type, worker_options=options)
 #    ctx.obj.app.run_context(ctx, cmd)
-# from crossbarfx.shell.command import CmdStartContainerWorker, CmdStartContainerComponent
+# from crossbar.shell.command import CmdStartContainerWorker, CmdStartContainerComponent
 
 
 @cmd_start.command(name='docker-container', help='start a Docker container on a node')

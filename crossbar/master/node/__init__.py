@@ -5,7 +5,7 @@
 #
 ###############################################################################
 
-from crossbarfx.master.node.controller import DomainManager, DomainController
+from crossbar.master.node.controller import DomainManager, DomainController
 
 __all__ = (
     'DomainManager',

@@ -15,7 +15,7 @@ from autobahn.util import utcnow, utcstr
 from autobahn.wamp.types import PublishOptions, CallDetails
 from autobahn.wamp.exception import ApplicationError
 
-from crossbarfx.master.node.authenticator import Authenticator
+from crossbar.master.node.authenticator import Authenticator
 
 from cfxdb.mrealm import ManagementRealm, Node
 from cfxdb.user import UserRole, UserMrealmRole
@@ -93,7 +93,7 @@ class MrealmManager(object):
     def __init__(self, session, db, schema):
         """
 
-        :param session: crossbarfx.master.node.controller.DomainController
+        :param session: crossbar.master.node.controller.DomainController
         :param db:
         :param schema:
         """

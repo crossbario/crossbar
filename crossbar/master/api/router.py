@@ -5,7 +5,7 @@
 #
 ###############################################################################
 
-from crossbarfx.master.api.remote import RemoteApi
+from crossbar.master.api.remote import RemoteApi
 
 __all__ = ('RemoteRouterApi', )
 

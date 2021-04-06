@@ -22,7 +22,7 @@ txaio.use_twisted()  # noqa
 from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
 
-from crossbarfx.shell.util import style_ok, style_error
+from crossbar.shell.util import style_ok, style_error
 
 if 'USER' in os.environ:
     _DEFAULT_EMAIL_ADDRESS = u'{}@{}'.format(os.environ['USER'], socket.getfqdn())

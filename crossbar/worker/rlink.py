@@ -693,7 +693,7 @@ class RLinkConfig(object):
         :type obj: dict
 
         :returns: Router link configuration
-        :rtype: :class:`crossbarfx.edge.worker.rlink.RLinkConfig`
+        :rtype: :class:`crossbar.edge.worker.rlink.RLinkConfig`
         """
         # assert isinstance(personality, Personality)
         assert type(obj) == dict
@@ -750,7 +750,7 @@ class RLinkManager(object):
         """
 
         :param realm: The (local) router realm this object is managing links for.
-        :type realm: :class:`crossbarfx.edge.worker.router.ExtRouterRealm`
+        :type realm: :class:`crossbar.edge.worker.router.ExtRouterRealm`
         """
         # assert isinstance(realm, ExtRouterRealm)
 

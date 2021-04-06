@@ -5,6 +5,6 @@
 #
 ##############################################################################
 
-from crossbarfx.edge.node.node import FabricNode, FabricNodeControllerSession
+from crossbar.edge.node.node import FabricNode, FabricNodeControllerSession
 
 __all__ = ('FabricNode', 'FabricNodeControllerSession')

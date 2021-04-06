@@ -5,6 +5,6 @@
 #
 ###############################################################################
 
-from crossbarfx.master.mrealm.controller import MrealmController
+from crossbar.master.mrealm.controller import MrealmController
 
 __all__ = ('MrealmController', )

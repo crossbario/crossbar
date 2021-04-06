@@ -17,7 +17,7 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 __all__ = ('ShellClient', 'ManagementClientSession', 'run', 'create_management_session')
 
-from crossbarfx.shell.command import CmdListManagementRealms
+from crossbar.shell.command import CmdListManagementRealms
 from twisted.internet.defer import Deferred
 
 

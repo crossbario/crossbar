@@ -29,10 +29,10 @@ from autobahn.twisted.wamp import ApplicationSession
 from crossbar._util import hltype, hlid, hl, hlval
 from crossbar.common import checkconfig
 
-from crossbarfx.util import merge_config
-from crossbarfx.edge.node import node
-from crossbarfx.master.node.roles import BUILTIN_ROLES
-from crossbarfx.master.mrealm.mrealm import ManagementRealm
+from crossbar.util import merge_config
+from crossbar.edge.node import node
+from crossbar.master.node.roles import BUILTIN_ROLES
+from crossbar.master.mrealm.mrealm import ManagementRealm
 from cfxdb.globalschema import GlobalSchema
 
 __all__ = ('FabricServiceNodeManager', 'FabricCenterNode')
@@ -312,7 +312,7 @@ class FabricServiceNodeManager(ApplicationSession):
             }
             component_config = {
                 u'type': u'class',
-                u'classname': u'crossbarfx.master.mrealm.MrealmController',
+                u'classname': u'crossbar.master.mrealm.MrealmController',
                 u'realm': realm_name,
                 u'transport': {
                     # we connect back to the master router over UDS/RawSocket/CBOR

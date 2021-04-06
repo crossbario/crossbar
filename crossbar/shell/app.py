@@ -33,8 +33,8 @@ from autobahn.twisted.wamp import ApplicationRunner
 
 from crossbar.common.twisted.endpoint import _create_tls_client_context
 
-from crossbarfx.shell.util import (style_crossbar, style_finished_line, style_error, style_ok, localnow)
-from crossbarfx.shell import (client, config, userkey, __version__)
+from crossbar.shell.util import (style_crossbar, style_finished_line, style_error, style_ok, localnow)
+from crossbar.shell import (client, config, userkey, __version__)
 
 if 'CROSSBAR_FABRIC_URL' in os.environ:
     _DEFAULT_CFC_URL = os.environ['CROSSBAR_FABRIC_URL']
@@ -446,7 +446,7 @@ class Application(object):
                 #     'history': self._history,
                 # }
                 #
-                # from crossbarfx.shell import repl
+                # from crossbar.shell import repl
                 #
                 # shell_task = loop.create_task(
                 #     repl.repl(

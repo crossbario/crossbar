@@ -5,15 +5,15 @@
 #
 ##############################################################################
 
-from crossbarfx.edge.worker.monitor._self import SelfMonitor
-from crossbarfx.edge.worker.monitor._hardware import HWMonitor
-from crossbarfx.edge.worker.monitor._network import NetMonitor
-from crossbarfx.edge.worker.monitor._storage import StorageMonitor
-from crossbarfx.edge.worker.monitor._system import SystemMonitor
-from crossbarfx.edge.worker.monitor._memory import MemoryMonitor
-from crossbarfx.edge.worker.monitor._cpu import CPUMonitor
-from crossbarfx.edge.worker.monitor._disk import IOMonitor
-from crossbarfx.edge.worker.monitor._process import ProcessMonitor
+from crossbar.edge.worker.monitor._self import SelfMonitor
+from crossbar.edge.worker.monitor._hardware import HWMonitor
+from crossbar.edge.worker.monitor._network import NetMonitor
+from crossbar.edge.worker.monitor._storage import StorageMonitor
+from crossbar.edge.worker.monitor._system import SystemMonitor
+from crossbar.edge.worker.monitor._memory import MemoryMonitor
+from crossbar.edge.worker.monitor._cpu import CPUMonitor
+from crossbar.edge.worker.monitor._disk import IOMonitor
+from crossbar.edge.worker.monitor._process import ProcessMonitor
 
 __all__ = ('MONITORS', )
 

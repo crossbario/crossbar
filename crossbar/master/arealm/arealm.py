@@ -42,7 +42,7 @@ class ApplicationRealmMonitor(object):
         """
 
         :param manager: The application realm manager that has started and is hosting this monitor.
-        :type manager: :class:`crossbarfx.master.arealm.ApplicationRealmManager`
+        :type manager: :class:`crossbar.master.arealm.ApplicationRealmManager`
 
         :param arealm_oid: Application realm object ID (not WAMP realm name).
         :type arealm_oid: :class:`uuid.UUID`
@@ -417,7 +417,7 @@ class ApplicationRealmMonitor(object):
             worker_name = placement.worker_name
 
             # get run-time information for the node (as maintained here in our master view of the external world)
-            # instance of crossbarfx.master.mrealm.controller.Node
+            # instance of crossbar.master.mrealm.controller.Node
             node = self._manager._session.nodes.get(str(node_oid), None)
 
             # the node must be online for us to manage it ..
@@ -717,7 +717,7 @@ class ApplicationRealmMonitor(object):
                                     other_worker_name=hlid(other_worker_name))
 
                                 # get run-time information for the node (as maintained here in our master view of the external world)
-                                # instance of crossbarfx.master.mrealm.controller.Node
+                                # instance of crossbar.master.mrealm.controller.Node
                                 other_node = self._manager._session.nodes.get(str(other_node_oid), None)
 
                                 if other_node and other_node.status == 'online':
@@ -864,7 +864,7 @@ class ApplicationRealmManager(object):
         """
 
         :param session: Backend of user created management realms.
-        :type session: :class:`crossbarfx.master.mrealm.controller.MrealmController`
+        :type session: :class:`crossbar.master.mrealm.controller.MrealmController`
 
         :param globaldb: Global database handle.
         :type globaldb: :class:`zlmdb.Database`
@@ -980,7 +980,7 @@ class ApplicationRealmManager(object):
                      details: Optional[CallDetails] = None) -> List[str]:
         """
         Returns list of application realms defined. Detail information for an application realm
-        can be retrieved using :meth:`crossbarfx.master.arealm.ApplicationRealmManager.get_arealm`.
+        can be retrieved using :meth:`crossbar.master.arealm.ApplicationRealmManager.get_arealm`.
 
         :param return_names: Return application realm names instead of  object IDs
 
@@ -1083,7 +1083,7 @@ class ApplicationRealmManager(object):
         """
         Return configuration and run-time status information for an application realm (by name).
 
-        See also the corresponding procedure :meth:`crossbarfx.master.arealm.ApplicationRealmManager.get_arealm`
+        See also the corresponding procedure :meth:`crossbar.master.arealm.ApplicationRealmManager.get_arealm`
         which returns the same information, given and object ID rather than name.
 
         :param arealm_name: Name (WAMP realm) of the application realm to return.

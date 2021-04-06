@@ -420,7 +420,7 @@ class WebClusterManager(object):
         """
 
         :param session: Backend of user created management realms.
-        :type session: :class:`crossbarfx.master.mrealm.controller.MrealmController`
+        :type session: :class:`crossbar.master.mrealm.controller.MrealmController`
 
         :param globaldb: Global database handle.
         :type globaldb: :class:`zlmdb.Database`
@@ -550,7 +550,7 @@ class WebClusterManager(object):
                          details: Optional[CallDetails] = None) -> List[str]:
         """
         Returns list of web clusters defined. Detail information for a web cluster
-        can be retrieved using :meth:`crossbarfx.master.cluster.webcluster.WebClusterManager.get_webcluster`.
+        can be retrieved using :meth:`crossbar.master.cluster.webcluster.WebClusterManager.get_webcluster`.
 
         :param return_names: Return webcluster names instead of  object IDs
 
@@ -654,7 +654,7 @@ class WebClusterManager(object):
         """
         Return configuration and run-time status information for a web cluster (by name).
 
-        See also the corresponding procedure :meth:`crossbarfx.master.cluster.webcluster.WebClusterManager.get_webcluster`
+        See also the corresponding procedure :meth:`crossbar.master.cluster.webcluster.WebClusterManager.get_webcluster`
         which returns the same information, given and object ID rather than name.
 
         :param webcluster_name: Name of the web cluster to return.
@@ -1668,7 +1668,7 @@ class WebClusterManager(object):
         """
         Get definition of a web service by ID.
 
-        See also the corresponding procedure :meth:`crossbarfx.master.cluster.webcluster.WebClusterManager.get_webcluster_service_by_path`
+        See also the corresponding procedure :meth:`crossbar.master.cluster.webcluster.WebClusterManager.get_webcluster_service_by_path`
         which returns the same information, given HTTP path rather than object ID.
 
         :param webcluster_oid: The web cluster running the web service to return.
@@ -1730,13 +1730,13 @@ class WebClusterManager(object):
         """
         Get definition of a web service by HTTP path.
 
-        See also the corresponding procedure :meth:`crossbarfx.master.cluster.webcluster.WebClusterManager.get_webcluster_service`
+        See also the corresponding procedure :meth:`crossbar.master.cluster.webcluster.WebClusterManager.get_webcluster_service`
         which returns the same information, given and object ID rather than HTTP path.
 
         :param webcluster_oid: The web cluster running the web service to return.
         :param path: HTTP path of web service to return.
 
-        :return: see :meth:`crossbarfx.master.cluster.webcluster.WebClusterManager.get_webcluster_service`
+        :return: see :meth:`crossbar.master.cluster.webcluster.WebClusterManager.get_webcluster_service`
         """
         assert type(webcluster_oid) == str
         assert type(path) == str

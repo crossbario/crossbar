@@ -175,7 +175,7 @@
             "components": [
                 {
                     "type": "class",
-                    "classname": "crossbarfx.master.node.authenticator.Authenticator",
+                    "classname": "crossbar.master.node.authenticator.Authenticator",
                     "realm": "com.crossbario.fabric",
                     "role": "authenticator",
                     "extra": {
@@ -198,7 +198,7 @@
             "components": [
                 {
                     "type": "class",
-                    "classname": "crossbarfx.master.node.controller.DomainController",
+                    "classname": "crossbar.master.node.controller.DomainController",
                     "realm": "com.crossbario.fabric",
                     "extra": {
                     },

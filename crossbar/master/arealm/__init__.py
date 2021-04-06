@@ -5,6 +5,6 @@
 #
 ###############################################################################
 
-from crossbarfx.master.arealm.arealm import ApplicationRealmManager
+from crossbar.master.arealm.arealm import ApplicationRealmManager
 
 __all__ = ('ApplicationRealmManager', )

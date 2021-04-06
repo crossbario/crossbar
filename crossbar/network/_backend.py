@@ -47,7 +47,7 @@ from autobahn.twisted.wamp import ApplicationSession
 from autobahn import xbr
 from autobahn.xbr import unpack_uint256, pack_uint256, make_w3
 
-from crossbarfx._version import __version__
+from crossbar._version import __version__
 
 import cfxdb
 from cfxdb.xbrnetwork import VerifiedAction, Account, UserKey

@@ -5,6 +5,6 @@
 #
 ##############################################################################
 
-from crossbarfx.network.node.node import XbrNetworkNode, XbrNetworkNodeControllerSession
+from crossbar.network.node.node import XbrNetworkNode, XbrNetworkNodeControllerSession
 
 __all__ = ('XbrNetworkNode', 'XbrNetworkNodeControllerSession')

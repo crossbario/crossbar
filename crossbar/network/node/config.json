@@ -322,7 +322,7 @@
       "components": [
         {
           "type": "class",
-          "classname": "crossbarfx.network._authenticator.Authenticator",
+          "classname": "crossbar.network._authenticator.Authenticator",
           "realm": "xbrnetwork",
           "role": "authenticator",
           "extra": {
@@ -336,7 +336,7 @@
         },
         {
           "type": "class",
-          "classname": "crossbarfx.network._api.Network",
+          "classname": "crossbar.network._api.Network",
           "realm": "xbrnetwork",
           "role": "backend",
           "extra": {

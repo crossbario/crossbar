@@ -8,9 +8,9 @@
 import txaio
 txaio.use_twisted()
 
-from crossbarfx.network._authenticator import Authenticator as XbrNetworkAuthenticator
-from crossbarfx.network._api import Network as XbrNetwork
-from crossbarfx.network.personality import Personality
+from crossbar.network._authenticator import Authenticator as XbrNetworkAuthenticator
+from crossbar.network._api import Network as XbrNetwork
+from crossbar.network.personality import Personality
 
 __doc__ = Personality.DESC
 

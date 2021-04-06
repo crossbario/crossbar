@@ -15,12 +15,12 @@ from crossbar.common import checkconfig
 from crossbar.node.node import NodeOptions
 
 from crossbar.personality import Personality as CrossbarPersonality
-from crossbarfx.edge.personality import Personality as CrossbarFabricPersonality
+from crossbar.edge.personality import Personality as CrossbarFabricPersonality
 
 import crossbarfx
-from crossbarfx.master.node.node import FabricCenterNode
+from crossbar.master.node.node import FabricCenterNode
 
-from crossbarfx.master.webservice import RouterWebServiceRegisterMe
+from crossbar.master.webservice import RouterWebServiceRegisterMe
 
 
 def check_controller_fabric_center(personality, config):
@@ -124,8 +124,8 @@ class Personality(CrossbarFabricPersonality):
     DESC = _DESC
 
     BANNER = _BANNER.format(title=_TITLE,
-                            version=crossbarfx.__version__,
-                            build=crossbarfx.__build__,
+                            version=crossbar.__version__,
+                            build=crossbar.__build__,
                             year=time.strftime('%Y'))
 
     LEGAL = ('crossbarfx', 'LEGAL')

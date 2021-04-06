@@ -9,7 +9,7 @@ import time
 
 import psutil
 
-from crossbarfx.edge.worker.monitor._base import Monitor
+from crossbar.edge.worker.monitor._base import Monitor
 from txaio import perf_counter_ns
 
 __all__ = ('SelfMonitor', )

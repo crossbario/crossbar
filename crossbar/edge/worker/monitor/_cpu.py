@@ -13,7 +13,7 @@ from twisted.internet.utils import getProcessOutput
 
 from autobahn.util import utcnow
 
-from crossbarfx.edge.worker.monitor._base import Monitor
+from crossbar.edge.worker.monitor._base import Monitor
 
 __all__ = ('CPUMonitor', )
 

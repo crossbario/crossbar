@@ -5,6 +5,6 @@
 #
 ###############################################################################
 
-from crossbarfx.master.xbr._marketplace import MarketPlace
+from crossbar.master.xbr._marketplace import MarketPlace
 
 __all__ = ('MarketPlace', )

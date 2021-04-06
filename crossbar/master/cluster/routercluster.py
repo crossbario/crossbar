@@ -178,7 +178,7 @@ class RouterClusterManager(object):
         """
 
         :param session: Backend of user created management realms.
-        :type session: :class:`crossbarfx.master.mrealm.controller.MrealmController`
+        :type session: :class:`crossbar.master.mrealm.controller.MrealmController`
 
         :param globaldb: Global database handle.
         :type globaldb: :class:`zlmdb.Database`
@@ -306,7 +306,7 @@ class RouterClusterManager(object):
                             details: Optional[CallDetails] = None) -> List[str]:
         """
         Returns list of router clusters defined. Detail information for a router cluster
-        can be retrieved using :meth:`crossbarfx.master.cluster.routercluster.RouterClusterManager.get_routercluster`.
+        can be retrieved using :meth:`crossbar.master.cluster.routercluster.RouterClusterManager.get_routercluster`.
 
         :param return_names: Return router clusters names instead of object IDs.
 
@@ -398,7 +398,7 @@ class RouterClusterManager(object):
         """
         Return configuration and run-time status information for a router cluster (by name).
 
-        See also the corresponding procedure :meth:`crossbarfx.master.cluster.routercluster.RouterClusterManager.get_routercluster`
+        See also the corresponding procedure :meth:`crossbar.master.cluster.routercluster.RouterClusterManager.get_routercluster`
         which returns the same information, given and object ID rather than name.
 
         :param routercluster_name: Name of the router cluster to return.
@@ -1066,7 +1066,7 @@ class RouterClusterManager(object):
                                         details: Optional[CallDetails] = None) -> List[str]:
         """
         List worker groups in a router cluster. Detail information for a router cluster worker group
-        can be retrieved using :meth:`crossbarfx.master.cluster.routercluster.RouterClusterManager.get_routercluster_workergroup`.
+        can be retrieved using :meth:`crossbar.master.cluster.routercluster.RouterClusterManager.get_routercluster_workergroup`.
 
         :param routercluster_oid: The object ID of the router cluster to list router worker groups for.
         :param return_names: If set, return router worker group names instead of object IDs.
@@ -1386,7 +1386,7 @@ class RouterClusterManager(object):
         """
         Get definition of a router worker group in a cluster by name.
 
-        See also :meth:`crossbarfx.master.cluster.routercluster.RouterClusterManager.get_routercluster_workergroup`.
+        See also :meth:`crossbar.master.cluster.routercluster.RouterClusterManager.get_routercluster_workergroup`.
 
         :param routercluster_name: The router cluster running the router worker group to return.
         :param workergroup_name: The router worker group to return.

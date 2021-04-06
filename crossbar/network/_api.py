@@ -38,9 +38,9 @@ import zlmdb
 
 from crossbar.common import checkconfig
 
-from crossbarfx._version import __version__
-from crossbarfx.network._util import extract_member_oid
-from crossbarfx.edge.personality import check_blockchain
+from crossbar._version import __version__
+from crossbar.network._util import extract_member_oid
+from crossbar.edge.personality import check_blockchain
 
 from twisted.web.client import ResponseNeverReceived
 
@@ -63,7 +63,7 @@ class Network(ApplicationSession):
     .. note::
 
         This API covers the global parts of the XBR Network - APIs to individual XBR Data Markets, XBR Data Catalogs
-        and XBR Cloud Domains are exposed by CrossbarFX.
+        and XBR Cloud Domains are exposed by crossbar.
     """
     XBR_COIN_OID = uuid.UUID('74f53317-cbd6-4dc8-9214-195d0f9e98f9')
 
@@ -1620,7 +1620,7 @@ class Network(ApplicationSession):
 
         .. note::
             Given a ``market_adr``, this API here provides the same market information as the
-            `Market-maker API <https://crossbario.com/docs/crossbarfx/xbr/api-reference.html#crossbarfx.edge.worker.xbr._marketmaker.MarketMaker.get_market>`__
+            `Market-maker API <https://crossbario.com/docs/crossbarfx/xbr/api-reference.html#crossbar.edge.worker.xbr._marketmaker.MarketMaker.get_market>`__
             for the respective market. The difference is, the procedure is more general, in that
             it can return (basic) market information for any market, and in that the procedure is
             implemented in the `planet.xbr.network` backend rather than the XBR market maker running

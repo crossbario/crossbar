@@ -21,7 +21,7 @@ from crossbar.worker.router import RouterController
 from crossbar.worker.types import RouterRealm
 from crossbar.router.router import RouterFactory, Router
 
-from crossbarfx.edge.worker.tracing import FabricRouterTrace
+from crossbar.edge.worker.tracing import FabricRouterTrace
 
 __all__ = ('ExtRouterController', )
 
@@ -117,7 +117,7 @@ class ExtRouterRealm(RouterRealm):
         :type config: dict
 
         :param router: The router (within the router worker) serving the realm.
-        :type router: :class:`crossbarfx.edge.worker.router.ExtRouter`
+        :type router: :class:`crossbar.edge.worker.router.ExtRouter`
 
         :param session: The realm service session.
         :type session: :class:`crossbar.router.service.RouterServiceAgent`

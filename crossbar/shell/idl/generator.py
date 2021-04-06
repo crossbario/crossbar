@@ -14,7 +14,7 @@ import docutils
 import jinja2
 from jinja2 import Environment, FileSystemLoader
 
-from crossbarfx.shell.util import hl
+from crossbar.shell.util import hl
 
 
 def rst_filter(rst):

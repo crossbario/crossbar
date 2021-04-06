@@ -8,7 +8,7 @@
 from twisted.internet.defer import succeed
 from autobahn.util import utcnow
 
-from crossbarfx.edge.worker.monitor._base import Monitor
+from crossbar.edge.worker.monitor._base import Monitor
 
 __all__ = ('MemoryMonitor', )
 

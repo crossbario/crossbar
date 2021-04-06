@@ -5,7 +5,7 @@ import binascii
 
 import txaio
 
-from crossbarfx.util import hlid
+from crossbar.util import hlid
 
 txaio.use_twisted()  # noqa
 from txaio import make_logger, time_ns

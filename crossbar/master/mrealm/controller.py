@@ -40,10 +40,10 @@ from crossbar.common.key import _read_node_key, _read_release_key
 from cfxdb.mrealmschema import MrealmSchema
 from cfxdb.globalschema import GlobalSchema
 
-from crossbarfx.master.api import APIS
-from crossbarfx.master.cluster import WebClusterManager, RouterClusterManager
-from crossbarfx.master.mrealm.metadata import MetadataManager
-from crossbarfx.master.arealm import ApplicationRealmManager
+from crossbar.master.api import APIS
+from crossbar.master.cluster import WebClusterManager, RouterClusterManager
+from crossbar.master.mrealm.metadata import MetadataManager
+from crossbar.master.arealm import ApplicationRealmManager
 
 from cfxdb.log import MNodeLog, MWorkerLog
 
@@ -222,7 +222,7 @@ class MrealmController(ApplicationSession):
         """
         Returns handle to map of currently connected nodes. The map is indexed by ``node_id``.
 
-        :return: Map of node object ID to :class:`crossbarfx.master.mrealm.controller.Node`
+        :return: Map of node object ID to :class:`crossbar.master.mrealm.controller.Node`
         :rtype: dict
         """
         return self._nodes

@@ -7,8 +7,8 @@
 
 import txaio
 
-from crossbarfx.network.node.node import XbrNetworkNode
-from crossbarfx.edge.personality import Personality as _Personality
+from crossbar.network.node.node import XbrNetworkNode
+from crossbar.edge.personality import Personality as _Personality
 
 
 class Personality(_Personality):

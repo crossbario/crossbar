@@ -7,7 +7,7 @@
 
 from typing import Dict, List  # noqa
 
-from crossbarfx.master.api.remote import RemoteApi
+from crossbar.master.api.remote import RemoteApi
 
 __all__ = ('RemoteNativeProcessApi', )
 

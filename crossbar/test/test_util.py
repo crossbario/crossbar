@@ -11,8 +11,8 @@ import pkg_resources
 
 import pytest
 
-from crossbarfx.util import merge_config, _deep_merge_object
-from crossbarfx.master import Personality as MasterPersonality
+from crossbar.util import merge_config, _deep_merge_object
+from crossbar.master import Personality as MasterPersonality
 
 
 @pytest.fixture(scope='function')

@@ -19,12 +19,12 @@ from crossbar.node.node import NodeOptions
 from crossbar.node.worker import RouterWorkerProcess
 
 import crossbarfx
-from crossbarfx.edge.node.node import FabricNode
-from crossbarfx.edge.worker.realmstore import CfxDbRealmStore
-from crossbarfx.edge.worker.router import ExtRouterController
-from crossbarfx.edge.worker.hostmonitor import HostMonitor, HostMonitorProcess
-from crossbarfx.edge.worker.xbrmm import MarketplaceController, MarketplaceControllerProcess
-from crossbarfx.edge.webservice import RouterWebServicePairMe
+from crossbar.edge.node.node import FabricNode
+from crossbar.edge.worker.realmstore import CfxDbRealmStore
+from crossbar.edge.worker.router import ExtRouterController
+from crossbar.edge.worker.hostmonitor import HostMonitor, HostMonitorProcess
+from crossbar.edge.worker.xbrmm import MarketplaceController, MarketplaceControllerProcess
+from crossbar.edge.webservice import RouterWebServicePairMe
 
 
 def do_nothing(*args, **kw):
@@ -382,8 +382,8 @@ class Personality(CrossbarPersonality):
     DESC = _DESC
 
     BANNER = _BANNER.format(title=_TITLE,
-                            version=crossbarfx.__version__,
-                            build=crossbarfx.__build__,
+                            version=crossbar.__version__,
+                            build=crossbar.__build__,
                             year=time.strftime('%Y'))
 
     LEGAL = ('crossbarfx', 'LEGAL')

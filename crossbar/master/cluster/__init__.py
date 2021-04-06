@@ -5,8 +5,8 @@
 #
 ###############################################################################
 
-from crossbarfx.master.cluster.routercluster import RouterClusterManager
-from crossbarfx.master.cluster.webcluster import WebClusterManager
+from crossbar.master.cluster.routercluster import RouterClusterManager
+from crossbar.master.cluster.webcluster import WebClusterManager
 
 __all__ = (
     'WebClusterManager',

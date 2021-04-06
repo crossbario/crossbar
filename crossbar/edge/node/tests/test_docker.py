@@ -9,8 +9,8 @@ import txaio
 txaio.use_twisted()  # noqa
 
 import unittest
-import crossbarfx.edge.node.docker as docker
-from crossbarfx.edge.node.tests.dockerinspect import my_json
+import crossbar.edge.node.docker as docker
+from crossbar.edge.node.tests.dockerinspect import my_json
 from unittest import mock
 
 dummy_scandir = mock.MagicMock()

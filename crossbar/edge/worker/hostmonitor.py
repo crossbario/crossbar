@@ -21,7 +21,7 @@ from autobahn.wamp.exception import ApplicationError
 from crossbar.node.worker import NativeWorkerProcess
 from crossbar.worker.controller import WorkerController
 
-from crossbarfx.edge.worker.monitor import MONITORS
+from crossbar.edge.worker.monitor import MONITORS
 
 __all__ = ('HostMonitor', 'HostMonitorProcess')
 

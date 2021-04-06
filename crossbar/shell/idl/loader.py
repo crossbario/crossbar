@@ -13,8 +13,8 @@ import pprint
 
 from typing import Dict, Any  # noqa
 
-from crossbarfx.shell.util import hl
-from crossbarfx.shell.reflection import Schema
+from crossbar.shell.util import hl
+from crossbar.shell.reflection import Schema
 
 import txaio
 txaio.use_twisted()

@@ -9,8 +9,8 @@ import txaio
 txaio.use_twisted()  # noqa
 
 from autobahn import xbr
-from crossbarfx._version import __version__, __build__
-from crossbarfx.edge.personality import Personality
+from crossbar._version import __version__, __build__
+from crossbar.edge.personality import Personality
 
 __all__ = ('__version__', '__build__', 'Personality', 'xbr')
 __doc__ = Personality.DESC

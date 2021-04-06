@@ -23,7 +23,7 @@ from pygments.token import Token
 
 from autobahn.wamp.exception import ApplicationError
 
-from crossbarfx.shell.util import style_error
+from crossbar.shell.util import style_error
 
 
 def _get_bottom_toolbar_tokens(cli):

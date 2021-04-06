@@ -53,8 +53,8 @@ from autobahn.xbr import unpack_uint256, pack_uint256, recover_eip712_consent, \
     is_address, without_0x
 
 from crossbar._util import hl, hlid, hltype
-from crossbarfx.edge.worker.xbr._util import hlval, hlcontract
-from crossbarfx.edge.worker.xbr._authenticator import Authenticator
+from crossbar.edge.worker.xbr._util import hlval, hlcontract
+from crossbar.edge.worker.xbr._authenticator import Authenticator
 
 from autobahn import xbr
 import zlmdb

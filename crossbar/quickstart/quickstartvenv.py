@@ -8,7 +8,7 @@ from subprocess import check_call
 
 import click
 
-from crossbarfx.quickstart.main import hl  # XXX "util" or similar instead?
+from crossbar.quickstart.main import hl  # XXX "util" or similar instead?
 
 __all__ = ('main', )
 

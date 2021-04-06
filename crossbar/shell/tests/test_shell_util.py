@@ -5,7 +5,7 @@
 #
 ###############################################################################
 
-from crossbarfx.shell.util import localnow
+from crossbar.shell.util import localnow
 
 
 def test_localnow():

@@ -21,8 +21,8 @@ from txaio import time_ns, sleep
 from twisted.internet.task import react
 from twisted.internet.defer import inlineCallbacks
 
-from crossbarfx.shell.client import create_management_session
-from crossbarfx.master import personality
+from crossbar.shell.client import create_management_session
+from crossbar.master import personality
 
 try:
     import curses

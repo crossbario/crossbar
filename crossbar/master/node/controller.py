@@ -41,8 +41,8 @@ from crossbar.common.key import _read_node_key, _read_release_key, _write_node_k
 
 from cfxdb.globalschema import GlobalSchema
 from cfxdb.mrealmschema import MrealmSchema
-from crossbarfx.master.mrealm.mrealm import MrealmManager, ManagementRealm, Node
-from crossbarfx.master.node.user import UserManager
+from crossbar.master.mrealm.mrealm import MrealmManager, ManagementRealm, Node
+from crossbar.master.node.user import UserManager
 from cfxdb.user import User, UserRole, UserMrealmRole
 from cfxdb.usage import MasterNodeUsage
 from cfxdb.log import MWorkerLog

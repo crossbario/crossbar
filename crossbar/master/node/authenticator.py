@@ -22,7 +22,7 @@ from crossbar._util import hl, hlid, hltype
 from cfxdb.globalschema import GlobalSchema
 from cfxdb.user import User, UserRole
 from cfxdb.user import ActivationType, ActivationStatus, ActivationToken
-from crossbarfx.master.node.messenger import Messenger
+from crossbar.master.node.messenger import Messenger
 
 __all__ = ('Authenticator', 'Principal')
 

@@ -32,10 +32,10 @@ from crossbar._util import hl, hltype, hlid
 from crossbar.common import checkconfig
 from crossbar.node import node, controller
 
-from crossbarfx.edge.node.management import NodeManagementBridgeSession, NodeManagementSession
+from crossbar.edge.node.management import NodeManagementBridgeSession, NodeManagementSession
 
 try:
-    from crossbarfx.edge.node.docker import DockerClient
+    from crossbar.edge.node.docker import DockerClient
     _HAS_DOCKER = True
 except ImportError:
     _HAS_DOCKER = False

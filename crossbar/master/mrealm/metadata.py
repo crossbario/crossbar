@@ -69,7 +69,7 @@ class MetadataManager(object):
         """
 
         :param session: Backend of user created management realms.
-        :type session: :class:`crossbarfx.master.mrealm.controller.MrealmController`
+        :type session: :class:`crossbar.master.mrealm.controller.MrealmController`
 
         :param globaldb: Global database handle.
         :type globaldb: :class:`zlmdb.Database`

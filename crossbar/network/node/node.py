@@ -5,7 +5,7 @@
 #
 ##############################################################################
 
-from crossbarfx.edge.node import FabricNode, FabricNodeControllerSession
+from crossbar.edge.node import FabricNode, FabricNodeControllerSession
 
 
 class XbrNetworkNodeControllerSession(FabricNodeControllerSession):

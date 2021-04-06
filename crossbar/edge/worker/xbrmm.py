@@ -36,8 +36,8 @@ from autobahn.xbr import unpack_uint256, pack_uint256, make_w3
 from crossbar.node.worker import NativeWorkerProcess
 from crossbar.worker.controller import WorkerController
 
-from crossbarfx.util import hl, hlid, hlval, hlcontract
-from crossbarfx.edge.worker.xbr import MarketMaker
+from crossbar.util import hl, hlid, hlval, hlcontract
+from crossbar.edge.worker.xbr import MarketMaker
 
 __all__ = ('MarketplaceController', 'MarketplaceControllerProcess')
 

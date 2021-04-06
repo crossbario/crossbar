@@ -22,7 +22,7 @@ class LiveView(object):
         """
 
         :param session: Management realm controller session.
-        :type session: :class:`crossbarfx.master.controller.MrealmController`
+        :type session: :class:`crossbar.master.controller.MrealmController`
 
         :param db: Management realm database.
         :type db: :class:`zlmdb.Database`

@@ -5,7 +5,7 @@
 #
 ##############################################################################
 
-from crossbarfx.edge.worker.xbr._marketmaker import MarketMaker
-from crossbarfx.edge.worker.xbr._authenticator import Authenticator
+from crossbar.edge.worker.xbr._marketmaker import MarketMaker
+from crossbar.edge.worker.xbr._authenticator import Authenticator
 
 __all__ = ('MarketMaker', 'Authenticator')

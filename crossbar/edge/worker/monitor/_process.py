@@ -13,7 +13,7 @@ from twisted.internet.threads import deferToThread
 
 from autobahn.util import utcnow, utcstr
 
-from crossbarfx.edge.worker.monitor._base import Monitor
+from crossbar.edge.worker.monitor._base import Monitor
 
 
 class ProcessMonitor(Monitor):
