@@ -4,7 +4,7 @@ import venv
 import json
 from os.path import abspath
 from os.path import join
-from subprocess import check_call
+from subprocess import check_call  # nosec
 
 import click
 
@@ -111,7 +111,7 @@ def _create_applications(location, venv, cfc):
     master = join(location, "master")
 
     # create a CFC
-    check_call([cbfx, "master", "init", "--appdir", master])
+    check_call([cbfx, "master", "init", "--appdir", master])  # nosec
     with open(join(master, ".crossbar", "config.json")) as f:
         data = json.load(f)
     data['workers'][0]['transports'][0]['endpoint']['port'] = 4444
@@ -119,7 +119,7 @@ def _create_applications(location, venv, cfc):
         json.dump(data, f, indent=4)
 
     # create an 'edge' node (application)
-    check_call([cbfx, "edge", "init", "--appdir", app0])
+    check_call([cbfx, "edge", "init", "--appdir", app0])  # nosec
     # edit configuration
     with open(join(app0, ".crossbar", "config.json")) as f:
         data = json.load(f)
@@ -146,15 +146,15 @@ def _create_virtualenv(location, framework):
     pip = join(location, "bin", "pip")
 
     click.echo(click.style("\nupgrading pip\n", bold=True, fg="yellow"))
-    check_call([pip, "install", "--upgrade", "pip"])
+    check_call([pip, "install", "--upgrade", "pip"])  # nosec
 
     click.echo(click.style("\ninstalling software\n", bold=True, fg="yellow"))
 
-    check_call([pip, "install", "autobahn[{}]".format(framework)])
-    check_call([pip, "install", "crossbar"])
+    check_call([pip, "install", "autobahn[{}]".format(framework)])  # nosec
+    check_call([pip, "install", "crossbar"])  # nosec
 
     # XXX I guess we just assume we're "in" a Fabric checkout, because
     # how else would you even be running this command?
-    check_call([pip, "install", "--editable", "."])
+    check_call([pip, "install", "--editable", "."])  # nosec
     # XXX FIXME why isn't ^ installing our dependencies??
-    check_call([pip, "install", "-r", "requirements-min.txt"])
+    check_call([pip, "install", "-r", "requirements-min.txt"])  # nosec

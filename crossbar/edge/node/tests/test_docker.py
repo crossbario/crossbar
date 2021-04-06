@@ -36,7 +36,7 @@ class DirEntry:
 
 
 class TestDocker(unittest.TestCase):
-    def setup_method(self, method):
+    def setUp(self):
 
         # with open('tests/docker-inspect.json') as io:
         #     my_json = json.loads(io.read())
