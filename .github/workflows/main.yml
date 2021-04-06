@@ -40,6 +40,12 @@ jobs:
     - name: Run Flake8
       run: tox -c tox.ini -e flake8
 
+    - name: Run Yapf
+      run: tox -c tox.ini -e yapf
+
+    - name: Run MyPy
+      run: tox -c tox.ini -e mypy
+
     - name: Run Bandit
       run: tox -c tox.ini -e bandit
 
