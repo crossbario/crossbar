@@ -1,0 +1,42 @@
+{
+    "workers": [
+        "COPY",
+        "COPY",
+        {
+            "id": "wstestee1",
+            "type": "websocket-testee",
+            "transport": {
+                "type": "websocket",
+                "endpoint": {
+                    "type": "tcp",
+                    "interface": "127.0.0.1",
+                    "port": 9000,
+                    "shared": true,
+                    "backlog": 500
+                }
+            },
+            "options": {
+                "title": "Crossbar.io WebSocket Testee 1/2",
+                "cpu_affinity": [0]
+            }
+        },
+        {
+            "id": "wstestee2",
+            "type": "websocket-testee",
+            "transport": {
+                "type": "websocket",
+                "endpoint": {
+                    "type": "tcp",
+                    "interface": "127.0.0.1",
+                    "port": 9000,
+                    "shared": true,
+                    "backlog": 500
+                }
+            },
+            "options": {
+                "title": "Crossbar.io WebSocket Testee 2/2",
+                "cpu_affinity": [1]
+            }
+        }
+    ]
+}

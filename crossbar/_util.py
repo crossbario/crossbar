@@ -6,13 +6,23 @@
 #####################################################################################
 
 import contextlib
-import os
 import socket
 import sys
-import inspect
 import json
+import os
+import re
+import inspect
+import uuid
+import copy
+from collections.abc import Mapping
 
 import click
+
+from autobahn.wamp import CallDetails
+from crossbar.common.checkconfig import InvalidConfigException
+
+_ENVPAT_STR = r'^\$\{(.+)\}$'
+_ENVPAT = re.compile(_ENVPAT_STR)
 
 DEBUG_LIFECYCLE = False
 DEBUG_PROGRAMFLOW = False
@@ -135,6 +145,12 @@ def hluserid(oid):
 
 def hlfixme(msg, obj):
     return hl('FIXME: {} {}'.format(msg, _qn(obj)), color='green', bold=True)
+
+
+def hlcontract(oid):
+    if not isinstance(oid, str):
+        oid = '{}'.format(oid)
+    return hl('<{}>'.format(oid), color='magenta', bold=True)
 
 
 def term_print(text):
@@ -284,3 +300,167 @@ def get_free_tcp_address(host='127.0.0.1'):
     address = 'tcp://{host}:{port}'.format(**locals())
 
     return address
+
+
+def _deep_merge_map(a, b):
+    """
+
+    :param a:
+    :param b:
+    :return:
+    """
+    assert isinstance(a, Mapping)
+    assert isinstance(b, Mapping)
+
+    new_map = copy.deepcopy(a)
+
+    for k, v in b.items():
+        if v is None:
+            if k in new_map and new_map[k]:
+                del new_map[k]
+        else:
+            if k in new_map and isinstance(new_map[k], Mapping):
+                assert isinstance(v, Mapping)
+                new_map[k] = _deep_merge_map(new_map[k], v)
+
+            # use list, not Sequence, since strings are also Sequences!
+            # elif k in new_map and isinstance(new_map[k], Sequence):
+            elif k in new_map and isinstance(new_map[k], list):
+                # assert isinstance(v, Sequence)
+                assert isinstance(v, list)
+
+                new_map[k] = _deep_merge_list(new_map[k], v)
+
+            else:
+                new_map[k] = v
+
+    return new_map
+
+
+def _deep_merge_list(a, b):
+    """
+    Merges two lists. The list being merged must have length >= the
+    list into which is merged.
+
+
+    :param a: The list into which the other list is merged
+    :param b: The list to be merged into the former
+    :return: The merged list
+    """
+    # assert isinstance(a, Sequence)
+    # assert isinstance(b, Sequence)
+    assert isinstance(a, list)
+    assert isinstance(b, list)
+
+    assert len(b) >= len(a)
+    if len(b) > len(a):
+        for i in range(len(a), len(b)):
+            assert b[i] is not None
+            assert b[i] != 'COPY'
+
+    new_list = []
+    i = 0
+    for item in b:
+        if item is None:
+            # drop the item from the target list
+            pass
+        elif item == 'COPY':
+            # copy the item to the target list
+            new_list.append(a[i])
+        else:
+            if i < len(a):
+                # add merged item
+                new_list.append(_deep_merge_object(a[i], item))
+            else:
+                # add new item
+                new_list.append(item)
+        i += 1
+    return new_list
+
+
+def _deep_merge_object(a, b):
+    """
+
+    :param a:
+    :param b:
+    :return:
+    """
+    # if isinstance(a, Sequence):
+    if isinstance(a, list):
+        return _deep_merge_list(a, b)
+    elif isinstance(a, Mapping):
+        return _deep_merge_map(a, b)
+    else:
+        return b
+
+
+def merge_config(base_config, other_config):
+    """
+
+    :param base_config:
+    :param other_config:
+    :return:
+    """
+    if not isinstance(base_config, Mapping):
+        raise InvalidConfigException('invalid type for configuration item - expected dict, got {}'.format(
+            type(base_config).__name__))
+
+    if not isinstance(other_config, Mapping):
+        raise InvalidConfigException('invalid type for configuration item - expected dict, got {}'.format(
+            type(other_config).__name__))
+
+    merged_config = copy.deepcopy(base_config)
+
+    if 'controller' in other_config:
+        merged_config['controller'] = _deep_merge_map(merged_config.get('controller', {}),
+                                                      other_config['controller'])
+
+    if 'workers' in other_config:
+        merged_config['workers'] = _deep_merge_list(base_config.get('workers', []), other_config['workers'])
+
+    return merged_config
+
+
+def extract_member_oid(details: CallDetails) -> uuid.UUID:
+    """
+    Extract the XBR network member ID from the WAMP session authid (eg ``member_oid==72de3e0c-ca62-452f-8f09-2d3d30d1b511`` from ``authid=="member-72de3e0c-ca62-452f-8f09-2d3d30d1b511"``
+
+    :param details: Call details.
+
+    :return: Extracted XBR network member ID.
+    """
+    if details and details.caller_authrole == 'member' and details.caller_authid:
+        return uuid.UUID(details.caller_authid[7:])
+    else:
+        raise RuntimeError('no XBR member identification in call details\n{}'.format(details))
+
+
+def alternative_username(username):
+    max_i = None
+    for i in range(len(username) - 1, -1, -1):
+        if username[i:].isdigit():
+            max_i = i
+    if max_i is not None:
+        next = int(username[max_i:]) + 1
+        alt_username = '{}{}'.format(username[:max_i], next)
+    else:
+        alt_username = '{}{}'.format(username, 1)
+    return alt_username
+
+
+def maybe_from_env(value):
+    if isinstance(value, str):
+        match = _ENVPAT.match(value)
+        if match and match.groups():
+            var = match.groups()[0]
+            if var in os.environ:
+                new_value = os.environ[var]
+                return True, new_value
+            else:
+                print('WARNING: environment variable "{}" not set, but needed in XBR backend configuration'.
+                      format(var))
+                return False, None
+        else:
+            return False, value
+    else:
+        return False, value
