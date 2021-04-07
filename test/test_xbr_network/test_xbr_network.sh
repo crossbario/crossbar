@@ -8,7 +8,7 @@ docker stop xbr_blockchain || true
 # start blockchain
 docker run --detach --rm --name xbr_blockchain \
     --net host --env XBR_HDWALLET_SEED \
-        crossbario/crossbar-blockchain:latest
+        crossbario/crossbarfx-blockchain:latest
 
 sleep 10
 docker logs xbr_blockchain

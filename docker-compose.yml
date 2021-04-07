@@ -1,0 +1,33 @@
+version: '3'
+services:
+    ganache:
+        # https://github.com/trufflesuite/ganache-cli/issues/593
+        # image: crossbario/crossbarfx-blockchain:latest
+        image: trufflesuite/ganache-cli:v6.2.4
+        # UID:GID => id -u, id -g
+        # user: "1000:1000"
+        # network_mode: host
+        ports:
+            - "1545:1545"
+        volumes:
+            # mount a data location from the host into the container - read-write
+            - "${PWD}/test/ganache/.data:/ganache:rw"
+        command:
+            # https://github.com/trufflesuite/ganache-cli#using-ganache-cli
+            - "--accounts"
+            - "15"
+            - "--defaultBalanceEther"
+            - "1000"
+            # - "--deterministic"
+            - "--mnemonic"
+            - "myth like bonus scare over problem client lizard pioneer submit female collect"
+            - "--gasLimit"
+            - "0xfffffffffff"
+            - "--gasPrice"
+            - "1"
+            - "--port"
+            - "1545"
+            - "--networkId"
+            - "5777"
+            - "--db"
+            - "/ganache"

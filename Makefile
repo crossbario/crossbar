@@ -33,6 +33,16 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
+run_ganache:
+	docker-compose up --force-recreate ganache
+
+fix_ganache_permissions:
+	sudo chown -R 1000:1000 ./test/ganache
+
+clean_ganache:
+	-rm -rf ./test/ganache/.data
+	mkdir -p ./test/ganache/.data
+
 logs_service:
 	sudo journalctl -f -u github-actions-crossbar.service
 
