@@ -147,25 +147,25 @@ jobs:
       run: |
         ./test/test_ab_examples.sh
 
-    - name: Run management API test client
-      run: |
-        ./test/management/run.sh
+    # - name: Run management API test client
+    #   run: |
+    #     ./test/management/run.sh
 
     - name: Run command line tests (Crossbar.io CLI) 0
       run: |
         ./test/test_cli.sh
 
-    - name: Run command line tests (Crossbar.io CLI) 1
-      run: |
-        ./test/test_cli_1.sh
+    # - name: Run command line tests (Crossbar.io CLI) 1
+    #   run: |
+    #     ./test/test_cli_1.sh
 
-    - name: Run command line tests (Crossbar.io CLI) 2
-      run: |
-        ./test/test_cli_2.sh
+    # - name: Run command line tests (Crossbar.io CLI) 2
+    #   run: |
+    #     ./test/test_cli_2.sh
 
-    - name: Run command line tests (Crossbar.io CLI) 3
-      run: |
-        ./test/test_cli_3.sh
+    # - name: Run command line tests (Crossbar.io CLI) 3
+    #   run: |
+    #     ./test/test_cli_3.sh
 
     - name: Run CLI-based cluster automation tests 1
       run: |
