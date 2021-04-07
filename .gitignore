@@ -54,3 +54,4 @@ pip-wheel-metadata
 get-pip.py
 .db-controller
 .db-mrealm-*
+.xbrnetwork
