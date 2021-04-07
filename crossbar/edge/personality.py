@@ -6,6 +6,7 @@
 ##############################################################################
 
 import time
+from typing import Dict
 from collections import Mapping, Sequence
 from pprint import pformat
 
@@ -388,11 +389,11 @@ class Personality(CrossbarPersonality):
 
     TEMPLATE_DIRS = [('crossbar', 'edge/webservice/templates')] + CrossbarPersonality.TEMPLATE_DIRS
 
-    WEB_SERVICE_CHECKERS = {'pairme': RouterWebServicePairMe.check, **CrossbarPersonality.WEB_SERVICE_CHECKERS}
+    WEB_SERVICE_CHECKERS: Dict[str, object] = {'pairme': RouterWebServicePairMe.check, **CrossbarPersonality.WEB_SERVICE_CHECKERS}
 
-    WEB_SERVICE_FACTORIES = {'pairme': RouterWebServicePairMe, **CrossbarPersonality.WEB_SERVICE_FACTORIES}
+    WEB_SERVICE_FACTORIES: Dict[str, object] = {'pairme': RouterWebServicePairMe, **CrossbarPersonality.WEB_SERVICE_FACTORIES}
 
-    REALM_STORES = {'cfxdb': CfxDbRealmStore, **CrossbarPersonality.REALM_STORES}
+    REALM_STORES: Dict[str, object] = {'cfxdb': CfxDbRealmStore, **CrossbarPersonality.REALM_STORES}
 
     check_controller = check_controller
     check_controller_options = check_controller_options

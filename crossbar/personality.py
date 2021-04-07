@@ -7,6 +7,7 @@
 
 import time
 from collections.abc import Mapping
+from typing import Dict
 
 import txaio
 txaio.use_twisted()
@@ -198,7 +199,7 @@ class Personality(object):
     # of _pairs_ to be used with pkg_resources.resource_filename()!
     TEMPLATE_DIRS = [('crossbar', 'webservice/templates')]
 
-    WEB_SERVICE_CHECKERS = {
+    WEB_SERVICE_CHECKERS: Dict[str, object] = {
         'none': None,
         'path': checkconfig.check_web_path_service_path,
         'redirect': checkconfig.check_web_path_service_redirect,
@@ -219,7 +220,7 @@ class Personality(object):
         'wap': wap.RouterWebServiceWap.check,
     }
 
-    WEB_SERVICE_FACTORIES = {
+    WEB_SERVICE_FACTORIES: Dict[str, object] = {
         # renders to 404
         'none': base.RouterWebService,
         'path': base.RouterWebServiceNestedPath,
@@ -241,9 +242,9 @@ class Personality(object):
         'wap': wap.RouterWebServiceWap,
     }
 
-    EXTRA_AUTH_METHODS = {}
+    EXTRA_AUTH_METHODS: Dict[str, object] = {}
 
-    REALM_STORES = {'memory': MemoryRealmStore}
+    REALM_STORES: Dict[str, object] = {'memory': MemoryRealmStore}
 
     Node = node.Node
     NodeOptions = node.NodeOptions

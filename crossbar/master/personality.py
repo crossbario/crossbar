@@ -6,8 +6,9 @@
 ###############################################################################
 
 import time
-from pprint import pformat
+from typing import Dict
 from collections import Mapping
+from pprint import pformat
 
 import txaio
 
@@ -132,9 +133,9 @@ class Personality(CrossbarFabricPersonality):
 
     TEMPLATE_DIRS = [('crossbar', 'master/webservice/templates')] + CrossbarFabricPersonality.TEMPLATE_DIRS
 
-    WEB_SERVICE_CHECKERS = {'registerme': RouterWebServiceRegisterMe.check, **CrossbarPersonality.WEB_SERVICE_CHECKERS}
+    WEB_SERVICE_CHECKERS: Dict[str, object] = {'registerme': RouterWebServiceRegisterMe.check, **CrossbarPersonality.WEB_SERVICE_CHECKERS}
 
-    WEB_SERVICE_FACTORIES = {'registerme': RouterWebServiceRegisterMe, **CrossbarPersonality.WEB_SERVICE_FACTORIES}
+    WEB_SERVICE_FACTORIES: Dict[str, object] = {'registerme': RouterWebServiceRegisterMe, **CrossbarPersonality.WEB_SERVICE_FACTORIES}
 
     check_controller = check_controller
     check_controller_options = check_controller_options
