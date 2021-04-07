@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+
+  crossbar:
+    image: crossbario/crossbarfx
+    restart: always
+    ports:
+      - "8080:8080"
+    network_mode: host
+    volumes:
+      - ${PWD}/crossbar/:/node/:rw
+    environment:
+      - CFX_URL=wss://cfx.crossbario.com/ws
+      - CFX_CODE=VXUM-55KG-7C7T
+
+  notebook:
+    image: crossbario/crossbarfx-notebook
+    ports:
+      - "8888:8888"
+    network_mode: host
+    volumes:
+      - ${PWD}/jupyter/notebooks/:/work/notebooks:rw
+      - ${PWD}/jupyter/.jupyter/:/work/.jupyter:rw
+      - ${PWD}/crossbar/.testdb:/work/testdb:rw
+    environment:
+      - CF_URL=ws://crossbar:8080/ws
+      - CF_REALM=realm1

@@ -18,7 +18,6 @@ from txaio import make_logger, time_ns
 
 from crossbar.common.checkconfig import check_dict_args
 
-
 __all__ = ('ProcessMonitor', 'SystemMonitor')
 
 
@@ -218,8 +217,8 @@ class ProcessMonitor(Monitor):
             # current['command_duration'] = time.time() - cmd_started
 
             for key in [
-                'read_ios', 'write_ios', 'read_bytes', 'write_bytes', 'cpu_user',
-                'cpu_system', 'num_ctx_switches_voluntary', 'num_ctx_switches_involuntary'
+                    'read_ios', 'write_ios', 'read_bytes', 'write_bytes', 'cpu_user', 'cpu_system',
+                    'num_ctx_switches_voluntary', 'num_ctx_switches_involuntary'
             ]:
                 if last_value and last_value[key] is not None:
                     value = float(current[key] - last_value[key]) / diff

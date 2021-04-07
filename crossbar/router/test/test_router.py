@@ -25,7 +25,6 @@ class TestEmbeddedSessions(unittest.TestCase):
     """
     Test cases for application session running embedded in router.
     """
-
     def setUp(self):
         """
         Setup router and router session factories.
@@ -69,6 +68,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         def boom(*args, **kw):
             raise the_exception
+
         self.router._roles['test_role'].authorize = boom
 
         class TestSession(ApplicationSession):
@@ -76,6 +76,7 @@ class TestEmbeddedSessions(unittest.TestCase):
                 super(TestSession, self).__init__(*args, **kw)
                 self._authrole = 'test_role'
                 self._transport = mock.MagicMock()
+
         session0 = TestSession()
         self.router._dealer._registration_map.add_observer(session0, 'test.proc')
 
@@ -115,6 +116,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         def boom(*args, **kw):
             raise the_exception
+
         self.router._roles['test_role'].authorize = boom
 
         class TestSession(ApplicationSession):
@@ -122,6 +124,7 @@ class TestEmbeddedSessions(unittest.TestCase):
                 super(TestSession, self).__init__(*args, **kw)
                 self._authrole = 'test_role'
                 self._transport = mock.MagicMock()
+
         session0 = TestSession()
 
         call = message.Register(
@@ -150,7 +153,6 @@ class TestEmbeddedSessions(unittest.TestCase):
         d = txaio.create_future()
 
         class TestSession(ApplicationSession):
-
             def onJoin(self, details):
                 txaio.resolve(d, None)
 
@@ -175,6 +177,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
             def onUserError(self, *args, **kw):
                 errors.append((args, kw))
+
         session = TestSession(types.ComponentConfig('realm1'))
 
         # in this test, we are just looking for onUserError to get
@@ -201,6 +204,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         def boom(*args, **kw):
             raise the_exception
+
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onHello = boom
         session.onOpen(transport)
@@ -235,6 +239,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         def boom(*args, **kw):
             raise the_exception
+
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onAuthenticate = boom
         session.onOpen(transport)

@@ -60,9 +60,7 @@ class XbrDelegate(ApplicationSession):
         self.join(self.config.realm, authmethods=['cryptosign'], authextra=authextra)
 
     def onChallenge(self, challenge):
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
             signed_challenge = self._key.sign_challenge(self, challenge)
@@ -93,8 +91,8 @@ class XbrDelegate(ApplicationSession):
             member_email = self.config.extra['member_email']
             client_pubkey = binascii.a2b_hex(self._key.public_key())
 
-            signature = sign_eip712_member_login(wallet_raw, verifyingChain, verifyingContract, wallet_adr,
-                                                 loggedIn, timestamp, member_email, client_pubkey)
+            signature = sign_eip712_member_login(wallet_raw, verifyingChain, verifyingContract, wallet_adr, loggedIn,
+                                                 timestamp, member_email, client_pubkey)
 
             # https://xbr.network/docs/network/api.html#xbrnetwork.XbrNetworkApi.login_member
             login_request_submitted = await self.call('xbr.network.login_member', member_email, client_pubkey,
@@ -137,8 +135,7 @@ class XbrDelegate(ApplicationSession):
             assert type(result['member_oid']) == bytes and len(result['member_oid']) == 16
             member_oid = UUID(bytes=result['member_oid'])
 
-            self.log.info('SUCCESS! Existing XBR Member logged in: member_oid={member_oid}',
-                          member_oid=member_oid)
+            self.log.info('SUCCESS! Existing XBR Member logged in: member_oid={member_oid}', member_oid=member_oid)
 
         except Exception as e:
             self.log.failure()

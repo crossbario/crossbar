@@ -5,15 +5,14 @@
 #
 #####################################################################################
 
+from typing import Optional
+
 from pytrie import StringTrie
 from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
 
 from autobahn import util
 
-__all__ = (
-    'UriObservationMap',
-    'is_protected_uri'
-)
+__all__ = ('UriObservationMap', 'is_protected_uri')
 
 
 def is_protected_uri(uri, details=None):
@@ -30,7 +29,7 @@ def is_protected_uri(uri, details=None):
 
 class OrderedSet(set):
 
-    __slots__ = ('_list',)
+    __slots__ = ('_list', )
 
     def __init__(self):
         super(set, self).__init__()
@@ -59,16 +58,9 @@ class UriObservation(object):
     Represents an URI observation maintained by a broker/dealer.
     """
 
-    __slots__ = (
-        'uri',
-        'ordered',
-        'extra',
-        'id',
-        'created',
-        'observers'
-    )
+    __slots__ = ('uri', 'ordered', 'extra', 'id', 'created', 'observers')
 
-    match = None
+    match: Optional[str] = None
 
     def __init__(self, uri, ordered=False, extra=None):
         """
@@ -108,7 +100,6 @@ class UriObservation(object):
 
 
 class ExactUriObservation(UriObservation):
-
     """
     Represents an exact-matching observation.
     """
@@ -117,7 +108,6 @@ class ExactUriObservation(UriObservation):
 
 
 class PrefixUriObservation(UriObservation):
-
     """
     Represents a prefix-matching observation.
     """
@@ -126,7 +116,6 @@ class PrefixUriObservation(UriObservation):
 
 
 class WildcardUriObservation(UriObservation):
-
     """
     Represents a wildcard-matching observation.
     """
@@ -134,20 +123,14 @@ class WildcardUriObservation(UriObservation):
 
 
 class UriObservationMap(object):
-
     """
     Represents the current set of observations maintained by a broker/dealer.
 
     To test: trial crossbar.router.test.test_subscription
     """
 
-    __slots__ = (
-        '_ordered',
-        '_observations_exact',
-        '_observations_prefix',
-        '_observations_wildcard',
-        '_observation_id_to_observation'
-    )
+    __slots__ = ('_ordered', '_observations_exact', '_observations_prefix', '_observations_wildcard',
+                 '_observation_id_to_observation')
 
     def __init__(self, ordered=False):
         # flag indicating whether observers should be maintained in a SortedSet
@@ -172,13 +155,9 @@ class UriObservationMap(object):
         self._observation_id_to_observation = {}
 
     def __repr__(self):
-        return "{}(_ordered={}, _observations_exact={}, _observations_wildcard={})".format(
-            self.__class__.__name__,
-            self._ordered,
-            self._observations_exact,
-            self._observations_prefix,
-            self._observations_wildcard,
-            self._observation_id_to_observation)
+        return "{}(_ordered={}, _observations_exact={}, _observations_prefix={}, _observations_wildcard={}, _observation_id_to_observation={})".format(
+            self.__class__.__name__, self._ordered, self._observations_exact, self._observations_prefix,
+            self._observations_wildcard, self._observation_id_to_observation)
 
     def add_observer(self, observer, uri, match="exact", extra=None, observer_extra=None):
         """

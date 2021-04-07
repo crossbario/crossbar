@@ -9,7 +9,6 @@ import unittest
 
 from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
 
-
 WILDCARDS = ['.', 'a..c', 'a.b.', 'a..', '.b.', '..', 'x..', '.x.', '..x', 'x..x', 'x.x.', '.x.x', 'x.x.x']
 
 MATCHES = {

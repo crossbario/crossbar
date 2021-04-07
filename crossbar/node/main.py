@@ -69,7 +69,7 @@ try:
 except ImportError:
     pass
 
-__all__ = ('main',)
+__all__ = ('main', )
 
 _PID_FILENAME = 'node.pid'
 
@@ -197,10 +197,13 @@ def _check_is_running(cbdir):
         except:
             log.info(("Could not remove {pidtype} Crossbar.io PID file "
                       "({reason}) {fp} - {log_failure}"),
-                     pidtype=remove_PID_type, reason=remove_PID_reason, fp=fp)
+                     pidtype=remove_PID_type,
+                     reason=remove_PID_reason,
+                     fp=fp)
         else:
             log.info("{pidtype} Crossbar.io PID file ({reason}) {fp} removed",
-                     pidtype=remove_PID_type.title(), reason=remove_PID_reason,
+                     pidtype=remove_PID_type.title(),
+                     reason=remove_PID_reason,
                      fp=fp)
 
     return None
@@ -211,10 +214,7 @@ def _run_command_legal(options, reactor, personality, verbose=True):
     Subcommand "crossbar legal".
     """
     if verbose:
-        docs = [personality.LEGAL,
-                personality.LICENSE,
-                personality.LICENSE_FOR_API,
-                personality.LICENSES_OSS]
+        docs = [personality.LEGAL, personality.LICENSE, personality.LICENSE_FOR_API, personality.LICENSES_OSS]
     else:
         docs = [personality.LEGAL]
 
@@ -310,7 +310,8 @@ def _get_versions(reactor):
     v.py_ver_string = "%s" % sys.version.replace('\n', ' ')
 
     if 'pypy_version_info' in sys.__dict__:
-        v.py_ver_detail = "{}-{}".format(platform.python_implementation(), '.'.join(str(x) for x in sys.pypy_version_info[:3]))
+        v.py_ver_detail = "{}-{}".format(platform.python_implementation(),
+                                         '.'.join(str(x) for x in sys.pypy_version_info[:3]))
     else:
         v.py_ver_detail = platform.python_implementation()
 
@@ -562,8 +563,7 @@ def _run_command_init(options, reactor, personality):
     if get_started_hint:
         log.info("\n{hint}\n", hint=get_started_hint)
     else:
-        log.info("\nTo start your node, run 'crossbar start --cbdir {cbdir}'\n",
-                 cbdir=os.path.abspath(cbdir))
+        log.info("\nTo start your node, run 'crossbar start --cbdir {cbdir}'\n", cbdir=os.path.abspath(cbdir))
 
 
 def _run_command_status(options, reactor, personality):
@@ -637,7 +637,8 @@ def _run_command_stop(options, reactor, personality):
                 try:
                     _TERMINATE_TIMEOUT = 5
                     p.terminate()
-                    print("SIGTERM sent to process {} .. waiting for exit ({} seconds) ...".format(pid, _TERMINATE_TIMEOUT))
+                    print("SIGTERM sent to process {} .. waiting for exit ({} seconds) ...".format(
+                        pid, _TERMINATE_TIMEOUT))
                     p.wait(timeout=_TERMINATE_TIMEOUT)
                 except psutil.TimeoutExpired:
                     print("... process {} still alive - will KILL now.".format(pid))
@@ -699,34 +700,26 @@ def _start_logging(options, reactor):
             pass
         elif loglevel in ["error", "warn", "info"]:
             # Print info to stdout, warn+ to stderr
-            observers.append(make_stdout_observer(show_source=False,
-                                                  format=logformat,
-                                                  color=color))
-            observers.append(make_stderr_observer(show_source=False,
-                                                  format=logformat,
-                                                  color=color))
+            observers.append(make_stdout_observer(show_source=False, format=logformat, color=color))
+            observers.append(make_stderr_observer(show_source=False, format=logformat, color=color))
         elif loglevel == "debug":
             # Print debug+info to stdout, warn+ to stderr, with the class
             # source
-            observers.append(make_stdout_observer(show_source=True,
-                                                  levels=(LogLevel.info,
-                                                          LogLevel.debug),
-                                                  format=logformat,
-                                                  color=color))
-            observers.append(make_stderr_observer(show_source=True,
-                                                  format=logformat,
-                                                  color=color))
+            observers.append(
+                make_stdout_observer(show_source=True,
+                                     levels=(LogLevel.info, LogLevel.debug),
+                                     format=logformat,
+                                     color=color))
+            observers.append(make_stderr_observer(show_source=True, format=logformat, color=color))
         elif loglevel == "trace":
             # Print trace+, with the class source
-            observers.append(make_stdout_observer(show_source=True,
-                                                  levels=(LogLevel.info,
-                                                          LogLevel.debug),
-                                                  format=logformat,
-                                                  trace=True,
-                                                  color=color))
-            observers.append(make_stderr_observer(show_source=True,
-                                                  format=logformat,
-                                                  color=color))
+            observers.append(
+                make_stdout_observer(show_source=True,
+                                     levels=(LogLevel.info, LogLevel.debug),
+                                     format=logformat,
+                                     trace=True,
+                                     color=color))
+            observers.append(make_stderr_observer(show_source=True, format=logformat, color=color))
         else:
             assert False, "Shouldn't ever get here."
 
@@ -734,8 +727,7 @@ def _start_logging(options, reactor):
         globalLogPublisher.addObserver(observer)
 
         # Make sure that it goes away
-        reactor.addSystemEventTrigger('after', 'shutdown',
-                                      globalLogPublisher.removeObserver, observer)
+        reactor.addSystemEventTrigger('after', 'shutdown', globalLogPublisher.removeObserver, observer)
 
     # Actually start the logger.
     start_logging(None, loglevel)
@@ -760,18 +752,12 @@ def _run_command_start(options, reactor, personality):
             pid_data = {
                 'pid': os.getpid(),
                 'argv': argv,
-                'options': {x: y for x, y in options_dump.items()
-                            if x not in ["func", "argv"]}
+                'options': {x: y
+                            for x, y in options_dump.items() if x not in ["func", "argv"]}
             }
             fd.write("{}\n".format(
-                json.dumps(
-                    pid_data,
-                    sort_keys=False,
-                    indent=4,
-                    separators=(', ', ': '),
-                    ensure_ascii=False
-                )
-            ).encode('utf8'))
+                json.dumps(pid_data, sort_keys=False, indent=4, separators=(', ', ': '),
+                           ensure_ascii=False)).encode('utf8'))
 
     # remove node PID file when reactor exits
     #
@@ -779,6 +765,7 @@ def _run_command_start(options, reactor, personality):
         fp = os.path.join(options.cbdir, _PID_FILENAME)
         if os.path.isfile(fp):
             os.remove(fp)
+
     reactor.addSystemEventTrigger('after', 'shutdown', remove_pid_file)
 
     log = make_logger()
@@ -793,10 +780,7 @@ def _run_command_start(options, reactor, personality):
                                            debug_programflow=options.debug_programflow,
                                            enable_vmprof=enable_vmprof)
 
-    node = personality.Node(personality,
-                            options.cbdir,
-                            reactor=reactor,
-                            options=node_options)
+    node = personality.Node(personality, options.cbdir, reactor=reactor, options=node_options)
 
     # print the banner, personality and node directory
     #
@@ -804,7 +788,8 @@ def _run_command_start(options, reactor, personality):
         log.info(hl(line, color='yellow', bold=True))
     print()
 
-    log.info('{note} {func}', note=hl('Booting {} node ..'.format(personality.NAME), color='red', bold=True),
+    log.info('{note} {func}',
+             note=hl('Booting {} node ..'.format(personality.NAME), color='red', bold=True),
              func=hltype(_run_command_start))
 
     log.debug('Running on realm="{realm}" from cbdir="{cbdir}"', realm=hlid(node.realm), cbdir=hlid(options.cbdir))
@@ -827,7 +812,8 @@ def _run_command_start(options, reactor, personality):
     else:
         config_source = node.CONFIG_SOURCE_TO_STR.get(config_source, None)
         log.info('Node configuration loaded [config_source={config_source}, config_path={config_path}]',
-                 config_source=hl(config_source, bold=True, color='green'), config_path=hlid(config_path))
+                 config_source=hl(config_source, bold=True, color='green'),
+                 config_path=hlid(config_path))
 
     # if vmprof global profiling is enabled via command line option, this will carry
     # the file where vmprof writes its profile data
@@ -1042,7 +1028,8 @@ def _run_command_keygen(options, reactor, personality):
 
 def _print_usage(prog, personality):
     print(hl(personality.BANNER, color='yellow', bold=True))
-    print('Type "{} --help" to get help, or "{} <command> --help" to get help on a specific command.'.format(prog, prog))
+    print('Type "{} --help" to get help, or "{} <command> --help" to get help on a specific command.'.format(
+        prog, prog))
     print('Type "{} legal" to read legal notices, terms of use and license and privacy information.'.format(prog))
     print('Type "{} version" to print detailed version information.'.format(prog))
 
@@ -1073,17 +1060,14 @@ def main(prog, args, reactor, personality):
 
     # create subcommand parser
     #
-    subparsers = parser.add_subparsers(dest='command',
-                                       title='commands',
-                                       help='Command to run (required)')
+    subparsers = parser.add_subparsers(dest='command', title='commands', help='Command to run (required)')
     subparsers.required = True
 
     # #############################################################
 
     # "init" command
     #
-    parser_init = subparsers.add_parser('init',
-                                        help='Initialize a new Crossbar.io node.')
+    parser_init = subparsers.add_parser('init', help='Initialize a new Crossbar.io node.')
 
     parser_init.add_argument('--appdir',
                              type=str,
@@ -1094,8 +1078,7 @@ def main(prog, args, reactor, personality):
 
     # "start" command
     #
-    parser_start = subparsers.add_parser('start',
-                                         help='Start a Crossbar.io node.')
+    parser_start = subparsers.add_parser('start', help='Start a Crossbar.io node.')
 
     _add_log_arguments(parser_start)
     _add_cbdir_config(parser_start)
@@ -1114,8 +1097,7 @@ def main(prog, args, reactor, personality):
 
     # "stop" command
     #
-    parser_stop = subparsers.add_parser('stop',
-                                        help='Stop a Crossbar.io node.')
+    parser_stop = subparsers.add_parser('stop', help='Stop a Crossbar.io node.')
 
     parser_stop.add_argument('--cbdir',
                              type=str,
@@ -1126,13 +1108,13 @@ def main(prog, args, reactor, personality):
 
     # "status" command
     #
-    parser_status = subparsers.add_parser('status',
-                                          help='Checks whether a Crossbar.io node is running.')
+    parser_status = subparsers.add_parser('status', help='Checks whether a Crossbar.io node is running.')
 
-    parser_status.add_argument('--cbdir',
-                               type=str,
-                               default=None,
-                               help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+    parser_status.add_argument(
+        '--cbdir',
+        type=str,
+        default=None,
+        help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
     parser_status.add_argument('--assert',
                                type=str,
@@ -1144,8 +1126,7 @@ def main(prog, args, reactor, personality):
 
     # "check" command
     #
-    parser_check = subparsers.add_parser('check',
-                                         help='Check a Crossbar.io node`s local configuration file.')
+    parser_check = subparsers.add_parser('check', help='Check a Crossbar.io node`s local configuration file.')
 
     _add_cbdir_config(parser_check)
 
@@ -1153,8 +1134,8 @@ def main(prog, args, reactor, personality):
 
     # "convert" command
     #
-    parser_convert = subparsers.add_parser('convert',
-                                           help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
+    parser_convert = subparsers.add_parser(
+        'convert', help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
 
     _add_cbdir_config(parser_convert)
 
@@ -1162,8 +1143,8 @@ def main(prog, args, reactor, personality):
 
     # "upgrade" command
     #
-    parser_upgrade = subparsers.add_parser('upgrade',
-                                           help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
+    parser_upgrade = subparsers.add_parser(
+        'upgrade', help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
 
     _add_cbdir_config(parser_upgrade)
 
@@ -1172,9 +1153,7 @@ def main(prog, args, reactor, personality):
     # "keygen" command
     #
     parser_keygen = subparsers.add_parser(
-        'keygen',
-        help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
-    )
+        'keygen', help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing')
     parser_keygen.set_defaults(func=_run_command_keygen)
 
     # "keys" command
@@ -1195,15 +1174,13 @@ def main(prog, args, reactor, personality):
 
     # "version" command
     #
-    parser_version = subparsers.add_parser('version',
-                                           help='Print software versions.')
+    parser_version = subparsers.add_parser('version', help='Print software versions.')
 
     parser_version.set_defaults(func=_run_command_version)
 
     # "legal" command
     #
-    parser_legal = subparsers.add_parser('legal',
-                                         help='Print legal and licensing information.')
+    parser_legal = subparsers.add_parser('legal', help='Print legal and licensing information.')
 
     parser_legal.set_defaults(func=_run_command_legal)
 

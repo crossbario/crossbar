@@ -100,8 +100,7 @@ class Node(object):
 
 
 class Trace(object):
-    def __init__(self, trace_id, traced_workers, trace_options, eligible_reader_roles, exclude_reader_roles,
-                 status):
+    def __init__(self, trace_id, traced_workers, trace_options, eligible_reader_roles, exclude_reader_roles, status):
         self.trace_id = trace_id
         self.traced_workers = traced_workers
         self.trace_options = trace_options
@@ -351,15 +350,13 @@ class MrealmController(ApplicationSession):
 
         # subscribe to session lifecycle events.
         if True:
-            yield self.subscribe(self._on_session_startup, 'wamp.session.on_join',
-                                 SubscribeOptions(details=True))
+            yield self.subscribe(self._on_session_startup, 'wamp.session.on_join', SubscribeOptions(details=True))
 
             # eg when a CF node is hard-killed, the management session will simply get lost, which
             # is detected by CFC router, and a WAMP session leave meta event is published. however,
             # no "on_shutdown" event is published! the CF node has been killed and had no chance to
             # send out any management events. hence we must react to this event.
-            yield self.subscribe(self._on_session_shutdown, 'wamp.session.on_leave',
-                                 SubscribeOptions(details=True))
+            yield self.subscribe(self._on_session_shutdown, 'wamp.session.on_leave', SubscribeOptions(details=True))
 
         # produce CFCs own heartbeat on the management realm
         self._tick = 1
@@ -393,8 +390,8 @@ class MrealmController(ApplicationSession):
                                 # because of "no_such_procedure" is exactly what will happen
                                 self.log.info(
                                     '{action} [status={status}] {func}',
-                                    action=hl('Warning, managed node "{}" still not connected or operational'.
-                                              format(node_id),
+                                    action=hl('Warning, managed node "{}" still not connected or operational'.format(
+                                        node_id),
                                               color='red',
                                               bold=False),
                                     status=hlval(self._nodes[node_id].status),
@@ -429,7 +426,8 @@ class MrealmController(ApplicationSession):
                         else:
                             self._nodes[node_id].status = 'offline'
                             self.log.warn('{action} [status={status}] {func}',
-                                          action=hl('Warning: check on managed node "{}" failed: {}'.format(node_id, e),
+                                          action=hl('Warning: check on managed node "{}" failed: {}'.format(
+                                              node_id, e),
                                                     color='red',
                                                     bold=True),
                                           status=hlval(self._nodes[node_id].status),
@@ -447,10 +445,9 @@ class MrealmController(ApplicationSession):
                                           func=hltype(on_check_nodes))
                         else:
                             self.log.info('{action} [status={status} -> "{new_status}"] {func}',
-                                          action=hl(
-                                              'Ok, managed node "{}" became healthy (again)'.format(node_id),
-                                              color='yellow',
-                                              bold=True),
+                                          action=hl('Ok, managed node "{}" became healthy (again)'.format(node_id),
+                                                    color='yellow',
+                                                    bold=True),
                                           status=hlval(self._nodes[node_id].status),
                                           new_status=hlval('online'),
                                           func=hltype(on_check_nodes))
@@ -472,9 +469,7 @@ class MrealmController(ApplicationSession):
         # with the design, keeping the API surface limited, logical and extensible
 
         # management controller top-level API (on this object)
-        regs = yield self.register(self,
-                                   prefix=self._uri_prefix,
-                                   options=RegisterOptions(details_arg='details'))
+        regs = yield self.register(self, prefix=self._uri_prefix, options=RegisterOptions(details_arg='details'))
         procs = [reg.procedure for reg in regs]
         self.log.debug('Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n',
                        api=hl('Realm Home API', color='green', bold=True),
@@ -656,12 +651,11 @@ class MrealmController(ApplicationSession):
 
         mrealm_id = node.mrealm_oid
         mworker_log = MWorkerLog.parse(mrealm_id, uuid.UUID(node_oid), worker_id, heartbeat)
-        self.log.debug('Parsed worker heartbeat: \n{mworker_log}',
-                       mworker_log=pprint.pformat(mworker_log.marshal()))
+        self.log.debug('Parsed worker heartbeat: \n{mworker_log}', mworker_log=pprint.pformat(mworker_log.marshal()))
 
         with self.db.begin(write=True) as txn:
-            self.schema.mworker_logs[txn, (mworker_log.timestamp, mworker_log.node_id,
-                                           mworker_log.worker_id)] = mworker_log
+            self.schema.mworker_logs[txn,
+                                     (mworker_log.timestamp, mworker_log.node_id, mworker_log.worker_id)] = mworker_log
 
         ended = time_ns()
         runtime = int(round((ended - started) / 1000000.))
@@ -722,8 +716,8 @@ class MrealmController(ApplicationSession):
         for worker_type in heartbeat_workers:
             # FIXME:
             ALLOWED_WORKER_TYPES = [
-                'controller', 'router', 'container', 'guest', 'proxy', 'hostmonitor', 'xbrmm',
-                'xbr_marketmaker', 'marketplace'
+                'controller', 'router', 'container', 'guest', 'proxy', 'hostmonitor', 'xbrmm', 'xbr_marketmaker',
+                'marketplace'
             ]
             assert worker_type in ALLOWED_WORKER_TYPES, 'invalid worker type "{}" (valid types: {})'.format(
                 worker_type, ALLOWED_WORKER_TYPES)
@@ -789,11 +783,10 @@ class MrealmController(ApplicationSession):
                               func=hltype(self._on_node_heartbeat))
             else:
                 self.log.info('{action} [oid={node_oid}, session={session_id}, status={status}] {func}',
-                              action=hl(
-                                  'Ok, managed node "{}" became alive (again) [status={} -> online]'.format(
-                                      node_authid, self._nodes[node_oid].status),
-                                  color='yellow',
-                                  bold=True),
+                              action=hl('Ok, managed node "{}" became alive (again) [status={} -> online]'.format(
+                                  node_authid, self._nodes[node_oid].status),
+                                        color='yellow',
+                                        bold=True),
                               node_oid=hlid(node_oid),
                               session_id=hlid(details.publisher),
                               status=hlval(self._nodes[node_oid].status),
@@ -816,12 +809,12 @@ class MrealmController(ApplicationSession):
             with self.db.begin(write=True) as txn:
                 self.schema.mnode_logs[txn, (mnode_log.timestamp, mnode_log.node_id)] = mnode_log
 
-            self.log.debug(
-                '{msg} [timestamp={timestamp}, node_id={node_id}]',
-                msg=hl('New node HEARTBEAT persisted in database -> checking for pubkey="{}"'.format(pubkey),
-                       bold=True),
-                timestamp=hlid(mnode_log.timestamp),
-                node_id=hlid(mnode_log.node_id))
+            self.log.debug('{msg} [timestamp={timestamp}, node_id={node_id}]',
+                           msg=hl(
+                               'New node HEARTBEAT persisted in database -> checking for pubkey="{}"'.format(pubkey),
+                               bold=True),
+                           timestamp=hlid(mnode_log.timestamp),
+                           node_id=hlid(mnode_log.node_id))
 
             ended = time_ns()
             runtime = int(round((ended - started) / 1000000.))
@@ -859,10 +852,9 @@ class MrealmController(ApplicationSession):
             node_oid = self.gschema.idx_nodes_by_authid[txn, (self._mrealm_oid, node_authid)]
 
         if not node_oid:
-            self.log.warn(
-                '{func}: unrecognised node shutdown for "{node_authid}" - could not find node for authid',
-                func=hltype(self._on_session_shutdown),
-                node_authid=hlid(node_authid))
+            self.log.warn('{func}: unrecognised node shutdown for "{node_authid}" - could not find node for authid',
+                          func=hltype(self._on_session_shutdown),
+                          node_authid=hlid(node_authid))
             return
 
         node_oid = str(node_oid)
@@ -922,20 +914,18 @@ class MrealmController(ApplicationSession):
 
         # we are only interested in session closes from management uplinks
         if not node_authid:
-            self.log.debug(
-                '{func}: unrecognised session close for "{session_id}" - could not map session to authid',
-                func=hltype(self._on_session_shutdown),
-                session_id=hlid(session_id))
+            self.log.debug('{func}: unrecognised session close for "{session_id}" - could not map session to authid',
+                           func=hltype(self._on_session_shutdown),
+                           session_id=hlid(session_id))
             return
 
         with self.gdb.begin() as txn:
             node_oid = self.gschema.idx_nodes_by_authid[txn, (self._mrealm_oid, node_authid)]
 
         if not node_oid:
-            self.log.warn(
-                '{func}: unrecognised session close for "{session_id}" - could not find node for authid',
-                func=hltype(self._on_session_shutdown),
-                session_id=hlid(session_id))
+            self.log.warn('{func}: unrecognised session close for "{session_id}" - could not find node for authid',
+                          func=hltype(self._on_session_shutdown),
+                          session_id=hlid(session_id))
             return
 
         node_oid = str(node_oid)
@@ -1021,10 +1011,7 @@ class MrealmController(ApplicationSession):
             from_key = (self._mrealm_oid, '')
             to_key = (uuid.UUID(int=(int(self._mrealm_oid) + 1)), '')
             node_oids = list(
-                self.gschema.idx_nodes_by_authid.select(txn,
-                                                        from_key=from_key,
-                                                        to_key=to_key,
-                                                        return_keys=False))
+                self.gschema.idx_nodes_by_authid.select(txn, from_key=from_key, to_key=to_key, return_keys=False))
 
         if status:
             if status == 'offline':
@@ -1158,20 +1145,16 @@ class MrealmController(ApplicationSession):
     @inlineCallbacks
     @wamp.register(None)
     def get_trace_data(self, trace_id, limit=None, details=None):
-        self.log.info('get_trace_data(trace_id="{trace_id}", limit="{limit}")',
-                      trace_id=trace_id,
-                      limit=limit)
+        self.log.info('get_trace_data(trace_id="{trace_id}", limit="{limit}")', trace_id=trace_id, limit=limit)
 
         trace = self._traces.get(trace_id, None)
         if trace:
             if trace.eligible_reader_roles:
                 if details.caller_authrole not in trace.eligible_reader_roles:
-                    raise ApplicationError(u"crossbar.error.no_such_object",
-                                           "No trace with ID '{}'".format(trace_id))
+                    raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
             if trace.exclude_reader_roles:
                 if details.caller_authrole in trace.exclude_reader_roles:
-                    raise ApplicationError(u"crossbar.error.no_such_object",
-                                           "No trace with ID '{}'".format(trace_id))
+                    raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
         else:
             raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
 
@@ -1298,8 +1281,7 @@ class MrealmController(ApplicationSession):
                 trace_id, self._traces[trace_id].status))
 
         status = 'stopped'
-        trace = Trace(trace_id, traced_workers, trace_options, eligible_reader_roles, exclude_reader_roles,
-                      status)
+        trace = Trace(trace_id, traced_workers, trace_options, eligible_reader_roles, exclude_reader_roles, status)
         self._traces[trace_id] = trace
 
         trace_created = {
@@ -1332,17 +1314,14 @@ class MrealmController(ApplicationSession):
             raise Exception('no trace with ID "{}" exists'.format(trace_id))
 
         if trace.status != 'stopped':
-            raise Exception('cannot start trace with ID "{}" currently in status "{}"'.format(
-                trace_id, trace.status))
+            raise Exception('cannot start trace with ID "{}" currently in status "{}"'.format(trace_id, trace.status))
 
         trace.status = 'starting'
 
         publish_options = PublishOptions(eligible_authrole=trace.eligible_reader_roles,
                                          exclude_authrole=trace.exclude_reader_roles)
 
-        self.publish('{}tracing.on_trace_starting'.format(self._uri_prefix),
-                     trace_id,
-                     options=publish_options)
+        self.publish('{}tracing.on_trace_starting'.format(self._uri_prefix), trace_id, options=publish_options)
 
         traces_started = []
         traces_failed = []
@@ -1353,14 +1332,13 @@ class MrealmController(ApplicationSession):
 
                 try:
                     # stop any currently online traces (we don't want to get data from orphaned traces)
-                    traces = yield self.call('crossbarfabriccenter.remote.tracing.get_traces', node_id,
-                                             worker_id)
+                    traces = yield self.call('crossbarfabriccenter.remote.tracing.get_traces', node_id, worker_id)
                     if trace_id in traces:
-                        _trace = yield self.call('crossbarfabriccenter.remote.tracing.get_trace', node_id,
-                                                 worker_id, trace_id)
+                        _trace = yield self.call('crossbarfabriccenter.remote.tracing.get_trace', node_id, worker_id,
+                                                 trace_id)
                         if _trace['status'] == 'running':
-                            trace_stopped = yield self.call('crossbarfabriccenter.remote.tracing.stop_trace',
-                                                            node_id, worker_id, trace_id)
+                            trace_stopped = yield self.call('crossbarfabriccenter.remote.tracing.stop_trace', node_id,
+                                                            worker_id, trace_id)
                             self.log.info(
                                 'Trace "{trace_id}" on node "{node_id}" / worker "{worker_id}" stopped:\n{trace_stopped}',
                                 trace_stopped=trace_stopped,
@@ -1393,11 +1371,10 @@ class MrealmController(ApplicationSession):
                     })
             else:
                 node_status = node.status if node else 'offline'
-                self.log.warn(
-                    'trace "{trace_id}": skipping to start trace on node "{node_id}" in status "{status}"',
-                    node_id=node_id,
-                    trace_id=trace_id,
-                    status=node_status)
+                self.log.warn('trace "{trace_id}": skipping to start trace on node "{node_id}" in status "{status}"',
+                              node_id=node_id,
+                              trace_id=trace_id,
+                              status=node_status)
                 traces_failed.append({'node_id': node_id, 'node_status': node_status, 'worker_id': worker_id})
 
         trace.status = 'running'
@@ -1430,17 +1407,14 @@ class MrealmController(ApplicationSession):
             raise Exception('no trace with ID "{}" exists'.format(trace_id))
 
         if trace.status not in ['running', 'stopping_failed']:
-            raise Exception('cannot stop trace with ID "{}" currently in status "{}"'.format(
-                trace_id, trace.status))
+            raise Exception('cannot stop trace with ID "{}" currently in status "{}"'.format(trace_id, trace.status))
 
         trace.status = 'stopping'
 
         publish_options = PublishOptions(eligible_authrole=trace.eligible_reader_roles,
                                          exclude_authrole=trace.exclude_reader_roles)
 
-        self.publish('{}tracing.on_trace_stopping'.format(self._uri_prefix),
-                     trace_id,
-                     options=publish_options)
+        self.publish('{}tracing.on_trace_stopping'.format(self._uri_prefix), trace_id, options=publish_options)
 
         traces_stopped = []
         traces_failed = []
@@ -1450,14 +1424,13 @@ class MrealmController(ApplicationSession):
             if node and node.status == 'online':
 
                 try:
-                    traces = yield self.call('crossbarfabriccenter.remote.tracing.get_traces', node_id,
-                                             worker_id)
+                    traces = yield self.call('crossbarfabriccenter.remote.tracing.get_traces', node_id, worker_id)
                     if trace_id in traces:
-                        _trace = yield self.call('crossbarfabriccenter.remote.tracing.get_trace', node_id,
-                                                 worker_id, trace_id)
+                        _trace = yield self.call('crossbarfabriccenter.remote.tracing.get_trace', node_id, worker_id,
+                                                 trace_id)
                         if _trace['status'] == 'running':
-                            trace_stopped = yield self.call('crossbarfabriccenter.remote.tracing.stop_trace',
-                                                            node_id, worker_id, trace_id)
+                            trace_stopped = yield self.call('crossbarfabriccenter.remote.tracing.stop_trace', node_id,
+                                                            worker_id, trace_id)
                             traces_stopped.append(trace_stopped)
                             self.log.info(
                                 'Trace "{trace_id}" on node "{node_id}" / worker "{worker_id}" stopped:\n{trace_stopped}',
@@ -1475,11 +1448,10 @@ class MrealmController(ApplicationSession):
                     })
             else:
                 node_status = node.status if node else 'offline'
-                self.log.warn(
-                    'trace "{trace_id}": skipping to stop trace on node "{node_id}" in status "{status}"',
-                    node_id=node_id,
-                    trace_id=trace_id,
-                    status=node_status)
+                self.log.warn('trace "{trace_id}": skipping to stop trace on node "{node_id}" in status "{status}"',
+                              node_id=node_id,
+                              trace_id=trace_id,
+                              status=node_status)
                 traces_failed.append({'node_id': node_id, 'node_status': node_status, 'worker_id': worker_id})
 
         if len(traces_failed):
@@ -1515,8 +1487,7 @@ class MrealmController(ApplicationSession):
             raise Exception('no trace with ID "{}" exists'.format(trace_id))
 
         if trace.status not in ['stopped', 'stopping_failed']:
-            raise Exception('cannot delete trace with ID "{}" currently in status "{}"'.format(
-                trace_id, trace.status))
+            raise Exception('cannot delete trace with ID "{}" currently in status "{}"'.format(trace_id, trace.status))
 
         trace_deleted = {
             # FIXME

@@ -84,35 +84,42 @@ class WapResource(resource.Resource):
 
         if type(templates_config) == str:
             # resolve specified template directory path relative to node directory
-            templates_dir = os.path.abspath(
-                os.path.join(self._worker.config.extra.cbdir, templates_config))
+            templates_dir = os.path.abspath(os.path.join(self._worker.config.extra.cbdir, templates_config))
             templates_source = 'directory'
 
         elif type(templates_config) == dict:
 
             # in case we got a dict, that must contain "package" and "resource" attributes
             if 'package' not in templates_config:
-                raise ApplicationError('crossbar.error.invalid_configuration', 'missing attribute "resource" in WAP web service configuration')
+                raise ApplicationError('crossbar.error.invalid_configuration',
+                                       'missing attribute "resource" in WAP web service configuration')
 
             if 'resource' not in templates_config:
-                raise ApplicationError('crossbar.error.invalid_configuration', 'missing attribute "resource" in WAP web service configuration')
+                raise ApplicationError('crossbar.error.invalid_configuration',
+                                       'missing attribute "resource" in WAP web service configuration')
 
             try:
                 importlib.import_module(templates_config['package'])
             except ImportError as e:
-                emsg = 'Could not import resource {} from package {}: {}'.format(templates_config['resource'], templates_config['package'], e)
+                emsg = 'Could not import resource {} from package {}: {}'.format(templates_config['resource'],
+                                                                                 templates_config['package'], e)
                 raise ApplicationError('crossbar.error.invalid_configuration', emsg)
             else:
                 try:
                     # resolve template directory from package resource
-                    templates_dir = os.path.abspath(pkg_resources.resource_filename(templates_config['package'], templates_config['resource']))
+                    templates_dir = os.path.abspath(
+                        pkg_resources.resource_filename(templates_config['package'], templates_config['resource']))
                 except Exception as e:
-                    emsg = 'Could not import resource {} from package {}: {}'.format(templates_config['resource'], templates_config['package'], e)
+                    emsg = 'Could not import resource {} from package {}: {}'.format(
+                        templates_config['resource'], templates_config['package'], e)
                     raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
             templates_source = 'package'
         else:
-            raise ApplicationError('crossbar.error.invalid_configuration', 'invalid type "{}" for attribute "templates" in WAP web service configuration'.format(type(templates_config)))
+            raise ApplicationError(
+                'crossbar.error.invalid_configuration',
+                'invalid type "{}" for attribute "templates" in WAP web service configuration'.format(
+                    type(templates_config)))
 
         if config.get('sandbox', True):
             # The sandboxed environment. It works like the regular environment but tells the compiler to
@@ -249,10 +256,9 @@ class WapResource(resource.Resource):
             # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter.match
             (procedure, request.template), kwargs = self._map_adapter.match(full_path)
 
-            self.log.debug(
-                'WapResource HTTP/GET "{full_path}" mapped to procedure "{procedure}"',
-                full_path=full_path,
-                procedure=procedure)
+            self.log.debug('WapResource HTTP/GET "{full_path}" mapped to procedure "{procedure}"',
+                           full_path=full_path,
+                           procedure=procedure)
 
             if procedure:
                 # FIXME: how do we allow calling WAMP procedures with positional args?
@@ -265,25 +271,31 @@ class WapResource(resource.Resource):
 
             # d.addCallback(self._after_call_success, request)
             # d.addErrback(self._after_call_error, request)
-            d.addCallbacks(
-                self._after_call_success,
-                self._after_call_error,
-                callbackArgs=[request],
-                errbackArgs=[request])
+            d.addCallbacks(self._after_call_success,
+                           self._after_call_error,
+                           callbackArgs=[request],
+                           errbackArgs=[request])
 
             return server.NOT_DONE_YET
 
         except NotFound:
             request.setResponseCode(404)
-            return self._render_error('Path "{full_path}" not found [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path), request)
+            return self._render_error(
+                'Path "{full_path}" not found [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path),
+                request)
 
         except MethodNotAllowed:
             request.setResponseCode(511)
-            return self._render_error('Method not allowed on path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path), request)
+            return self._render_error(
+                'Method not allowed on path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(
+                    full_path=full_path), request)
 
         except Exception:
             request.setResponseCode(500)
-            request.write(self._render_error('Unknown error with path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path), request))
+            request.write(
+                self._render_error(
+                    'Unknown error with path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(
+                        full_path=full_path), request))
             raise
 
 
@@ -291,7 +303,6 @@ class RouterWebServiceWap(RouterWebService):
     """
     WAMP Application Page service.
     """
-
     @staticmethod
     def check(personality, config):
         """
@@ -308,29 +319,31 @@ class RouterWebServiceWap(RouterWebService):
         if config['type'] != 'wap':
             raise InvalidConfigException('unexpected Web service type "{}"'.format(config['type']))
 
-        check_dict_args({
-            # ID of webservice (must be unique for the web transport)
-            'id': (False, [str]),
+        check_dict_args(
+            {
+                # ID of webservice (must be unique for the web transport)
+                'id': (False, [str]),
 
-            # must be equal to "wap"
-            'type': (True, [str]),
+                # must be equal to "wap"
+                'type': (True, [str]),
 
-            # path to prvide to Werkzeug/Routes (eg "/test" rather than "test")
-            'path': (False, [str]),
+                # path to prvide to Werkzeug/Routes (eg "/test" rather than "test")
+                'path': (False, [str]),
 
-            # local directory or package+resource
-            'templates': (True, [str, Mapping]),
+                # local directory or package+resource
+                'templates': (True, [str, Mapping]),
 
-            # create sandboxed jinja2 environment
-            'sandbox': (False, [bool]),
+                # create sandboxed jinja2 environment
+                'sandbox': (False, [bool]),
 
-            # Web routes
-            'routes': (True, [Sequence]),
+                # Web routes
+                'routes': (True, [Sequence]),
 
-            # WAMP connection configuration
-            'wamp': (True, [Mapping]),
-
-        }, config, "WAMP Application Page (WAP) service configuration".format(config))
+                # WAMP connection configuration
+                'wamp': (True, [Mapping]),
+            },
+            config,
+            "WAMP Application Page (WAP) service configuration: {}".format(config))
 
         if isinstance(config['templates'], Mapping):
             check_dict_args({
@@ -339,12 +352,13 @@ class RouterWebServiceWap(RouterWebService):
             }, config['templates'], "templates in WAP service configuration")
 
         for route in config['routes']:
-            check_dict_args({
-                'path': (True, [str]),
-                'method': (True, [str]),
-                'call': (False, [str, type(None)]),
-                'render': (True, [str]),
-            }, route, "route in WAP service configuration")
+            check_dict_args(
+                {
+                    'path': (True, [str]),
+                    'method': (True, [str]),
+                    'call': (False, [str, type(None)]),
+                    'render': (True, [str]),
+                }, route, "route in WAP service configuration")
 
         check_dict_args({
             'realm': (True, [str]),

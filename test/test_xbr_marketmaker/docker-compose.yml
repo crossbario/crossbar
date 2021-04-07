@@ -1,0 +1,87 @@
+version: '3'
+services:
+  
+    crossbar:
+        image: crossbario/crossbarfx:latest
+        user: "${UID}:${GID}"
+        ports:
+            - "8080:8080"
+        volumes:
+            - "${PWD}/crossbar:/node"
+
+    ganache:
+        image: trufflesuite/ganache-cli:latest
+        user: "${UID}:${GID}"
+        ports:
+            - "8545:8545"
+        volumes:
+            # mount a data location from the host into the container - read-write
+            - "${PWD}/ganache/.data:/ganache:rw"
+
+            # mount host user/group files so we can resolve user names/groups to
+            # UIDs/GIDs within the container (which isn't mandatory/required)
+            #- /etc/passwd:/etc/passwd:ro
+            #- /etc/group:/etc/group:ro
+        command:
+            - "--accounts"
+            - "5"
+            - "--defaultBalanceEther"
+            - "1000"
+            - "--deterministic"
+            - "--mnemonic"
+            - "myth like bonus scare over problem client lizard pioneer submit female collect"
+            - "--port"
+            - "8545"
+            - "--networkId"
+            - "5777"
+            - "--db"
+            - "/ganache"
+
+    jupyter:
+        image: crossbario/crossbarfx-notebook:pypy
+        ports:
+            - "8888:8888"
+        environment:
+            - "CBURL=ws://crossbar:8080/ws"
+            - "CBREALM=realm1"
+        volumes:
+            - "${PWD}/jupyter/notebooks/:/work/notebooks:rw"
+            - "${PWD}/jupyter/.jupyter/:/work/.jupyter:rw"
+
+            # we need to mount read-write, even though we only access read-only,
+            # because we need write access to the database lock file (even for readers)
+            - "${PWD}/crossbar/.testdb:/work/.testdb:rw"
+
+    example_provider:
+        image: crossbario/autobahn-python:cpy3-minimal-aio
+        depends_on:
+            - crossbar
+        user: "${UID}:${GID}"
+        environment:
+            - "CBURL=ws://crossbar:8080/ws"
+            - "CBREALM=realm1"
+        volumes:
+            # mount app path with our code into the container - but read-only
+            - "${PWD}/example_provider:/app:ro"
+        entrypoint: /usr/local/bin/python
+        command:
+            - -u
+            - client.py
+            - --service_name=service1
+            - --service_uuid=29109112-ab44-4417-9af3-2d27c097973f
+
+    example_consumer:
+        image: crossbario/autobahn-python:cpy3-minimal-aio
+        depends_on:
+            - crossbar
+        user: "${UID}:${GID}"
+        environment:
+            - "CBURL=ws://crossbar:8080/ws"
+            - "CBREALM=realm1"
+        volumes:
+            # mount app path with our code into the container - but read-only
+            - "${PWD}/example_consumer:/app:ro"
+        entrypoint: /usr/local/bin/python
+        command:
+            - -u
+            - client.py

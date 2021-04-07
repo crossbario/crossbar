@@ -6,8 +6,9 @@
 ###############################################################################
 
 import time
-from pprint import pformat
+from typing import Dict
 from collections import Mapping
+from pprint import pformat
 
 import txaio
 
@@ -42,8 +43,7 @@ def check_controller_fabric_center(personality, config):
                 'watch_to_pair': (False, [str]),
                 'watch_to_pair_pattern': (False, [str]),
                 'write_pairing_file': (False, [bool]),
-            }, auto_default_mrealm,
-            "auto_default_mrealm configuration: {}".format(pformat(auto_default_mrealm)))
+            }, auto_default_mrealm, "auto_default_mrealm configuration: {}".format(pformat(auto_default_mrealm)))
 
     if 'metering' in config:
         # "metering": {
@@ -73,8 +73,7 @@ def check_controller_fabric_center(personality, config):
                     'url': (False, [str]),
                     'timeout': (False, [int, float]),
                     'maxerrors': (False, [int]),
-                }, metering['submit'],
-                "metering submit configuration: {}".format(pformat(metering['submit'])))
+                }, metering['submit'], "metering submit configuration: {}".format(pformat(metering['submit'])))
 
             if 'url' in metering['submit']:
                 # allow to set value from environment variable
@@ -134,12 +133,12 @@ class Personality(CrossbarFabricPersonality):
 
     TEMPLATE_DIRS = [('crossbar', 'master/webservice/templates')] + CrossbarFabricPersonality.TEMPLATE_DIRS
 
-    WEB_SERVICE_CHECKERS = {
+    WEB_SERVICE_CHECKERS: Dict[str, object] = {
         'registerme': RouterWebServiceRegisterMe.check,
         **CrossbarPersonality.WEB_SERVICE_CHECKERS
     }
 
-    WEB_SERVICE_FACTORIES = {
+    WEB_SERVICE_FACTORIES: Dict[str, object] = {
         'registerme': RouterWebServiceRegisterMe,
         **CrossbarPersonality.WEB_SERVICE_FACTORIES
     }

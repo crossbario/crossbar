@@ -38,22 +38,19 @@ class TestamentTests(unittest.TestCase):
         router, server_factory, router_factory = make_router_and_realm()
 
         class ObservingSession(ApplicationSession):
-
             @inlineCallbacks
             def onJoin(self, details):
                 self.events = []
-                self.s = yield self.subscribe(
-                    lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-                    'com.test.destroyed')
+                self.s = yield self.subscribe(lambda *a, **kw: self.events.append({
+                    'args': a,
+                    'kwargs': kw
+                }), 'com.test.destroyed')
 
-        session, pump = connect_application_session(server_factory,
-                                                    ApplicationSession)
+        session, pump = connect_application_session(server_factory, ApplicationSession)
 
-        ob_session, ob_pump = connect_application_session(server_factory,
-                                                          ObservingSession)
+        ob_session, ob_pump = connect_application_session(server_factory, ObservingSession)
 
-        d = session.call("wamp.session.add_testament", "com.test.destroyed",
-                         ['hello'], {})
+        d = session.call("wamp.session.add_testament", "com.test.destroyed", ['hello'], {})
         pump.flush()
 
         # Make sure it returns a publication ID
@@ -70,8 +67,7 @@ class TestamentTests(unittest.TestCase):
         ob_pump.flush()
 
         # Testament is sent
-        self.assertEqual(ob_session.events,
-                         [{'args': ("hello",), 'kwargs': {}}])
+        self.assertEqual(ob_session.events, [{'args': ("hello", ), 'kwargs': {}}])
 
     def test_destroy_testament_not_sent_when_cleared(self):
         """
@@ -83,22 +79,19 @@ class TestamentTests(unittest.TestCase):
         router, server_factory, router_factory = make_router_and_realm()
 
         class ObservingSession(ApplicationSession):
-
             @inlineCallbacks
             def onJoin(self, details):
                 self.events = []
-                self.s = yield self.subscribe(
-                    lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-                    'com.test.destroyed')
+                self.s = yield self.subscribe(lambda *a, **kw: self.events.append({
+                    'args': a,
+                    'kwargs': kw
+                }), 'com.test.destroyed')
 
-        session, pump = connect_application_session(server_factory,
-                                                    ApplicationSession)
+        session, pump = connect_application_session(server_factory, ApplicationSession)
 
-        ob_session, ob_pump = connect_application_session(server_factory,
-                                                          ObservingSession)
+        ob_session, ob_pump = connect_application_session(server_factory, ObservingSession)
 
-        d = session.call("wamp.session.add_testament", "com.test.destroyed",
-                         ['hello'], {})
+        d = session.call("wamp.session.add_testament", "com.test.destroyed", ['hello'], {})
         pump.flush()
 
         # Make sure it returns an integer (the testament event publication ID)
@@ -130,17 +123,14 @@ class TestamentTests(unittest.TestCase):
         """
         router, server_factory, router_factory = make_router_and_realm()
 
-        session, pump = connect_application_session(server_factory,
-                                                    ApplicationSession)
+        session, pump = connect_application_session(server_factory, ApplicationSession)
 
-        d = session.call("wamp.session.add_testament", "com.test.destroyed",
-                         ['hello'], {}, scope="bar")
+        d = session.call("wamp.session.add_testament", "com.test.destroyed", ['hello'], {}, scope="bar")
         pump.flush()
 
         # Make sure it returns a failure
         failure = self.failureResultOf(d)
-        self.assertEqual(failure.value.args,
-                         ("scope must be destroyed or detached",))
+        self.assertEqual(failure.value.args, ("scope must be destroyed or detached", ))
 
     def test_flush_testament_needs_valid_scope(self):
         """
@@ -148,16 +138,14 @@ class TestamentTests(unittest.TestCase):
         """
         router, server_factory, router_factory = make_router_and_realm()
 
-        session, pump = connect_application_session(server_factory,
-                                                    ApplicationSession)
+        session, pump = connect_application_session(server_factory, ApplicationSession)
 
         d = session.call("wamp.session.flush_testaments", scope="bar")
         pump.flush()
 
         # Make sure it returns a failure
         failure = self.failureResultOf(d)
-        self.assertEqual(failure.value.args,
-                         ("scope must be destroyed or detached",))
+        self.assertEqual(failure.value.args, ("scope must be destroyed or detached", ))
 
     def test_one_scope_does_not_affect_other(self):
         """
@@ -167,29 +155,25 @@ class TestamentTests(unittest.TestCase):
         router, server_factory, router_factory = make_router_and_realm()
 
         class ObservingSession(ApplicationSession):
-
             @inlineCallbacks
             def onJoin(self, details):
                 self.events = []
-                self.s = yield self.subscribe(
-                    lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-                    'com.test.dc')
+                self.s = yield self.subscribe(lambda *a, **kw: self.events.append({
+                    'args': a,
+                    'kwargs': kw
+                }), 'com.test.dc')
 
-        session, pump = connect_application_session(server_factory,
-                                                    ApplicationSession)
+        session, pump = connect_application_session(server_factory, ApplicationSession)
 
-        ob_session, ob_pump = connect_application_session(server_factory,
-                                                          ObservingSession)
+        ob_session, ob_pump = connect_application_session(server_factory, ObservingSession)
 
         # Add a destroyed testament
-        d = session.call("wamp.session.add_testament", "com.test.dc",
-                         ['destroyed'], {}, scope="destroyed")
+        d = session.call("wamp.session.add_testament", "com.test.dc", ['destroyed'], {}, scope="destroyed")
         pump.flush()
         self.assertIsInstance(self.successResultOf(d), (int, ))
 
         # Add a detached testament
-        d = session.call("wamp.session.add_testament", "com.test.dc",
-                         ['detached'], {}, scope="detached")
+        d = session.call("wamp.session.add_testament", "com.test.dc", ['detached'], {}, scope="detached")
         pump.flush()
         self.assertIsInstance(self.successResultOf(d), (int, ))
 
@@ -211,4 +195,4 @@ class TestamentTests(unittest.TestCase):
         ob_pump.flush()
 
         # Just the detached testament is sent
-        self.assertEqual(ob_session.events, [{"args": ('detached',), "kwargs": {}}])
+        self.assertEqual(ob_session.events, [{"args": ('detached', ), "kwargs": {}}])

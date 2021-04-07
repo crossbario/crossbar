@@ -63,9 +63,7 @@ class XbrDelegate(ApplicationSession):
         self.join(self.config.realm, authmethods=['cryptosign'], authextra=authextra)
 
     def onChallenge(self, challenge):
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
             signed_challenge = self._key.sign_challenge(self, challenge)
@@ -121,9 +119,9 @@ class XbrDelegate(ApplicationSession):
 
             # https://xbr.network/docs/network/api.html#xbrnetwork.XbrNetworkApi.onboard_member
             try:
-                result = await self.call('xbr.network.onboard_member', member_username, member_email,
-                                         client_pubkey, wallet_type, wallet_adr, verifyingChain, registered,
-                                         verifyingContract, eula, profile, profile_data, signature)
+                result = await self.call('xbr.network.onboard_member', member_username, member_email, client_pubkey,
+                                         wallet_type, wallet_adr, verifyingChain, registered, verifyingContract, eula,
+                                         profile, profile_data, signature)
             except ApplicationError as e:
                 self.log.error('ApplicationError: {error}', error=e)
                 self.leave('wamp.error', str(e))
@@ -138,8 +136,7 @@ class XbrDelegate(ApplicationSession):
                 result['vaction_oid']) == 16
 
             vaction_oid = uuid.UUID(bytes=result['vaction_oid'])
-            self.log.info('On-boarding member - verification "{vaction_oid}" created',
-                          vaction_oid=vaction_oid)
+            self.log.info('On-boarding member - verification "{vaction_oid}" created', vaction_oid=vaction_oid)
 
             # fd = 'cloud/planet_xbr_crossbar/.crossbar/.verifications'
             fd = self._verifications
@@ -166,8 +163,7 @@ class XbrDelegate(ApplicationSession):
                 raise e
 
             assert type(result) == dict
-            assert 'member_oid' in result and type(result['member_oid']) == bytes and len(
-                result['member_oid']) == 16
+            assert 'member_oid' in result and type(result['member_oid']) == bytes and len(result['member_oid']) == 16
             assert 'created' in result and type(result['created']) == int and result['created'] > 0
 
             member_oid = result['member_oid']

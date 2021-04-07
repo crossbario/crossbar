@@ -39,10 +39,7 @@ class NodeInfoResource(Resource):
         except:
             peer = '?:?'
 
-        s = self._page.render(cbVersion=crossbar.__version__,
-                              workerPid=self._pid,
-                              peer=peer,
-                              **node_info)
+        s = self._page.render(cbVersion=crossbar.__version__, workerPid=self._pid, peer=peer, **node_info)
 
         request.write(s.encode('utf8'))
         request.finish()
@@ -58,7 +55,6 @@ class RouterWebServiceNodeInfo(RouterWebService):
     """
     Node information page service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -73,7 +69,6 @@ class JsonResource(Resource):
     """
     Static Twisted Web resource that renders to a JSON document.
     """
-
     def __init__(self, value, options=None):
         Resource.__init__(self)
         options = options or {}
@@ -120,7 +115,6 @@ class RouterWebServiceJson(RouterWebService):
     """
     JSON static value Web service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -134,7 +128,6 @@ class RouterWebServiceJson(RouterWebService):
 
 
 class CgiScript(CGIScript):
-
     def __init__(self, filename, filter):
         CGIScript.__init__(self, filename)
         self.filter = filter
@@ -174,7 +167,6 @@ class RouterWebServiceCgi(RouterWebService):
     """
     CGI script Web service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality

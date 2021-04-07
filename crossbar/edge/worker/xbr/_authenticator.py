@@ -48,27 +48,23 @@ class Authenticator:
 
         if 'authmethod' not in details:
             msg = 'missing "authmethod" in authentication details (WAMP HELLO message details)'
-            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST,
-                                   self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
+            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST, self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
 
         authmethod = details['authmethod']
 
         if authmethod != 'cryptosign':
             msg = 'authmethod "{}" not permissible'.format(authmethod)
-            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST,
-                                   self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
+            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST, self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
 
         if 'authextra' not in details:
             msg = 'Must provide authextra for authmethod cryptosign'
-            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST,
-                                   self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
+            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST, self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
 
         authextra = details['authextra']
 
         if 'pubkey' not in authextra:
             msg = 'missing public key in authextra for authmethod cryptosign'
-            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST,
-                                   self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
+            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST, self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
 
         pubkey = authextra['pubkey']
         if isinstance(pubkey, str):
@@ -131,8 +127,7 @@ class Authenticator:
             msg = 'Should provide `pubkey`, `wallet_address` and `signature` in authextra ' \
                   'to authenticate new member. To authenticate existing member, only provide ' \
                   '`pubkey`'
-            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST,
-                                   self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
+            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST, self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
 
         wallet_address = authextra['wallet_address']
         assert is_address(wallet_address)
@@ -146,14 +141,12 @@ class Authenticator:
             self.log.warn('EIP712 signature recovery failed (wallet_adr={wallet_adr}): {err}',
                           wallet_adr=wallet_address,
                           err=str(e))
-            raise ApplicationError('xbr.error.invalid_signature',
-                                   'EIP712 signature recovery failed ({})'.format(e))
+            raise ApplicationError('xbr.error.invalid_signature', 'EIP712 signature recovery failed ({})'.format(e))
 
         if signer_address != wallet_address:
-            self.log.warn(
-                'EIP712 signature invalid: signer_address={signer_address}, wallet_adr={wallet_adr}',
-                signer_address=signer_address,
-                wallet_adr=wallet_address)
+            self.log.warn('EIP712 signature invalid: signer_address={signer_address}, wallet_adr={wallet_adr}',
+                          signer_address=signer_address,
+                          wallet_adr=wallet_address)
             raise ApplicationError('xbr.error.invalid_signature', 'EIP712 signature invalid')
 
         with self._db.begin(write=True) as txn:

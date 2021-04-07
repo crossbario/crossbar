@@ -15,8 +15,15 @@ from twisted.web.http_headers import Headers
 from twisted.web.test.test_web import DummyChannel
 
 
-def request(path, method=b"GET", args=[], isSecure=False, headers={}, body=b'',
-            host=b"localhost", port=8000, reactor=None):
+def request(path,
+            method=b"GET",
+            args=[],
+            isSecure=False,
+            headers={},
+            body=b'',
+            host=b"localhost",
+            port=8000,
+            reactor=None):
     """
     A fake `server.Request` which implements just enough for our tests.
     """
@@ -44,8 +51,7 @@ def request(path, method=b"GET", args=[], isSecure=False, headers={}, body=b'',
 
     # Put in a bogus date of no real significance, but one that will stay the
     # same
-    req.requestHeaders.setRawHeaders(b"Date",
-                                     [b"Sun, 1 Jan 2013 15:21:01 GMT"])
+    req.requestHeaders.setRawHeaders(b"Date", [b"Sun, 1 Jan 2013 15:21:01 GMT"])
 
     # Set the host we are, and the client we're talking to
     req.setHost(host, port, isSecure)

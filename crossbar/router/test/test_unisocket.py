@@ -20,7 +20,6 @@ class UniSocketTests(TestCase):
     """
     Tests for Crossbar's RawSocket.
     """
-
     def test_rawsocket_with_no_factory(self):
         """
         Trying to speak RawSocket with no RawSocket factory configured will
@@ -155,8 +154,7 @@ class UniSocketTests(TestCase):
         p.dataReceived(b'GET /ws HTTP/1.1\r\nConnection: close\r\n\r\n')
 
         self.assertTrue(t.connected)
-        self.assertEqual(t.value(),
-                         b'GET /ws HTTP/1.1\r\nConnection: close\r\n\r\n')
+        self.assertEqual(t.value(), b'GET /ws HTTP/1.1\r\nConnection: close\r\n\r\n')
 
     def test_websocket_with_no_map(self):
         """

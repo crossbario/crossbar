@@ -10,20 +10,17 @@ from autobahn.wamp.types import PublishOptions
 from crossbar._util import dump_json
 from crossbar.bridge.rest.common import _CommonResource
 
-__all__ = ('PublisherResource',)
+__all__ = ('PublisherResource', )
 
 
 class PublisherResource(_CommonResource):
     """
     A HTTP/POST to WAMP-Publisher bridge.
     """
-
     def _process(self, request, event):
 
         if 'topic' not in event:
-            return self._deny_request(request, 400,
-                                      key="topic",
-                                      log_category="AR455")
+            return self._deny_request(request, 400, key="topic", log_category="AR455")
 
         topic = event.pop('topic')
 

@@ -6,6 +6,7 @@
 ##############################################################################
 
 import time
+from typing import Dict
 from collections import Mapping, Sequence
 from pprint import pformat
 
@@ -155,8 +156,7 @@ def check_controller_fabric(personality, fabric):
     """
     if not isinstance(fabric, Mapping):
         raise checkconfig.InvalidConfigException(
-            "'fabric' in controller configuration must be a dictionary ({} encountered)\n\n".format(
-                type(fabric)))
+            "'fabric' in controller configuration must be a dictionary ({} encountered)\n\n".format(type(fabric)))
 
     for k in fabric:
         if k not in ['transport', 'heartbeat']:
@@ -179,8 +179,7 @@ def check_controller_fabric(personality, fabric):
 
 
 def check_controller(personality, controller, ignore=[]):
-    res = checkconfig.check_controller(personality, controller,
-                                       ['fabric', 'blockchain', 'enable_docker'] + ignore)
+    res = checkconfig.check_controller(personality, controller, ['fabric', 'blockchain', 'enable_docker'] + ignore)
 
     if 'fabric' in controller:
         check_controller_fabric(personality, controller['fabric'])
@@ -191,8 +190,8 @@ def check_controller(personality, controller, ignore=[]):
     if 'enable_docker' in controller:
         enable_docker = controller['enable_docker']
         if type(enable_docker) != bool:
-            raise checkconfig.InvalidConfigException(
-                'invalid type "{}" for "enable_docker" in controller'.format(type(enable_docker)))
+            raise checkconfig.InvalidConfigException('invalid type "{}" for "enable_docker" in controller'.format(
+                type(enable_docker)))
 
     return res
 
@@ -208,14 +207,13 @@ def check_hostmonitor_options(personality, options):
     interval = options.get('interval', 500)
     if type(interval) not in six.integer_types:
         raise checkconfig.InvalidConfigException(
-            'invalid type "{}" for "interval" in host monitor configuration (must be an integer for ms)'.
-            format(type(interval)))
+            'invalid type "{}" for "interval" in host monitor configuration (must be an integer for ms)'.format(
+                type(interval)))
 
     monitors = options.get('monitors', {})
     if not isinstance(monitors, Mapping):
         raise checkconfig.InvalidConfigException(
-            'invalid type "{}" for "monitors" in host monitor configuration (must be a dict)'.format(
-                type(monitors)))
+            'invalid type "{}" for "monitors" in host monitor configuration (must be a dict)'.format(type(monitors)))
     for monitor in monitors:
         # FIXME: check if we know the monitor, and monitor
         # specific configuration is valid
@@ -263,8 +261,7 @@ def check_markets_worker(personality, config):
         checkconfig.check_id(config['id'])
 
     if 'options' not in config:
-        raise checkconfig.InvalidConfigException(
-            'missing attribute "database" in XBR markets worker configuration')
+        raise checkconfig.InvalidConfigException('missing attribute "database" in XBR markets worker configuration')
 
     check_markets_worker_options(personality, config['options'])
 
@@ -392,14 +389,17 @@ class Personality(CrossbarPersonality):
 
     TEMPLATE_DIRS = [('crossbar', 'edge/webservice/templates')] + CrossbarPersonality.TEMPLATE_DIRS
 
-    WEB_SERVICE_CHECKERS = {
+    WEB_SERVICE_CHECKERS: Dict[str, object] = {
         'pairme': RouterWebServicePairMe.check,
         **CrossbarPersonality.WEB_SERVICE_CHECKERS
     }
 
-    WEB_SERVICE_FACTORIES = {'pairme': RouterWebServicePairMe, **CrossbarPersonality.WEB_SERVICE_FACTORIES}
+    WEB_SERVICE_FACTORIES: Dict[str, object] = {
+        'pairme': RouterWebServicePairMe,
+        **CrossbarPersonality.WEB_SERVICE_FACTORIES
+    }
 
-    REALM_STORES = {'cfxdb': CfxDbRealmStore, **CrossbarPersonality.REALM_STORES}
+    REALM_STORES: Dict[str, object] = {'cfxdb': CfxDbRealmStore, **CrossbarPersonality.REALM_STORES}
 
     check_controller = check_controller
     check_controller_options = check_controller_options

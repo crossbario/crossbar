@@ -47,3 +47,5 @@ twine
 hashin
 
 pyinstaller==4.2
+
+docker-compose>=1.29.0

@@ -58,8 +58,9 @@ class PairMeResource(Resource):
         kwargs = deepcopy(infos)
 
         node_time = time_ns()
-        pairing_url = '{}/pair-node?node_type={}&node_key={}&node_time={}'.format(
-            self.pair_at, self._node_type, kwargs['node_status']['pubkey'], node_time)
+        pairing_url = '{}/pair-node?node_type={}&node_key={}&node_time={}'.format(self.pair_at, self._node_type,
+                                                                                  kwargs['node_status']['pubkey'],
+                                                                                  node_time)
 
         kwargs['node_time'] = node_time
         kwargs['is_paired'] = False
@@ -101,13 +102,12 @@ class PairMeResource(Resource):
         return server.NOT_DONE_YET
 
     def getChild(self, path, request):
-        self.log.debug(
-            '{kass}.getChild(path={path}, request={request}, prepath={prepath}, postpath={postpath})',
-            kass=self.__class__.__name__,
-            path=path,
-            prepath=request.prepath,
-            postpath=request.postpath,
-            request=request)
+        self.log.debug('{kass}.getChild(path={path}, request={request}, prepath={prepath}, postpath={postpath})',
+                       kass=self.__class__.__name__,
+                       path=path,
+                       prepath=request.prepath,
+                       postpath=request.postpath,
+                       request=request)
 
         search_path = b'/'.join([path] + request.postpath).decode('utf8')
 

@@ -27,7 +27,6 @@ __all__ = (
 
 
 class StreamTesteeServerProtocol(protocol.Protocol):
-
     def dataReceived(self, data):
         self.transport.write(data)
 
@@ -51,16 +50,16 @@ class WebSocketTesteeServerProtocol(WebSocketServerProtocol):
         """
         try:
             page = self.factory._templates.get_template('cb_ws_testee_status.html')
-            self.sendHtml(page.render(redirectUrl=redirectUrl,
-                                      redirectAfter=redirectAfter,
-                                      cbVersion=crossbar.__version__,
-                                      wsUri=self.factory.url))
+            self.sendHtml(
+                page.render(redirectUrl=redirectUrl,
+                            redirectAfter=redirectAfter,
+                            cbVersion=crossbar.__version__,
+                            wsUri=self.factory.url))
         except Exception as e:
             self.log.warn("Error rendering WebSocket status page template: {e}", e=e)
 
 
 class StreamingWebSocketTesteeServerProtocol(WebSocketServerProtocol):
-
     def onMessageBegin(self, isBinary):
         WebSocketServerProtocol.onMessageBegin(self, isBinary)
         self.beginMessage(isBinary=isBinary)
@@ -97,10 +96,7 @@ class WebSocketTesteeServerFactory(WebSocketServerFactory):
         server = "Crossbar/{}".format(crossbar.__version__)
         externalPort = options.get('external_port', None)
 
-        WebSocketServerFactory.__init__(self,
-                                        url=config.get('url', None),
-                                        server=server,
-                                        externalPort=externalPort)
+        WebSocketServerFactory.__init__(self, url=config.get('url', None), server=server, externalPort=externalPort)
 
         # transport configuration
         self._config = config
@@ -178,11 +174,8 @@ class WebSocketTesteeController(WorkerController):
 
         # create transport endpoint / listening port from transport factory
         #
-        d = create_listening_port_from_config(config['endpoint'],
-                                              self.config.extra.cbdir,
-                                              transport_factory,
-                                              self._reactor,
-                                              self.log)
+        d = create_listening_port_from_config(config['endpoint'], self.config.extra.cbdir, transport_factory,
+                                              self._reactor, self.log)
 
         def ok(port):
             # FIXME

@@ -16,11 +16,9 @@ def createHSTSRequestFactory(requestFactory, hstsMaxAge=31536000):
     Builds a request factory that sets HSTS (HTTP Strict Transport
     Security) headers, by wrapping another request factory.
     """
-
     def makeRequest(*a, **kw):
         request = requestFactory(*a, **kw)
-        request.responseHeaders.setRawHeaders("Strict-Transport-Security",
-                                              ["max-age={}".format(hstsMaxAge)])
+        request.responseHeaders.setRawHeaders("Strict-Transport-Security", ["max-age={}".format(hstsMaxAge)])
         return request
 
     return makeRequest
@@ -41,14 +39,11 @@ class _LessNoisyHTTPChannel(HTTPChannel):
             peer=self.transport.getPeer(),
         )
         if self.abortTimeout is not None:
-            self._abortingCall = self.callLater(
-                self.abortTimeout, self.forceAbortClient
-            )
+            self._abortingCall = self.callLater(self.abortTimeout, self.forceAbortClient)
         self.loseConnection()
 
 
 class Site(server.Site):
-
     def __init__(self,
                  resource,
                  client_timeout=None,

@@ -51,9 +51,7 @@ class Authenticator(ApplicationSession):
     async def onJoin(self, details):
         regs = await self.register(self)
         for reg in regs:
-            self.log.info('{klass} registered procedure {proc}',
-                          klass=self.__class__.__name__,
-                          proc=reg.procedure)
+            self.log.info('{klass} registered procedure {proc}', klass=self.__class__.__name__, proc=reg.procedure)
 
     @register('xbr.network.authenticator.sessions_by_member')
     def _sessions_by_member(self, member_oid: bytes, details: Optional[CallDetails] = None) -> int:
@@ -77,20 +75,17 @@ class Authenticator(ApplicationSession):
 
         if 'authmethod' not in details:
             msg = 'missing "authmethod" in authentication details (WAMP HELLO message details)'
-            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST,
-                                   self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
+            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST, self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
 
         authmethod = details['authmethod']
 
         if authmethod not in ['cryptosign']:
             msg = 'authmethod "{}" not permissible'.format(authmethod)
-            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST,
-                                   self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
+            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST, self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
 
         if 'authextra' not in details or 'pubkey' not in details['authextra']:
             msg = 'missing public key in authextra for authmethod cryptosign'
-            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST,
-                                   self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
+            raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST, self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
         pubkey = details['authextra']['pubkey']
         pubkey_raw = binascii.a2b_hex(pubkey)
         assert type(pubkey_raw) == bytes and len(pubkey_raw) == 32
@@ -119,14 +114,7 @@ class Authenticator(ApplicationSession):
                     self._sessions_by_member[account.oid] = []
                 self._sessions_by_member[account.oid].append(session_id)
 
-        auth = {
-            'pubkey': pubkey,
-            'realm': realm,
-            'authid': authid,
-            'role': authrole,
-            'extra': None,
-            'cache': True
-        }
+        auth = {'pubkey': pubkey, 'realm': realm, 'authid': authid, 'role': authrole, 'extra': None, 'cache': True}
 
         self.log.info('{klass}.authenticate(..) => {auth}', klass=self.__class__.__name__, auth=auth)
 

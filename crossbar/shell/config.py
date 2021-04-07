@@ -84,8 +84,7 @@ class Profile(object):
                 # skip unknown attribute
                 Profile.log.warn('unprocessed config attribute "{}"'.format(k))
 
-        return Profile(name, url, reconnect, debug, realm, role, pubkey, privkey, tls_hostname,
-                       tls_certificates)
+        return Profile(name, url, reconnect, debug, realm, role, pubkey, privkey, tls_hostname, tls_certificates)
 
 
 class UserConfig(object):
@@ -104,9 +103,7 @@ class UserConfig(object):
         for profile_name in config.sections():
             profile = Profile.parse(profile_name, config.items(profile_name))
             profiles[profile_name] = profile
-            self.log.info('Profile "{profile_name}" parsed: {profile}',
-                          profile_name=profile_name,
-                          profile=profile)
+            self.log.info('Profile "{profile_name}" parsed: {profile}', profile_name=profile_name, profile=profile)
 
         self.profiles = profiles
 

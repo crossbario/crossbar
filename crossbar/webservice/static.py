@@ -5,7 +5,6 @@
 #
 #####################################################################################
 
-
 import os
 import time
 
@@ -20,17 +19,13 @@ from crossbar.webservice.base import RouterWebService, Resource404, set_cross_or
 
 DEFAULT_CACHE_TIMEOUT = 12 * 60 * 60
 
-EXTRA_MIME_TYPES = {
-    '.svg': 'image/svg+xml',
-    '.jgz': 'text/javascript'
-}
+EXTRA_MIME_TYPES = {'.svg': 'image/svg+xml', '.jgz': 'text/javascript'}
 
 
 class StaticResource(File):
     """
     Resource for static assets from file system.
     """
-
     def __init__(self, *args, **kwargs):
         self._cache_timeout = kwargs.pop('cache_timeout', None)
         self._allow_cross_origin = kwargs.pop('allow_cross_origin', True)
@@ -66,7 +61,6 @@ class StaticResourceNoListing(StaticResource):
     """
     A file hierarchy resource with directory listing disabled.
     """
-
     def directoryListing(self):
         return self.childNotFound
 
@@ -75,7 +69,6 @@ class RouterWebServiceStatic(RouterWebService):
     """
     Static file serving Web service.
     """
-
     @staticmethod
     def create(transport, path, config):
 
@@ -95,13 +88,16 @@ class RouterWebServiceStatic(RouterWebService):
             try:
                 importlib.import_module(config['package'])
             except ImportError as e:
-                emsg = "Could not import resource {} from package {}: {}".format(config['resource'], config['package'], e)
+                emsg = "Could not import resource {} from package {}: {}".format(config['resource'], config['package'],
+                                                                                 e)
                 raise ApplicationError("crossbar.error.invalid_configuration", emsg)
             else:
                 try:
-                    static_dir = os.path.abspath(pkg_resources.resource_filename(config['package'], config['resource']))
+                    static_dir = os.path.abspath(pkg_resources.resource_filename(config['package'],
+                                                                                 config['resource']))
                 except Exception as e:
-                    emsg = "Could not import resource {} from package {}: {}".format(config['resource'], config['package'], e)
+                    emsg = "Could not import resource {} from package {}: {}".format(
+                        config['resource'], config['package'], e)
                     raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         else:
@@ -120,7 +116,9 @@ class RouterWebServiceStatic(RouterWebService):
         cache_timeout = static_options.get('cache_timeout', DEFAULT_CACHE_TIMEOUT)
         allow_cross_origin = static_options.get('allow_cross_origin', True)
 
-        resource = static_resource_class(static_dir, cache_timeout=cache_timeout, allow_cross_origin=allow_cross_origin)
+        resource = static_resource_class(static_dir,
+                                         cache_timeout=cache_timeout,
+                                         allow_cross_origin=allow_cross_origin)
 
         # set extra MIME types
         #

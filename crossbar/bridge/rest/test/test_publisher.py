@@ -33,14 +33,14 @@ class PublisherTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/",
-                method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=b'{"topic": "com.test.messages", "args": [1]}')
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=b'{"topic": "com.test.messages", "args": [1]}')
 
         self.assertEqual(len(session._published_messages), 1)
-        self.assertEqual(session._published_messages[0]["args"], (1,))
+        self.assertEqual(session._published_messages[0]["args"], (1, ))
 
         self.assertEqual(request.code, 200)
 
@@ -74,11 +74,11 @@ class PublisherTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/",
-                method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=b'{"topic": "com.test.messages", "args": [1]}')
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=b'{"topic": "com.test.messages", "args": [1]}')
 
         self.assertEqual(request.code, 200)
 
@@ -86,9 +86,13 @@ class PublisherTestCase(TestCase):
         self.assertEqual(len(logs), 1)
         self.assertEqual(logs[0]["code"], 200)
 
-        self.assertEqual(json.loads(native_string(request.get_written_data())),
-                         {"error": "wamp.error.not_authorized",
-                          "args": [], "kwargs": {"foo": "bar"}})
+        self.assertEqual(json.loads(native_string(request.get_written_data())), {
+            "error": "wamp.error.not_authorized",
+            "args": [],
+            "kwargs": {
+                "foo": "bar"
+            }
+        })
 
     @inlineCallbacks
     def test_publish_cberror(self):
@@ -110,11 +114,11 @@ class PublisherTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/",
-                method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=b'{"topic": "com.test.messages", "args": [1]}')
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=b'{"topic": "com.test.messages", "args": [1]}')
 
         self.assertEqual(request.code, 500)
 
@@ -125,10 +129,11 @@ class PublisherTestCase(TestCase):
         logs = l.get_category("AR500")
         self.assertEqual(len(logs), 1)
 
-        self.assertEqual(json.loads(native_string(request.get_written_data())),
-                         {"error": "wamp.error.runtime_error",
-                          "args": ["Sorry, Crossbar.io has encountered a problem."],
-                          "kwargs": {}})
+        self.assertEqual(json.loads(native_string(request.get_written_data())), {
+            "error": "wamp.error.runtime_error",
+            "args": ["Sorry, Crossbar.io has encountered a problem."],
+            "kwargs": {}
+        })
 
         # We manually logged it, so this one is OK
         self.flushLoggedErrors(ValueError)
@@ -142,11 +147,11 @@ class PublisherTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/",
-                method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=b'{}')
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=b'{}')
 
         self.assertEqual(len(session._published_messages), 0)
 
@@ -155,6 +160,8 @@ class PublisherTestCase(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
-        self.assertEqual(json.loads(native_string(request.get_written_data())),
-                         {"error": log_categories["AR455"].format(key="topic"),
-                          "args": [], "kwargs": {}})
+        self.assertEqual(json.loads(native_string(request.get_written_data())), {
+            "error": log_categories["AR455"].format(key="topic"),
+            "args": [],
+            "kwargs": {}
+        })

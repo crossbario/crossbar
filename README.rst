@@ -1,6 +1,8 @@
 Crossbar.io
 ===========
 
+*Decentralized Middleware*
+
 `Crossbar.io <https://crossbar.io>`__ is an open source networking platform for distributed and microservice applications. It implements the open Web Application Messaging Protocol (WAMP), is feature rich, scalable, robust and secure. Let Crossbar.io take care of the hard parts of messaging so you can focus on your app's features.
 
 | |Version| |Build| |Deploy| |Docker| |Coverage| |Dockerhub| |Snapstore|
@@ -52,6 +54,10 @@ Alternatively, the generic approach is to insert a "$schema" line at the top of 
 This file is currently experimental, but it should give you contextual auto-completion on
 all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate IntelliSense.
 
+--------------
+
+*Copyright (C) 2013-2021 Crossbar.io Technologies GmbH. All rights reserved.
+WAMP, Crossbar.io and XBR are trademarks of Crossbar.io Technologies GmbH.*
 
 .. |Version| image:: https://img.shields.io/pypi/v/crossbar.svg
    :target: https://pypi.python.org/pypi/crossbar

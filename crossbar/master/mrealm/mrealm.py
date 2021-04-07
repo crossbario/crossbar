@@ -319,9 +319,8 @@ class MrealmManager(object):
 
             mrealm_oid = self.schema.idx_mrealms_by_name[txn, arg_mrealm.name]
             if mrealm_oid:
-                raise ApplicationError(
-                    'crossbar.error.already_exists',
-                    'management realm with name "{}" already exists'.format(arg_mrealm.name))
+                raise ApplicationError('crossbar.error.already_exists',
+                                       'management realm with name "{}" already exists'.format(arg_mrealm.name))
 
             new_mrealm = ManagementRealm()
             new_mrealm.oid = uuid.uuid4()
@@ -352,8 +351,7 @@ class MrealmManager(object):
                                     mrealm_obj,
                                     options=PublishOptions(acknowledge=True))
 
-        self.log.debug('Management API event <on_realm_created> published:\n{mrealm_obj}',
-                       mrealm_obj=mrealm_obj)
+        self.log.debug('Management API event <on_realm_created> published:\n{mrealm_obj}', mrealm_obj=mrealm_obj)
 
         return mrealm_obj
 
@@ -450,15 +448,14 @@ class MrealmManager(object):
             paired_nodes = []
             for node_id in self.schema.idx_nodes_by_authid.select(txn,
                                                                   from_key=(mrealm_oid, ''),
-                                                                  to_key=(uuid.UUID(int=mrealm_oid.int + 1),
-                                                                          ''),
+                                                                  to_key=(uuid.UUID(int=mrealm_oid.int + 1), ''),
                                                                   return_keys=False):
 
                 if not cascade:
                     raise ApplicationError(
                         'crossbar.error.dependent_objects',
-                        'cannot delete management - dependent object exists and cascade not set: paired node {}'
-                        .format(node_id))
+                        'cannot delete management - dependent object exists and cascade not set: paired node {}'.
+                        format(node_id))
                 paired_nodes.append(node_id)
 
         # cascade delete: unpair any nodes currently paired with the mrealm being deleted
@@ -508,12 +505,11 @@ class MrealmManager(object):
 
         :return:
         """
-        self.log.info(
-            '{klass}.delete_mrealm_by_name(mrealm_name={mrealm_name}, cascade={cascade}, details={details})',
-            klass=self.__class__.__name__,
-            mrealm_name=mrealm_name,
-            cascade=cascade,
-            details=details)
+        self.log.info('{klass}.delete_mrealm_by_name(mrealm_name={mrealm_name}, cascade={cascade}, details={details})',
+                      klass=self.__class__.__name__,
+                      mrealm_name=mrealm_name,
+                      cascade=cascade,
+                      details=details)
 
         with self.db.begin() as txn:
             mrealm_oid = self.schema.idx_mrealms_by_name[txn, mrealm_name]
@@ -670,15 +666,13 @@ class MrealmManager(object):
 
             node_oid = self.schema.idx_nodes_by_name[txn, (mrealm_oid, node_name)]
             if not node_oid:
-                raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no node named {} in management realm {}'.format(node_name, mrealm_name))
+                raise ApplicationError('crossbar.error.no_such_object',
+                                       'no node named {} in management realm {}'.format(node_name, mrealm_name))
 
             node = self.schema.nodes[node_oid]
             if node.mrealm_oid != mrealm_oid:
-                raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no node named {} in management realm {}'.format(node_name, mrealm_name))
+                raise ApplicationError('crossbar.error.no_such_object',
+                                       'no node named {} in management realm {}'.format(node_name, mrealm_name))
 
         return node.marshal()
 
@@ -814,17 +808,15 @@ class MrealmManager(object):
 
             node = self.schema.nodes[txn, node_oid]
             if not node:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no node with oid {}'.format(node_oid))
+                raise ApplicationError('crossbar.error.no_such_object', 'no node with oid {}'.format(node_oid))
 
             # FIXME
             # if node.owner_oid != details.caller_authid:
             #    raise Exception('not authorized')
 
             if not node.mrealm_oid:
-                raise ApplicationError(
-                    ERROR_NODE_NOT_PAIRED,
-                    'cannot unpair node: node with id {} is currently not paired'.format(node_oid))
+                raise ApplicationError(ERROR_NODE_NOT_PAIRED,
+                                       'cannot unpair node: node with id {} is currently not paired'.format(node_oid))
 
             mrealm = self.schema.mrealms[txn, node.mrealm_oid]
             assert mrealm
@@ -851,7 +843,9 @@ class MrealmManager(object):
                 str(mrealm.name),
                 str(node_oid),
                 reason='wamp.close.auth-changed',
-                message='Authentication information or permissions changed for node with authid "{}" - killing all currently active sessions for this authid'.format(node_oid))
+                message=
+                'Authentication information or permissions changed for node with authid "{}" - killing all currently active sessions for this authid'
+                .format(node_oid))
         except:
             self.log.failure()
 
@@ -864,11 +858,10 @@ class MrealmManager(object):
         await self._session.publish(topic, node_obj, options=PublishOptions(acknowledge=True))
 
         if killed:
-            self.log.info(
-                '{klass}.unpair_node(node_oid={node_oid}): unpaired (killed {killed} active sessions).',
-                klass=self.__class__.__name__,
-                node_oid=node_oid,
-                killed=len(killed))
+            self.log.info('{klass}.unpair_node(node_oid={node_oid}): unpaired (killed {killed} active sessions).',
+                          klass=self.__class__.__name__,
+                          node_oid=node_oid,
+                          killed=len(killed))
         else:
             self.log.info('{klass}.unpair_node(node_oid={node_oid}): unpaired (no active sessions).',
                           klass=self.__class__.__name__,
@@ -912,11 +905,10 @@ class MrealmManager(object):
 
         :return:
         """
-        self.log.info(
-            '{klass}.unpair_node_by_name(realm_name={realm_name}, authid={authid}, details={details})',
-            klass=self.__class__.__name__,
-            realm_name=realm_name,
-            authid=authid,
-            details=details)
+        self.log.info('{klass}.unpair_node_by_name(realm_name={realm_name}, authid={authid}, details={details})',
+                      klass=self.__class__.__name__,
+                      realm_name=realm_name,
+                      authid=authid,
+                      details=details)
 
         raise NotImplementedError()

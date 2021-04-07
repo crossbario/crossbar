@@ -4,7 +4,6 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-
 """
 Tools for generating multipart requests.
 """
@@ -61,8 +60,7 @@ class Multipart(object):
 
     def add_part(self, name, content, filename=None, content_type=None):
 
-        self._parts.append(_Part(name, content, content_type=content_type,
-                                 filename=filename))
+        self._parts.append(_Part(name, content, content_type=content_type, filename=filename))
 
     def render(self):
         """
@@ -72,8 +70,7 @@ class Multipart(object):
 
         end_content = []
         end_content.append(b"--" + boundary + b"\r\n")
-        end_content.append((b"--" + boundary + b"\r\n").join(
-            [part.render() for part in self._parts]))
+        end_content.append((b"--" + boundary + b"\r\n").join([part.render() for part in self._parts]))
         end_content.append(b"--" + boundary)
         end_content.append(b"--\r\n")
         content = b"".join(end_content)

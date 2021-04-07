@@ -97,8 +97,8 @@ class CmdPairNode(CmdPair):
 
     async def run(self, session):
         self._pre(session)
-        result = await session.call('crossbarfabriccenter.mrealm.pair_node', self.pubkey, self.realm,
-                                    self.node_id, self.authextra)
+        result = await session.call('crossbarfabriccenter.mrealm.pair_node', self.pubkey, self.realm, self.node_id,
+                                    self.authextra)
         return self._post(session, result)
 
 
@@ -152,8 +152,8 @@ class CmdAddRolePermission(CmdAdd):
             role = await session.call('crossbarfabriccenter.mrealm.arealm.get_role_by_name', self.role)
             role_oid = role['oid']
 
-        result = await session.call('crossbarfabriccenter.mrealm.arealm.add_role_permission', role_oid,
-                                    self.uri, self.config)
+        result = await session.call('crossbarfabriccenter.mrealm.arealm.add_role_permission', role_oid, self.uri,
+                                    self.config)
 
         return self._post(session, result)
 
@@ -199,8 +199,7 @@ class CmdAddPrincipal(CmdAdd):
         config['role_oid'] = role_oid
 
         try:
-            result = await session.call('crossbarfabriccenter.mrealm.arealm.add_principal', arealm_oid,
-                                        config)
+            result = await session.call('crossbarfabriccenter.mrealm.arealm.add_principal', arealm_oid, config)
         except Exception as e:
             print(e)
             raise e
@@ -238,8 +237,8 @@ class CmdAddPrincipalCredential(CmdAdd):
             principal_oid = uuid.UUID(self.principal)
             principal_oid = str(principal_oid)
         except:
-            principal = await session.call('crossbarfabriccenter.mrealm.arealm.get_principal_by_name',
-                                           arealm_oid, self.principal)
+            principal = await session.call('crossbarfabriccenter.mrealm.arealm.get_principal_by_name', arealm_oid,
+                                           self.principal)
             principal_oid = principal['oid']
 
         result = await session.call('crossbarfabriccenter.mrealm.arealm.add_principal_credential', arealm_oid,
@@ -281,8 +280,8 @@ class CmdAddApplicationRealmRole(CmdAdd):
             role = await session.call('crossbarfabriccenter.mrealm.arealm.get_role_by_name', self.role)
             role_oid = role['oid']
 
-        result = await session.call('crossbarfabriccenter.mrealm.arealm.add_arealm_role', arealm_oid,
-                                    role_oid, self.config)
+        result = await session.call('crossbarfabriccenter.mrealm.arealm.add_arealm_role', arealm_oid, role_oid,
+                                    self.config)
 
         return self._post(session, result)
 
@@ -310,16 +309,15 @@ class CmdAddRouterClusterWorkerGroup(CmdAdd):
             cluster_oid = uuid.UUID(self.cluster)
             cluster_oid = str(cluster_oid)
         except:
-            routercluster = await session.call(
-                'crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name', self.cluster)
+            routercluster = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name',
+                                               self.cluster)
             cluster_oid = routercluster['oid']
 
         self.config['name'] = self.workergroup
         self.config['cluster_oid'] = cluster_oid
 
-        workergroup = await session.call(
-            'crossbarfabriccenter.mrealm.routercluster.add_routercluster_workergroup', cluster_oid,
-            self.config)
+        workergroup = await session.call('crossbarfabriccenter.mrealm.routercluster.add_routercluster_workergroup',
+                                         cluster_oid, self.config)
         # workergroup_oid = workergroup['oid']
 
         return self._post(session, workergroup)
@@ -348,8 +346,8 @@ class CmdAddRouterClusterNode(CmdAdd):
             routercluster_oid = uuid.UUID(self.routercluster)
             routercluster_oid = str(routercluster_oid)
         except:
-            routercluster = await session.call(
-                'crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name', self.routercluster)
+            routercluster = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name',
+                                               self.routercluster)
             routercluster_oid = routercluster['oid']
 
         if self.node == 'all' or self.node is None:
@@ -366,9 +364,8 @@ class CmdAddRouterClusterNode(CmdAdd):
                 node = await session.call('crossbarfabriccenter.mrealm.get_node_by_authid', self.node)
                 node_oid = node['oid']
 
-            node_added = await session.call(
-                'crossbarfabriccenter.mrealm.routercluster.add_routercluster_node', routercluster_oid,
-                node_oid, self.config)
+            node_added = await session.call('crossbarfabriccenter.mrealm.routercluster.add_routercluster_node',
+                                            routercluster_oid, node_oid, self.config)
             result.append(node_added)
         return self._post(session, result)
 
@@ -434,8 +431,8 @@ class CmdAddWebClusterService(CmdAdd):
         self._pre(session)
         webcluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
                                         self.webcluster)
-        result = await session.call('crossbarfabriccenter.mrealm.webcluster.add_webcluster_service',
-                                    webcluster['oid'], self.path, self.config)
+        result = await session.call('crossbarfabriccenter.mrealm.webcluster.add_webcluster_service', webcluster['oid'],
+                                    self.path, self.config)
         return self._post(session, result)
 
 
@@ -512,8 +509,7 @@ class CmdCreateWebCluster(CmdCreate):
 
     async def run(self, session):
         self._pre(session)
-        result = await session.call('crossbarfabriccenter.mrealm.webcluster.create_webcluster',
-                                    self.webcluster)
+        result = await session.call('crossbarfabriccenter.mrealm.webcluster.create_webcluster', self.webcluster)
         return self._post(session, result)
 
 
@@ -548,8 +544,7 @@ class CmdCreateDockerContainer(CmdCreate):
     async def run(self, session):
         self._pre(session)
         node = await session.call('crossbarfabriccenter.mrealm.get_node_by_authid', self.node)
-        result = await session.call('crossbarfabriccenter.remote.docker.create', node['oid'], self.image,
-                                    self.config)
+        result = await session.call('crossbarfabriccenter.remote.docker.create', node['oid'], self.image, self.config)
         return self._post(session, result)
 
 
@@ -567,8 +562,8 @@ class CmdRemoveRouterClusterNode(CmdRemove):
     async def run(self, session):
         self._pre(session)
 
-        routercluster = await session.call(
-            'crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name', self.cluster)
+        routercluster = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name',
+                                           self.cluster)
 
         node = await session.call('crossbarfabriccenter.mrealm.get_node_by_authid', self.node)
 
@@ -594,9 +589,8 @@ class CmdRemoveRouterClusterWorkerGroup(CmdRemove):
             'crossbarfabriccenter.mrealm.routercluster.get_routercluster_workergroup_by_name', self.cluster,
             self.workergroup)
 
-        result = await session.call(
-            'crossbarfabriccenter.mrealm.routercluster.remove_routercluster_workergroup', cluster['oid'],
-            workergroup['oid'])
+        result = await session.call('crossbarfabriccenter.mrealm.routercluster.remove_routercluster_workergroup',
+                                    cluster['oid'], workergroup['oid'])
 
         return self._post(session, result)
 
@@ -613,9 +607,8 @@ class CmdRemoveWebClusterService(CmdRemove):
         webcluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
                                         self.webcluster)
 
-        webservice = await session.call(
-            'crossbarfabriccenter.mrealm.webcluster.get_webcluster_service_by_path', webcluster['oid'],
-            self.path)
+        webservice = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_service_by_path',
+                                        webcluster['oid'], self.path)
 
         result = await session.call('crossbarfabriccenter.mrealm.webcluster.remove_webcluster_service',
                                     webcluster['oid'], webservice['oid'])
@@ -632,13 +625,12 @@ class CmdRemoveWebClusterNode(CmdRemove):
     async def run(self, session):
         self._pre(session)
 
-        webcluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
-                                        self.cluster)
+        webcluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name', self.cluster)
 
         node = await session.call('crossbarfabriccenter.mrealm.get_node_by_authid', self.node)
 
-        result = await session.call('crossbarfabriccenter.mrealm.webcluster.remove_webcluster_node',
-                                    webcluster['oid'], node['oid'])
+        result = await session.call('crossbarfabriccenter.mrealm.webcluster.remove_webcluster_node', webcluster['oid'],
+                                    node['oid'])
 
         return self._post(session, result)
 
@@ -673,8 +665,8 @@ class CmdDeleteRouterCluster(CmdDelete):
     async def run(self, session):
         self._pre(session)
 
-        routercluster = await session.call(
-            'crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name', self.routercluster)
+        routercluster = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name',
+                                           self.routercluster)
 
         result = await session.call('crossbarfabriccenter.mrealm.routercluster.delete_routercluster',
                                     routercluster['oid'])
@@ -696,8 +688,7 @@ class CmdDeleteWebCluster(CmdDelete):
         webcluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
                                         self.webcluster)
 
-        result = await session.call('crossbarfabriccenter.mrealm.webcluster.delete_webcluster',
-                                    webcluster['oid'])
+        result = await session.call('crossbarfabriccenter.mrealm.webcluster.delete_webcluster', webcluster['oid'])
 
         return self._post(session, result)
 
@@ -766,8 +757,7 @@ class CmdListRouterRealms(CmdList):
 
     async def run(self, session):
         self._pre(session)
-        result = await session.call('crossbarfabriccenter.remote.router.get_router_realms', self.node,
-                                    self.worker)
+        result = await session.call('crossbarfabriccenter.remote.router.get_router_realms', self.node, self.worker)
         return self._post(session, result)
 
 
@@ -779,8 +769,7 @@ class CmdListRouterTransports(CmdList):
 
     async def run(self, session):
         self._pre(session)
-        result = await session.call('crossbarfabriccenter.remote.router.get_router_transports', self.node,
-                                    self.worker)
+        result = await session.call('crossbarfabriccenter.remote.router.get_router_transports', self.node, self.worker)
         return self._post(session, result)
 
 
@@ -795,8 +784,7 @@ class CmdListApplicationRealms(CmdList):
     async def run(self, session):
         self._pre(session)
 
-        result = await session.call('crossbarfabriccenter.mrealm.arealm.list_arealms',
-                                    return_names=self.names)
+        result = await session.call('crossbarfabriccenter.mrealm.arealm.list_arealms', return_names=self.names)
         return self._post(session, result)
 
 
@@ -875,14 +863,14 @@ class CmdListPrincipalCredentials(CmdList):
         try:
             principal_oid = uuid.UUID(self.principal)
         except:
-            principal = await session.call('crossbarfabriccenter.mrealm.arealm.get_principal_by_name',
-                                           arealm_oid, self.principal)
+            principal = await session.call('crossbarfabriccenter.mrealm.arealm.get_principal_by_name', arealm_oid,
+                                           self.principal)
             principal_oid = principal['oid']
         else:
             principal_oid = str(principal_oid)
 
-        result = await session.call('crossbarfabriccenter.mrealm.arealm.list_principal_credentials',
-                                    arealm_oid, principal_oid)
+        result = await session.call('crossbarfabriccenter.mrealm.arealm.list_principal_credentials', arealm_oid,
+                                    principal_oid)
 
         return self._post(session, result)
 
@@ -939,15 +927,14 @@ class CmdListRouterClusterWorkerGroups(CmdList):
         try:
             cluster_oid = str(uuid.UUID(self.cluster))
         except:
-            cluster_obj = await session.call(
-                'crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name', self.cluster)
+            cluster_obj = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name',
+                                             self.cluster)
             cluster_oid = cluster_obj['oid']
 
-        workergroups = await session.call(
-            'crossbarfabriccenter.mrealm.routercluster.list_routercluster_workergroups',
-            cluster_oid,
-            return_names=self.names,
-            filter_by_status=self.filter_status)
+        workergroups = await session.call('crossbarfabriccenter.mrealm.routercluster.list_routercluster_workergroups',
+                                          cluster_oid,
+                                          return_names=self.names,
+                                          filter_by_status=self.filter_status)
 
         return self._post(session, workergroups)
 
@@ -962,8 +949,7 @@ class CmdListWebClusters(CmdList):
 
     async def run(self, session):
         self._pre(session)
-        result = await session.call('crossbarfabriccenter.mrealm.webcluster.list_webclusters',
-                                    return_names=self.names)
+        result = await session.call('crossbarfabriccenter.mrealm.webcluster.list_webclusters', return_names=self.names)
         return self._post(session, result)
 
 
@@ -979,8 +965,7 @@ class CmdListWebClusterNodes(CmdList):
 
     async def run(self, session):
         self._pre(session)
-        cluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
-                                     self.cluster)
+        cluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name', self.cluster)
         result = await session.call('crossbarfabriccenter.mrealm.webcluster.list_webcluster_nodes',
                                     cluster['oid'],
                                     return_names=self.names,
@@ -1144,8 +1129,7 @@ class CmdShowDockerContainer(CmdShow):
     async def run(self, session):
         self._pre(session)
         node = await session.call('crossbarfabriccenter.mrealm.get_node_by_authid', self.node)
-        result = await session.call('crossbarfabriccenter.remote.docker.get_container', node['oid'],
-                                    self.container)
+        result = await session.call('crossbarfabriccenter.remote.docker.get_container', node['oid'], self.container)
         return self._post(session, result)
 
 
@@ -1197,8 +1181,7 @@ class CmdShowTransport(CmdShow):
 
     async def run(self, session):
         self._pre(session)
-        result = await session.call('crossbarfabriccenter.show_transport', self.node, self.worker,
-                                    self.transport)
+        result = await session.call('crossbarfabriccenter.show_transport', self.node, self.worker, self.transport)
         return self._post(session, result)
 
 
@@ -1224,8 +1207,7 @@ class CmdShowComponent(CmdShow):
 
     async def run(self, session):
         self._pre(session)
-        result = await session.call('crossbarfabriccenter.show_component', self.node, self.worker,
-                                    self.component)
+        result = await session.call('crossbarfabriccenter.show_component', self.node, self.worker, self.component)
         return self._post(session, result)
 
 
@@ -1255,11 +1237,9 @@ class CmdShowApplicationRealm(CmdShow):
             try:
                 arealm_oid = uuid.UUID(arealm)
             except:
-                arealm_obj = await session.call('crossbarfabriccenter.mrealm.arealm.get_arealm_by_name',
-                                                arealm)
+                arealm_obj = await session.call('crossbarfabriccenter.mrealm.arealm.get_arealm_by_name', arealm)
             else:
-                arealm_obj = await session.call('crossbarfabriccenter.mrealm.arealm.get_arealm',
-                                                str(arealm_oid))
+                arealm_obj = await session.call('crossbarfabriccenter.mrealm.arealm.get_arealm', str(arealm_oid))
 
             result.append(arealm_obj)
 
@@ -1292,8 +1272,8 @@ class CmdShowPrincipal(CmdShow):
         try:
             principal_oid = uuid.UUID(self.principal)
         except:
-            principal = await session.call('crossbarfabriccenter.mrealm.arealm.get_principal_by_name',
-                                           arealm_oid, self.principal)
+            principal = await session.call('crossbarfabriccenter.mrealm.arealm.get_principal_by_name', arealm_oid,
+                                           self.principal)
         else:
             principal = await session.call('crossbarfabriccenter.mrealm.arealm.get_principal', arealm_oid,
                                            str(principal_oid))
@@ -1353,8 +1333,7 @@ class CmdShowApplicationRealmRole(CmdShow):
         else:
             role_oid = str(role_oid)
 
-        association = await session.call('crossbarfabriccenter.mrealm.arealm.get_arealm_role', arealm_oid,
-                                         role_oid)
+        association = await session.call('crossbarfabriccenter.mrealm.arealm.get_arealm_role', arealm_oid, role_oid)
 
         return self._post(session, association)
 
@@ -1386,12 +1365,12 @@ class CmdShowRouterCluster(CmdShow):
             try:
                 cluster_oid = uuid.UUID(cluster)
             except:
-                cluster_obj = await session.call(
-                    'crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name', cluster)
+                cluster_obj = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name',
+                                                 cluster)
             else:
                 cluster_oid = str(cluster_oid)
-                cluster_obj = await session.call(
-                    'crossbarfabriccenter.mrealm.routercluster.get_routercluster', cluster_oid)
+                cluster_obj = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster',
+                                                 cluster_oid)
 
             result.append(cluster_obj)
 
@@ -1416,8 +1395,8 @@ class CmdShowRouterClusterNode(CmdShow):
         try:
             cluster_oid = uuid.UUID(self.cluster)
         except:
-            cluster = await session.call(
-                'crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name', self.cluster)
+            cluster = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name',
+                                         self.cluster)
             cluster_oid = cluster['oid']
         else:
             cluster_oid = str(cluster_oid)
@@ -1487,12 +1466,11 @@ class CmdShowWebCluster(CmdShow):
             try:
                 cluster_oid = uuid.UUID(cluster)
             except:
-                cluster_obj = await session.call(
-                    'crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name', cluster)
+                cluster_obj = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
+                                                 cluster)
             else:
                 cluster_oid = str(cluster_oid)
-                cluster_obj = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster',
-                                                 cluster_oid)
+                cluster_obj = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster', cluster_oid)
 
             result.append(cluster_obj)
 
@@ -1517,17 +1495,16 @@ class CmdShowWebClusterWebService(CmdShow):
         try:
             cluster_oid = uuid.UUID(self.cluster)
         except:
-            cluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
-                                         self.cluster)
+            cluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name', self.cluster)
             cluster_oid = cluster['oid']
         else:
             cluster_oid = str(cluster_oid)
 
-        webservice = await session.call(
-            'crossbarfabriccenter.mrealm.webcluster.get_webcluster_service_by_path', cluster_oid, self.path)
+        webservice = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_service_by_path',
+                                        cluster_oid, self.path)
 
-        result = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_service',
-                                    cluster_oid, webservice['oid'])
+        result = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_service', cluster_oid,
+                                    webservice['oid'])
 
         return self._post(session, result)
 
@@ -1547,15 +1524,13 @@ class CmdShowWebClusterNode(CmdShow):
         try:
             cluster_oid = uuid.UUID(self.cluster)
         except:
-            cluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
-                                         self.cluster)
+            cluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name', self.cluster)
             cluster_oid = cluster['oid']
         else:
             cluster_oid = str(cluster_oid)
 
         if self.node == 'all' or self.node is None:
-            nodes = await session.call('crossbarfabriccenter.mrealm.webcluster.list_webcluster_nodes',
-                                       cluster_oid)
+            nodes = await session.call('crossbarfabriccenter.mrealm.webcluster.list_webcluster_nodes', cluster_oid)
         else:
             nodes = [x.strip() for x in self.node.split(',')]
 
@@ -1790,8 +1765,8 @@ class CmdStartWebTransportService(CmdStart):
     async def run(self, session):
         self._pre(session)
 
-        result = await session.call('crossbarfabriccenter.remote.router.start_web_transport_service',
-                                    self.node_id, self.worker_id, self.transport_id, self.path, self.config)
+        result = await session.call('crossbarfabriccenter.remote.router.start_web_transport_service', self.node_id,
+                                    self.worker_id, self.transport_id, self.path, self.config)
         return self._post(session, result)
 
 
@@ -1818,8 +1793,8 @@ class CmdStartGuestWorker(CmdStart):
     async def run(self, session):
         self._pre(session)
 
-        result = await session.call('crossbarfabriccenter.remote.node.start_worker', self.node_id,
-                                    self.worker_id, 'guest', self.config)
+        result = await session.call('crossbarfabriccenter.remote.node.start_worker', self.node_id, self.worker_id,
+                                    'guest', self.config)
         return self._post(session, result)
 
 
@@ -1831,8 +1806,8 @@ class CmdStartRouterCluster(CmdStart):
     async def run(self, session):
         self._pre(session)
 
-        routercluster = await session.call(
-            'crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name', self.routercluster)
+        routercluster = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name',
+                                           self.routercluster)
 
         result = await session.call('crossbarfabriccenter.mrealm.routercluster.start_routercluster',
                                     routercluster['oid'])
@@ -1853,8 +1828,8 @@ class CmdStartApplicationRealm(CmdStart):
         arealm = await session.call('crossbarfabriccenter.mrealm.arealm.get_arealm_by_name', self.arealm)
 
         workergroup = await session.call(
-            'crossbarfabriccenter.mrealm.routercluster.get_routercluster_workergroup_by_name',
-            self.routercluster, self.workergroup)
+            'crossbarfabriccenter.mrealm.routercluster.get_routercluster_workergroup_by_name', self.routercluster,
+            self.workergroup)
 
         webcluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
                                         self.webcluster)
@@ -1875,8 +1850,7 @@ class CmdStartWebCluster(CmdStart):
         webcluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
                                         self.webcluster)
 
-        result = await session.call('crossbarfabriccenter.mrealm.webcluster.start_webcluster',
-                                    webcluster['oid'])
+        result = await session.call('crossbarfabriccenter.mrealm.webcluster.start_webcluster', webcluster['oid'])
         return self._post(session, result)
 
 
@@ -1948,8 +1922,8 @@ class CmdStopRouterCluster(CmdStop):
     async def run(self, session):
         self._pre(session)
 
-        routercluster = await session.call(
-            'crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name', self.routercluster)
+        routercluster = await session.call('crossbarfabriccenter.mrealm.routercluster.get_routercluster_by_name',
+                                           self.routercluster)
 
         result = await session.call('crossbarfabriccenter.mrealm.routercluster.stop_routercluster',
                                     routercluster['oid'])
@@ -1968,7 +1942,6 @@ class CmdStopWebCluster(CmdStop):
         webcluster = await session.call('crossbarfabriccenter.mrealm.webcluster.get_webcluster_by_name',
                                         self.webcluster)
 
-        result = await session.call('crossbarfabriccenter.mrealm.webcluster.stop_webcluster',
-                                    webcluster['oid'])
+        result = await session.call('crossbarfabriccenter.mrealm.webcluster.stop_webcluster', webcluster['oid'])
 
         return self._post(session, result)

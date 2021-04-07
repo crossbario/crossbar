@@ -33,6 +33,16 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
+run_ganache:
+	docker-compose up --force-recreate ganache
+
+fix_ganache_permissions:
+	sudo chown -R 1000:1000 ./test/ganache
+
+clean_ganache:
+	-rm -rf ./test/ganache/.data
+	mkdir -p ./test/ganache/.data
+
 logs_service:
 	sudo journalctl -f -u github-actions-crossbar.service
 
@@ -183,23 +193,15 @@ flake8_stats:
 version:
 	PYTHONPATH=. python -m crossbar.controller.cli version
 
-pyflakes:
-	pyflakes crossbar
 
-pep8:
-	pep8 --statistics --ignore=E501 -qq .
+# auto-format code - WARNING: this my change files, in-place!
+autoformat:
+	yapf -ri --style=yapf.ini \
+		--exclude="crossbar/shell/reflection/*" \
+		--exclude="crossbar/master/database/*" \
+		--exclude="crossbar/worker/test/examples/syntaxerror.py" \
+		crossbar
 
-pep8_show_e231:
-	pep8 --select=E231 --show-source
-
-autopep8:
-	autopep8 -ri --aggressive --ignore=E501 .
-
-pylint:
-	pylint -d line-too-long,invalid-name crossbar
-
-find_classes:
-	find crossbar -name "*.py" -exec grep -Hi "^class" {} \; | grep -iv test
 
 # sudo apt install gource ffmpeg
 gource:

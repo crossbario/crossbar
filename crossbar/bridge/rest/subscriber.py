@@ -44,29 +44,25 @@ class MessageForwarder(ApplicationSession):
         @inlineCallbacks
         def on_event(url, *args, **kwargs):
 
-            headers = Headers({
-                b"Content-Type": [b"application/json"]
-            })
+            headers = Headers({b"Content-Type": [b"application/json"]})
 
-            body = json.dumps(
-                {"args": args, "kwargs": kwargs},
-                sort_keys=True,
-                separators=(',', ':'),
-                ensure_ascii=False
-            )
+            body = json.dumps({
+                "args": args,
+                "kwargs": kwargs
+            },
+                              sort_keys=True,
+                              separators=(',', ':'),
+                              ensure_ascii=False)
 
             # http://treq.readthedocs.org/en/latest/api.html#treq.request
-            res = yield self._webtransport.request(
-                method,
-                url.encode('utf8'),
-                data=body.encode('utf8'),
-                headers=headers
-            )
+            res = yield self._webtransport.request(method,
+                                                   url.encode('utf8'),
+                                                   data=body.encode('utf8'),
+                                                   headers=headers)
 
             if expectedCode:
                 if not res.code == expectedCode:
-                    raise ApplicationError(
-                        "Request returned {}, not the expected {}".format(res.code, expectedCode))
+                    raise ApplicationError("Request returned {}, not the expected {}".format(res.code, expectedCode))
 
             if debug:
                 content = yield self._webtransport.text_content(res)
@@ -77,11 +73,8 @@ class MessageForwarder(ApplicationSession):
             assert "topic" in s
             assert "url" in s
 
-            yield self.subscribe(
-                partial(on_event, s["url"]),
-                s["topic"],
-                options=SubscribeOptions(match=s.get("match", "exact"))
-            )
+            yield self.subscribe(partial(on_event, s["url"]),
+                                 s["topic"],
+                                 options=SubscribeOptions(match=s.get("match", "exact")))
 
-            self.log.debug("MessageForwarder subscribed to {topic}",
-                           topic=s["topic"])
+            self.log.debug("MessageForwarder subscribed to {topic}", topic=s["topic"])

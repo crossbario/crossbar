@@ -1,0 +1,32 @@
+# -*- coding: utf-8 -*-
+
+root = true
+
+[*]
+indent_style = space
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+# Python files
+[*.py]
+indent_size = 4
+# isort plugin configuration
+known_first_party = sphinxcontrib
+multi_line_output = 2
+default_section = THIRDPARTY
+skip = .eggs docs
+
+# .travis.yml
+[.travis.yml]
+indent_size = 2
+
+# Dockerfile
+[Dockerfile]
+indent_size = 4
+
+# Override for Makefile
+[{Makefile, makefile, GNUmakefile}]
+indent_style = tab
+indent_size = 4

@@ -14,7 +14,6 @@ from autobahn.twisted.wamp import ApplicationSession
 
 
 class RESTCallee(ApplicationSession):
-
     def __init__(self, *args, **kwargs):
         self._webtransport = kwargs.pop("webTransport", None)
 
@@ -39,23 +38,19 @@ class RESTCallee(ApplicationSession):
 
             params = {x.encode('utf8'): y.encode('utf8') for x, y in params.items()}
 
-            res = yield self._webtransport.request(
-                method,
-                newURL,
-                data=body.encode('utf8'),
-                headers=Headers(headers),
-                params=params
-            )
+            res = yield self._webtransport.request(method,
+                                                   newURL,
+                                                   data=body.encode('utf8'),
+                                                   headers=Headers(headers),
+                                                   params=params)
             content = yield self._webtransport.text_content(res)
 
-            headers = {x.decode('utf8'): [z.decode('utf8') for z in y]
-                       for x, y in dict(res.headers.getAllRawHeaders()).items()}
-
-            resp = {
-                "code": res.code,
-                "content": content,
-                "headers": headers
+            headers = {
+                x.decode('utf8'): [z.decode('utf8') for z in y]
+                for x, y in dict(res.headers.getAllRawHeaders()).items()
             }
+
+            resp = {"code": res.code, "content": content, "headers": headers}
 
             returnValue(resp)
 

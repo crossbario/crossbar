@@ -59,7 +59,6 @@ SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECD
 # change the effectively accepted cipher with common browsers/clients
 # SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA'
 
-
 # Named curves built into OpenSSL .. can be listed using:
 #
 # openssl ecparam -list_curves
@@ -170,7 +169,6 @@ ELLIPTIC_CURVES = {
     SSL.SN_X9_62_c2tnb359v1: SSL.NID_X9_62_c2tnb359v1,
     SSL.SN_X9_62_c2pnb368w1: SSL.NID_X9_62_c2pnb368w1,
     SSL.SN_X9_62_c2tnb431r1: SSL.NID_X9_62_c2tnb431r1,
-
     SSL.SN_X9_62_prime192v1: SSL.NID_X9_62_prime192v1,
     SSL.SN_X9_62_prime192v2: SSL.NID_X9_62_prime192v2,
     SSL.SN_X9_62_prime192v3: SSL.NID_X9_62_prime192v3,
@@ -256,13 +254,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             # X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN		19
             # X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY	20
             if errno in [19, 20]:
-                self.log.debug(
-                    "Can't find CA certificate to verify against or self-signed "
-                    "certificate."
-                )
-                self.log.debug(
-                    "Is 'ca_certificates' endpoint configuration missing a cert?"
-                )
+                self.log.debug("Can't find CA certificate to verify against or self-signed " "certificate.")
+                self.log.debug("Is 'ca_certificates' endpoint configuration missing a cert?")
         return preverify_ok
 
     def cacheContext(self):
@@ -289,7 +282,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 try:
                     ctx.load_tmp_dh(self._dhParamFilename)
                 except Exception:
-                    self.log.failure("Error: OpenSSL DH modes not active - failed to load DH parameter file [{log_failure}]")
+                    self.log.failure(
+                        "Error: OpenSSL DH modes not active - failed to load DH parameter file [{log_failure}]")
                 else:
                     self.log.info("Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded.")
             else:
@@ -309,8 +303,7 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             except Exception:
                 self.log.failure("Warning: OpenSSL failed to set ECDH default curve [{log_failure}]")
             else:
-                self.log.info("Ok, OpenSSL is using ECDH elliptic curve {curve}",
-                              curve=ECDH_DEFAULT_CURVE_NAME)
+                self.log.info("Ok, OpenSSL is using ECDH elliptic curve {curve}", curve=ECDH_DEFAULT_CURVE_NAME)
 
             # load certificate (chain) into context
             #

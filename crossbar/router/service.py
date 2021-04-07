@@ -20,7 +20,7 @@ from crossbar.router.observation import is_protected_uri
 
 from txaio import make_logger
 
-__all__ = ('RouterServiceAgent',)
+__all__ = ('RouterServiceAgent', )
 
 
 def is_restricted_session(session):
@@ -28,7 +28,6 @@ def is_restricted_session(session):
 
 
 class RouterServiceAgent(ApplicationSession):
-
     """
     User router-realm service session, and WAMP meta API implementation.
 
@@ -80,7 +79,8 @@ class RouterServiceAgent(ApplicationSession):
             if management_session is None:
                 raise Exception('logic error: missing management_session in extra')
 
-            bridge_meta_api_prefix = self.config.extra.get('bridge_meta_api_prefix', None) if self.config.extra else None
+            bridge_meta_api_prefix = self.config.extra.get('bridge_meta_api_prefix',
+                                                           None) if self.config.extra else None
             if bridge_meta_api_prefix is None:
                 raise Exception('logic error: missing bridge_meta_api_prefix in extra')
 
@@ -108,7 +108,9 @@ class RouterServiceAgent(ApplicationSession):
                 translated_topic = '{}{}'.format(prefix, translated_topic)
 
             self.log.debug('RouterServiceAgent.publish("{topic}") -> "{translated_topic}" on "{realm}"',
-                           topic=topic, translated_topic=translated_topic, realm=session._realm)
+                           topic=topic,
+                           translated_topic=translated_topic,
+                           realm=session._realm)
 
             dl.append(ApplicationSession.publish(session, translated_topic, *args, **kwargs))
 
@@ -127,15 +129,25 @@ class RouterServiceAgent(ApplicationSession):
                 regs = yield session.register(self, options=RegisterOptions(details_arg='details'), prefix=prefix)
                 for reg in regs:
                     if isinstance(reg, Registration):
-                        self.log.debug('Registered WAMP meta procedure <{proc}> on realm "{realm}"', proc=reg.procedure, realm=session._realm)
+                        self.log.debug('Registered WAMP meta procedure <{proc}> on realm "{realm}"',
+                                       proc=reg.procedure,
+                                       realm=session._realm)
                     elif isinstance(reg, Failure):
                         err = reg.value
                         if isinstance(err, ApplicationError):
-                            self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error} ("{message}")', realm=session._realm, error=err.error, message=err.error_message())
+                            self.log.warn(
+                                'Failed to register WAMP meta procedure on realm "{realm}": {error} ("{message}")',
+                                realm=session._realm,
+                                error=err.error,
+                                message=err.error_message())
                         else:
-                            self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}', realm=session._realm, error=str(err))
+                            self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}',
+                                          realm=session._realm,
+                                          error=str(err))
                     else:
-                        self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}', realm=session._realm, error=str(reg))
+                        self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}',
+                                      realm=session._realm,
+                                      error=str(reg))
         except Exception as e:
             self.log.failure()
             if on_ready:
@@ -181,14 +193,16 @@ class RouterServiceAgent(ApplicationSession):
         :rtype: list
         """
         self.log.info('wamp.session.list(filter_authroles={filter_authroles}, details={details})',
-                      filter_authroles=filter_authroles, details=details)
+                      filter_authroles=filter_authroles,
+                      details=details)
 
-        assert(filter_authroles is None or isinstance(filter_authroles, list))
+        assert (filter_authroles is None or isinstance(filter_authroles, list))
 
         session_ids = []
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                if filter_authroles is None or (hasattr(session, '_session_details') and session._session_details.authrole in filter_authroles):
+                if filter_authroles is None or (hasattr(session, '_session_details')
+                                                and session._session_details.authrole in filter_authroles):
                     session_ids.append(session._session_id)
         return session_ids
 
@@ -203,12 +217,13 @@ class RouterServiceAgent(ApplicationSession):
         :returns: Count of joined sessions.
         :rtype: int
         """
-        assert(filter_authroles is None or isinstance(filter_authroles, list))
+        assert (filter_authroles is None or isinstance(filter_authroles, list))
 
         session_count = 0
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                if filter_authroles is None or (hasattr(session, '_session_details') and session._session_details.authrole in filter_authroles):
+                if filter_authroles is None or (hasattr(session, '_session_details')
+                                                and session._session_details.authrole in filter_authroles):
                     session_count += 1
         return session_count
 
@@ -224,16 +239,19 @@ class RouterServiceAgent(ApplicationSession):
         :rtype: dict or None
         """
         self.log.debug('wamp.session.get(session_id={session_id}, details={details})',
-                       session_id=session_id, details=details)
+                       session_id=session_id,
+                       details=details)
 
         if session_id in self._router._session_id_to_session:
             session = self._router._session_id_to_session[session_id]
             if not is_restricted_session(session):
                 session_info = session._session_details.marshal() if hasattr(session, '_session_details') else dict()
-                session_info['transport'] = session._transport._transport_info if hasattr(session, '_transport') and hasattr(session._transport, '_transport_info') else None
+                session_info['transport'] = session._transport._transport_info if hasattr(
+                    session, '_transport') and hasattr(session._transport, '_transport_info') else None
                 return session_info
             else:
-                self.log.warn('wamp.session.get: denied returning restricted session {session_id}', session_id=session_id)
+                self.log.warn('wamp.session.get: denied returning restricted session {session_id}',
+                              session_id=session_id)
         self.log.warn('wamp.session.get: session {session_id} not found', session_id=session_id)
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
@@ -276,12 +294,7 @@ class RouterServiceAgent(ApplicationSession):
         publish_options.pop("acknowledge", None)
         publish_options.pop("exclude_me", None)
 
-        pub = message.Publish(
-            request=pub_id,
-            topic=topic,
-            args=args,
-            kwargs=kwargs,
-            **publish_options)
+        pub = message.Publish(request=pub_id, topic=topic, args=args, kwargs=kwargs, **publish_options)
 
         session._testaments[scope].append(pub)
 
@@ -334,8 +347,9 @@ class RouterServiceAgent(ApplicationSession):
                 session.leave(reason=reason, message=message)
                 return
             else:
-                self.log.warn('wamp.session.session_kill(session_id={session_id}): skip killing of restricted session {session_id}',
-                              session_id=session_id)
+                self.log.warn(
+                    'wamp.session.session_kill(session_id={session_id}): skip killing of restricted session {session_id}',
+                    session_id=session_id)
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
             'no session with ID {} exists on this router'.format(session_id),
@@ -367,8 +381,10 @@ class RouterServiceAgent(ApplicationSession):
                     killed.append(session._session_id)
                     session.leave(reason=reason, message=message)
                 else:
-                    self.log.warn('wamp.session.session_kill_by_authid(authid="{authid}"): skip killing of restricted session {session_id}',
-                                  authid=authid, session_id=session._session_id)
+                    self.log.warn(
+                        'wamp.session.session_kill_by_authid(authid="{authid}"): skip killing of restricted session {session_id}',
+                        authid=authid,
+                        session_id=session._session_id)
         return killed
 
     @wamp.register('wamp.session.kill_by_authrole')
@@ -397,8 +413,10 @@ class RouterServiceAgent(ApplicationSession):
                     killed.append(session._session_id)
                     session.leave(reason=reason, message=message)
                 else:
-                    self.log.warn('wamp.session.session_kill_by_authrole(authrole="{authrole}"): skip killing of restricted session {session_id}',
-                                  authrole=authrole, session_id=session._session_id)
+                    self.log.warn(
+                        'wamp.session.session_kill_by_authrole(authrole="{authrole}"): skip killing of restricted session {session_id}',
+                        authrole=authrole,
+                        session_id=session._session_id)
         return killed
 
     @wamp.register('wamp.registration.remove_callee')
@@ -430,7 +448,8 @@ class RouterServiceAgent(ApplicationSession):
             if callee not in registration.observers:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_REGISTRATION,
-                    'session {} is not registered on registration {} on this dealer'.format(callee_id, registration_id),
+                    'session {} is not registered on registration {} on this dealer'.format(
+                        callee_id, registration_id),
                 )
 
             self._router._dealer.removeCallee(registration, callee, reason=reason)
@@ -469,7 +488,8 @@ class RouterServiceAgent(ApplicationSession):
             if subscriber not in subscription.observers:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_SUBSCRIPTION,
-                    'session {} is not subscribed on subscription {} on this broker'.format(subscriber_id, subscription_id),
+                    'session {} is not subscribed on subscription {} on this broker'.format(
+                        subscriber_id, subscription_id),
                 )
 
             self._router._broker.removeSubscriber(subscription, subscriber, reason=reason)
@@ -892,7 +912,9 @@ class RouterServiceAgent(ApplicationSession):
         :returns: List of events.
         :rtype: list
         """
-        self.log.debug('subscription_get_events({subscription_id}, {limit})', subscription_id=subscription_id, limit=limit)
+        self.log.debug('subscription_get_events({subscription_id}, {limit})',
+                       subscription_id=subscription_id,
+                       limit=limit)
 
         if not self._router._broker._event_store:
             raise ApplicationError(

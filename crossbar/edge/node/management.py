@@ -104,8 +104,8 @@ class NodeManagementSession(ApplicationSession):
 
         else:
             raise Exception(
-                'internal error: we asked to authenticate using wamp-cryptosign, but now received a challenge for {}'
-                .format(challenge.method))
+                'internal error: we asked to authenticate using wamp-cryptosign, but now received a challenge for {}'.
+                format(challenge.method))
 
     def onJoin(self, details):
         self.log.info('{func}(details={details})', func=hltype(self.onJoin), details=details)
@@ -121,17 +121,14 @@ class NodeManagementSession(ApplicationSession):
                     details.authid,  # the authid (==node_id) we've got auto-assigned
                     details.authextra))
             else:
-                raise Exception(
-                    'internal error: on_ready callback already called when we expected it was not')
+                raise Exception('internal error: on_ready callback already called when we expected it was not')
         else:
             raise Exception('internal error: no on_ready callback provided')
 
     def onLeave(self, details):
         self.log.debug('{klass}.onLeave(details={details})', klass=self.__class__.__name__, details=details)
 
-        if details.reason in [
-                'fabric.auth-failed.node-unpaired', 'fabric.auth-failed.node-already-connected'
-        ]:
+        if details.reason in ['fabric.auth-failed.node-unpaired', 'fabric.auth-failed.node-already-connected']:
             # no reason to auto-reconnect: user needs to get active and pair the node first.
             self._runner.stop()
 
@@ -237,8 +234,7 @@ class NodeManagementBridgeSession(ApplicationSession):
             node_id=self._node_id,
             management_realm=self._management_realm,
             public_key=self._node_key.public_key())
-        self.log.info('Controller configuration: {controller_config}',
-                      controller_config=self._controller_config)
+        self.log.info('Controller configuration: {controller_config}', controller_config=self._controller_config)
 
     @inlineCallbacks
     def detach_manager(self):
@@ -361,12 +357,11 @@ class NodeManagementBridgeSession(ApplicationSession):
                                                 self._node_id,
                                                 obj,
                                                 options=PublishOptions(acknowledge=True))
-                    self.log.debug(
-                        'Node heartbeat sent [node_id="{node_id}", timestamp="{timestamp}", seq={seq}]',
-                        timestamp=np.datetime64(obj['timestamp'], 'ns'),
-                        seq=obj['seq'],
-                        node_id=self._node_id,
-                        obj=obj)
+                    self.log.debug('Node heartbeat sent [node_id="{node_id}", timestamp="{timestamp}", seq={seq}]',
+                                   timestamp=np.datetime64(obj['timestamp'], 'ns'),
+                                   seq=obj['seq'],
+                                   node_id=self._node_id,
+                                   obj=obj)
                     self.log.debug('{heartbeat}', heartbeat=pprint.pformat(obj))
                 else:
                     self.log.warn(

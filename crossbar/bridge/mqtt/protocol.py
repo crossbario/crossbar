@@ -6,13 +6,21 @@
 #####################################################################################
 
 from ._events import (
-    Failure, ParseFailure,
-    Connect, ConnACK,
-    Subscribe, SubACK,
-    Unsubscribe, UnsubACK,
-    Publish, PubACK,
-    PubREC, PubREL, PubCOMP,
-    PingREQ, PingRESP,
+    Failure,
+    ParseFailure,
+    Connect,
+    ConnACK,
+    Subscribe,
+    SubACK,
+    Unsubscribe,
+    UnsubACK,
+    Publish,
+    PubACK,
+    PubREC,
+    PubREL,
+    PubCOMP,
+    PingREQ,
+    PingRESP,
     Disconnect,
 )
 
@@ -78,10 +86,7 @@ client_packet_handlers = {
 def _parse_header(data):
     # New packet
     packet_type = data.read('uint:4')
-    flags = (data.read("bool"),
-             data.read("bool"),
-             data.read("bool"),
-             data.read("bool"))
+    flags = (data.read("bool"), data.read("bool"), data.read("bool"), data.read("bool"))
 
     multiplier = 1
     value = 0
@@ -179,8 +184,7 @@ class MQTTParser(object):
 
                     if packet_type not in self._packet_handlers:
                         self._state = PROTOCOL_VIOLATION
-                        events.append(Failure("Unimplemented packet type %d" % (
-                            packet_type,)))
+                        events.append(Failure("Unimplemented packet type %d" % (packet_type, )))
                         return events
 
                     packet_handler = self._packet_handlers[packet_type]
@@ -190,8 +194,7 @@ class MQTTParser(object):
                     if len(e.args) == 1:
                         events.append(Failure(e.args[0]))
                     else:
-                        events.append(Failure(
-                            e.args[1] + " in " + e.args[0].__name__))
+                        events.append(Failure(e.args[1] + " in " + e.args[0].__name__))
                     self._state = PROTOCOL_VIOLATION
                     return events
                 except bitstring.ReadError as e:

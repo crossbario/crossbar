@@ -61,9 +61,7 @@ class XbrDelegate(ApplicationSession):
         self.join(self.config.realm, authmethods=['cryptosign'], authextra=authextra)
 
     def onChallenge(self, challenge):
-        self.log.info('{klass}.onChallenge(challenge={challenge})',
-                      klass=self.__class__.__name__,
-                      challenge=challenge)
+        self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
             signed_challenge = self._key.sign_challenge(self, challenge)
@@ -105,14 +103,13 @@ class XbrDelegate(ApplicationSession):
             # https://ipfs.infura.io:5001/api/v0/cat?arg=QmenatrFHG1m5YSsRbCmoLyvVU4JX1fkbr9X7XM8FFSr1h
             meta_hash = 'QmenatrFHG1m5YSsRbCmoLyvVU4JX1fkbr9X7XM8FFSr1h'
 
-            signature = sign_eip712_catalog_create(wallet_raw, verifyingChain, verifyingContract, wallet_adr,
-                                                   created, catalog_id, terms_hash, meta_hash)
+            signature = sign_eip712_catalog_create(wallet_raw, verifyingChain, verifyingContract, wallet_adr, created,
+                                                   catalog_id, terms_hash, meta_hash)
 
             # https://xbr.network/docs/network/api.html#xbrnetwork.XbrNetworkApi.onboard_member
             try:
-                result = await self.call('xbr.network.create_catalog', member_id.bytes, catalog_id,
-                                         verifyingChain, created, verifyingContract, terms_hash, meta_hash,
-                                         None, signature, None)
+                result = await self.call('xbr.network.create_catalog', member_id.bytes, catalog_id, verifyingChain,
+                                         created, verifyingContract, terms_hash, meta_hash, None, signature, None)
                 self.log.info("create_catalog results:\n\n{result}\n", result=pformat(result))
             except ApplicationError as e:
                 self.log.error('ApplicationError: {error}', error=e)
@@ -155,8 +152,7 @@ class XbrDelegate(ApplicationSession):
                 raise e
 
             assert type(result) == dict
-            assert 'member_oid' in result and type(result['member_oid']) == bytes and len(
-                result['member_oid']) == 16
+            assert 'member_oid' in result and type(result['member_oid']) == bytes and len(result['member_oid']) == 16
             assert 'catalog_oid' in result and type(result['catalog_oid']) == bytes and len(
                 result['catalog_oid']) == 16
 

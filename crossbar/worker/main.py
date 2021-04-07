@@ -21,7 +21,7 @@ try:
 except ImportError:
     _HAS_VMPROF = False
 
-__all__ = ('_run_command_exec_worker',)
+__all__ = ('_run_command_exec_worker', )
 
 
 def get_argument_parser(parser=None):
@@ -40,11 +40,7 @@ def get_argument_parser(parser=None):
                         choices=['none', 'error', 'warn', 'info', 'debug', 'trace'],
                         help='Initial log level.')
 
-    parser.add_argument('-c',
-                        '--cbdir',
-                        type=str,
-                        required=True,
-                        help="Crossbar.io node directory (required).")
+    parser.add_argument('-c', '--cbdir', type=str, required=True, help="Crossbar.io node directory (required).")
 
     parser.add_argument('-r',
                         '--realm',
@@ -58,23 +54,16 @@ def get_argument_parser(parser=None):
                         type=str,
                         help='Crossbar.io personality _class_ name, eg "crossbar.personality.Personality" (required).')
 
-    parser.add_argument('-k',
-                        '--klass',
-                        required=True,
-                        type=str,
-                        help='Crossbar.io worker class, eg "crossbar.worker.container.ContainerController" (required).')
+    parser.add_argument(
+        '-k',
+        '--klass',
+        required=True,
+        type=str,
+        help='Crossbar.io worker class, eg "crossbar.worker.container.ContainerController" (required).')
 
-    parser.add_argument('-n',
-                        '--node',
-                        required=True,
-                        type=str,
-                        help='Crossbar.io node ID (required).')
+    parser.add_argument('-n', '--node', required=True, type=str, help='Crossbar.io node ID (required).')
 
-    parser.add_argument('-w',
-                        '--worker',
-                        type=str,
-                        required=True,
-                        help='Crossbar.io worker ID (required).')
+    parser.add_argument('-w', '--worker', type=str, required=True, help='Crossbar.io worker ID (required).')
 
     parser.add_argument('-e',
                         '--extra',
@@ -82,10 +71,7 @@ def get_argument_parser(parser=None):
                         required=False,
                         help='Crossbar.io worker extra configuration from worker.options.extra (optional).')
 
-    parser.add_argument('--title',
-                        type=str,
-                        default=None,
-                        help='Worker process title to set (optional).')
+    parser.add_argument('--title', type=str, default=None, help='Worker process title to set (optional).')
 
     parser.add_argument('--expose_controller',
                         type=bool,
@@ -97,15 +83,9 @@ def get_argument_parser(parser=None):
                         default=False,
                         help='Expose a shared object to all components (this feature requires crossbar).')
 
-    parser.add_argument('--shutdown',
-                        type=str,
-                        default=None,
-                        help='Shutdown method')
+    parser.add_argument('--shutdown', type=str, default=None, help='Shutdown method')
 
-    parser.add_argument('--restart',
-                        type=str,
-                        default=None,
-                        help='Restart method')
+    parser.add_argument('--restart', type=str, default=None, help='Restart method')
 
     if _HAS_VMPROF:
         parser.add_argument('--vmprof',
@@ -173,6 +153,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     # present.
     def ignore(sig, frame):
         log.debug("Ignoring SIGINT in worker.")
+
     signal.signal(signal.SIGINT, ignore)
 
     # actually begin logging
@@ -241,15 +222,12 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         if options.title:
             setproctitle.setproctitle(options.title)
         else:
-            setproctitle.setproctitle(
-                'crossbar-worker [{}]'.format(options.klass)
-            )
+            setproctitle.setproctitle('crossbar-worker [{}]'.format(options.klass))
 
     from twisted.internet.error import ConnectionDone
     from autobahn.twisted.websocket import WampWebSocketServerProtocol
 
     class WorkerServerProtocol(WampWebSocketServerProtocol):
-
         def connectionLost(self, reason):
             # the behavior here differs slightly whether we're shutting down orderly
             # or shutting down because of "issues"

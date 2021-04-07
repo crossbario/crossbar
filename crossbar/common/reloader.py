@@ -16,7 +16,7 @@ except NameError:
     # Python 3
     from imp import reload
 
-__all__ = ('TrackingModuleReloader',)
+__all__ = ('TrackingModuleReloader', )
 
 
 def get_module_path_and_mtime(m):
@@ -41,7 +41,6 @@ def get_module_path_and_mtime(m):
 
 
 class TrackingModuleReloader:
-
     """
     A tracking module reloader.
 

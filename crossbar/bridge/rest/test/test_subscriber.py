@@ -16,20 +16,12 @@ from crossbar.bridge.rest import MessageForwarder
 
 
 class MessageForwarderTestCase(TestCase):
-
     @inlineCallbacks
     def test_basic_web(self):
         """
         Plain request, no params.
         """
-        extra = {
-            "subscriptions": [
-                {
-                    "url": "https://foo.com/msg",
-                    "topic": "io.crossbar.forward1"
-                }
-            ]
-        }
+        extra = {"subscriptions": [{"url": "https://foo.com/msg", "topic": "io.crossbar.forward1"}]}
         config = ComponentConfig(realm="realm1", extra=extra)
 
         m = MockWebTransport(self)
@@ -38,8 +30,7 @@ class MessageForwarderTestCase(TestCase):
         c = MessageForwarder(config=config, webTransport=m)
         MockTransport(c)
 
-        res = yield c.publish("io.crossbar.forward1", "hi",
-                              options=PublishOptions(acknowledge=True))
+        res = yield c.publish("io.crossbar.forward1", "hi", options=PublishOptions(acknowledge=True))
 
         self.assertNotEqual(res.id, None)
         self.assertEqual(m.maderequest["args"], ("POST", b"https://foo.com/msg"))

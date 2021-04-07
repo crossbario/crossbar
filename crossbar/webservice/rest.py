@@ -5,7 +5,6 @@
 #
 #####################################################################################
 
-
 from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
 
@@ -19,7 +18,6 @@ class RouterWebServiceRestPublisher(RouterWebService):
     """
     HTTP/REST-to-WAMP Publisher Web service (part of REST-bridge).
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -48,7 +46,6 @@ class RouterWebServiceRestCaller(RouterWebService):
     """
     HTTP/REST-to-WAMP Caller Web service (part of REST-bridge).
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -62,16 +59,11 @@ class RouterWebServiceRestCaller(RouterWebService):
         # add the calling session to the router
         #
         router = transport._worker._router_session_factory._routerFactory._routers[config['realm']]
-        transport._worker._router_session_factory.add(caller_session,
-                                                      router,
-                                                      authrole=config.get('role', 'anonymous'))
+        transport._worker._router_session_factory.add(caller_session, router, authrole=config.get('role', 'anonymous'))
 
         # now create the caller Twisted Web resource
         #
-        resource = CallerResource(
-            config.get('options', {}),
-            caller_session
-        )
+        resource = CallerResource(config.get('options', {}), caller_session)
 
         return RouterWebServiceRestCaller(transport, path, config, resource)
 
@@ -80,7 +72,6 @@ class RouterWebServiceWebhook(RouterWebService):
     """
     HTTP/POST Webhook service (part of REST-bridge).
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality

@@ -5,7 +5,6 @@
 #
 #####################################################################################
 
-
 __all__ = ('WildcardMatcher', 'WildcardTrieMatcher')
 
 
@@ -15,7 +14,6 @@ class _Node(dict):
 
 
 class WildcardTrieMatcher(object):
-
     def __init__(self):
         self._root = _Node()
         self._values = set()
@@ -83,7 +81,7 @@ class WildcardTrieMatcher(object):
                 if nd is not None:
                     for e in rec(nd, i + 1):
                         yield e
-                nd = node.get('')   # wildcard
+                nd = node.get('')  # wildcard
                 if nd is not None:
                     for e in rec(nd, i + 1):
                         yield e
@@ -92,7 +90,6 @@ class WildcardTrieMatcher(object):
 
 
 class WildcardMatcher(object):
-
     def __init__(self):
         self._wildcard = {}
         self._wildcard_patterns = {}

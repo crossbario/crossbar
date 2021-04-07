@@ -21,10 +21,8 @@ else:
 
 __all__ = ('SystemInfo', 'ProcessInfo')
 
-
 # http://pythonhosted.org/psutil/
 # http://linux.die.net/man/5/proc
-
 
 if _HAS_PSUTIL:
 
@@ -34,20 +32,15 @@ if _HAS_PSUTIL:
         _HAS_AF_UNIX = True
 
     class SystemInfo:
-
         """
         Access system global information and statistics.
         """
-
         def __init__(self):
             """
             """
 
         def cpu(self):
-            return {
-                'physical_count': psutil.cpu_count(logical=False),
-                'logical_count': psutil.cpu_count(logical=True)
-            }
+            return {'physical_count': psutil.cpu_count(logical=False), 'logical_count': psutil.cpu_count(logical=True)}
 
         def stats(self):
             """
@@ -67,11 +60,7 @@ if _HAS_PSUTIL:
             res = {}
             i = 0
             for c in psutil.cpu_times(percpu=True):
-                res[i] = {
-                    'user': c.user,
-                    'system': c.system,
-                    'idle': c.idle
-                }
+                res[i] = {'user': c.user, 'system': c.system, 'idle': c.idle}
                 i += 1
             return res
 
@@ -129,7 +118,6 @@ if _HAS_PSUTIL:
             return res
 
     class ProcessInfo(object):
-
         """
         Access process related information and statistics
         """
@@ -260,10 +248,5 @@ if _HAS_PSUTIL:
                     else:
                         raddr = ""
                 status = str(c.status)
-                res.append({
-                    'type': socket_type,
-                    'local': laddr,
-                    'remote': raddr,
-                    'status': status
-                })
+                res.append({'type': socket_type, 'local': laddr, 'remote': raddr, 'status': status})
             return res

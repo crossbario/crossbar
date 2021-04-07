@@ -84,8 +84,7 @@ def dump_json(obj, minified=True):
         return json.dumps(obj, separators=(',', ':'), ensure_ascii=False)
 
     else:
-        return json.dumps(obj, indent=4, separators=(',', ': '),
-                          sort_keys=True, ensure_ascii=False)
+        return json.dumps(obj, indent=4, separators=(',', ': '), sort_keys=True, ensure_ascii=False)
 
 
 def hl(text, bold=False, color='yellow'):
@@ -179,9 +178,10 @@ def _add_debug_options(parser):
                         action='store_true',
                         help="This debug flag enables overall program lifecycle messages directly to terminal.")
 
-    parser.add_argument('--debug-programflow',
-                        action='store_true',
-                        help="This debug flag enables program flow log messages with fully qualified class/method names.")
+    parser.add_argument(
+        '--debug-programflow',
+        action='store_true',
+        help="This debug flag enables program flow log messages with fully qualified class/method names.")
 
     return parser
 
@@ -228,9 +228,7 @@ def _add_log_arguments(parser):
                         default=None,
                         help="Crossbar.io log directory (default: <Crossbar Node Directory>/)")
 
-    parser.add_argument('--logtofile',
-                        action='store_true',
-                        help="Whether or not to log to file")
+    parser.add_argument('--logtofile', action='store_true', help="Whether or not to log to file")
 
     return parser
 
@@ -412,8 +410,7 @@ def merge_config(base_config, other_config):
     merged_config = copy.deepcopy(base_config)
 
     if 'controller' in other_config:
-        merged_config['controller'] = _deep_merge_map(merged_config.get('controller', {}),
-                                                      other_config['controller'])
+        merged_config['controller'] = _deep_merge_map(merged_config.get('controller', {}), other_config['controller'])
 
     if 'workers' in other_config:
         merged_config['workers'] = _deep_merge_list(base_config.get('workers', []), other_config['workers'])
@@ -457,8 +454,8 @@ def maybe_from_env(value):
                 new_value = os.environ[var]
                 return True, new_value
             else:
-                print('WARNING: environment variable "{}" not set, but needed in XBR backend configuration'.
-                      format(var))
+                print(
+                    'WARNING: environment variable "{}" not set, but needed in XBR backend configuration'.format(var))
                 return False, None
         else:
             return False, value

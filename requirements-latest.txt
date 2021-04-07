@@ -16,7 +16,8 @@ eth-typing>=2.2.2
 flask>=1.1.1
 git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
 git+https://github.com/crossbario/py-multihash.git@remove-dep-version-limits#egg=py-multihash
-h2>=3.2.0
+# twisted/http2 needs <4:
+h2==3.2.0
 hexbytes>=0.2.1
 humanize>=0.5.1
 hyperframe>=5.2.0
@@ -65,7 +66,7 @@ txtorcon>=20.0.0
 u-msgpack-python>=2.4.1
 urllib3<1.25,>=1.21.1
 validate-email>=1.3
-vmprof>=0.4.12; platform_machine=='x86_64' or platform_machine=='i386' or platform_machine=='arm'
+vmprof>=0.4.15
 watchdog>=0.8.3
 web3>=5.13.1
 werkzeug>=0.14.1

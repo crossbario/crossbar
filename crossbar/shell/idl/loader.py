@@ -30,8 +30,7 @@ def extract_attributes(item, allowed_attributes=None):
     if allowed_attributes:
         for attr in attrs_dict:
             if attr not in allowed_attributes:
-                raise Exception('invalid XBR attribute  "{}" - must be one of {}'.format(
-                    attr, allowed_attributes))
+                raise Exception('invalid XBR attribute  "{}" - must be one of {}'.format(attr, allowed_attributes))
     return attrs_dict
 
 
@@ -278,8 +277,8 @@ def read_reflection_schema(buf, log=None):
                         typerefs_error_cnt += 1
 
                 elif _field_base_type in [
-                        'utype', 'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64',
-                        'uint64', 'float', 'double', 'string'
+                        'utype', 'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64',
+                        'float', 'double', 'string'
                 ]:
                     # enum
                     field['ref_category'] = 'enum'
@@ -294,8 +293,8 @@ def read_reflection_schema(buf, log=None):
                         typerefs_error_cnt += 1
 
                 else:
-                    raise Exception('unhandled field type: {} {} {} {}'.format(
-                        field_name, _field_base_type, _field_element, _field_index))
+                    raise Exception('unhandled field type: {} {} {} {}'.format(field_name, _field_base_type,
+                                                                               _field_element, _field_index))
 
             field_docs = extract_docs(_field)
             if field_docs:
@@ -370,9 +369,8 @@ def read_reflection_schema(buf, log=None):
                 call_stream = None
 
             if call_stream not in INTERFACE_MEMBER_STREAM_VALUES:
-                raise Exception(
-                    'invalid XBR interface member stream modifier "{}" - must be one of {}'.format(
-                        call_stream, INTERFACE_MEMBER_STREAM_VALUES))
+                raise Exception('invalid XBR interface member stream modifier "{}" - must be one of {}'.format(
+                    call_stream, INTERFACE_MEMBER_STREAM_VALUES))
 
             def _decode_type(x):
                 res = x.Name().decode('utf8')

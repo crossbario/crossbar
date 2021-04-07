@@ -11,11 +11,10 @@ from txaio import make_logger, as_future
 
 from crossbar.router.auth.pending import PendingAuth
 
-__all__ = ('PendingAuthTicket',)
+__all__ = ('PendingAuthTicket', )
 
 
 class PendingAuthTicket(PendingAuth):
-
     """
     Pending authentication information for WAMP-Ticket authentication.
     """
@@ -26,7 +25,10 @@ class PendingAuthTicket(PendingAuth):
 
     def __init__(self, pending_session_id, transport_info, realm_container, config):
         super(PendingAuthTicket, self).__init__(
-            pending_session_id, transport_info, realm_container, config,
+            pending_session_id,
+            transport_info,
+            realm_container,
+            config,
         )
 
         # The secret/ticket the authenticating principal will need to provide (filled only in static mode).
@@ -96,10 +98,10 @@ class PendingAuthTicket(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
+                              format(self._config['type']))
 
     def authenticate(self, signature):
-
         def on_authenticate_ok(principal):
             # backwards compatibility: dynamic ticket authenticator
             # was expected to return a role directly
@@ -157,4 +159,5 @@ class PendingAuthTicket(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
+                              format(self._config['type']))

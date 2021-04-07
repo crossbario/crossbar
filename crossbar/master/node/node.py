@@ -165,9 +165,7 @@ class FabricServiceNodeManager(ApplicationSession):
         # expose api on this object fo CFC clients
         domains = [(_CFC_GLOBAL_REALM, self.register)]
         for prefix, register in domains:
-            registrations = await register(self,
-                                           prefix=prefix,
-                                           options=RegisterOptions(details_arg='details'))
+            registrations = await register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
             for reg in registrations:
                 if type(reg) == Registration:
                     self.log.info('Registered CFC Global Realm "{realm}" API <{proc}>',
@@ -229,9 +227,7 @@ class FabricServiceNodeManager(ApplicationSession):
         :return:
         """
 
-        self.log.debug('{klass}._initialize_mrealm(mrealm={mrealm})',
-                       klass=self.__class__.__name__,
-                       mrealm=mrealm)
+        self.log.debug('{klass}._initialize_mrealm(mrealm={mrealm})', klass=self.__class__.__name__, mrealm=mrealm)
         # WAMP realm name of the realm to start
         realm_name = mrealm.name
 
@@ -258,12 +254,11 @@ class FabricServiceNodeManager(ApplicationSession):
                 }
             }
             realm_id = realm_name
-            await self.call(u'crossbar.worker.{}.start_router_realm'.format(router_id), realm_id,
-                            realm_config)
+            await self.call(u'crossbar.worker.{}.start_router_realm'.format(router_id), realm_id, realm_config)
 
             for role_id in [u'owner-role', u'backend-role', u'node-role', u'public-role']:
-                await self.call(u'crossbar.worker.{}.start_router_realm_role'.format(router_id), realm_id,
-                                role_id, BUILTIN_ROLES[role_id])
+                await self.call(u'crossbar.worker.{}.start_router_realm_role'.format(router_id), realm_id, role_id,
+                                BUILTIN_ROLES[role_id])
 
             self._router_realms[realm_name] = True
         else:
@@ -325,8 +320,7 @@ class FabricServiceNodeManager(ApplicationSession):
                 },
                 u'extra': mrealm_backend_extra
             }
-            await self.call(u'crossbar.worker.{}.start_component'.format(container_id), component_id,
-                            component_config)
+            await self.call(u'crossbar.worker.{}.start_component'.format(container_id), component_id, component_config)
 
             self._container_workers[container_id][component_id] = True
         else:
@@ -336,9 +330,7 @@ class FabricServiceNodeManager(ApplicationSession):
                 component_id=component_id)
 
         self.log.info('{note} {func}',
-                      note=hl('Ok, management realm "{}" initialized!'.format(realm_name),
-                              color='red',
-                              bold=True),
+                      note=hl('Ok, management realm "{}" initialized!'.format(realm_name), color='red', bold=True),
                       func=hltype(self._initialize_mrealm))
 
     @wamp.register(None)
@@ -366,8 +358,8 @@ class FabricServiceNodeManager(ApplicationSession):
             # stop the router roles
             if True:
                 for role_id in [u'owner-role', u'backend-role', u'node-role', u'public-role']:
-                    await self.call(u'crossbar.worker.{}.stop_router_realm_role'.format(router_id),
-                                    realm_name, role_id)
+                    await self.call(u'crossbar.worker.{}.stop_router_realm_role'.format(router_id), realm_name,
+                                    role_id)
 
             #  stop the realm
             if True:
@@ -376,8 +368,7 @@ class FabricServiceNodeManager(ApplicationSession):
 
             self.log.info('Management realm "{realm_name}" deactivated (complete)', realm_name=realm_name)
         else:
-            self.log.warn('Management realm "{realm_name}" not active (skipped deactivation)',
-                          realm_name=realm_name)
+            self.log.warn('Management realm "{realm_name}" not active (skipped deactivation)', realm_name=realm_name)
 
 
 class FabricCenterNode(node.FabricNode):
@@ -505,9 +496,8 @@ class FabricCenterNode(node.FabricNode):
 
                         self._config = xbr_node_config_data
 
-                        self.log.info(
-                            'Node configuration loaded from XBR network (xbr_node_id="{xbr_node_id}")',
-                            xbr_node_id=hlid('0x' + binascii.b2a_hex(xbr_node_id).decode()))
+                        self.log.info('Node configuration loaded from XBR network (xbr_node_id="{xbr_node_id}")',
+                                      xbr_node_id=hlid('0x' + binascii.b2a_hex(xbr_node_id).decode()))
                     else:
                         self.log.debug(
                             'There is no node configuration stored in XBR network (xbr_node_id="{xbr_node_id}")',
@@ -545,9 +535,7 @@ class FabricCenterNode(node.FabricNode):
     @inlineCallbacks
     def start(self, node_id=None):
         self.log.info('{note} [{method}]',
-                      note=hl('Starting node (initialize master-node personality) ..',
-                              color='green',
-                              bold=True),
+                      note=hl('Starting node (initialize master-node personality) ..', color='green', bold=True),
                       method=hltype(FabricCenterNode.start))
         res = yield node.FabricNode.start(self, node_id)
         return res
@@ -582,8 +570,7 @@ class FabricCenterNode(node.FabricNode):
         yield extra['ready']
 
     def _add_extra_controller_components(self, controller_options):
-        self.log.debug(
-            'FabricCenterNode._add_extra_controller_components: no extra controller components added')
+        self.log.debug('FabricCenterNode._add_extra_controller_components: no extra controller components added')
 
     def _set_shutdown_triggers(self, controller_options):
         # CFC workers are not supposed to exit with error, so we shutdown when a worker
@@ -677,8 +664,7 @@ class FabricCenterNode(node.FabricNode):
 
         self._router_factory.add_role(self._realm, worker_role_config)
 
-        self.log.info(
-            'worker-specific role "{authrole}" added on node management router realm "{realm}" {func}',
-            func=hltype(self._add_worker_role),
-            authrole=hlid(worker_role_config['name']),
-            realm=hlid(self._realm))
+        self.log.info('worker-specific role "{authrole}" added on node management router realm "{realm}" {func}',
+                      func=hltype(self._add_worker_role),
+                      authrole=hlid(worker_role_config['name']),
+                      realm=hlid(self._realm))

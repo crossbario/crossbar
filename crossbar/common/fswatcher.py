@@ -18,11 +18,9 @@ else:
 
 __all__ = ('FilesystemWatcher', 'HAS_FS_WATCHER')
 
-
 if HAS_FS_WATCHER:
 
     class FilesystemWatcher:
-
         """
         Watches a directories for file system changes.
         """
@@ -49,6 +47,7 @@ if HAS_FS_WATCHER:
             Start watching.
             """
             if not self._started:
+
                 def on_any_event(evt):
                     event = {
                         'type': evt.event_type,

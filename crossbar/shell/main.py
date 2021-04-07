@@ -276,8 +276,7 @@ def cmd_set_output_verbosity(ctx):
     pass
 
 
-@cmd_set_output_verbosity.command(name='silent',
-                                  help='swallow everything including result, but error messages')
+@cmd_set_output_verbosity.command(name='silent', help='swallow everything including result, but error messages')
 @click.pass_context
 def cmd_set_output_verbosity_silent(ctx):
     ctx.obj.app.set_output_verbosity('silent')
@@ -311,8 +310,7 @@ def cmd_set_output_format(ctx):
 
 
 def _make_set_output_format(output_format):
-    @cmd_set_output_format.command(name=output_format,
-                                   help='set {} output format'.format(output_format.upper()))
+    @cmd_set_output_format.command(name=output_format, help='set {} output format'.format(output_format.upper()))
     @click.pass_context
     def f(ctx):
         ctx.obj.app.set_output_format(output_format)
@@ -713,7 +711,8 @@ def cmd_delete(ctx):
 @click.option(
     '--cascade',
     is_flag=True,
-    help='Automatically unpair (but not delete) any nodes currently paired with and unassign (but not delete) any users currently assigned to the management realm to be deleted.'
+    help=
+    'Automatically unpair (but not delete) any nodes currently paired with and unassign (but not delete) any users currently assigned to the management realm to be deleted.'
 )
 @click.pass_context
 def cmd_delete_management_realm(ctx, realm, cascade=False):
@@ -1013,10 +1012,7 @@ def cmd_list(ctx):
 
 
 @cmd_list.command(name='mrealms', help='list management realms')
-@click.option('--names/--no-names',
-              default=False,
-              type=bool,
-              help='return node names (authid) instead of object IDs')
+@click.option('--names/--no-names', default=False, type=bool, help='return node names (authid) instead of object IDs')
 @click.pass_context
 def cmd_list_management_realms(ctx, names):
     cmd = command.CmdListManagementRealms(names=names)
@@ -1024,10 +1020,7 @@ def cmd_list_management_realms(ctx, names):
 
 
 @cmd_list.command(name='nodes', help='list nodes')
-@click.option('--names/--no-names',
-              default=False,
-              type=bool,
-              help='return node names (authid) instead of object IDs')
+@click.option('--names/--no-names', default=False, type=bool, help='return node names (authid) instead of object IDs')
 @click.option(
     '--online',
     is_flag=True,
@@ -1097,10 +1090,7 @@ def cmd_list_roles(ctx, arealm, names):
 
 @cmd_list.command(name='principals', help='list principals')
 @click.argument('arealm')
-@click.option('--names/--no-names',
-              default=False,
-              type=bool,
-              help='return principals names instead of object IDs')
+@click.option('--names/--no-names', default=False, type=bool, help='return principals names instead of object IDs')
 @click.pass_context
 def cmd_list_principals(ctx, arealm, names):
     cmd = command.CmdListPrincipals(arealm, names=names)
@@ -1117,10 +1107,7 @@ def cmd_list_principal_credentials(ctx, arealm, principal):
 
 
 @cmd_list.command(name='routerclusters', help='list routerclusters')
-@click.option('--names/--no-names',
-              default=False,
-              type=bool,
-              help='return routerclusters names instead of object IDs')
+@click.option('--names/--no-names', default=False, type=bool, help='return routerclusters names instead of object IDs')
 @click.pass_context
 def cmd_list_routerclusters(ctx, names):
     cmd = command.CmdListRouterClusters(names=names)
@@ -1160,10 +1147,7 @@ def cmd_list_routercluster_workergroups(ctx, cluster, names, filter_status):
 
 
 @cmd_list.command(name='webclusters', help='list webclusters')
-@click.option('--names/--no-names',
-              default=False,
-              type=bool,
-              help='return webcluster names instead of object IDs')
+@click.option('--names/--no-names', default=False, type=bool, help='return webcluster names instead of object IDs')
 @click.pass_context
 def cmd_list_webclusters(ctx, names):
     cmd = command.CmdListWebClusters(names=names)

@@ -13,7 +13,7 @@ from twisted.internet.error import ConnectionDone
 
 from txaio import make_logger
 
-__all__ = ('create_guest_worker_client_factory',)
+__all__ = ('create_guest_worker_client_factory', )
 
 
 class GuestWorkerClientProtocol(protocol.Protocol):
@@ -58,16 +58,14 @@ class GuestWorkerClientProtocol(protocol.Protocol):
         self.factory._on_ready.callback(self)
 
     def connectionLost(self, reason):
-        self.log.debug("GuestWorkerClientProtocol.connectionLost: {reason}",
-                       reason=reason)
+        self.log.debug("GuestWorkerClientProtocol.connectionLost: {reason}", reason=reason)
         try:
             if isinstance(reason.value, (ProcessDone, ConnectionDone)):
                 self.log.debug("GuestWorkerClientProtocol: guest ended cleanly")
                 self.factory._on_exit.callback(None)
 
             elif isinstance(reason.value, ProcessTerminated):
-                self.log.debug("GuestWorkerClientProtocol: guest ended with error {code}",
-                               code=reason.value.exitCode)
+                self.log.debug("GuestWorkerClientProtocol: guest ended with error {code}", code=reason.value.exitCode)
                 self.factory._on_exit.errback(reason)
 
             else:
@@ -82,7 +80,7 @@ class GuestWorkerClientProtocol(protocol.Protocol):
             self.log.failure("GuestWorkerClientProtocol: INTERNAL ERROR - {log_failure}")
 
     def signal(self, sig='TERM'):
-        assert(sig in ['KILL', 'TERM', 'INT'])
+        assert (sig in ['KILL', 'TERM', 'INT'])
         try:
             self.transport.signalProcess(sig)
         except ProcessExitedAlready:
@@ -92,7 +90,6 @@ class GuestWorkerClientProtocol(protocol.Protocol):
 
 
 class GuestWorkerClientFactory(protocol.Factory):
-
     def __init__(self, config, on_ready, on_exit):
         self.proto = None
         self._config = config
@@ -105,7 +102,7 @@ class GuestWorkerClientFactory(protocol.Factory):
         return self.proto
 
     def signal(self, sig='TERM'):
-        assert(sig in ['KILL', 'TERM', 'INT'])
+        assert (sig in ['KILL', 'TERM', 'INT'])
         if self.proto:
             self.proto.signal(sig)
 

@@ -11,5 +11,4 @@ from crossbar.bridge.rest.publisher import PublisherResource
 from crossbar.bridge.rest.subscriber import MessageForwarder
 from crossbar.bridge.rest.webhook import WebhookResource
 
-__all__ = ("PublisherResource", "CallerResource", "RESTCallee",
-           "MessageForwarder", "WebhookResource")
+__all__ = ("PublisherResource", "CallerResource", "RESTCallee", "MessageForwarder", "WebhookResource")

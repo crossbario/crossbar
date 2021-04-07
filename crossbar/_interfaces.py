@@ -4,7 +4,6 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-
 """
 Interfaces used internally inside Crossbar.io to abstract/decouple different software components.
 
@@ -18,7 +17,7 @@ import abc
 
 from autobahn.wamp import ISession
 
-__all__ = ('IRealmContainer',)
+__all__ = ('IRealmContainer', )
 
 
 class IRealmContainer(abc.ABC):
@@ -26,7 +25,6 @@ class IRealmContainer(abc.ABC):
     Interface to containers of routing realms the authentication system can query
     about the existence of realms and roles during authentication.
     """
-
     @abc.abstractmethod
     def has_realm(self, realm: str) -> bool:
         """

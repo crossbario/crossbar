@@ -239,9 +239,7 @@ class RouterClusterManager(object):
         """
         assert self._started is None, 'cannot start router cluster manager - already running!'
 
-        regs = yield self._session.register(self,
-                                            prefix=prefix,
-                                            options=RegisterOptions(details_arg='details'))
+        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
         procs = [reg.procedure for reg in regs]
         self.log.info('Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n',
                       api=hl('Router cluster manager API', color='green', bold=True),
@@ -378,8 +376,7 @@ class RouterClusterManager(object):
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid routercluster_oid: {}'.format(str(e)))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid routercluster_oid: {}'.format(str(e)))
 
         with self.db.begin() as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
@@ -391,9 +388,7 @@ class RouterClusterManager(object):
                                    'no routercluster with oid {}'.format(routercluster_oid_))
 
     @wamp.register(None, check_types=True)
-    def get_routercluster_by_name(self,
-                                  routercluster_name: str,
-                                  details: Optional[CallDetails] = None) -> dict:
+    def get_routercluster_by_name(self, routercluster_name: str, details: Optional[CallDetails] = None) -> dict:
         """
         Return configuration and run-time status information for a router cluster (by name).
 
@@ -497,8 +492,7 @@ class RouterClusterManager(object):
                                            'no user found for authid "{}"'.format(details.caller_authid))
             obj.owner_oid = caller_oid
         else:
-            raise ApplicationError('wamp.error.no_such_principal',
-                                   'cannot map user - no caller authid available')
+            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
 
         with self.db.begin(write=True) as txn:
             if self.schema.idx_routerclusters_by_name[txn, obj.name]:
@@ -511,19 +505,14 @@ class RouterClusterManager(object):
 
         res_obj = obj.marshal()
 
-        await self._session.publish('{}.on_routercluster_created'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_routercluster_created'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
-        self.log.info('Management API event <on_routercluster_created> published:\n{res_obj}',
-                      res_obj=res_obj)
+        self.log.info('Management API event <on_routercluster_created> published:\n{res_obj}', res_obj=res_obj)
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    async def delete_routercluster(self,
-                                   routercluster_oid: str,
-                                   details: Optional[CallDetails] = None) -> dict:
+    async def delete_routercluster(self, routercluster_oid: str, details: Optional[CallDetails] = None) -> dict:
         """
         Delete an existing router cluster definition. The router cluster must be in status ``"STOPPED"``.
 
@@ -569,8 +558,7 @@ class RouterClusterManager(object):
                     raise ApplicationError('wamp.error.no_such_principal',
                                            'no user found for authid "{}"'.format(details.caller_authid))
         else:
-            raise ApplicationError('wamp.error.no_such_principal',
-                                   'cannot map user - no caller authid available')
+            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
 
         with self.db.begin(write=True) as txn:
             cluster_obj = self.schema.routerclusters[txn, oid]
@@ -582,22 +570,17 @@ class RouterClusterManager(object):
                     raise ApplicationError('crossbar.error.not_stopped')
                 del self.schema.routerclusters[txn, oid]
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(oid))
+                raise ApplicationError('crossbar.error.no_such_object', 'no object with oid {} found'.format(oid))
 
         cluster_obj.changed = time_ns()
         self.log.info('RouterCluster object deleted from database:\n{cluster}', cluster=cluster_obj)
 
         res_obj = cluster_obj.marshal()
-        await self._session.publish('{}.on_routercluster_deleted'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_routercluster_deleted'.format(self._prefix), res_obj, options=self._PUBOPTS)
         return res_obj
 
     @wamp.register(None, check_types=True)
-    async def start_routercluster(self,
-                                  routercluster_oid: str,
-                                  details: Optional[CallDetails] = None) -> dict:
+    async def start_routercluster(self, routercluster_oid: str, details: Optional[CallDetails] = None) -> dict:
         """
         Start a router cluster
 
@@ -637,8 +620,7 @@ class RouterClusterManager(object):
                     raise ApplicationError('wamp.error.no_such_principal',
                                            'no user found for authid "{}"'.format(details.caller_authid))
         else:
-            raise ApplicationError('wamp.error.no_such_principal',
-                                   'cannot map user - no caller authid available')
+            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
 
         with self.db.begin(write=True) as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
@@ -647,8 +629,7 @@ class RouterClusterManager(object):
                                        'no routercluster with oid {} found'.format(routercluster_oid_))
 
             if routercluster.owner_oid != caller_oid:
-                raise ApplicationError('wamp.error.not_authorized',
-                                       'only owner is allowed to start a router cluster')
+                raise ApplicationError('wamp.error.not_authorized', 'only owner is allowed to start a router cluster')
 
             if routercluster.status not in [cluster.STATUS_STOPPED, cluster.STATUS_PAUSED]:
                 emsg = 'cannot start routercluster currently in state {}'.format(
@@ -907,8 +888,7 @@ class RouterClusterManager(object):
                 raise ApplicationError('crossbar.error.no_such_object',
                                        'no routercluster with oid {} found'.format(membership.cluster_oid))
 
-            self.schema.routercluster_node_memberships[txn, (membership.cluster_oid,
-                                                             membership.node_oid)] = membership
+            self.schema.routercluster_node_memberships[txn, (membership.cluster_oid, membership.node_oid)] = membership
 
         res_obj = membership.marshal()
         self.log.info('node added to router cluster:\n{membership}', membership=res_obj)
@@ -964,8 +944,7 @@ class RouterClusterManager(object):
         with self.gdb.begin() as txn:
             node = self.gschema.nodes[txn, node_oid_]
             if not node or node.mrealm_oid != self._session._mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no node with oid {} found'.format(node_oid_))
+                raise ApplicationError('crossbar.error.no_such_object', 'no node with oid {} found'.format(node_oid_))
 
         with self.db.begin(write=True) as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
@@ -977,8 +956,7 @@ class RouterClusterManager(object):
             if not membership:
                 raise ApplicationError(
                     'crossbar.error.no_such_object',
-                    'no association between node {} and routercluster {} found'.format(
-                        node_oid_, routercluster_oid_))
+                    'no association between node {} and routercluster {} found'.format(node_oid_, routercluster_oid_))
 
             del self.schema.routercluster_node_memberships[txn, (routercluster_oid_, node_oid_)]
 
@@ -1037,8 +1015,7 @@ class RouterClusterManager(object):
         with self.gdb.begin() as txn:
             node = self.gschema.nodes[txn, node_oid_]
             if not node or node.mrealm_oid != self._session._mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no node with oid {} found'.format(node_oid_))
+                raise ApplicationError('crossbar.error.no_such_object', 'no node with oid {} found'.format(node_oid_))
 
         with self.db.begin() as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
@@ -1050,8 +1027,7 @@ class RouterClusterManager(object):
             if not membership:
                 raise ApplicationError(
                     'crossbar.error.no_such_object',
-                    'no association between node {} and routercluster {} found'.format(
-                        node_oid_, routercluster_oid_))
+                    'no association between node {} and routercluster {} found'.format(node_oid_, routercluster_oid_))
 
         res_obj = membership.marshal()
 
@@ -1112,8 +1088,10 @@ class RouterClusterManager(object):
             # Use index "idx_workergroup_by_cluster": (cluster_oid, workergroup_name) -> workergroup_oid
             from_key = (routercluster_oid_, '')
             to_key = (uuid.UUID(int=(int(routercluster_oid_) + 1)), '')
-            for (_, workergroup_name), workergroup_oid in self.schema.idx_workergroup_by_cluster.select(
-                    txn, from_key=from_key, to_key=to_key):
+            for (_,
+                 workergroup_name), workergroup_oid in self.schema.idx_workergroup_by_cluster.select(txn,
+                                                                                                     from_key=from_key,
+                                                                                                     to_key=to_key):
                 if return_names:
                     workergroups.append(workergroup_name)
                 else:
@@ -1159,12 +1137,11 @@ class RouterClusterManager(object):
         assert type(workergroup) == dict
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info(
-            '{func}(routercluster_oid={routercluster_oid}, workergroup={workergroup}, details={details})',
-            routercluster_oid=hlid(routercluster_oid),
-            workergroup=pformat(workergroup),
-            func=hltype(self.add_routercluster_workergroup),
-            details=details)
+        self.log.info('{func}(routercluster_oid={routercluster_oid}, workergroup={workergroup}, details={details})',
+                      routercluster_oid=hlid(routercluster_oid),
+                      workergroup=pformat(workergroup),
+                      func=hltype(self.add_routercluster_workergroup),
+                      details=details)
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
@@ -1202,8 +1179,7 @@ class RouterClusterManager(object):
                 placement.oid = uuid.uuid4()
                 placement.worker_group_oid = workergroup_obj.oid
                 placement.cluster_oid = routercluster_oid_
-                placement.node_oid = self._place_worker(placement.cluster_oid, placement.worker_group_oid,
-                                                        nodes, i)
+                placement.node_oid = self._place_worker(placement.cluster_oid, placement.worker_group_oid, nodes, i)
                 placement.worker_name = '{}_{}'.format(workergroup_obj.name, i + 1)
 
                 self.schema.router_workergroup_placements[txn, placement.oid] = placement
@@ -1212,9 +1188,7 @@ class RouterClusterManager(object):
 
         res_obj = workergroup_obj.marshal()
 
-        await self._session.publish('{}.on_workergroup_added'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_workergroup_added'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         self.log.info('Management API event <on_workergroup_added> published:\n{res_obj}', res_obj=res_obj)
 
@@ -1261,14 +1235,12 @@ class RouterClusterManager(object):
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid routercluster_oid "{}"'.format(str(e)))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid routercluster_oid "{}"'.format(str(e)))
 
         try:
             workergroup_oid_ = uuid.UUID(workergroup_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid workergroup_oid "{}"'.format(str(e)))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid workergroup_oid "{}"'.format(str(e)))
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
@@ -1277,8 +1249,7 @@ class RouterClusterManager(object):
                     raise ApplicationError('wamp.error.no_such_principal',
                                            'no user found for authid "{}"'.format(details.caller_authid))
         else:
-            raise ApplicationError('wamp.error.no_such_principal',
-                                   'cannot map user - no caller authid available')
+            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
 
         with self.db.begin(write=True) as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
@@ -1307,9 +1278,7 @@ class RouterClusterManager(object):
 
         res_obj = workergroup.marshal()
 
-        await self._session.publish('{}.on_workergroup_removed'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish('{}.on_workergroup_removed'.format(self._prefix), res_obj, options=self._PUBOPTS)
 
         self.log.info('Management API event <on_workergroup_removed> published:\n{res_obj}', res_obj=res_obj)
 
@@ -1409,8 +1378,7 @@ class RouterClusterManager(object):
                 raise ApplicationError('crossbar.error.no_such_object',
                                        'no routercluster named {}'.format(routercluster_name))
 
-            workergroup_oid = self.schema.idx_workergroup_by_cluster[txn,
-                                                                     (routercluster_oid, workergroup_name)]
+            workergroup_oid = self.schema.idx_workergroup_by_cluster[txn, (routercluster_oid, workergroup_name)]
             if not workergroup_oid:
                 raise ApplicationError('crossbar.error.no_such_object',
                                        'no workergroup named {}'.format(workergroup_name))
@@ -1448,8 +1416,7 @@ class RouterClusterManager(object):
 
         raise NotImplementedError()
 
-    def _place_worker(self, routercluster_oid: uuid.UUID, workergroup_oid: uuid.UUID, nodes: List[uuid.UUID],
-                      i: int):
+    def _place_worker(self, routercluster_oid: uuid.UUID, workergroup_oid: uuid.UUID, nodes: List[uuid.UUID], i: int):
         """
         Place a new worker in a router worker group running on a router cluster, specifically place
         the node on a node from the given list.

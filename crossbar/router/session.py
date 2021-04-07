@@ -36,11 +36,10 @@ from twisted.python.failure import Failure
 try:
     from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
 except ImportError:
-    PendingAuthCryptosign = None
-    PendingAuthCryptosignProxy = None
+    PendingAuthCryptosign = None  # type: ignore
+    PendingAuthCryptosignProxy = None  # type: ignore
 
-
-__all__ = ('RouterSessionFactory',)
+__all__ = ('RouterSessionFactory', )
 
 
 class RouterApplicationSession(object):
@@ -66,15 +65,23 @@ class RouterApplicationSession(object):
         :param authrole: The fixed/trusted authentication role under which the session will run.
         :type authrole: str
         """
-        assert isinstance(session, ApplicationSession), 'session must be of class ApplicationSession, not {}'.format(session.__class__.__name__ if session else type(session))
-        assert isinstance(router, Router), 'router must be of class Router, not {}'.format(router.__class__.__name__ if router else type(router))
-        assert(authid is None or isinstance(authid, str))
-        assert(authrole is None or isinstance(authrole, str))
-        assert(authextra is None or type(authextra) == dict)
+        assert isinstance(session, ApplicationSession), 'session must be of class ApplicationSession, not {}'.format(
+            session.__class__.__name__ if session else type(session))
+        assert isinstance(router, Router), 'router must be of class Router, not {}'.format(
+            router.__class__.__name__ if router else type(router))
+        assert (authid is None or isinstance(authid, str))
+        assert (authrole is None or isinstance(authrole, str))
+        assert (authextra is None or type(authextra) == dict)
 
-        self.log.debug('{func}(session={session}, router={router}, authid="{authid}", authrole="{authrole}", authextra={authextra}, store={store})',
-                       func=hltype(RouterApplicationSession.__init__), session=session, router=router,
-                       authid=hlid(authid), authrole=hlid(authrole), authextra=authextra, store=store)
+        self.log.debug(
+            '{func}(session={session}, router={router}, authid="{authid}", authrole="{authrole}", authextra={authextra}, store={store})',
+            func=hltype(RouterApplicationSession.__init__),
+            session=session,
+            router=router,
+            authid=hlid(authid),
+            authrole=hlid(authrole),
+            authextra=authextra,
+            store=store)
 
         # remember router we are wrapping the app session for
         #
@@ -107,7 +114,8 @@ class RouterApplicationSession(object):
         #
         self._session._transport = self
 
-        self.log.debug('{func} firing {session}.onConnect() ..', session=self._session,
+        self.log.debug('{func} firing {session}.onConnect() ..',
+                       session=self._session,
                        func=hltype(RouterApplicationSession.__init__))
 
         # now start firing "connect" observers on the session ..
@@ -141,9 +149,7 @@ class RouterApplicationSession(object):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransport.close`
         """
-        self.log.info('{klass}.close(session={session})',
-                      klass=self.__class__.__name__,
-                      session=self._session)
+        self.log.info('{klass}.close(session={session})', klass=self.__class__.__name__, session=self._session)
         if self._router:
             if self._router.is_attached(self._session):
                 # See also #578; this is to prevent the set() of observers
@@ -158,18 +164,23 @@ class RouterApplicationSession(object):
                     try:
                         self._router.detach(sess)
                     except NotAttached:
-                        self.log.warn('cannot detach session "{}": session not currently attached'.format(self._session._session_id))
+                        self.log.warn('cannot detach session "{}": session not currently attached'.format(
+                            self._session._session_id))
                     except Exception:
                         self.log.failure()
+
                 reactor.callLater(0, detach, self._session)
             else:
-                self.log.warn('{klass}.close: router embedded session "{session_id}" not attached to router realm "{realm}" (skipping detaching of session)',
-                              klass=self.__class__.__name__,
-                              session_id=self._session._session_id,
-                              realm=self._router._realm.id)
+                self.log.warn(
+                    '{klass}.close: router embedded session "{session_id}" not attached to router realm "{realm}" (skipping detaching of session)',
+                    klass=self.__class__.__name__,
+                    session_id=self._session._session_id,
+                    realm=self._router._realm.id)
         else:
-            self.log.warn('{klass}.close: router already none (skipping)',
-                          klass=self.__class__.__name__,)
+            self.log.warn(
+                '{klass}.close: router already none (skipping)',
+                klass=self.__class__.__name__,
+            )
 
         if self._store:
             # FIXME
@@ -202,18 +213,19 @@ class RouterApplicationSession(object):
             # add app session to router
             self._router.attach(self._session)
 
-            self.log.debug('{func} attached {session} to realm={realm} with credentials session_id={session_id}, authid={authid}, authrole={authrole} using authmethod={authmethod}',
-                           session=self._session, session_id=self._session._session_id, realm=self._session._realm,
-                           authid=hlid(self._session._authid), authrole=hlid(self._session._authrole),
-                           authmethod=hl(self._session._authmethod), func=hltype(RouterApplicationSession.send))
+            self.log.debug(
+                '{func} attached {session} to realm={realm} with credentials session_id={session_id}, authid={authid}, authrole={authrole} using authmethod={authmethod}',
+                session=self._session,
+                session_id=self._session._session_id,
+                realm=self._session._realm,
+                authid=hlid(self._session._authid),
+                authrole=hlid(self._session._authrole),
+                authmethod=hl(self._session._authmethod),
+                func=hltype(RouterApplicationSession.send))
 
             # fake app session open
-            details = SessionDetails(self._session._realm,
-                                     self._session._session_id,
-                                     self._session._authid,
-                                     self._session._authrole,
-                                     self._session._authmethod,
-                                     self._session._authprovider,
+            details = SessionDetails(self._session._realm, self._session._session_id, self._session._authid,
+                                     self._session._authrole, self._session._authmethod, self._session._authprovider,
                                      self._session._authextra)
 
             # have to fire the 'join' notification ourselves, as we're
@@ -228,20 +240,17 @@ class RouterApplicationSession(object):
             d.addCallback(lambda _: self._session.fire('ready', self._session))
             d.addErrback(lambda fail: self._log_error(fail, "While notifying 'ready'"))
 
-            d.addCallback(lambda _: self.log.debug('{func} fired {session} "join" and "ready" events with details={details})',
-                                                   session=self._session, details=details,
-                                                   func=hltype(RouterApplicationSession.send)))
+            d.addCallback(
+                lambda _: self.log.debug('{func} fired {session} "join" and "ready" events with details={details})',
+                                         session=self._session,
+                                         details=details,
+                                         func=hltype(RouterApplicationSession.send)))
 
         # app-to-router
         #
-        elif isinstance(msg, (message.Publish,
-                              message.Subscribe,
-                              message.Unsubscribe,
-                              message.Call,
-                              message.Yield,
-                              message.Register,
-                              message.Unregister,
-                              message.Cancel)) or (isinstance(msg, message.Error) and msg.request_type == message.Invocation.MESSAGE_TYPE):
+        elif isinstance(msg, (message.Publish, message.Subscribe, message.Unsubscribe, message.Call, message.Yield,
+                              message.Register, message.Unregister, message.Cancel)) or (isinstance(
+                                  msg, message.Error) and msg.request_type == message.Invocation.MESSAGE_TYPE):
 
             # deliver message to router
             #
@@ -301,11 +310,9 @@ class RouterApplicationSession(object):
                 if self._router._realm.session:
                     try:
                         # publish management API v1 event
-                        yield self._router._realm.session.publish(
-                            'wamp.session.on_leave',
-                            session._session_id,
-                            options=PublishOptions(acknowledge=True)
-                        )
+                        yield self._router._realm.session.publish('wamp.session.on_leave',
+                                                                  session._session_id,
+                                                                  options=PublishOptions(acknowledge=True))
                         # # publish management API v2 event
                         # session_info_long = {
                         #     'session': session._session_id,
@@ -324,6 +331,7 @@ class RouterApplicationSession(object):
                         # )
                     except:
                         self.log.failure()
+
             d = do_goodbye()
             d.addErrback(lambda fail: self._log_error(fail, "Internal error"))
 
@@ -402,7 +410,8 @@ class RouterSession(BaseSession):
         if channel_id:
             self._transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
 
-        self.log.debug("Client session connected - transport: {transport_info}", transport_info=self._transport._transport_info)
+        self.log.debug("Client session connected - transport: {transport_info}",
+                       transport_info=self._transport._transport_info)
 
         # basic session information
         self._pending_session_id = None
@@ -431,7 +440,13 @@ class RouterSession(BaseSession):
             if not self._pending_session_id:
                 self._pending_session_id = util.id()
 
-            def welcome(realm, authid=None, authrole=None, authmethod=None, authprovider=None, authextra=None, custom=None):
+            def welcome(realm,
+                        authid=None,
+                        authrole=None,
+                        authmethod=None,
+                        authprovider=None,
+                        authextra=None,
+                        custom=None):
                 self._realm = realm
                 self._session_id = self._pending_session_id
                 self._pending_session_id = None
@@ -466,7 +481,9 @@ class RouterSession(BaseSession):
                                       custom=custom)
                 self._transport.send(msg)
 
-                self.onJoin(SessionDetails(self._realm, self._session_id, self._authid, self._authrole, self._authmethod, self._authprovider, self._authextra))
+                self.onJoin(
+                    SessionDetails(self._realm, self._session_id, self._authid, self._authrole, self._authmethod,
+                                   self._authprovider, self._authextra))
 
             # the first message MUST be HELLO
             if isinstance(msg, message.Hello):
@@ -489,9 +506,7 @@ class RouterSession(BaseSession):
                     # it is possible this session has disconnected
                     # while onHello was taking place
                     if self._transport is None:
-                        self.log.info(
-                            "Client session disconnected during authentication",
-                        )
+                        self.log.info("Client session disconnected during authentication", )
                         return
 
                     if isinstance(res, types.Accept):
@@ -501,7 +516,8 @@ class RouterSession(BaseSession):
                             'x_cb_peer': str(self._transport.peer),
                             'x_cb_pid': os.getpid(),
                         }
-                        welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
+                        welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra,
+                                custom)
 
                     elif isinstance(res, types.Challenge):
                         msg = message.Challenge(res.method, res.extra)
@@ -516,8 +532,12 @@ class RouterSession(BaseSession):
                         self._transport.send(msg)
 
                 def onHello_error(err):
-                    self.log.warn('{func}.onMessage(..)::onHello(realm="{realm}", details={details}) failed with {err}',
-                                  func=hltype(self.onMessage), realm=msg.realm, details=details, err=err)
+                    self.log.warn(
+                        '{func}.onMessage(..)::onHello(realm="{realm}", details={details}) failed with {err}',
+                        func=hltype(self.onMessage),
+                        realm=msg.realm,
+                        details=details,
+                        err=err)
                     return self._swallow_error_and_abort(err)
 
                 txaio.add_callbacks(d, onHello_success, onHello_error)
@@ -531,9 +551,7 @@ class RouterSession(BaseSession):
                     # it is possible this session has disconnected
                     # while authentication was taking place
                     if self._transport is None:
-                        self.log.info(
-                            "Client session disconnected during authentication",
-                        )
+                        self.log.info("Client session disconnected during authentication", )
                         return
 
                     if isinstance(res, types.Accept):
@@ -543,7 +561,8 @@ class RouterSession(BaseSession):
                             'x_cb_peer': str(self._transport.peer),
                             'x_cb_pid': os.getpid(),
                         }
-                        welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
+                        welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra,
+                                custom)
 
                     elif isinstance(res, types.Deny):
                         msg = message.Abort(res.reason, res.message)
@@ -556,7 +575,8 @@ class RouterSession(BaseSession):
 
                 def onAuthenticate_error(err):
                     self.log.warn('{func}.onMessage(..)::onAuthenticate(..) failed with {err}',
-                                  func=hltype(self.onMessage), err=err)
+                                  func=hltype(self.onMessage),
+                                  err=err)
                     self.log.failure(err)
                     return self._swallow_error_and_abort(err)
 
@@ -642,8 +662,7 @@ class RouterSession(BaseSession):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onClose`
         """
-        self.log.debug('{klass}.onClose(was_clean={was_clean})',
-                       klass=self.__class__.__name__, was_clean=wasClean)
+        self.log.debug('{klass}.onClose(was_clean={was_clean})', klass=self.__class__.__name__, was_clean=wasClean)
 
         # publish final serializer stats for WAMP client connection being closed
         if self._service_session:
@@ -673,9 +692,7 @@ class RouterSession(BaseSession):
             try:
                 self._router.detach(self)
             except Exception as e:
-                self.log.error(
-                    "Failed to detach session '{}': {}".format(self._session_id, e)
-                )
+                self.log.error("Failed to detach session '{}': {}".format(self._session_id, e))
                 self.log.debug("{tb}".format(tb=Failure().getTraceback()))
 
             self._session_id = None
@@ -740,7 +757,9 @@ class RouterSession(BaseSession):
             authextra = details.authextra
 
             self.log.debug('{func} processing authmethods={authmethods}, authextra={authextra}',
-                           func=hltype(self.onHello), authextra=authextra, authmethods=authmethods)
+                           func=hltype(self.onHello),
+                           authextra=authextra,
+                           authmethods=authmethods)
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
@@ -753,12 +772,14 @@ class RouterSession(BaseSession):
                     self._transport._authrealm = None
                     self._transport._authid = None
                     if hasattr(self._transport, '_cbtid'):
-                        self._transport.factory._cookiestore.setAuth(self._transport._cbtid, None, None, None, None, None)
+                        self._transport.factory._cookiestore.setAuth(self._transport._cbtid, None, None, None, None,
+                                                                     None)
                 else:
                     pass  # TLS authentication is not revoked here
 
             # perform authentication
-            if self._transport._authid is not None and (self._transport._authmethod == 'trusted' or self._transport._authprovider in authmethods):
+            if self._transport._authid is not None and (self._transport._authmethod == 'trusted'
+                                                        or self._transport._authprovider in authmethods):
 
                 # already authenticated .. e.g. via HTTP Cookie or TLS client-certificate
 
@@ -773,7 +794,11 @@ class RouterSession(BaseSession):
                                         authprovider=self._transport._authprovider,
                                         authextra=authextra)
                 else:
-                    return types.Deny(ApplicationError.NO_SUCH_ROLE, message="session was previously authenticated (via transport), but role '{}' no longer exists on realm '{}'".format(self._transport._authrole, realm))
+                    return types.Deny(
+                        ApplicationError.NO_SUCH_ROLE,
+                        message=
+                        "session was previously authenticated (via transport), but role '{}' no longer exists on realm '{}'"
+                        .format(self._transport._authrole, realm))
 
             else:
                 auth_config = self._transport_config.get('auth', None)
@@ -783,7 +808,9 @@ class RouterSession(BaseSession):
 
                     # .. but don't if the client isn't ready/willing to go on "anonymous"
                     if 'anonymous' not in authmethods:
-                        return types.Deny(ApplicationError.NO_AUTH_METHOD, message='cannot authenticate using any of the offered authmethods {}'.format(authmethods))
+                        return types.Deny(
+                            ApplicationError.NO_AUTH_METHOD,
+                            message='cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
                     authmethod = 'anonymous'
 
@@ -791,7 +818,8 @@ class RouterSession(BaseSession):
                         return types.Deny(ApplicationError.NO_SUCH_REALM, message='no realm requested')
 
                     if realm not in self._router_factory:
-                        return types.Deny(ApplicationError.NO_SUCH_REALM, message='no realm "{}" exists on this router'.format(realm))
+                        return types.Deny(ApplicationError.NO_SUCH_REALM,
+                                          message='no realm "{}" exists on this router'.format(realm))
 
                     # we ignore any details.authid the client might have announced, and use
                     # a cookie value or a random value
@@ -807,12 +835,12 @@ class RouterSession(BaseSession):
                     except KeyError:
                         PendingAuthKlass = extra_auth_methods[authmethod]
 
-                    self._pending_auth = PendingAuthKlass(
-                        self._pending_session_id,
-                        self._transport._transport_info,
-                        self._router_factory._worker,
-                        {'type': 'static', 'authrole': 'anonymous', 'authid': authid}
-                    )
+                    self._pending_auth = PendingAuthKlass(self._pending_session_id, self._transport._transport_info,
+                                                          self._router_factory._worker, {
+                                                              'type': 'static',
+                                                              'authrole': 'anonymous',
+                                                              'authid': authid
+                                                          })
                     return self._pending_auth.hello(realm, details)
 
                 else:
@@ -826,19 +854,29 @@ class RouterSession(BaseSession):
 
                         # authmethod not configured
                         if authmethod not in auth_config:
-                            self.log.debug("client requested valid, but unconfigured authentication method {authmethod}", authmethod=authmethod)
+                            self.log.debug(
+                                "client requested valid, but unconfigured authentication method {authmethod}",
+                                authmethod=authmethod)
                             continue
 
                         # authmethod not available
                         if authmethod not in AUTHMETHOD_MAP and authmethod not in extra_auth_methods:
-                            self.log.debug("client requested valid, but unavailable authentication method {authmethod}", authmethod=authmethod)
+                            self.log.debug(
+                                "client requested valid, but unavailable authentication method {authmethod}",
+                                authmethod=authmethod)
                             continue
 
                         # WAMP-Anonymous, WAMP-Ticket, WAMP-CRA, WAMP-TLS, WAMP-Cryptosign
                         # WAMP-SCRAM
                         pending_auth_methods = [
-                            'anonymous', 'anonymous-proxy', 'ticket', 'wampcra', 'tls',
-                            'cryptosign', 'cryptosign-proxy', 'scram',
+                            'anonymous',
+                            'anonymous-proxy',
+                            'ticket',
+                            'wampcra',
+                            'tls',
+                            'cryptosign',
+                            'cryptosign-proxy',
+                            'scram',
                         ] + list(extra_auth_methods.keys())
                         if authmethod in pending_auth_methods:
                             try:
@@ -868,7 +906,9 @@ class RouterSession(BaseSession):
                             raise Exception("logic error")
 
                     # no suitable authmethod found!
-                    return types.Deny(ApplicationError.NO_AUTH_METHOD, message='cannot authenticate using any of the offered authmethods {}'.format(authmethods))
+                    return types.Deny(
+                        ApplicationError.NO_AUTH_METHOD,
+                        message='cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
             self.log.failure()
@@ -911,7 +951,8 @@ class RouterSession(BaseSession):
 
         if hasattr(self._transport, '_cbtid') and self._transport._cbtid:
             if details.authmethod != 'cookie':
-                self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole, details.authmethod, details.authextra, self._realm)
+                self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole,
+                                                             details.authmethod, details.authextra, self._realm)
 
         # Router/Realm service session
         #
@@ -983,19 +1024,19 @@ class RouterSession(BaseSession):
                     self._service_session.publish('wamp.session.on_stats', session_info_short, stats)
 
                 self._transport._serializer.RATED_MESSAGE_SIZE = rated_message_size
-                self._transport._serializer.set_stats_autoreset(trigger_after_rated_messages,
-                                                                trigger_after_duration,
+                self._transport._serializer.set_stats_autoreset(trigger_after_rated_messages, trigger_after_duration,
                                                                 on_stats)
 
                 self._stats_enabled = True
 
-                self.log.info('WAMP session statistics {mode} (rated_message_size={rated_message_size}, trigger_after_rated_messages={trigger_after_rated_messages}, trigger_after_duration={trigger_after_duration}, trigger_on_join={trigger_on_join}, trigger_on_leave={trigger_on_leave})',
-                              trigger_after_rated_messages=trigger_after_rated_messages,
-                              trigger_after_duration=trigger_after_duration,
-                              trigger_on_join=trigger_on_join,
-                              trigger_on_leave=trigger_on_leave,
-                              rated_message_size=rated_message_size,
-                              mode=hl('ENABLED'))
+                self.log.info(
+                    'WAMP session statistics {mode} (rated_message_size={rated_message_size}, trigger_after_rated_messages={trigger_after_rated_messages}, trigger_after_duration={trigger_after_duration}, trigger_on_join={trigger_on_join}, trigger_on_leave={trigger_on_leave})',
+                    trigger_after_rated_messages=trigger_after_rated_messages,
+                    trigger_after_duration=trigger_after_duration,
+                    trigger_on_join=trigger_on_join,
+                    trigger_on_leave=trigger_on_leave,
+                    rated_message_size=rated_message_size,
+                    mode=hl('ENABLED'))
 
             else:
                 self._stats_enabled = False
@@ -1051,8 +1092,10 @@ class RouterSession(BaseSession):
                     session_stats['last'] = True
                     self._service_session.publish('wamp.session.on_stats', session_info_short, session_stats)
                 else:
-                    self.log.warn('{klass}.onLeave() - could not retrieve last statistics for closing session {session_id}',
-                                  klass=self.__class__.__name__, session_id=self._session_id)
+                    self.log.warn(
+                        '{klass}.onLeave() - could not retrieve last statistics for closing session {session_id}',
+                        klass=self.__class__.__name__,
+                        session_id=self._session_id)
 
         self._session_details = None
 
@@ -1086,7 +1129,6 @@ class RouterSessionFactory(object):
     """
     WAMP router session class to be used in this factory.
     """
-
     def __init__(self, routerFactory):
         """
 
@@ -1112,15 +1154,21 @@ class RouterSessionFactory(object):
         assert authextra is None or type(authextra) == dict
 
         if session not in self._app_sessions:
-            router_session = RouterApplicationSession(session, router, authid, authrole, authextra, store=router._store)
+            router_session = RouterApplicationSession(session,
+                                                      router,
+                                                      authid,
+                                                      authrole,
+                                                      authextra,
+                                                      store=router._store)
 
             self._app_sessions[session] = router_session
 
         else:
-            self.log.warn('{klass}.add: session {session} already running embedded in router {router} (skipping addition of session)',
-                          klass=self.__class__.__name__,
-                          session=session,
-                          router=router)
+            self.log.warn(
+                '{klass}.add: session {session} already running embedded in router {router} (skipping addition of session)',
+                klass=self.__class__.__name__,
+                session=session,
+                router=router)
             router_session = self._app_sessions[session]
         return router_session
 
@@ -1139,9 +1187,10 @@ class RouterSessionFactory(object):
             del self._app_sessions[session]
 
         else:
-            self.log.warn('{klass}.remove: session {session} not running embedded in any router of this router factory (skipping removal of session)',
-                          klass=self.__class__.__name__,
-                          session=session)
+            self.log.warn(
+                '{klass}.remove: session {session} not running embedded in any router of this router factory (skipping removal of session)',
+                klass=self.__class__.__name__,
+                session=session)
 
     def __call__(self):
         """

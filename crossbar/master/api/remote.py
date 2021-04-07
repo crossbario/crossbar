@@ -105,8 +105,7 @@ class RemoteApi(object):
             else:
                 rproc = proc
             local_uri = '{prefix}{proc}'.format(prefix=self.PREFIX, proc=proc)
-            remote_uri = 'crossbarfabriccenter.node.{{node_id}}.worker.{{worker_id}}.{proc}'.format(
-                proc=rproc)
+            remote_uri = 'crossbarfabriccenter.node.{{node_id}}.worker.{{worker_id}}.{proc}'.format(proc=rproc)
             regs.append(create_forward_by_worker(local_uri, remote_uri))
 
         return regs
@@ -162,8 +161,7 @@ class RemoteApi(object):
                 rtopic = topic
             local_uri = '{prefix}{topic}'.format(prefix=self.PREFIX, topic=topic)
             remote_uri = 'crossbarfabriccenter.node..{topic}'.format(topic=rtopic)
-            remote_uri_regex = r'^crossbarfabriccenter.node.([a-z0-9][a-z0-9_\-]*).{topic}$'.format(
-                topic=rtopic)
+            remote_uri_regex = r'^crossbarfabriccenter.node.([a-z0-9][a-z0-9_\-]*).{topic}$'.format(topic=rtopic)
             subs.append(create_forward_by_node(local_uri, remote_uri, remote_uri_regex))
 
         #

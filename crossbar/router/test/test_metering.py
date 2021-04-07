@@ -25,8 +25,7 @@ class TestLmdb(unittest.TestCase):
     def _insert_data1(self, n=10, shuffle=True):
         data = []
         for i in range(n):
-            data.append(('key{}'.format(i).encode('utf8'),
-                         'data{}'.format(i).encode('utf8')))
+            data.append(('key{}'.format(i).encode('utf8'), 'data{}'.format(i).encode('utf8')))
 
         inserted = data[:]
         if shuffle:

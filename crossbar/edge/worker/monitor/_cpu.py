@@ -174,7 +174,9 @@ class CPUMonitor(Monitor):
                 core[u'steal'] = round(cpu_now[i].steal - self._cpu_last[i].steal, digits)
 
                 # total CPU core load (= user + nice + system)
-                core[u'total'] = round((cpu_now[i].user + cpu_now[i].nice + cpu_now[i].system) - (self._cpu_last[i].user + self._cpu_last[i].nice + self._cpu_last[i].system), digits)
+                core[u'total'] = round((cpu_now[i].user + cpu_now[i].nice + cpu_now[i].system) -
+                                       (self._cpu_last[i].user + self._cpu_last[i].nice + self._cpu_last[i].system),
+                                       digits)
 
                 # normalize with effective period
                 diff = self._last_period or 1.

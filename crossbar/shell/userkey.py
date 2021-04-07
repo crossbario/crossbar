@@ -50,9 +50,7 @@ def _user_id(yes_to_all=False):
     if yes_to_all:
         return _DEFAULT_EMAIL_ADDRESS
     while True:
-        value = click.prompt('Please enter your email address',
-                             type=EmailAddress(),
-                             default=_DEFAULT_EMAIL_ADDRESS)
+        value = click.prompt('Please enter your email address', type=EmailAddress(), default=_DEFAULT_EMAIL_ADDRESS)
         if click.confirm('We will send an activation code to {}, ok?'.format(style_ok(value)), default=True):
             break
     return value
@@ -149,8 +147,7 @@ class UserKey(object):
             priv_tags = _parse_keyfile(privkey_path, private=True)
             for tag in [u'creator', u'created-at', u'user-id', u'public-key-ed25519', u'private-key-ed25519']:
                 if tag not in priv_tags:
-                    raise Exception("Corrupt user private key file {} - {} tag not found".format(
-                        privkey_path, tag))
+                    raise Exception("Corrupt user private key file {} - {} tag not found".format(privkey_path, tag))
 
             creator = priv_tags[u'creator']
             created_at = priv_tags[u'created-at']
@@ -168,8 +165,7 @@ class UserKey(object):
                 pub_tags = _parse_keyfile(pubkey_path, private=False)
                 for tag in [u'creator', u'created-at', u'user-id', u'public-key-ed25519']:
                     if tag not in pub_tags:
-                        raise Exception("Corrupt user public key file {} - {} tag not found".format(
-                            pubkey_path, tag))
+                        raise Exception("Corrupt user public key file {} - {} tag not found".format(pubkey_path, tag))
 
                 if pub_tags[u'public-key-ed25519'] != pubkey_hex:
                     raise Exception(("Inconsistent user public key file {} - public-key-ed25519 doesn't"

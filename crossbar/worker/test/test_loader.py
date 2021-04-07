@@ -15,7 +15,6 @@ class AppSessionLoaderTests(TestCase):
     """
     Tests for C{_appsession_loader}.
     """
-
     def test_unknown_types(self):
         """
         An unknown type will raise an exception.
@@ -27,18 +26,13 @@ class AppSessionLoaderTests(TestCase):
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
-        self.assertIn(
-            ("invalid component type 'kjdfgdbfls'"),
-            str(e.exception.args[0]))
+        self.assertIn(("invalid component type 'kjdfgdbfls'"), str(e.exception.args[0]))
 
     def test_class_standard(self):
         """
         You can load a standard class.
         """
-        config = {
-            "type": "class",
-            "classname": "crossbar.worker.test.examples.goodclass.AppSession"
-        }
+        config = {"type": "class", "classname": "crossbar.worker.test.examples.goodclass.AppSession"}
 
         klass = _appsession_loader(config)
 
@@ -49,35 +43,25 @@ class AppSessionLoaderTests(TestCase):
         """
         Loading a class which does not subclass AppSession fails.
         """
-        config = {
-            "type": "class",
-            "classname": "crossbar.worker.test.examples.badclass.AppSession"
-        }
+        config = {"type": "class", "classname": "crossbar.worker.test.examples.badclass.AppSession"}
 
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
-        self.assertIn(
-            ("session not derived of ApplicationSession"),
-            str(e.exception.args[0]))
+        self.assertIn(("session not derived of ApplicationSession"), str(e.exception.args[0]))
 
     def test_class_importerror(self):
         """
         Loading a class which has an import error upon import raises that
         error.
         """
-        config = {
-            "type": "class",
-            "classname": "crossbar.worker.test.examples.importerror.AppSession"
-        }
+        config = {"type": "class", "classname": "crossbar.worker.test.examples.importerror.AppSession"}
 
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
-        self.assertIn(
-            ("Failed to import class 'crossbar.worker.test.examples.importerr"
-             "or.AppSession'"),
-            str(e.exception.args[0]))
+        self.assertIn(("Failed to import class 'crossbar.worker.test.examples.importerr"
+                       "or.AppSession'"), str(e.exception.args[0]))
 
         s = str(e.exception.args[0])
         self.assertTrue('ImportError' in s or 'ModuleNotFoundError' in s)
@@ -86,18 +70,11 @@ class AppSessionLoaderTests(TestCase):
         """
         Loading a class which has a SyntaxError raises that up.
         """
-        config = {
-            "type": "class",
-            "classname": "crossbar.worker.test.examples.syntaxerror.AppSession"
-        }
+        config = {"type": "class", "classname": "crossbar.worker.test.examples.syntaxerror.AppSession"}
 
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
-        self.assertIn(
-            ("Failed to import class 'crossbar.worker.test.examples.syntaxerr"
-             "or.AppSession'"),
-            str(e.exception.args[0]))
-        self.assertIn(
-            ("SyntaxError"),
-            str(e.exception.args[0]))
+        self.assertIn(("Failed to import class 'crossbar.worker.test.examples.syntaxerr"
+                       "or.AppSession'"), str(e.exception.args[0]))
+        self.assertIn(("SyntaxError"), str(e.exception.args[0]))
