@@ -36,8 +36,8 @@ from twisted.python.failure import Failure
 try:
     from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
 except ImportError:
-    PendingAuthCryptosign = None
-    PendingAuthCryptosignProxy = None
+    PendingAuthCryptosign = None  # type: ignore
+    PendingAuthCryptosignProxy = None  # type: ignore
 
 __all__ = ('RouterSessionFactory', )
 

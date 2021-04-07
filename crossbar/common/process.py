@@ -28,7 +28,7 @@ except ImportError as e:
     _MANHOLE_MISSING_REASON = str(e)
 else:
     _HAS_MANHOLE = True
-    _MANHOLE_MISSING_REASON = None
+    _MANHOLE_MISSING_REASON = ''
 
 from autobahn.util import utcnow, utcstr, rtime
 from autobahn.twisted.wamp import ApplicationSession
