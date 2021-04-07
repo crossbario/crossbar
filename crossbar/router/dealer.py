@@ -24,6 +24,7 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, NotAttached
+from crossbar.router.session import RouterSession
 from crossbar._util import hlid, hlflag, hltype
 
 from txaio import make_logger
@@ -1117,8 +1118,7 @@ class Dealer(object):
             del self._invocations_by_call[caller_id, invocation_request.call.request]
 
     # noinspection PyUnusedLocal
-    def processCancel(self, session, cancel):
-        # type: (session.RouterSession, message.Cancel) -> None
+    def processCancel(self, session: RouterSession, cancel: message.Cancel) -> None:
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processCancel`
 

@@ -23,7 +23,7 @@ from autobahn.wamp import serializer
 from autobahn.wamp import role
 from autobahn import util
 
-publishedMessage = namedtuple("pub", ["id"])
+publishedMessage = namedtuple("publishedMessage", ["id"])
 
 
 class MockPublisherSession(object):

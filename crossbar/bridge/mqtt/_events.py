@@ -551,7 +551,7 @@ class ConnectFlags(object):
     password = attr.ib(validator=instance_of(bool), default=False)
     will = attr.ib(validator=instance_of(bool), default=False)
     will_retain = attr.ib(validator=instance_of(bool), default=False)
-    will_qos = attr.ib(validator=instance_of(int), default=False)
+    will_qos = attr.ib(validator=instance_of(int), default=0)
     clean_session = attr.ib(validator=instance_of(bool), default=False)
     reserved = attr.ib(validator=instance_of(bool), default=False)
 

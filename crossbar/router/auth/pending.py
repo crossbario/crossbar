@@ -5,6 +5,7 @@
 #
 #####################################################################################
 
+from typing import Dict
 import importlib
 
 from autobahn.wamp import types
@@ -18,7 +19,7 @@ import txaio
 
 __all__ = ('PendingAuth', )
 
-_authenticators = dict()
+_authenticators: Dict[str, object] = dict()
 
 
 class PendingAuth:

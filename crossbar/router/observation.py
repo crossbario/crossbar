@@ -5,6 +5,8 @@
 #
 #####################################################################################
 
+from typing import Optional
+
 from pytrie import StringTrie
 from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
 
@@ -58,7 +60,7 @@ class UriObservation(object):
 
     __slots__ = ('uri', 'ordered', 'extra', 'id', 'created', 'observers')
 
-    match = None
+    match: Optional[str] = None
 
     def __init__(self, uri, ordered=False, extra=None):
         """

@@ -5,6 +5,8 @@
 #
 #####################################################################################
 
+from typing import Dict
+
 from crossbar.router.auth.anonymous import PendingAuthAnonymous  # noqa
 from crossbar.router.auth.anonymous import PendingAuthAnonymousProxy  # noqa
 from crossbar.router.auth.wampcra import PendingAuthWampCra  # noqa
@@ -27,7 +29,7 @@ AUTHMETHODS = set([
 # map of authmethod name to processor class
 # note that not all of AUTHMETHODS need to have an
 # entry here .. eg when dependencies are missing
-AUTHMETHOD_MAP = {
+AUTHMETHOD_MAP: Dict[str, object] = {
     'anonymous': PendingAuthAnonymous,
     'anonymous-proxy': PendingAuthAnonymousProxy,
     'ticket': PendingAuthTicket,
@@ -37,7 +39,7 @@ AUTHMETHOD_MAP = {
     'scram': PendingAuthScram,
 }
 
-AUTHMETHOD_PROXY_MAP = {
+AUTHMETHOD_PROXY_MAP: Dict[str, object] = {
     'anonymous-proxy': PendingAuthAnonymousProxy,
 }
 

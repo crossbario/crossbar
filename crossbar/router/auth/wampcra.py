@@ -142,9 +142,9 @@ class PendingAuthWampCra(PendingAuth):
 
             init_d = txaio.as_future(self._init_function_authenticator)
 
-            def init(error):
-                if error:
-                    return error
+            def init(result):
+                if result:
+                    return result
 
                 self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
                 self._session_details['authid'] = details.authid

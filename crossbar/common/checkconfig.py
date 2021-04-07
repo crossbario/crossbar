@@ -146,7 +146,7 @@ def construct_ordered_mapping(self, node, deep=False):
     return mapping
 
 
-yaml.constructor.BaseConstructor.construct_mapping = construct_ordered_mapping
+yaml.constructor.BaseConstructor.construct_mapping = construct_ordered_mapping  # type: ignore
 
 
 def construct_yaml_map_with_ordered_dict(self, node):
@@ -189,9 +189,9 @@ def represent_ordered_dict(dump, tag, mapping, flow_style=None):
     return node
 
 
-for Klass in [Dumper, SafeDumper]:
-    Klass.add_representer(OrderedDict,
-                          lambda dumper, value: represent_ordered_dict(dumper, 'tag:yaml.org,2002:map', value))
+for Klass in [Dumper, SafeDumper]:  # type: ignore
+    if hasattr(Klass, 'add_representer'):
+        Klass.add_representer(OrderedDict, lambda dumper, value: represent_ordered_dict(dumper, 'tag:yaml.org,2002:map', value))  # type: ignore
 
 # Environment variable names used by the utilities in the Shell and Utilities volume
 # of IEEE Std 1003.1-2001 consist solely of uppercase letters, digits, and the '_' (underscore)

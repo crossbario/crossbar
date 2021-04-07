@@ -15,7 +15,7 @@ __all__ = ('WorkerProcessEndpoint', )
 if platform.isWindows():
     # On Windows, we're only using FDs 0, 1, and 2.
 
-    class _WorkerWrapIProtocol(_WrapIProtocol):
+    class _WorkerWrapIProtocol(_WrapIProtocol):  # type: ignore
         """
         Wraps an IProtocol into an IProcessProtocol which forwards data
         received on Worker._log_fds to WorkerProcess.log().
@@ -37,7 +37,7 @@ else:
     # On UNIX-likes, we're logging FD1/2, and using FD3 for our own
     # communication.
 
-    class _WorkerWrapIProtocol(_WrapIProtocol):
+    class _WorkerWrapIProtocol(_WrapIProtocol):  # type: ignore
         """
         Wraps an IProtocol into an IProcessProtocol which forwards data
         received on Worker._log_fds to WorkerProcess.log().

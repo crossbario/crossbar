@@ -7,7 +7,7 @@
 
 import txaio
 import uuid
-from typing import Optional
+from typing import Optional, Dict
 
 from txaio import make_logger
 
@@ -464,7 +464,7 @@ class RouterFactory(object):
         self._node_id = node_id
         self._worker_id = worker_id
         self._worker = worker
-        self._routers = {}
+        self._routers: Dict[str, Router] = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         # XXX this should get passed in from .. somewhere
         from twisted.internet import reactor
