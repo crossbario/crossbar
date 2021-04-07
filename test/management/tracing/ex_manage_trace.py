@@ -2,7 +2,7 @@
 
 import argparse
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 #
 # configuration of the trace we create and manage

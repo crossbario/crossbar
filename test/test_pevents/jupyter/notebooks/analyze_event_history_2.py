@@ -11,7 +11,7 @@ print('Python {}'.format(sys.version))
 # In[ ]:
 
 
-# attach to crossbarfx event store
+# attach to crossbar event store
 import zlmdb
 from cfxdb.schema import ZdbSchema
 

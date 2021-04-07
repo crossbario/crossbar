@@ -52,3 +52,5 @@ pip-wheel-metadata
 !.vscode/extensions.json
 .vscode
 get-pip.py
+.db-controller
+.db-mrealm-*

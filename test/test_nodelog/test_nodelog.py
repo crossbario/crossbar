@@ -2,8 +2,8 @@ DBFILE = '../cfc/.crossbar/.db-mrealm-41cc14b4-b8f2-401e-8736-8993d6daeb55'
 GDBFILE = '../cfc/.crossbar/.db-controller'
 
 import zlmdb
-from crossbarfx.master.database.mrealmschema import MrealmSchema
-from crossbarfx.master.database.globalschema import GlobalSchema
+from crossbar.master.database.mrealmschema import MrealmSchema
+from crossbar.master.database.globalschema import GlobalSchema
 
 db = zlmdb.Database(DBFILE, maxsize=2**30, readonly=False)
 schema = MrealmSchema.attach(db)

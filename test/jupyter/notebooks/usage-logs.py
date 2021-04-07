@@ -9,8 +9,8 @@ import zlmdb
 import numpy as np
 from pprint import pprint
 
-from crossbarfx.master.database.globalschema import GlobalSchema
-from crossbarfx.master.database.mrealmschema import MrealmSchema
+from crossbar.master.database.globalschema import GlobalSchema
+from crossbar.master.database.mrealmschema import MrealmSchema
 
 print('running zlmdb v{} in {}'.format(zlmdb.__version__, os.getcwd()))
 
@@ -22,7 +22,7 @@ gschema = GlobalSchema.attach(gdb)
 with gdb.begin() as txn:
     for mrealm in gschema.mrealms.select(txn, return_keys=False, limit=1):
         mrealm_id = mrealm.oid
-              
+
 DBFILE_MREALM = '../../cfc/.crossbar/.db-mrealm-{}'.format(mrealm_id)
 
 db = zlmdb.Database(DBFILE_MREALM, maxsize=2**30, readonly=True)
@@ -39,12 +39,12 @@ with db.begin() as txn:
 
     cnt = schema.mworker_logs.count(txn)
     print('{} mworkerlog records stored'.format(cnt))
-    
+
 with gdb.begin() as txn:
     cnt = gschema.usage.count(txn)
     print('{} usage metering records stored. last one:\n'.format(cnt))
     for rec in gschema.usage.select(txn, limit=2, return_keys=False, reverse=True):
-        pprint(rec.marshal())    
+        pprint(rec.marshal())
 
 
 # In[ ]:
@@ -52,7 +52,7 @@ with gdb.begin() as txn:
 
 from pprint import pprint
 
-with db.begin() as txn:  
+with db.begin() as txn:
     for rec in schema.mnode_logs.select(txn, limit=1, return_keys=False, reverse=True):
         pprint(rec.marshal())
     for rec in schema.mworker_logs.select(txn, limit=1, return_keys=False, reverse=True):
@@ -65,7 +65,7 @@ with db.begin() as txn:
 ts_min = None
 ts_max = None
 
-with db.begin() as txn:  
+with db.begin() as txn:
     for ts, _ in schema.mnode_logs.select(txn, return_values=False):
         if ts_min is None or ts < ts_min:
             ts_min = ts
@@ -79,7 +79,7 @@ print(ts_max)
 # In[ ]:
 
 
-with db.begin() as txn:  
+with db.begin() as txn:
     for ts, _ in schema.mnode_logs.select(txn, return_values=False, limit=1):
         ts_min = ts
     for ts, _ in schema.mnode_logs.select(txn, return_values=False, reverse=True, limit=1):
@@ -92,13 +92,13 @@ print(ts_max)
 # In[ ]:
 
 
-with db.begin() as txn:  
+with db.begin() as txn:
     for rec in schema.mnode_logs.select(txn, limit=20, return_keys=False, reverse=True):
         print(rec.timestamp, rec.node_id, rec.routers)
 
 
 # Metering record from log `2019-06-24T18:29 - 2019-06-24T18:34` (all clients connected before, and conntected without interruption):
-# 
+#
 # ```
 # 2019-06-24T20:34:08+0200 [Container    1070] Metering processing: aggregated and stored mrealm "a026d293-4db8-49aa-ae89-aeeef8ede03e" usage metering data for period ["2019-06-24T18:29:00.000000000", "2019-06-24T18:34:00.000000000"[:
 # {'containers': 0,
@@ -135,9 +135,9 @@ with db.begin() as txn:
 #  'timestamp_from': None,
 #  'total': 0}
 # ```
-# 
+#
 # Metering record from log `2019-06-24T18:34 - 2019-06-24T18:39` (all clients initially disconnected, then connecting at the beginning of the interval and staying connected throughout):
-# 
+#
 # ```
 # 2019-06-24T20:39:08+0200 [Container    1070] Metering processing: aggregated and stored mrealm "a026d293-4db8-49aa-ae89-aeeef8ede03e" usage metering data for period ["2019-06-24T18:34:00.000000000", "2019-06-24T18:39:00.000000000"[:
 # {'containers': 0,
@@ -180,7 +180,7 @@ with db.begin() as txn:
 
 import numpy as np
 from uuid import UUID
-from crossbarfx.cfxdb.log import MWorkerLog
+from crossbar.cfxdb.log import MWorkerLog
 
 key1 = (np.datetime64('2019-06-24T18:29:00.000000000'), UUID(bytes=b'\x00' * 16), '')
 key2 = (np.datetime64('2019-06-24T18:34:00.000000000'), UUID(bytes=b'\xff' * 16), '')
@@ -208,12 +208,12 @@ res = {
     'msgs_subscribe': 0,
 }
 
-with db.begin() as txn:  
+with db.begin() as txn:
     for (ts, node_id, worker_id), rec in schema.mworker_logs.select(txn, reverse=False, from_key=key1, to_key=key2):
         #print(rec.timestamp, rec.node_id, rec.worker_id, rec.type, rec.router_sessions, rec.recv_subscribe)
         total += 1
         sessions += rec.router_sessions
-        
+
         worker_type = MWorkerLog.WORKER_TYPENAMES[rec.type]
         res['{}s'.format(worker_type)] += 1
         res['count'] += 1
@@ -229,9 +229,9 @@ with db.begin() as txn:
                 'msgs_subscribe_min': 0,
                 'msgs_subscribe_max': 0,
             }
-            
+
         wres[wkey]['sessions'] += rec.router_sessions
-        
+
         if rec.recv_publish > wres[wkey]['msgs_publish_max']:
             wres[wkey]['msgs_publish_max'] = rec.recv_publish
         if not wres[wkey]['msgs_publish_min'] or rec.recv_publish < wres[wkey]['msgs_publish_min']:
@@ -246,8 +246,8 @@ with db.begin() as txn:
             wres[wkey]['msgs_subscribe_max'] = rec.recv_subscribe
         if not wres[wkey]['msgs_subscribe_min'] or rec.recv_subscribe < wres[wkey]['msgs_subscribe_min']:
             wres[wkey]['msgs_subscribe_min'] = rec.recv_subscribe
-            
-            
+
+
 for wkey in wres:
     res['sessions'] += wres[wkey]['sessions']
     res['msgs_publish'] += wres[wkey]['msgs_publish_max'] - wres[wkey]['msgs_publish_min']
@@ -273,9 +273,9 @@ print('Routers: {} seconds'.format(res['routers'] * heartbeat_secs))
 # In[ ]:
 
 
-from crossbarfx.master.database.globalschema import GlobalSchema
+from crossbar.master.database.globalschema import GlobalSchema
 
-DBFILE_GLOBAL = '/home/oberstet/scm/crossbario/crossbarfx/test/cfc/.crossbar/.db-controller'
+DBFILE_GLOBAL = '/home/oberstet/scm/crossbario/crossbar/test/cfc/.crossbar/.db-controller'
 
 gdb = zlmdb.Database(DBFILE_GLOBAL, maxsize=2**30, readonly=False)
 
@@ -287,10 +287,10 @@ with gdb.begin() as txn:
 
     cnt = gschema.usage.count(txn)
     print('{} usage records'.format(cnt))
-    
+
     for mrealm in gschema.mrealms.select(txn, return_keys=False):
         pprint(mrealm.marshal())
-        
+
     for mrealm in gschema.mrealms.select(txn, return_keys=False, limit=1):
         print(mrealm.oid)
 
@@ -300,7 +300,7 @@ with gdb.begin() as txn:
 
 from pprint import pprint
 
-with gdb.begin() as txn:  
+with gdb.begin() as txn:
     for rec in gschema.usage.select(txn, limit=1, return_keys=False, reverse=True):
         pprint(rec.marshal())
 
@@ -314,7 +314,7 @@ with gdb.begin() as txn:
 # In[ ]:
 
 
-with db.begin() as txn:  
+with db.begin() as txn:
     for rec in schema.mnode_logs.select(txn, limit=20, return_keys=False, reverse=True):
         #pprint(rec.marshal())
         print(rec.timestamp, rec.node_id, rec.routers, rec.cpu_freq, rec.cpu_system, rec.cpu_user)
@@ -323,7 +323,7 @@ with db.begin() as txn:
 # In[ ]:
 
 
-with db.begin() as txn:  
+with db.begin() as txn:
     for rec in schema.mworker_logs.select(txn, return_keys=False, reverse=True):
         if rec.worker_id == 'worker002':
             pprint(rec.marshal())
@@ -360,7 +360,7 @@ import numpy as np
 key1 = (np.datetime64('2019-06-23T00:00:00.00000000'), UUID(bytes=b'\x00' * 16))
 key2 = (np.datetime64('2019-06-24T00:00:00.00000000'), UUID(bytes=b'\xff' * 16))
 
-with db.begin() as txn:  
+with db.begin() as txn:
     cnt = schema.mnode_logs.count_range(txn, from_key=key1, to_key=key2)
     print('cnt=', cnt)
     for key in schema.mnode_logs.select(txn, limit=5, return_values=False, from_key=key1, to_key=key2, reverse=False):
@@ -372,7 +372,7 @@ with db.begin() as txn:
 # In[ ]:
 
 
-with gdb.begin() as txn:  
+with gdb.begin() as txn:
     for rec in gschema.usage.select(txn, limit=1, return_keys=False, reverse=True):
         #print(rec.timestamp, rec.timestamp_from, rec.processed, rec.routers)
         pprint(rec.marshal())
@@ -410,7 +410,7 @@ with db.begin() as txn:
             reverse=False):
 
         rec = schema.mnode_logs[txn, (ts, node_id)]
-        
+
         #pprint(rec.marshal())
         #print(rec.mrealm_id, rec.node_id, rec.routers, rec.period)
 

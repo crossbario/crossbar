@@ -3,7 +3,7 @@
 import pprint
 import asyncio
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 TRACE_ID = u'hackathon-actions-trace'
 

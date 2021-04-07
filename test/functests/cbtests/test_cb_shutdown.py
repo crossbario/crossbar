@@ -98,7 +98,7 @@ def test_shutdown_failed_component(reactor, request, virtualenv, session_temp):
                     {
                         "type": "function",
                         "callbacks": {
-                            "join": "crossbarfx.functest_helpers.shutdown_test.good_join",
+                            "join": "crossbar.functest_helpers.shutdown_test.good_join",
                         },
                         "realm": "foo",
                         "transport": {
@@ -115,7 +115,7 @@ def test_shutdown_failed_component(reactor, request, virtualenv, session_temp):
                     {
                         "type": "function",
                         "callbacks": {
-                            "join": "crossbarfx.functest_helpers.shutdown_test.failed_join",
+                            "join": "crossbar.functest_helpers.shutdown_test.failed_join",
                         },
                         "realm": "foo",
                         "transport": {
@@ -240,7 +240,7 @@ def test_restart_failed_component(reactor, request, virtualenv, session_temp):
                     {
                         "type": "function",
                         "callbacks": {
-                            "join": "crossbarfx.functest_helpers.shutdown_test.join_then_close",
+                            "join": "crossbar.functest_helpers.shutdown_test.join_then_close",
                         },
                         "realm": "foo",
                         "transport": {

@@ -3,8 +3,8 @@ GDBFILE = '../cfc/.crossbar/.db-controller'
 
 from pprint import pprint
 import zlmdb
-from crossbarfx.master.database.mrealmschema import MrealmSchema
-from crossbarfx.master.database.globalschema import GlobalSchema
+from crossbar.master.database.mrealmschema import MrealmSchema
+from crossbar.master.database.globalschema import GlobalSchema
 
 db = zlmdb.Database(DBFILE, maxsize=2**30, readonly=False)
 schema = MrealmSchema.attach(db)

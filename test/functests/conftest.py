@@ -66,7 +66,7 @@ default_requirements = [
     '-e git+https://github.com/crossbario/crossbar.git#egg=crossbar[dev]',
     '-e .'
 ]
-# don't forget to add "~/etc/etc/crossbarfx" if you're making local requirements
+# don't forget to add "~/etc/etc/crossbar" if you're making local requirements
 
 
 # some py.test configuration hooks, before all the fixtures. These add
@@ -857,7 +857,7 @@ def _create_cfx_node_fixture(personality, node):
                    "MrealmController initialized" in self.data or \
                    "Domain controller ready" in self.data or \
                    "Connected to Crossbar.io FX Master" in self.data:
-                    print("Detected crossbarfx node is up!")
+                    print("Detected crossbar node is up!")
                     self.done.callback(None)
 
         listening = Deferred()
@@ -871,7 +871,7 @@ def _create_cfx_node_fixture(personality, node):
         pytest.blockon(DeferredList([timeout, listening], fireOnOneErrback=True, fireOnOneCallback=True))
 
         if timeout.called:
-            raise RuntimeError("Timeout waiting for crossbarfx to start")
+            raise RuntimeError("Timeout waiting for crossbar to start")
 
         return protocol
 

@@ -4,7 +4,7 @@
 # In[ ]:
 
 
-# import crossbarfx-zlmdb and open event history example database
+# import crossbar-zlmdb and open event history example database
 import zlmdb
 from cfxdb.schema import ZdbSchema
 
@@ -77,7 +77,7 @@ def doit():
                     res[d] = (0, 0)
                 res[d] = (res[d][0] + 1, res[d][1] + value2)
                 total += 1
-                
+
                 if False:
                     if i < 10 or res[d][0] > 14:
                         print('({}, {}): {}. category="{}"  topic="{}"'.format(x, y, res[d], category, evt.topic))

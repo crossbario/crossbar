@@ -33,7 +33,7 @@ from autobahn.twisted.wamp import ApplicationRunner, ApplicationSession
 from autobahn.wamp import cryptosign
 
 from crossbar._util import hl
-from crossbarfx.shell.command import CmdListManagementRealms
+from crossbar.shell.command import CmdListManagementRealms
 
 
 @inlineCallbacks
@@ -328,9 +328,9 @@ def start_crossbar(reactor, virtualenv, cbdir, crossbar_config, log_level=False,
         stdout=stdout, stderr=stderr,
     )
     # exe = path.join(virtualenv, 'bin', 'crossbar')
-    # exe = os.path.abspath('./crossbarfx-linux-amd64-20190129-085ba04')
+    # exe = os.path.abspath('./crossbar-linux-amd64-20190129-085ba04')
     exe = 'crossbar'
-    #exe = '/usr/local/bin/crossbarfx-linux-amd64-20190130-684dd82'
+    #exe = '/usr/local/bin/crossbar-linux-amd64-20190130-684dd82'
     args = [exe, 'start', '--cbdir', cbdir]
     if log_level:
         levels = ("critical", "error", "warn", "info", "debug", "failure", "trace")
@@ -370,9 +370,9 @@ def start_cfx(reactor, personality, cbdir, config=None, log_level=False, stdout=
         reactor, finished, launched,
         stdout=stdout, stderr=stderr,
     )
-    # exe = os.path.abspath('./crossbarfx-linux-amd64-20190129-085ba04')
-    #exe = '/usr/local/bin/crossbarfx-linux-amd64-20190130-684dd82'
-    exe = 'crossbarfx'
+    # exe = os.path.abspath('./crossbar-linux-amd64-20190129-085ba04')
+    #exe = '/usr/local/bin/crossbar-linux-amd64-20190130-684dd82'
+    exe = 'crossbar'
     args = [exe, personality, 'start', '--cbdir', str(cbdir)]
     if log_level:
         levels = ("critical", "error", "warn", "info", "debug", "failure", "trace")
@@ -479,7 +479,7 @@ def functest_management_session(url=u'ws://localhost:9000/ws', realm=u'com.cross
 
     txaio.start_logging(level='info')
 
-    privkey_file = os.path.abspath(os.path.expanduser('~/.crossbarfx/default.priv'))
+    privkey_file = os.path.abspath(os.path.expanduser('~/.crossbar/default.priv'))
     print('usering keyfile from', privkey_file)
 
     # for authenticating the management client, we need a Ed25519 public/private key pair

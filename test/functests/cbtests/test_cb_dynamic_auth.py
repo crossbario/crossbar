@@ -115,7 +115,7 @@ def dynamic_authorize_crossbar(reactor, request, virtualenv, session_temp):
                         "realm": "realm-auth",
                         "role": "role",
                         "callbacks": {
-                            "join": "crossbarfx.functest_helpers.auth.setup_auth"
+                            "join": "crossbar.functest_helpers.auth.setup_auth"
                         },
                     }
                 ]

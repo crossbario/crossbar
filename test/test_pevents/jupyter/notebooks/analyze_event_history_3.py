@@ -20,7 +20,7 @@ from cfxdb.schema import ZdbSchema
 # In[ ]:
 
 
-# attach to our crossbarfx event database
+# attach to our crossbar event database
 db = zlmdb.Database('../testdb', maxsize=2**30, readonly=False)
 schema = ZdbSchema.attach(db)
 

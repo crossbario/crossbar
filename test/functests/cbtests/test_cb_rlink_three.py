@@ -144,7 +144,7 @@ def test_r2r_three(request, reactor, virtualenv, session_temp):
     # we could wait to see text of each node successfully connecting
     # to the other .. or we just wait a bit.
     yield sleep(10)
-    # XXX we could rig this up with crossbarfx master and then use the
+    # XXX we could rig this up with crossbar master and then use the
     # management API to determine when all nodes + their rlinks are
     # up..
 
