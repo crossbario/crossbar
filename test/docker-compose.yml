@@ -1,0 +1,94 @@
+version: '3'
+services:
+
+  cf1:
+    image: crossbario/crossbar-fabric:latest
+    #image: crossbario/crossbar-fabric:pypy3
+    ports:
+      - 8080
+    volumes:
+      - ${PWD}/test/cf1:/node
+    network_mode: host
+    entrypoint: /usr/local/bin/crossbar
+    command:
+      - start
+      - --personality
+      - fabric
+      - --cbdir
+      - /node/.crossbar/
+
+  cf2:
+    image: crossbario/crossbar-fabric:latest
+    #image: crossbario/crossbar-fabric:pypy3
+    ports:
+      - 8081
+    volumes:
+      - ${PWD}/test/cf2:/node
+    network_mode: host
+    entrypoint: /usr/local/bin/crossbar
+    command:
+      - start
+      - --personality
+      - fabric
+      - --cbdir
+      - /node/.crossbar/
+
+  app1a:
+    depends_on:
+      - cf1
+    image: crossbario/autobahn-python:pypy3
+    volumes:
+      - ${PWD}/test/app1:/app
+    network_mode: host
+    entrypoint: /usr/local/bin/python
+    command:
+      - -u
+      - client.py
+      - --url=ws://localhost:8080/ws
+      - --realm=realm1
+      - --service=service1
+
+  app1b:
+    depends_on:
+      - cf1
+    image: crossbario/autobahn-python:pypy3
+    volumes:
+      - ${PWD}/test/app1:/app
+    network_mode: host
+    entrypoint: /usr/local/bin/python
+    command:
+      - -u
+      - client.py
+      - --url=ws://localhost:8080/ws
+      - --realm=realm1
+      - --service=service2
+
+  app1c:
+    depends_on:
+      - cf2
+    image: crossbario/autobahn-python:pypy3
+    volumes:
+      - ${PWD}/test/app1:/app
+    network_mode: host
+    entrypoint: /usr/local/bin/python
+    command:
+      - -u
+      - client.py
+      - --url=ws://localhost:8081/ws
+      - --realm=realm1
+      - --service=service3
+
+  app1d:
+    depends_on:
+      - cf2
+    image: crossbario/autobahn-python:pypy3
+    volumes:
+      - ${PWD}/test/app1:/app
+    network_mode: host
+    entrypoint: /usr/local/bin/python
+    command:
+      - -u
+      - client.py
+      - --url=ws://localhost:8081/ws
+      - --realm=realm1
+      - --service=service4

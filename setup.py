@@ -24,15 +24,10 @@ extras_require = {
     'dev': []
 }
 
-# minimum, open-ended requirements
-reqs = 'requirements-min.txt'
-
-# pinned requirements
-#reqs = 'requirements-pinned.txt'
-
-# pinned & hashed requirements: we cannot use that here sadly,
-# as setuptools doesn't understand hashes ..
+# reqs = 'requirements-min.txt'
+# reqs = 'requirements-pinned.txt'
 # reqs = 'requirements.txt'
+reqs = 'requirements-latest.txt'
 
 # https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
 dependency_links = []
@@ -52,8 +47,6 @@ with open(reqs) as f:
                 name = parts[0]
                 if name.startswith('git+'):
                     dependency_links.append(name)
-                    # #egg=zlmdb
-                    # http://github.com/user/repo/tarball/master#egg=package-1.0
                     pkgname = name.split('=')[1]
                     install_requires.append(pkgname)
                 else:
@@ -92,7 +85,7 @@ setup(
     },
     packages=find_packages(),
     include_package_data=True,
-    data_files=[('.', ['crossbar/LEGAL', 'crossbar/LICENSE', 'crossbar/LICENSE-FOR-API', 'crossbar/LICENSES-OSS'])],
+    data_files=[('.', ['crossbar/LEGAL', 'crossbar/LICENSE', 'crossbar/LICENSE-FOR-API', 'crossbar/LICENSES-OSS', 'crossbar.ico'])],
     zip_safe=False,
     python_requires='>=3.7',
 
