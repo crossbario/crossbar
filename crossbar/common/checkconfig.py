@@ -191,8 +191,8 @@ def represent_ordered_dict(dump, tag, mapping, flow_style=None):
 
 for Klass in [Dumper, SafeDumper]:  # type: ignore
     if hasattr(Klass, 'add_representer'):
-        Klass.add_representer(
-            OrderedDict,
+        Klass.add_representer(  # type: ignore
+            OrderedDict,  # type: ignore
             lambda dumper, value: represent_ordered_dict(dumper, 'tag:yaml.org,2002:map', value))  # type: ignore
 
 # Environment variable names used by the utilities in the Shell and Utilities volume
