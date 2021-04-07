@@ -524,6 +524,12 @@ class Dealer(object):
                                     registration_details,
                                     options=options
                                 )
+                                service_session.publish(
+                                    'wamp.registration.on_create.' + registration.uri,
+                                    session._session_id,
+                                    registration_details,
+                                    options=options
+                                )
 
                         if not was_already_registered:
                             if options:
