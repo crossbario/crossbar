@@ -49,8 +49,9 @@ jobs:
     - name: Run Bandit
       run: tox -c tox.ini -e bandit
 
-    - name: Run Coverage
-      run: tox -c tox.ini -e coverage
+    # FIXME
+    # - name: Run Coverage
+    #  run: tox -c tox.ini -e coverage
 
   docs:
     # runs-on: ubuntu-20.04 # means github.com
