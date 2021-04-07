@@ -389,9 +389,15 @@ class Personality(CrossbarPersonality):
 
     TEMPLATE_DIRS = [('crossbar', 'edge/webservice/templates')] + CrossbarPersonality.TEMPLATE_DIRS
 
-    WEB_SERVICE_CHECKERS: Dict[str, object] = {'pairme': RouterWebServicePairMe.check, **CrossbarPersonality.WEB_SERVICE_CHECKERS}
+    WEB_SERVICE_CHECKERS: Dict[str, object] = {
+        'pairme': RouterWebServicePairMe.check,
+        **CrossbarPersonality.WEB_SERVICE_CHECKERS
+    }
 
-    WEB_SERVICE_FACTORIES: Dict[str, object] = {'pairme': RouterWebServicePairMe, **CrossbarPersonality.WEB_SERVICE_FACTORIES}
+    WEB_SERVICE_FACTORIES: Dict[str, object] = {
+        'pairme': RouterWebServicePairMe,
+        **CrossbarPersonality.WEB_SERVICE_FACTORIES
+    }
 
     REALM_STORES: Dict[str, object] = {'cfxdb': CfxDbRealmStore, **CrossbarPersonality.REALM_STORES}
 
