@@ -2,7 +2,7 @@
 
 import asyncio
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 ROUTER_ID = u'my-router1'
 

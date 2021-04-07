@@ -2,7 +2,7 @@
 
 import pprint
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 GET_NODES = u'crossbarfabriccenter.mrealm.get_nodes'
 

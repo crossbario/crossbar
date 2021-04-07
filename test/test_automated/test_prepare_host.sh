@@ -1,9 +1,9 @@
 #!/bin/sh
 
-CROSSBAR=crossbarfx
-CROSSBAR_FABRIC_SUPERUSER=${HOME}/.crossbarfx/default.pub
+CROSSBAR=crossbar
+CROSSBAR_FABRIC_SUPERUSER=${HOME}/.crossbar/default.pub
 CROSSBAR_FABRIC_URL=ws://localhost:9000/ws
-CROSSBARFX_WATCH_TO_PAIR=../nodes
+CROSSBAR_WATCH_TO_PAIR=../nodes
 
 if [ ! -f ${CROSSBAR_FABRIC_SUPERUSER} ]; then
   CROSSBAR_FABRIC_URL=${CROSSBAR_FABRIC_URL} ${CROSSBAR} shell init --yes
@@ -20,12 +20,12 @@ fi
 
 mkdir -p ./.test/nodes
 mkdir -p ./.test/master
-CROSSBARFX_NODE_ID=node1 `which crossbarfx` edge keys --cbdir=./.test/nodes/node1
-CROSSBARFX_NODE_ID=node2 `which crossbarfx` edge keys --cbdir=./.test/nodes/node2
-CROSSBARFX_NODE_ID=node3 `which crossbarfx` edge keys --cbdir=./.test/nodes/node3
-CROSSBARFX_NODE_ID=node4 `which crossbarfx` edge keys --cbdir=./.test/nodes/node4
+CROSSBAR_NODE_ID=node1 `which crossbar` edge keys --cbdir=./.test/nodes/node1
+CROSSBAR_NODE_ID=node2 `which crossbar` edge keys --cbdir=./.test/nodes/node2
+CROSSBAR_NODE_ID=node3 `which crossbar` edge keys --cbdir=./.test/nodes/node3
+CROSSBAR_NODE_ID=node4 `which crossbar` edge keys --cbdir=./.test/nodes/node4
 
-CROSSBAR_FABRIC_SUPERUSER=${CROSSBAR_FABRIC_SUPERUSER} CROSSBARFX_WATCH_TO_PAIR=${CROSSBARFX_WATCH_TO_PAIR} \
+CROSSBAR_FABRIC_SUPERUSER=${CROSSBAR_FABRIC_SUPERUSER} CROSSBAR_WATCH_TO_PAIR=${CROSSBAR_WATCH_TO_PAIR} \
   ${CROSSBAR} master start --cbdir=./.test/master &
 
 while ! curl -s http://localhost:9000/info > /dev/null

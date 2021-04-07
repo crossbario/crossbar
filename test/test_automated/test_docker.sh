@@ -9,16 +9,16 @@ docker-compose rm -f
 
 sudo rm -rf ./.test
 sudo mkdir -p ./.test/nodes
-sudo CROSSBARFX_NODE_ID=node1 `which crossbarfx` edge keys --cbdir=./.test/nodes/node1
-sudo CROSSBARFX_NODE_ID=node2 `which crossbarfx` edge keys --cbdir=./.test/nodes/node2
-sudo CROSSBARFX_NODE_ID=node3 `which crossbarfx` edge keys --cbdir=./.test/nodes/node3
-sudo CROSSBARFX_NODE_ID=node4 `which crossbarfx` edge keys --cbdir=./.test/nodes/node4
+sudo CROSSBAR_NODE_ID=node1 `which crossbar` edge keys --cbdir=./.test/nodes/node1
+sudo CROSSBAR_NODE_ID=node2 `which crossbar` edge keys --cbdir=./.test/nodes/node2
+sudo CROSSBAR_NODE_ID=node3 `which crossbar` edge keys --cbdir=./.test/nodes/node3
+sudo CROSSBAR_NODE_ID=node4 `which crossbar` edge keys --cbdir=./.test/nodes/node4
 
 docker-compose up -d
 
 # now wait until "docker-compose logs --tail=100" returns:
-# master     | 2020-08-02T20:08:34+0000 [Container      25] Success: managed node "node1" is now online [oid=79f35fb9-5626-4449-8091-ffb651576f23, session=1047345041252532, status=online] <crossbarfx.master.mrealm.controller.MrealmController._on_node_heartbeat>
-# master     | 2020-08-02T20:08:35+0000 [Container      25] Success: managed node "node3" is now online [oid=301f5c26-ed16-4ee8-8705-12830472e267, session=7723427004653304, status=online] <crossbarfx.master.mrealm.controller.MrealmController._on_node_heartbeat>
+# master     | 2020-08-02T20:08:34+0000 [Container      25] Success: managed node "node1" is now online [oid=79f35fb9-5626-4449-8091-ffb651576f23, session=1047345041252532, status=online] <crossbar.master.mrealm.controller.MrealmController._on_node_heartbeat>
+# master     | 2020-08-02T20:08:35+0000 [Container      25] Success: managed node "node3" is now online [oid=301f5c26-ed16-4ee8-8705-12830472e267, session=7723427004653304, status=online] <crossbar.master.mrealm.controller.MrealmController._on_node_heartbeat>
 # master     | 2020-08-02T20:08:36+0000 [Container      25] Success: managed node "node2" is now online [oid=19a89cc7-4383-41ad-86b5-f360cf
 
 while ! curl -s http://localhost:1936/ > /dev/null

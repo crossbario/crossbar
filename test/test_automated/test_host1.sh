@@ -3,10 +3,10 @@
 # we want individual failed test not stop the whole script
 # set -e
 
-CROSSBAR=crossbarfx
-CROSSBAR_FABRIC_SUPERUSER=${HOME}/.crossbarfx/default.pub
+CROSSBAR=crossbar
+CROSSBAR_FABRIC_SUPERUSER=${HOME}/.crossbar/default.pub
 CROSSBAR_FABRIC_URL=ws://localhost:9000/ws
-CROSSBARFX_WATCH_TO_PAIR=../nodes
+CROSSBAR_WATCH_TO_PAIR=../nodes
 
 while ! curl -s http://localhost:8080/info > /dev/null
 do

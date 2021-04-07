@@ -4,7 +4,7 @@ import asyncio
 
 from autobahn.wamp.exception import ApplicationError
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 CONTAINER_ID = u'my-container1'
 

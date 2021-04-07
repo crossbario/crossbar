@@ -2,7 +2,7 @@
 
 import random
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 
 def rand_cpus(cpu_cores, p=.5):

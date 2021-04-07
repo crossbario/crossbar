@@ -3,7 +3,7 @@
 from pprint import pformat
 import asyncio
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 # the following requires options.bridge_meta_api=true in the options
 # of the Crossbar.io router realm called into. it might also require elevated

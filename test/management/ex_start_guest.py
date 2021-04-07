@@ -2,7 +2,7 @@
 
 import asyncio
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 # the ID of the guest worker we will start (on each node)
 GUEST_ID = u'sleeper1'

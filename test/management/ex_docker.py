@@ -1,6 +1,6 @@
 # Copyright (c) Crossbar.io Technologies GmbH, licensed under The MIT License (MIT)
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 
 async def main(session):

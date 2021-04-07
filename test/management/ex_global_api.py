@@ -3,7 +3,7 @@
 from pprint import pformat
 import asyncio
 
-from crossbarfx.shell import client
+from crossbar.shell import client
 
 
 async def main(session):
