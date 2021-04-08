@@ -1,4 +1,4 @@
-name: deploy
+name: deploy-wheels
 
 on:
   # Trigger this workflow when the "main" workflow has completed successfully
@@ -78,6 +78,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
 
-    - name: Deploy (build, package and upload)
+    - name: Build and deploy wheels
       run: |
-        ./deploy.sh
+        ./deploy-wheels.sh

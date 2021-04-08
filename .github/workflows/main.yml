@@ -147,13 +147,15 @@ jobs:
       run: |
         ./test/test_ab_examples.sh
 
+    # FIXME
+
     # - name: Run management API test client
     #   run: |
     #     ./test/management/run.sh
 
-    - name: Run command line tests (Crossbar.io CLI) 0
-      run: |
-        ./test/test_cli.sh
+    # - name: Run command line tests (Crossbar.io CLI) 0
+    #   run: |
+    #     ./test/test_cli.sh
 
     # - name: Run command line tests (Crossbar.io CLI) 1
     #   run: |
@@ -167,17 +169,17 @@ jobs:
     #   run: |
     #     ./test/test_cli_3.sh
 
-    - name: Run CLI-based cluster automation tests 1
-      run: |
-        cd ./test/test_automated && ./test_prepare_host.sh && ./test_setup1.sh && ./test_host1.sh 1
+    # - name: Run CLI-based cluster automation tests 1
+    #   run: |
+    #     cd ./test/test_automated && ./test_prepare_host.sh && ./test_setup1.sh && ./test_host1.sh 1
 
-    - name: Run CLI-based cluster automation tests 2
-      run: |
-        cd ./test/test_automated && ./test_prepare_host.sh && ./test_setup2.sh && ./test_host2.sh 1
+    # - name: Run CLI-based cluster automation tests 2
+    #   run: |
+    #     cd ./test/test_automated && ./test_prepare_host.sh && ./test_setup2.sh && ./test_host2.sh 1
 
-    - name: Run XBR CLI tests
-      run: |
-        cd ./test/test_xbr_network && ./test_xbr_network.sh 1
+    # - name: Run XBR CLI tests
+    #   run: |
+    #     cd ./test/test_xbr_network && ./test_xbr_network.sh 1
 
 
   # FIXME: https://github.com/crossbario/crossbar/issues/1842
