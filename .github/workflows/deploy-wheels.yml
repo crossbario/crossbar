@@ -81,3 +81,11 @@ jobs:
     - name: Build and deploy wheels
       run: |
         ./deploy-wheels.sh
+
+    - name: Trigger Binaries CD pipeline
+      run: |
+        curl -v -X POST -u "${ACCESS_TOKEN}" \
+          -H "Accept: application/vnd.github.everest-preview+json" \
+          -H "Content-Type: application/json" \
+          --data '{"event_type":"build"}' \
+          https://api.github.com/repos/crossbario/crossbar-binaries/dispatches
