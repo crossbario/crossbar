@@ -43,6 +43,8 @@ jobs:
         echo CROSSBAR_VCS_REF=`git rev-parse --short ${GITHUB_SHA}` >> $GITHUB_ENV
         echo CROSSBAR_BUILD_ID=$(date --utc +%Y%m%d)-$(git rev-parse --short ${GITHUB_SHA}) >> $GITHUB_ENV
         echo CROSSBAR_VERSION=$(grep -E '^(__version__)' ./crossbar/_version.py | cut -d ' ' -f3 | sed -e 's|[u"'\'']||g') >> $GITHUB_ENV
+        echo WAMP_PRIVATE_KEY=${WAMP_PRIVATE_KEY} >> $GITHUB_ENV
+        echo ACCESS_TOKEN=${ACCESS_TOKEN} >> $GITHUB_ENV
 
     - name: Print environment
       run: |
