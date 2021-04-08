@@ -43,6 +43,13 @@ aws s3 cp --acl public-read ./dist/crossbar-${CROSSBAR_VERSION}-py2.py3-none-any
 
 aws s3 ls ${AWS_S3_BUCKET_NAME}/wheels/crossbar-
 
+echo ''
+echo 'package uploaded to:'
+echo ''
+echo '      https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/crossbar-'${CROSSBAR_VERSION}'-py2.py3-none-any.whl'
+echo '      https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/crossbar-latest-py2.py3-none-any.whl'
+echo ''
+
 # tell crossbar-builder about this new wheel push
 # get 'wamp' command, always with latest autobahn master
 pip install -q -I https://github.com/crossbario/autobahn-python/archive/master.zip#egg=autobahn[twisted,serialization,encryption]
@@ -54,25 +61,3 @@ wamp --max-failures 3 \
      --realm webhook call builder.wheel_pushed \
      --keyword name crossbar \
      --keyword publish true
-
-echo ''
-echo 'package uploaded to:'
-echo ''
-echo '      https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/crossbar-'${CROSSBAR_VERSION}'-py2.py3-none-any.whl'
-echo '      https://crossbarbuilder.s3.eu-central-1.amazonaws.com/wheels/crossbar-latest-py2.py3-none-any.whl'
-echo ''
-
-export AWS_S3_BUCKET_NAME=crossbar.io
-export AWS_DEFAULT_REGION=eu-west-1
-
-# build and deploy latest docs: for now, this is hosted under
-# https://s3.eu-central-1.amazonaws.com/download.crossbario.com/docs/crossbar/index.html
-echo 'building and uploading docs ..'
-tox -c tox.ini -e sphinx
-aws s3 cp --recursive --acl public-read ${HOME}/crossbar-docs s3://${AWS_S3_BUCKET_NAME}/docs
-
-echo ''
-echo 'docs uploaded to:'
-echo ''
-echo '      https://s3.eu-central-1.amazonaws.com/download.crossbario.com/docs/crossbar/index.html'
-echo ''
