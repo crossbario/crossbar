@@ -87,8 +87,8 @@ jobs:
 
     - name: Trigger Binaries CD pipeline
       run: |
-        curl -v -X POST -u "${{ ACCESS_TOKEN }}" \
+        curl -v -X POST -u "${ACCESS_TOKEN}" \
           -H "Accept: application/vnd.github.everest-preview+json" \
           -H "Content-Type: application/json" \
-          --data '{"event_type":"build", "CROSSBAR_BUILD_DATE": "${{ CROSSBAR_BUILD_DATE }}", "CROSSBAR_BUILD_ID": "${{ CROSSBAR_BUILD_ID }}", "CROSSBAR_VCS_REF": "${{ CROSSBAR_VCS_REF }}", "CROSSBAR_VERSION": "${{ CROSSBAR_VERSION }}"}' \
+          --data '{"event_type":"build", "CROSSBAR_BUILD_DATE": "${CROSSBAR_BUILD_DATE}", "CROSSBAR_BUILD_ID": "${CROSSBAR_BUILD_ID}", "CROSSBAR_VCS_REF": "${CROSSBAR_VCS_REF}", "CROSSBAR_VERSION": "${CROSSBAR_VERSION}"}' \
           https://api.github.com/repos/crossbario/crossbar-binaries/dispatches
