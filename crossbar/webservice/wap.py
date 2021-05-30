@@ -7,7 +7,6 @@
 
 import os
 import importlib
-import json
 import pkg_resources
 from pprint import pformat
 
