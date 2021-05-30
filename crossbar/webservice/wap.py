@@ -156,7 +156,7 @@ class WapResource(resource.Resource):
                 _rp.append(path)
             if rpath != '/':
                 _rp.append(rpath)
-            route_url = '/' + '/'.join(_rp)
+            route_url = os.path.join('/', '/'.join(_rp))
 
             route_method = route.get('method', 'GET')
             assert route_method in ['GET', 'POST'], 'invalid HTTP method "{}" for route on URL "{}"'.format(route_method, route_url)
@@ -165,7 +165,8 @@ class WapResource(resource.Resource):
 
             # note the WAMP procedure to call and the Jinja2 template to render as HTTP response
             route_endpoint = (route['call'], env.get_template(route['render']))
-            map.add(Rule(route_url, methods=route_methods, endpoint=route_endpoint))
+            route_rule = Rule(route_url, methods=route_methods, endpoint=route_endpoint)
+            map.add(route_rule)
             self.log.info(
                 'WapResource route added (url={route_url}, methods={route_methods}, endpoint={route_endpoint})',
                 route_url=hlid(route_url),
@@ -192,7 +193,7 @@ class WapResource(resource.Resource):
                 self.log.info('WapResource successfully serialized JSON result:\n{result}', result=pformat(result))
             else:
                 rendered = request.template.render(result).encode('utf8')
-                self.log.info('WapResource successfully rendered HTML result:\n{rendered}', rendered=rendered)
+                self.log.info('WapResource successfully rendered HTML result: {rendered} bytes', rendered=len(rendered))
         except Exception as e:
             self.log.failure()
             emsg = 'WapResource render error for WAMP result of type "{}": {}'.format(type(result), e)
@@ -247,15 +248,18 @@ class WapResource(resource.Resource):
         :returns: server.NOT_DONE_YET (special)
         """
         # https://twistedmatrix.com/documents/current/api/twisted.web.resource.Resource.html#render
-        full_path = request.uri.decode('utf-8')
-        http_method = request.method.decode()
+        # The encoded path of the request URI (_not_ (!) including query arguments),
+        full_path = request.path.decode('utf-8')
 
+        # HTTP request method (GET, POST, ..)
+        http_method = request.method.decode()
         if http_method not in ['GET', 'POST']:
             request.setResponseCode(511)
             return self._render_error(
                 'Method not allowed on path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(
                     full_path=full_path), request)
 
+        # in case of HTTP/POST, read request body as one binary string
         if http_method == 'POST' and request.content:
             # https://stackoverflow.com/a/11549600/884770
             # http://marianoiglesias.com.ar/python/file-uploading-with-multi-part-encoding-using-twisted/
@@ -264,12 +268,25 @@ class WapResource(resource.Resource):
         else:
             body_data = None
 
+        # parse and decode any query parameters
+        query_args = {}
+        if request.args:
+            for key, values in request.args.items():
+                key = key.decode()
+                # we only process the first header value per key (!)
+                value = values[0].decode()
+                query_args[key] = value
+            self.log.info('Parsed query parameters: {query_args}', query_args=query_args)
+
+        # parse client announced accept header
         client_accept = request.getAllHeaders().get(b'accept', None)
         if client_accept:
             client_accept = client_accept.decode()
 
+        # flag indicating the client wants to get plain JSON results (not rendered HTML)
         client_return_json = client_accept == 'application/json'
 
+        # client cookie processing
         cookie = request.received_cookies.get(b'session_cookie')
         self.log.debug('Session Cookie is ({})'.format(cookie))
         if cookie:
@@ -287,28 +304,35 @@ class WapResource(resource.Resource):
             self.log.debug('No session cookie, falling back on default session')
             session = self._default_session
 
-        if not session:
-            self.log.error('could not call procedure - no session')
-            return self._render_error('could not call procedure - no session', request)
-
         try:
             # werkzeug.routing.MapAdapter
             # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter.match
-            (procedure, request.template), kwargs = self._map_adapter.match(full_path, method=http_method)
-
+            (procedure, request.template), kwargs = self._map_adapter.match(full_path,
+                                                                            method=http_method,
+                                                                            query_args=query_args)
+            if kwargs and query_args:
+                kwargs.update(query_args)
+            else:
+                kwargs = query_args
             self.log.info('WapResource on path "{full_path}" mapped to procedure "{procedure}"',
                           full_path=full_path,
                           procedure=procedure)
 
+            # FIXME: how do we allow calling WAMP procedures with positional args?
             if procedure:
-                self.log.info('calling procedure "{procedure}" with {kwargs}, {body_data_len}',
+                self.log.info('calling procedure "{procedure}" with kwargs={kwargs} and body_data_len={body_data_len}',
                               procedure=procedure, kwargs=kwargs, body_data_len=len(body_data) if body_data else 0)
-                # FIXME: how do we allow calling WAMP procedures with positional args?
+
+                # we need a session to call
+                if not session:
+                    self.log.error('could not call procedure - no session')
+                    return self._render_error('could not call procedure - no session', request)
+
                 if body_data:
                     if kwargs:
-                        d = session.call(procedure, **kwargs, body_data=body_data)
+                        d = session.call(procedure, **kwargs, data=body_data)
                     else:
-                        d = session.call(procedure, body_data=body_data)
+                        d = session.call(procedure, data=body_data)
                 else:
                     if kwargs:
                         d = session.call(procedure, **kwargs)
@@ -325,18 +349,21 @@ class WapResource(resource.Resource):
             return server.NOT_DONE_YET
 
         except NotFound:
+            self.log.info('URL "{url}" not found (method={method})', url=full_path, method=http_method)
             request.setResponseCode(404)
             return self._render_error(
                 'Path "{full_path}" not found [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path),
                 request)
 
         except MethodNotAllowed:
+            self.log.info('method={method} not allowed on URL "{url}"', url=full_path, method=http_method)
             request.setResponseCode(511)
             return self._render_error(
                 'Method not allowed on path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(
                     full_path=full_path), request)
 
-        except Exception:
+        except Exception as e:
+            self.log.info('error while processing method={method} on URL "{url}": {e}', url=full_path, method=http_method, e=e)
             request.setResponseCode(500)
             request.write(
                 self._render_error(
