@@ -159,7 +159,8 @@ class WapResource(resource.Resource):
             route_url = os.path.join('/', '/'.join(_rp))
 
             route_method = route.get('method', 'GET')
-            assert route_method in ['GET', 'POST'], 'invalid HTTP method "{}" for route on URL "{}"'.format(route_method, route_url)
+            assert route_method in ['GET', 'POST'], 'invalid HTTP method "{}" for route on URL "{}"'.format(
+                route_method, route_url)
 
             route_methods = [route_method]
 
@@ -193,7 +194,8 @@ class WapResource(resource.Resource):
                 self.log.info('WapResource successfully serialized JSON result:\n{result}', result=pformat(result))
             else:
                 rendered = request.template.render(result).encode('utf8')
-                self.log.info('WapResource successfully rendered HTML result: {rendered} bytes', rendered=len(rendered))
+                self.log.info('WapResource successfully rendered HTML result: {rendered} bytes',
+                              rendered=len(rendered))
         except Exception as e:
             self.log.failure()
             emsg = 'WapResource render error for WAMP result of type "{}": {}'.format(type(result), e)
@@ -321,7 +323,9 @@ class WapResource(resource.Resource):
             # FIXME: how do we allow calling WAMP procedures with positional args?
             if procedure:
                 self.log.info('calling procedure "{procedure}" with kwargs={kwargs} and body_data_len={body_data_len}',
-                              procedure=procedure, kwargs=kwargs, body_data_len=len(body_data) if body_data else 0)
+                              procedure=procedure,
+                              kwargs=kwargs,
+                              body_data_len=len(body_data) if body_data else 0)
 
                 # we need a session to call
                 if not session:
@@ -363,7 +367,10 @@ class WapResource(resource.Resource):
                     full_path=full_path), request)
 
         except Exception as e:
-            self.log.info('error while processing method={method} on URL "{url}": {e}', url=full_path, method=http_method, e=e)
+            self.log.info('error while processing method={method} on URL "{url}": {e}',
+                          url=full_path,
+                          method=http_method,
+                          e=e)
             request.setResponseCode(500)
             request.write(
                 self._render_error(
