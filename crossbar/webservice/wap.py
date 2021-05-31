@@ -8,6 +8,7 @@
 import os
 import importlib
 import pkg_resources
+from pprint import pformat
 
 from collections.abc import Mapping, Sequence
 
@@ -24,6 +25,7 @@ from twisted.web import resource
 from twisted.web import server
 from twisted.internet.defer import succeed
 
+from autobahn.wamp.serializer import JsonObjectSerializer
 from autobahn.wamp.types import ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
@@ -45,6 +47,8 @@ class WapResource(resource.Resource):
     """
 
     log = make_logger()
+
+    ser = JsonObjectSerializer()
 
     isLeaf = True
 
@@ -151,12 +155,18 @@ class WapResource(resource.Resource):
                 _rp.append(path)
             if rpath != '/':
                 _rp.append(rpath)
-            route_url = '/' + '/'.join(_rp)
-            route_methods = [route.get('method')]
+            route_url = os.path.join('/', '/'.join(_rp))
+
+            route_method = route.get('method', 'GET')
+            assert route_method in ['GET', 'POST'], 'invalid HTTP method "{}" for route on URL "{}"'.format(
+                route_method, route_url)
+
+            route_methods = [route_method]
 
             # note the WAMP procedure to call and the Jinja2 template to render as HTTP response
             route_endpoint = (route['call'], env.get_template(route['render']))
-            map.add(Rule(route_url, methods=route_methods, endpoint=route_endpoint))
+            route_rule = Rule(route_url, methods=route_methods, endpoint=route_endpoint)
+            map.add(route_rule)
             self.log.info(
                 'WapResource route added (url={route_url}, methods={route_methods}, endpoint={route_endpoint})',
                 route_url=hlid(route_url),
@@ -167,41 +177,47 @@ class WapResource(resource.Resource):
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter.match
         self._map_adapter = map.bind('/')
 
-    def _after_call_success(self, result, request):
+    def _after_call_success(self, result, request, client_return_json):
         """
         When the WAMP call attached to the URL returns, render the WAMP result
-        into a Jinja2 template and return HTML to client.
+        into a Jinja2 template and return HTML to client. Alternatively, return
+        the call result as plain JSON.
 
-        :param payload: The dict returned from the topic
+        :param result: The dict returned from the WAMP procedure call.
         :param request: The HTTP request.
-        :return: server.NOT_DONE_YET (special)
+        :param client_return_json: Flag indicating to return plain JSON (no HTML rendering.)
         """
         try:
-            rendered_html = request.template.render(result)
+            if client_return_json:
+                rendered = self.ser.serialize(result)
+                self.log.info('WapResource successfully serialized JSON result:\n{result}', result=pformat(result))
+            else:
+                rendered = request.template.render(result).encode('utf8')
+                self.log.info('WapResource successfully rendered HTML result: {rendered} bytes',
+                              rendered=len(rendered))
         except Exception as e:
             self.log.failure()
-            emsg = 'WabResource render error for WAMP result of type "{}": {}'.format(type(result), e)
+            emsg = 'WapResource render error for WAMP result of type "{}": {}'.format(type(result), e)
             self.log.warn(emsg)
             request.setResponseCode(500)
-            request.write(self._render_error(emsg, request))
+            request.write(self._render_error(emsg, request, client_return_json))
         else:
-            request.write(rendered_html.encode('utf8'))
+            request.write(rendered)
         request.finish()
 
-    def _after_call_error(self, error, request):
+    def _after_call_error(self, error, request, client_return_json):
         """
         Deferred error, write out the error template and finish the request
 
         :param error: The current deferred error object
         :param request: The original HTTP request
-        :return: None
         """
         self.log.error('WapResource error: {error}', error=error)
         request.setResponseCode(500)
-        request.write(self._render_error(error.value.error, request))
+        request.write(self._render_error(error.value.error, request, client_return_json))
         request.finish()
 
-    def _render_error(self, message, request):
+    def _render_error(self, message, request, client_return_json=False):
         """
         Error renderer, display a basic error message to tell the user that there
         was a problem and roughly what the problem was.
@@ -210,17 +226,20 @@ class WapResource(resource.Resource):
         :param request: The original HTTP request
         :return: HTML formatted error string
         """
-        return """
-            <html>
-                <title>API Error</title>
-                <body>
-                    <h3 style="color: #f00">Crossbar WAMP Application Page Error</h3>
-                    <pre>{}</pre>
-                </body>
-            </html>
-        """.format(escape(message)).encode('utf8')
+        if client_return_json:
+            return self.ser.serialize({'error': message})
+        else:
+            return """
+                <html>
+                    <title>API Error</title>
+                    <body>
+                        <h3 style="color: #f00">Crossbar WAMP Application Page Error</h3>
+                        <pre>{}</pre>
+                    </body>
+                </html>
+            """.format(escape(message)).encode('utf8')
 
-    def render_GET(self, request):
+    def render(self, request):
         """
         Initiate the rendering of a HTTP/GET request by calling a WAMP procedure, the
         resulting ``dict`` is rendered together with the specified Jinja2 template
@@ -229,6 +248,49 @@ class WapResource(resource.Resource):
         :param request: The HTTP request.
         :returns: server.NOT_DONE_YET (special)
         """
+        # https://twistedmatrix.com/documents/current/api/twisted.web.resource.Resource.html#render
+        # The encoded path of the request URI (_not_ (!) including query arguments),
+        full_path = request.path.decode('utf-8')
+
+        # HTTP request method (GET, POST, ..)
+        http_method = request.method.decode()
+        if http_method not in ['GET', 'POST']:
+            request.setResponseCode(511)
+            return self._render_error(
+                'Method not allowed on path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(
+                    full_path=full_path), request)
+
+        # in case of HTTP/POST, read request body as one binary string
+        if http_method == 'POST' and request.content:
+            content_type = request.getAllHeaders().get(b'content-type', b'application/octet-stream').decode()
+
+            # https://stackoverflow.com/a/11549600/884770
+            # http://marianoiglesias.com.ar/python/file-uploading-with-multi-part-encoding-using-twisted/
+            body_data = request.content.read()
+            self.log.info('POST data len = {newdata_len}', newdata_len=len(body_data))
+        else:
+            content_type = None
+            body_data = None
+
+        # parse and decode any query parameters
+        query_args = {}
+        if request.args:
+            for key, values in request.args.items():
+                key = key.decode()
+                # we only process the first header value per key (!)
+                value = values[0].decode()
+                query_args[key] = value
+            self.log.info('Parsed query parameters: {query_args}', query_args=query_args)
+
+        # parse client announced accept header
+        client_accept = request.getAllHeaders().get(b'accept', None)
+        if client_accept:
+            client_accept = client_accept.decode()
+
+        # flag indicating the client wants to get plain JSON results (not rendered HTML)
+        client_return_json = client_accept == 'application/json'
+
+        # client cookie processing
         cookie = request.received_cookies.get(b'session_cookie')
         self.log.debug('Session Cookie is ({})'.format(cookie))
         if cookie:
@@ -246,51 +308,71 @@ class WapResource(resource.Resource):
             self.log.debug('No session cookie, falling back on default session')
             session = self._default_session
 
-        if not session:
-            self.log.error('could not call procedure - no session')
-            return self._render_error('could not call procedure - no session', request)
-
-        full_path = request.uri.decode('utf-8')
         try:
             # werkzeug.routing.MapAdapter
             # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter.match
-            (procedure, request.template), kwargs = self._map_adapter.match(full_path)
+            (procedure, request.template), kwargs = self._map_adapter.match(full_path,
+                                                                            method=http_method,
+                                                                            query_args=query_args)
+            if kwargs and query_args:
+                kwargs.update(query_args)
+            else:
+                kwargs = query_args
+            self.log.info('WapResource on path "{full_path}" mapped to procedure "{procedure}"',
+                          full_path=full_path,
+                          procedure=procedure)
 
-            self.log.debug('WapResource HTTP/GET "{full_path}" mapped to procedure "{procedure}"',
-                           full_path=full_path,
-                           procedure=procedure)
-
+            # FIXME: how do we allow calling WAMP procedures with positional args?
             if procedure:
-                # FIXME: how do we allow calling WAMP procedures with positional args?
-                if kwargs:
-                    d = session.call(procedure, **kwargs)
+                self.log.info('calling procedure "{procedure}" with kwargs={kwargs} and body_data_len={body_data_len}',
+                              procedure=procedure,
+                              kwargs=kwargs,
+                              body_data_len=len(body_data) if body_data else 0)
+
+                # we need a session to call
+                if not session:
+                    self.log.error('could not call procedure - no session')
+                    return self._render_error('could not call procedure - no session', request)
+
+                if body_data:
+                    if kwargs:
+                        d = session.call(procedure, **kwargs, data=body_data, data_type=content_type)
+                    else:
+                        d = session.call(procedure, data=body_data, data_type=content_type)
                 else:
-                    d = session.call(procedure)
+                    if kwargs:
+                        d = session.call(procedure, **kwargs)
+                    else:
+                        d = session.call(procedure)
             else:
                 d = succeed({})
 
-            # d.addCallback(self._after_call_success, request)
-            # d.addErrback(self._after_call_error, request)
             d.addCallbacks(self._after_call_success,
                            self._after_call_error,
-                           callbackArgs=[request],
-                           errbackArgs=[request])
+                           callbackArgs=[request, client_return_json],
+                           errbackArgs=[request, client_return_json])
 
             return server.NOT_DONE_YET
 
         except NotFound:
+            self.log.info('URL "{url}" not found (method={method})', url=full_path, method=http_method)
             request.setResponseCode(404)
             return self._render_error(
                 'Path "{full_path}" not found [werkzeug.routing.MapAdapter.match]'.format(full_path=full_path),
                 request)
 
         except MethodNotAllowed:
+            self.log.info('method={method} not allowed on URL "{url}"', url=full_path, method=http_method)
             request.setResponseCode(511)
             return self._render_error(
                 'Method not allowed on path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(
                     full_path=full_path), request)
 
-        except Exception:
+        except Exception as e:
+            self.log.info('error while processing method={method} on URL "{url}": {e}',
+                          url=full_path,
+                          method=http_method,
+                          e=e)
             request.setResponseCode(500)
             request.write(
                 self._render_error(
