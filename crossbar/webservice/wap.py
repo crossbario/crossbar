@@ -262,11 +262,14 @@ class WapResource(resource.Resource):
 
         # in case of HTTP/POST, read request body as one binary string
         if http_method == 'POST' and request.content:
+            content_type = request.getAllHeaders().get(b'content-type', b'application/octet-stream').decode()
+
             # https://stackoverflow.com/a/11549600/884770
             # http://marianoiglesias.com.ar/python/file-uploading-with-multi-part-encoding-using-twisted/
             body_data = request.content.read()
             self.log.info('POST data len = {newdata_len}', newdata_len=len(body_data))
         else:
+            content_type = None
             body_data = None
 
         # parse and decode any query parameters
@@ -333,9 +336,9 @@ class WapResource(resource.Resource):
 
                 if body_data:
                     if kwargs:
-                        d = session.call(procedure, **kwargs, data=body_data)
+                        d = session.call(procedure, **kwargs, data=body_data, data_type=content_type)
                     else:
-                        d = session.call(procedure, data=body_data)
+                        d = session.call(procedure, data=body_data, data_type=content_type)
                 else:
                     if kwargs:
                         d = session.call(procedure, **kwargs)
