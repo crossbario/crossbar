@@ -113,7 +113,7 @@ txaio==21.2.1
 txtorcon==20.0.0
 u-msgpack-python==2.7.1
 ujson==4.0.2
-urllib3==1.24.3
+urllib3==1.26.5
 validate-email==1.3
 varint==1.0.2
 vmprof==0.4.15
