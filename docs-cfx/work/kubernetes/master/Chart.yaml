@@ -1,0 +1,9 @@
+apiVersion: v1
+appVersion: "1.0"
+description: A Helm chart to provision Crossbar Fabric Controller
+name: master
+home: https://github.com/crossbario/crossbarfx
+version: 0.1.0
+details:
+  Helm chart to install the Crossbar Fabric Controller executable
+  on a Kubernetes

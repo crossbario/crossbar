@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -64,11 +41,7 @@ def _read_release_key():
 
     release_pubkey_qrcode = cryptosign._qrcode_from_signify_ed25519_pubkey(release_pubkey_path)
 
-    release_pubkey = {
-        'base64': release_pubkey_base64,
-        'hex': release_pubkey_hex,
-        'qrcode': release_pubkey_qrcode
-    }
+    release_pubkey = {'base64': release_pubkey_base64, 'hex': release_pubkey_hex, 'qrcode': release_pubkey_qrcode}
 
     return release_pubkey
 
@@ -81,8 +54,7 @@ def _parse_key_file(key_path, private=True):
     if os.path.exists(key_path) and not os.path.isfile(key_path):
         raise Exception("Key file '{}' exists, but isn't a file".format(key_path))
 
-    allowed_tags = ['public-key-ed25519', 'machine-id', 'node-authid',
-                    'created-at', 'creator']
+    allowed_tags = ['public-key-ed25519', 'machine-id', 'node-authid', 'created-at', 'creator']
     if private:
         allowed_tags.append('private-key-ed25519')
 
@@ -132,10 +104,7 @@ def _read_node_key(cbdir, privkey_path='key.priv', pubkey_path='key.pub', privat
     else:
         raise Exception('logic error')
 
-    node_key = {
-        'hex': node_key_hex,
-        'qrcode': node_key_qr
-    }
+    node_key = {'hex': node_key_hex, 'qrcode': node_key_qr}
 
     return node_key
 
@@ -208,10 +177,8 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
         if priv_tags['public-key-ed25519'] != pubkey_hex:
-            raise Exception(
-                ("Inconsistent node private key file {} - public-key-ed25519 doesn't"
-                 " correspond to private-key-ed25519").format(pubkey_path)
-            )
+            raise Exception(("Inconsistent node private key file {} - public-key-ed25519 doesn't"
+                             " correspond to private-key-ed25519").format(pubkey_path))
 
         if os.path.exists(pubkey_path):
             pub_tags = _parse_key_file(pubkey_path, private=False)
@@ -221,10 +188,8 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
                     raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))
 
             if pub_tags['public-key-ed25519'] != pubkey_hex:
-                raise Exception(
-                    ("Inconsistent node public key file {} - public-key-ed25519 doesn't"
-                     " correspond to private-key-ed25519").format(pubkey_path)
-                )
+                raise Exception(("Inconsistent node public key file {} - public-key-ed25519 doesn't"
+                                 " correspond to private-key-ed25519").format(pubkey_path))
         else:
             log.info(
                 "Node public key file {pub_path} not found - re-creating from node private key file {priv_path}",
@@ -241,8 +206,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
             msg = 'Crossbar.io node public key\n\n'
             _write_node_key(pubkey_path, pub_tags, msg)
 
-        log.info('Node key files exist and are valid. Node public key is {pubkey}',
-                 pubkey=hlid('0x' + pubkey_hex))
+        log.info('Node key files exist and are valid. Node public key is {pubkey}', pubkey=hlid('0x' + pubkey_hex))
 
         was_new = False
 
@@ -254,8 +218,8 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         pubkey = privkey.verify_key
         pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
-        if 'CROSSBARFX_NODE_ID' in os.environ and os.environ['CROSSBARFX_NODE_ID'].strip() != '':
-            node_authid = os.environ['CROSSBARFX_NODE_ID']
+        if 'CROSSBAR_NODE_ID' in os.environ and os.environ['CROSSBAR_NODE_ID'].strip() != '':
+            node_authid = os.environ['CROSSBAR_NODE_ID']
         else:
             node_authid = socket.gethostname()
 

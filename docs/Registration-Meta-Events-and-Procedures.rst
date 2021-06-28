@@ -148,7 +148,9 @@ Example code for **removing a subscriber**:
 
     session.call("wamp.registration.remove_callee", [23560753, 483984922713478]).then(session.log, session.log)
 
-    Note: Access the to the meta-API should, of course, be limited in
+.. note::
+
+    Access the to the meta-API should, of course, be limited in
     your configuration to avoid rogue clients wreaking havoc on your
     application.
 

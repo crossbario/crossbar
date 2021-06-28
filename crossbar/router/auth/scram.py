@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -43,7 +20,7 @@ from txaio import make_logger, as_future
 
 from crossbar.router.auth.pending import PendingAuth
 
-__all__ = ('PendingAuthScram',)
+__all__ = ('PendingAuthScram', )
 
 
 class PendingAuthScram(PendingAuth):
@@ -57,7 +34,10 @@ class PendingAuthScram(PendingAuth):
 
     def __init__(self, pending_session_id, transport_info, realm_container, config):
         super(PendingAuthScram, self).__init__(
-            pending_session_id, transport_info, realm_container, config,
+            pending_session_id,
+            transport_info,
+            realm_container,
+            config,
         )
 
         # https://tools.ietf.org/html/rfc5056
@@ -74,15 +54,11 @@ class PendingAuthScram(PendingAuth):
         # client must send "nonce" in details, and MAY send "gs2_cbind_flag"
         self._client_nonce = details.authextra.get("nonce", None)
         if self._client_nonce is None:
-            return types.Deny(
-                message='client must send a nonce'
-            )
+            return types.Deny(message='client must send a nonce')
         try:
             self._client_nonce = base64.b64decode(self._client_nonce)
         except Exception:
-            return types.Deny(
-                message='client nonce must be base64'
-            )
+            return types.Deny(message='client nonce must be base64')
 
         # FIXME TODO: channel-binding (currently "gs2_cbind_flag" in
         # the draft spec)
@@ -127,9 +103,7 @@ class PendingAuthScram(PendingAuth):
                 return on_authenticate_ok(self._config['principals'][self._authid])
             else:
                 self.log.debug("No pricipal found for {authid}", authid=details.authid)
-                return types.Deny(
-                    message='no principal with authid "{}" exists'.format(details.authid)
-                )
+                return types.Deny(message='no principal with authid "{}" exists'.format(details.authid))
 
         elif self._config['type'] == 'dynamic':
             self._authprovider = 'dynamic'
@@ -167,7 +141,8 @@ class PendingAuthScram(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
+                              format(self._config['type']))
 
     # XXX TODO this needs to include (optional) channel-binding
     def _compute_challenge(self):
@@ -194,13 +169,11 @@ class PendingAuthScram(PendingAuth):
         client_nonce = base64.b64encode(self._client_nonce).decode('ascii')
         server_nonce = base64.b64encode(self._server_nonce).decode('ascii')
         salt = base64.b64encode(self._salt).decode('ascii')
-        auth_message = (
-            "{client_first_bare},{server_first},{client_final_no_proof}".format(
-                client_first_bare="n={},r={}".format(saslprep(self._authid), client_nonce),
-                server_first="r={},s={},i={}".format(server_nonce, salt, self._iterations),
-                client_final_no_proof="c={},r={}".format(channel_binding, server_nonce),
-            )
-        )
+        auth_message = ("{client_first_bare},{server_first},{client_final_no_proof}".format(
+            client_first_bare="n={},r={}".format(saslprep(self._authid), client_nonce),
+            server_first="r={},s={},i={}".format(server_nonce, salt, self._iterations),
+            client_final_no_proof="c={},r={}".format(channel_binding, server_nonce),
+        ))
 
         received_client_proof = base64.b64decode(signed_message)
 

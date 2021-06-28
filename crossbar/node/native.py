@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -38,7 +15,7 @@ from txaio import make_logger
 
 from crossbar._util import hltype
 
-__all__ = ('create_native_worker_client_factory',)
+__all__ = ('create_native_worker_client_factory', )
 
 
 class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
@@ -85,16 +62,19 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
                 if not self.factory._on_exit.called:
                     self.factory._on_exit.errback(reason)
                 else:
-                    self.log.error("unhandled code path (1) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
+                    self.log.error("unhandled code path (1) in WorkerClientProtocol.connectionLost: {reason}",
+                                   reason=reason.value)
         elif isinstance(reason.value, (ProcessDone, ConnectionDone)):
             # the worker exited cleanly
             if not self.factory._on_exit.called:
                 self.factory._on_exit.callback(None)
             else:
-                self.log.error("unhandled code path (2) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
+                self.log.error("unhandled code path (2) in WorkerClientProtocol.connectionLost: {reason}",
+                               reason=reason.value)
         else:
             # should not arrive here
-            self.log.error("unhandled code path (3) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
+            self.log.error("unhandled code path (3) in WorkerClientProtocol.connectionLost: {reason}",
+                           reason=reason.value)
 
 
 class NativeWorkerClientFactory(WampWebSocketClientFactory):
@@ -102,7 +82,9 @@ class NativeWorkerClientFactory(WampWebSocketClientFactory):
     log = make_logger()
 
     def __init__(self, *args, **kwargs):
-        self.log.debug('{func}(*args={_args}, **kwargs={_kwargs})', _args=args, _kwargs=kwargs,
+        self.log.debug('{func}(*args={_args}, **kwargs={_kwargs})',
+                       _args=args,
+                       _kwargs=kwargs,
                        func=hltype(NativeWorkerClientFactory.__init__))
         self._authrole = kwargs.pop('authrole')
         WampWebSocketClientFactory.__init__(self, *args, **kwargs)

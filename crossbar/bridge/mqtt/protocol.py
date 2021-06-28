@@ -1,41 +1,26 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
 from ._events import (
-    Failure, ParseFailure,
-    Connect, ConnACK,
-    Subscribe, SubACK,
-    Unsubscribe, UnsubACK,
-    Publish, PubACK,
-    PubREC, PubREL, PubCOMP,
-    PingREQ, PingRESP,
+    Failure,
+    ParseFailure,
+    Connect,
+    ConnACK,
+    Subscribe,
+    SubACK,
+    Unsubscribe,
+    UnsubACK,
+    Publish,
+    PubACK,
+    PubREC,
+    PubREL,
+    PubCOMP,
+    PingREQ,
+    PingRESP,
     Disconnect,
 )
 
@@ -101,10 +86,7 @@ client_packet_handlers = {
 def _parse_header(data):
     # New packet
     packet_type = data.read('uint:4')
-    flags = (data.read("bool"),
-             data.read("bool"),
-             data.read("bool"),
-             data.read("bool"))
+    flags = (data.read("bool"), data.read("bool"), data.read("bool"), data.read("bool"))
 
     multiplier = 1
     value = 0
@@ -202,8 +184,7 @@ class MQTTParser(object):
 
                     if packet_type not in self._packet_handlers:
                         self._state = PROTOCOL_VIOLATION
-                        events.append(Failure("Unimplemented packet type %d" % (
-                            packet_type,)))
+                        events.append(Failure("Unimplemented packet type %d" % (packet_type, )))
                         return events
 
                     packet_handler = self._packet_handlers[packet_type]
@@ -213,8 +194,7 @@ class MQTTParser(object):
                     if len(e.args) == 1:
                         events.append(Failure(e.args[0]))
                     else:
-                        events.append(Failure(
-                            e.args[1] + " in " + e.args[0].__name__))
+                        events.append(Failure(e.args[1] + " in " + e.args[0].__name__))
                     self._state = PROTOCOL_VIOLATION
                     return events
                 except bitstring.ReadError as e:

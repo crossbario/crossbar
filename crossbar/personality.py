@@ -1,35 +1,13 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
 import time
 from collections.abc import Mapping
+from typing import Dict
 
 import txaio
 txaio.use_twisted()
@@ -67,7 +45,6 @@ def default_native_workers():
 
         # only check router worker options
         'checkconfig_options': checkconfig.check_router_options,
-
         'logname': 'Router',
         'topics': {
             'starting': 'crossbar.on_router_starting',
@@ -83,7 +60,6 @@ def default_native_workers():
 
         # only check container worker options
         'checkconfig_options': checkconfig.check_container_options,
-
         'logname': 'Container',
         'topics': {
             'starting': 'crossbar.on_container_starting',
@@ -99,7 +75,6 @@ def default_native_workers():
 
         # only check websocket testee worker worker options
         'checkconfig_options': checkconfig.check_websocket_testee_options,
-
         'logname': 'WebSocketTestee',
         'topics': {
             'starting': 'crossbar.on_websocket_testee_starting',
@@ -224,71 +199,52 @@ class Personality(object):
     # of _pairs_ to be used with pkg_resources.resource_filename()!
     TEMPLATE_DIRS = [('crossbar', 'webservice/templates')]
 
-    WEB_SERVICE_CHECKERS = {
+    WEB_SERVICE_CHECKERS: Dict[str, object] = {
         'none': None,
-
         'path': checkconfig.check_web_path_service_path,
         'redirect': checkconfig.check_web_path_service_redirect,
         'resource': checkconfig.check_web_path_service_resource,
         'reverseproxy': checkconfig.check_web_path_service_reverseproxy,
-
         'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
         'json': checkconfig.check_web_path_service_json,
         'cgi': checkconfig.check_web_path_service_cgi,
-
         'wsgi': checkconfig.check_web_path_service_wsgi,
-
         'static': checkconfig.check_web_path_service_static,
-
         'websocket': checkconfig.check_web_path_service_websocket,
         'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
-
         'longpoll': checkconfig.check_web_path_service_longpoll,
-
         'caller': checkconfig.check_web_path_service_caller,
         'publisher': checkconfig.check_web_path_service_publisher,
         'webhook': checkconfig.check_web_path_service_webhook,
-
         'archive': archive.RouterWebServiceArchive.check,
         'wap': wap.RouterWebServiceWap.check,
     }
 
-    WEB_SERVICE_FACTORIES = {
+    WEB_SERVICE_FACTORIES: Dict[str, object] = {
         # renders to 404
         'none': base.RouterWebService,
-
         'path': base.RouterWebServiceNestedPath,
         'redirect': base.RouterWebServiceRedirect,
         'resource': base.RouterWebServiceTwistedWeb,
         'reverseproxy': base.RouterWebServiceReverseWeb,
-
         'nodeinfo': misc.RouterWebServiceNodeInfo,
         'json': misc.RouterWebServiceJson,
         'cgi': misc.RouterWebServiceCgi,
-
         'wsgi': wsgi.RouterWebServiceWsgi,
-
         'static': static.RouterWebServiceStatic,
-
         'websocket': websocket.RouterWebServiceWebSocket,
         'websocket-reverseproxy': websocket.RouterWebServiceWebSocketReverseProxy,
-
         'longpoll': longpoll.RouterWebServiceLongPoll,
-
         'caller': rest.RouterWebServiceRestCaller,
         'publisher': rest.RouterWebServiceRestPublisher,
         'webhook': rest.RouterWebServiceWebhook,
-
         'archive': archive.RouterWebServiceArchive,
         'wap': wap.RouterWebServiceWap,
     }
 
-    EXTRA_AUTH_METHODS = {
-    }
+    EXTRA_AUTH_METHODS: Dict[str, object] = {}
 
-    REALM_STORES = {
-        'memory': MemoryRealmStore
-    }
+    REALM_STORES: Dict[str, object] = {'memory': MemoryRealmStore}
 
     Node = node.Node
     NodeOptions = node.NodeOptions

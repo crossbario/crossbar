@@ -218,16 +218,14 @@ based WAMP client and name it "index.htm". Make sure to place "index.htm" in a f
 running, you should see the current database time printed to the
 JavaScript console three times.
 
-.. code:: html
+.. code-block:: console
 
-    <!DOCTYPE html>
     <html>
-    <head>
-      <meta charset="utf-8" />
-    </head>
+        <head>
+          <meta charset="utf-8" />
+        </head>
        <body>
-       <h1>Hello, my fair database</h1
-          <!-- library can be found at https://github.com/crossbario/autobahn-js-browser -->
+          <h1>Hello, my fair database</h1
           <script src="shared/autobahn.min.js">
           </script>
           <script>

@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -38,10 +15,7 @@ from crossbar._logging import LogCapturer
 from crossbar.bridge.rest import PublisherResource
 from crossbar.bridge.rest.test import MockPublisherSession, renderResource, makeSignedArguments
 
-resourceOptions = {
-    "secret": "foobar",
-    "key": "bazapp"
-}
+resourceOptions = {"secret": "foobar", "key": "bazapp"}
 
 publishBody = b'{"topic": "com.test.messages", "args": [1]}'
 
@@ -59,11 +33,14 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody,
-                sign=True, signKey="bazapp", signSecret="foobar")
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           sign=True,
+                                           signKey="bazapp",
+                                           signSecret="foobar")
 
         self.assertEqual(request.code, 200)
         self.assertEqual(json.loads(native_string(request.get_written_data())),
@@ -82,12 +59,14 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/",
-                method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody,
-                sign=True, signKey="bazapp", signSecret="foobar2")
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           sign=True,
+                                           signKey="bazapp",
+                                           signSecret="foobar2")
 
         self.assertEqual(request.code, 401)
 
@@ -104,11 +83,14 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody,
-                sign=True, signKey="spamapp", signSecret="foobar")
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           sign=True,
+                                           signKey="spamapp",
+                                           signSecret="foobar")
 
         self.assertEqual(request.code, 401)
 
@@ -128,10 +110,12 @@ class SignatureTestCase(TestCase):
         del signedParams[b'timestamp']
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody, params=signedParams)
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           params=signedParams)
 
         self.assertEqual(request.code, 400)
 
@@ -151,10 +135,12 @@ class SignatureTestCase(TestCase):
         signedParams[b'timestamp'] = [b"notatimestamp"]
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody, params=signedParams)
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           params=signedParams)
 
         self.assertEqual(request.code, 400)
 
@@ -177,10 +163,12 @@ class SignatureTestCase(TestCase):
         signedParams[b'timestamp'] = [b"2011-10-14T16:59:51.123Z"]
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody, params=signedParams)
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           params=signedParams)
 
         self.assertEqual(request.code, 400)
 
@@ -200,10 +188,12 @@ class SignatureTestCase(TestCase):
         signedParams[b'nonce'] = [b"notanonce"]
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody, params=signedParams)
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           params=signedParams)
 
         self.assertEqual(request.code, 400)
 
@@ -223,10 +213,12 @@ class SignatureTestCase(TestCase):
         del signedParams[b'nonce']
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody, params=signedParams)
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           params=signedParams)
 
         self.assertEqual(request.code, 400)
 
@@ -246,10 +238,12 @@ class SignatureTestCase(TestCase):
         del signedParams[b'signature']
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody, params=signedParams)
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           params=signedParams)
 
         self.assertEqual(request.code, 400)
 
@@ -269,10 +263,12 @@ class SignatureTestCase(TestCase):
         del signedParams[b'key']
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody, params=signedParams)
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           params=signedParams)
 
         self.assertEqual(request.code, 400)
 
@@ -292,10 +288,12 @@ class SignatureTestCase(TestCase):
         del signedParams[b'seq']
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody, params=signedParams)
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           params=signedParams)
 
         self.assertEqual(request.code, 400)
 
@@ -315,10 +313,12 @@ class SignatureTestCase(TestCase):
         signedParams[b'seq'] = [b"notaseq"]
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody, params=signedParams)
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=publishBody,
+                                           params=signedParams)
 
         self.assertEqual(request.code, 400)
 

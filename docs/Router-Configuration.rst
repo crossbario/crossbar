@@ -81,7 +81,7 @@ Router components are either **plain Python classes**:
 +----------------------+--------------------------------------------------------------+
 | **``realm``**        | The realm to join with the component.                        |
 +----------------------+--------------------------------------------------------------+
-| **``role``**         | The atuhrole under which to attach the component.            |
+| **``role``**         | The authrole under which to attach the component.            |
 +----------------------+--------------------------------------------------------------+
 | **``references``**   | Please see below.                                            |
 +----------------------+--------------------------------------------------------------+

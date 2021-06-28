@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -49,7 +26,7 @@ from crossbar.router.protocol import set_websocket_options, set_rawsocket_option
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 from crossbar._util import hlid, hltype, hlval
 
-__all__ = ('ContainerController',)
+__all__ = ('ContainerController', )
 
 
 class ContainerComponent(object):
@@ -58,7 +35,6 @@ class ContainerComponent(object):
 
     This class is for _internal_ use within ContainerController.
     """
-
     def __init__(self, component_id, config, proto, session):
         """
         Ctor.
@@ -130,16 +106,16 @@ class ContainerController(WorkerController):
         self._restart_mode = (config.extra.restart or self.RESTART_NEVER)
 
         # "global" shared between all components
-        self.components_shared = {
-            'reactor': reactor
-        }
+        self.components_shared = {'reactor': reactor}
 
     @inlineCallbacks
     def onJoin(self, details):
         """
         Called when worker process has joined the node's management realm.
         """
-        self.log.info('Container worker "{worker_id}" session {session_id} initializing ..', worker_id=self._worker_id, session_id=details.session)
+        self.log.info('Container worker "{worker_id}" session {session_id} initializing ..',
+                      worker_id=self._worker_id,
+                      session_id=details.session)
         yield WorkerController.onJoin(self, details, publish_ready=False)
 
         self.log.info('Container worker "{worker_id}" session ready', worker_id=self._worker_id)
@@ -197,7 +173,8 @@ class ContainerController(WorkerController):
         # prohibit starting a component twice
         #
         if component_id in self.components:
-            emsg = 'duplicate component "{}" - a component with this ID is already running (or starting)'.format(component_id)
+            emsg = 'duplicate component "{}" - a component with this ID is already running (or starting)'.format(
+                component_id)
             self.log.debug(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
@@ -247,6 +224,18 @@ class ContainerController(WorkerController):
                 for path in e.kwargs['pythonpath']:
                     self.log.error('    {path}', path=path)
             raise
+
+        # check component extra configuration
+        #
+        if hasattr(create_component, 'check_config') and callable(create_component.check_config) and extra:
+            try:
+                create_component.check_config(self.personality, extra)
+            except Exception as e:
+                emsg = 'invalid container component extra configuration: {}'.format(e)
+                self.log.debug(emsg)
+                raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+            else:
+                self.log.debug('starting container component "{component_id}" ..', component_id=component_id)
 
         # force reload of modules (user code)
         #
@@ -333,33 +322,38 @@ class ContainerController(WorkerController):
             # shutdown above .. so if we have a shutdown mode of
             # SHUTDOWN_ON_ANY_COMPONENT_STOPPED will mean we never try
             # to re-start anything.
-            if self._restart_mode == self.RESTART_ALWAYS or (self._restart_mode == self.RESTART_FAILED and not was_clean):
+            if self._restart_mode == self.RESTART_ALWAYS or (self._restart_mode == self.RESTART_FAILED
+                                                             and not was_clean):
 
                 def restart_component():
                     # Think: if this below start_component() fails,
                     # we'll still schedule *exactly one* new re-start
                     # attempt for it, right?
-                    self.log.info('{func}: now restarting previously closed component {component_id} automatically .. [restart_mode={restart_mode}, was_clean={was_clean}]',
-                                  func=hltype(_component_closed),
-                                  component_id=hlid(component_id),
-                                  restart_mode=hlval(self._restart_mode),
-                                  was_clean=hlval(was_clean))
+                    self.log.info(
+                        '{func}: now restarting previously closed component {component_id} automatically .. [restart_mode={restart_mode}, was_clean={was_clean}]',
+                        func=hltype(_component_closed),
+                        component_id=hlid(component_id),
+                        restart_mode=hlval(self._restart_mode),
+                        was_clean=hlval(was_clean))
                     return self.start_component(
-                        component_id, config,
+                        component_id,
+                        config,
                         reload_modules=reload_modules,
                         details=details,
                     )
+
                 # note we must yield to the reactor with
                 # callLater(0, ..) to avoid infinite recursion if
                 # we're stuck in a restart loop
                 from twisted.internet import reactor
                 reactor.callLater(0, restart_component)
             else:
-                self.log.warn('{func}: component {component_id} will not be restarted automatically! [restart_mode={restart_mode}, was_clean={was_clean}]',
-                              func=hltype(_component_closed),
-                              component_id=hlid(component_id),
-                              restart_mode=hlval(self._restart_mode),
-                              was_clean=hlval(was_clean))
+                self.log.warn(
+                    '{func}: component {component_id} will not be restarted automatically! [restart_mode={restart_mode}, was_clean={was_clean}]',
+                    func=hltype(_component_closed),
+                    component_id=hlid(component_id),
+                    restart_mode=hlval(self._restart_mode),
+                    was_clean=hlval(was_clean))
 
         joined_d = Deferred()
 
@@ -373,9 +367,11 @@ class ContainerController(WorkerController):
                 def panic(fail, msg):
                     self.log.error(
                         "Fatal error in component: {msg} - {log_failure.value}",
-                        msg=msg, log_failure=fail,
+                        msg=msg,
+                        log_failure=fail,
                     )
                     session.disconnect()
+
                 session._swallow_error = panic
 
                 # see note above, for _component_closed -- we should be
@@ -391,21 +387,26 @@ class ContainerController(WorkerController):
                 # router-components) to work as expected
                 def _ready(s):
                     # this is different from "self.config.controller._realm" !!
-                    self.log.info('Container component ready: component_id="{component_id}", realm="{realm}", authrole="{authrole}", authid="{authid}", session={session} {func}',
-                                  func=hltype(self.onJoin), component_id=hlid(component_id), realm=hlid(session._realm),
-                                  authid=hlid(session._authid), authrole=hlid(session._authrole), session=hlid(session._session_id))
+                    self.log.info(
+                        'Container component ready: component_id="{component_id}", realm="{realm}", authrole="{authrole}", authid="{authid}", session={session} {func}',
+                        func=hltype(self.onJoin),
+                        component_id=hlid(component_id),
+                        realm=hlid(session._realm),
+                        authid=hlid(session._authid),
+                        authrole=hlid(session._authrole),
+                        session=hlid(session._session_id))
                     if not joined_d.called:
                         joined_d.callback(None)
+
                 session.on('ready', _ready)
 
                 def _left(s, details):
                     if not joined_d.called:
-                        joined_d.errback(
-                            ApplicationError(
-                                details.reason,
-                                details.message,
-                            )
-                        )
+                        joined_d.errback(ApplicationError(
+                            details.reason,
+                            details.message,
+                        ))
+
                 session.on('leave', _left)
 
                 return session
@@ -429,8 +430,7 @@ class ContainerController(WorkerController):
 
         elif transport_config['type'] == 'rawsocket':
 
-            transport_factory = WampRawSocketClientFactory(create_session,
-                                                           transport_config)
+            transport_factory = WampRawSocketClientFactory(create_session, transport_config)
             transport_factory.noisy = False
 
             if 'options' in transport_config:
@@ -442,10 +442,8 @@ class ContainerController(WorkerController):
 
         # create and connect client endpoint
         #
-        endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'],
-                                                          self.config.extra.cbdir,
-                                                          self._reactor,
-                                                          self.log)
+        endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'], self.config.extra.cbdir,
+                                                          self._reactor, self.log)
 
         # now, actually connect the client
         #
@@ -459,10 +457,7 @@ class ContainerController(WorkerController):
             #
             uri = self._uri_prefix + '.on_component_started'
 
-            component_started = {
-                'id': component_id,
-                'config': config
-            }
+            component_started = {'id': component_id, 'config': config}
 
             self.publish(uri, component_started, options=PublishOptions(exclude=details.caller))
 
@@ -471,7 +466,8 @@ class ContainerController(WorkerController):
         def on_connect_error(err):
             # https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
             if isinstance(err.value, internet.error.ConnectError):
-                emsg = 'could not connect container component to router - transport establishment failed ({})'.format(err.value)
+                emsg = 'could not connect container component to router - transport establishment failed ({})'.format(
+                    err.value)
                 self.log.warn(emsg)
                 raise ApplicationError('crossbar.error.cannot_connect', emsg)
             else:
@@ -525,12 +521,16 @@ class ContainerController(WorkerController):
         :returns dict -- A dict with combined info from component stopping/starting.
         """
         if component_id not in self.components:
-            raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(component_id))
+            raise ApplicationError('crossbar.error.no_such_object',
+                                   'no component with ID {} running in this container'.format(component_id))
 
         component = self.components[component_id]
 
         stopped = yield self.stop_container_component(component_id, details=details)
-        started = yield self.start_component(component_id, component.config, reload_modules=reload_modules, details=details)
+        started = yield self.start_component(component_id,
+                                             component.config,
+                                             reload_modules=reload_modules,
+                                             details=details)
 
         del stopped['caller']
         del started['caller']
@@ -566,10 +566,14 @@ class ContainerController(WorkerController):
         :returns: Stop information.
         :rtype: dict
         """
-        self.log.debug('{klass}.stop_component({component_id}, {details})', klass=self.__class__.__name__, component_id=component_id, details=details)
+        self.log.debug('{klass}.stop_component({component_id}, {details})',
+                       klass=self.__class__.__name__,
+                       component_id=component_id,
+                       details=details)
 
         if component_id not in self.components:
-            raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(component_id))
+            raise ApplicationError('crossbar.error.no_such_object',
+                                   'no component with ID {} running in this container'.format(component_id))
 
         component = self.components[component_id]
 
@@ -577,7 +581,8 @@ class ContainerController(WorkerController):
             component.proto.close()
             # yield component.session.leave()
         except:
-            self.log.failure("failed to close protocol on component '{component_id}': {log_failure}", component_id=component_id)
+            self.log.failure("failed to close protocol on component '{component_id}': {log_failure}",
+                             component_id=component_id)
             raise
         else:
             # essentially just waiting for "on_component_stop"
@@ -619,10 +624,14 @@ class ContainerController(WorkerController):
         :returns: Component detail information.
         :rtype: dict
         """
-        self.log.debug('{klass}.get_component({component_id}, {details})', klass=self.__class__.__name__, component_id=component_id, details=details)
+        self.log.debug('{klass}.get_component({component_id}, {details})',
+                       klass=self.__class__.__name__,
+                       component_id=component_id,
+                       details=details)
 
         if component_id not in self.components:
-            raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(component_id))
+            raise ApplicationError('crossbar.error.no_such_object',
+                                   'no component with ID {} running in this container'.format(component_id))
 
         return self.components[component_id].marshal()
 

@@ -1,0 +1,58 @@
+{
+    "version": 2,
+    "controller": {
+        "enable_docker": true,
+        "fabric": {
+            "transport": {
+                "type": "websocket",
+                "endpoint": {
+                    "type": "tcp",
+                    "host": "localhost",
+                    "port": 9000
+                },
+                "url": "ws://localhost:9000/ws"
+            }
+        }
+    },
+    "workers": [
+        {
+            "type": "router",
+            "realms": [
+                {
+                    "name": "realm1",
+                    "roles": [
+                        {
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "websocket",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 33001
+                    }
+                }
+            ]
+        }
+    ]
+}

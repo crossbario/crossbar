@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -62,10 +39,7 @@ class NodeInfoResource(Resource):
         except:
             peer = '?:?'
 
-        s = self._page.render(cbVersion=crossbar.__version__,
-                              workerPid=self._pid,
-                              peer=peer,
-                              **node_info)
+        s = self._page.render(cbVersion=crossbar.__version__, workerPid=self._pid, peer=peer, **node_info)
 
         request.write(s.encode('utf8'))
         request.finish()
@@ -81,7 +55,6 @@ class RouterWebServiceNodeInfo(RouterWebService):
     """
     Node information page service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -96,7 +69,6 @@ class JsonResource(Resource):
     """
     Static Twisted Web resource that renders to a JSON document.
     """
-
     def __init__(self, value, options=None):
         Resource.__init__(self)
         options = options or {}
@@ -143,7 +115,6 @@ class RouterWebServiceJson(RouterWebService):
     """
     JSON static value Web service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
@@ -157,7 +128,6 @@ class RouterWebServiceJson(RouterWebService):
 
 
 class CgiScript(CGIScript):
-
     def __init__(self, filename, filter):
         CGIScript.__init__(self, filename)
         self.filter = filter
@@ -197,7 +167,6 @@ class RouterWebServiceCgi(RouterWebService):
     """
     CGI script Web service.
     """
-
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality

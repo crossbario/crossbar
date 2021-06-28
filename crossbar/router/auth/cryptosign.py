@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -63,7 +40,10 @@ class PendingAuthCryptosign(PendingAuth):
 
     def __init__(self, pending_session_id, transport_info, realm_container, config):
         super(PendingAuthCryptosign, self).__init__(
-            pending_session_id, transport_info, realm_container, config,
+            pending_session_id,
+            transport_info,
+            realm_container,
+            config,
         )
         self._verify_key = None
 
@@ -103,7 +83,9 @@ class PendingAuthCryptosign(PendingAuth):
 
     def hello(self, realm: str, details: types.HelloDetails):
         self.log.debug('{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}")',
-                       func=hltype(self.hello), realm=hlid(realm), authid=hlid(details.authid),
+                       func=hltype(self.hello),
+                       realm=hlid(realm),
+                       authid=hlid(details.authid),
                        authrole=hlid(details.authrole))
 
         # the channel binding requested by the client authenticating
@@ -114,8 +96,7 @@ class PendingAuthCryptosign(PendingAuth):
             self.log.debug(
                 "WAMP-cryptosign CHANNEL BINDING requested: channel_binding={channel_binding}, channel_id={channel_id}",
                 channel_binding=channel_binding,
-                channel_id=self._channel_id
-            )
+                channel_id=self._channel_id)
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
@@ -147,18 +128,22 @@ class PendingAuthCryptosign(PendingAuth):
                             if self._authid is None:
                                 self._authid = _authid
                             else:
-                                return types.Deny(message='cannot infer client identity from pubkey: multiple authids in principal database have this pubkey')
+                                return types.Deny(message='cannot infer client identity from pubkey: multiple authids '
+                                                  'in principal database have this pubkey')
                     if self._authid is None:
-                        return types.Deny(message='cannot identify client: no authid requested and no principal found for provided extra.pubkey')
+                        return types.Deny(message='cannot identify client: no authid requested and no principal found '
+                                          'for provided extra.pubkey')
                 else:
-                    return types.Deny(message='cannot identify client: no authid requested and no extra.pubkey provided')
+                    return types.Deny(
+                        message='cannot identify client: no authid requested and no extra.pubkey provided')
 
             if self._authid in self._config.get('principals', {}):
 
                 principal = self._config['principals'][self._authid]
 
                 if pubkey and (pubkey not in principal['authorized_keys']):
-                    return types.Deny(message='extra.pubkey provided does not match any one of authorized_keys for the principal')
+                    return types.Deny(
+                        message='extra.pubkey provided does not match any one of authorized_keys for the principal')
 
                 error = self._assign_principal(principal)
                 if error:
@@ -190,18 +175,24 @@ class PendingAuthCryptosign(PendingAuth):
                 self._session_details['authrole'] = details.authrole
                 self._session_details['authextra'] = details.authextra
 
-                self.log.debug('Calling dynamic authenticator [proc="{proc}", realm="{realm}", session={session}, authid="{authid}", authrole="{authrole}"]',
-                               proc=self._authenticator,
-                               realm=self._authenticator_session._realm,
-                               session=self._authenticator_session._session_id,
-                               authid=self._authenticator_session._authid,
-                               authrole=self._authenticator_session._authrole)
+                self.log.debug(
+                    'Calling dynamic authenticator [proc="{proc}", realm="{realm}", session={session}, authid="{authid}", authrole="{authrole}"]',
+                    proc=self._authenticator,
+                    realm=self._authenticator_session._realm,
+                    session=self._authenticator_session._session_id,
+                    authid=self._authenticator_session._authid,
+                    authrole=self._authenticator_session._authrole)
 
-                d2 = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
+                d2 = self._authenticator_session.call(self._authenticator, realm, details.authid,
+                                                      self._session_details)
 
                 def on_authenticate_ok(principal):
-                    self.log.debug('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_ok(principal={principal})',
-                                   klass=self.__class__.__name__, realm=realm, details=details, principal=principal)
+                    self.log.debug(
+                        '{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_ok(principal={principal})',
+                        klass=self.__class__.__name__,
+                        realm=realm,
+                        details=details,
+                        principal=principal)
                     error = self._assign_principal(principal)
                     if error:
                         d.callback(error)
@@ -213,8 +204,12 @@ class PendingAuthCryptosign(PendingAuth):
                     d.callback(types.Challenge(self._authmethod, extra))
 
                 def on_authenticate_error(err):
-                    self.log.debug('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
-                                   klass=self.__class__.__name__, realm=realm, details=details, err=err)
+                    self.log.debug(
+                        '{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
+                        klass=self.__class__.__name__,
+                        realm=realm,
+                        details=details,
+                        err=err)
                     try:
                         d.callback(self._marshal_dynamic_authenticator_error(err))
                     except:
@@ -249,8 +244,12 @@ class PendingAuthCryptosign(PendingAuth):
                 auth_d = txaio.as_future(self._authenticator, realm, details.authid, self._session_details)
 
                 def on_authenticate_ok(principal):
-                    self.log.info('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_ok(principal={principal})',
-                                  klass=self.__class__.__name__, realm=realm, details=details, principal=principal)
+                    self.log.info(
+                        '{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_ok(principal={principal})',
+                        klass=self.__class__.__name__,
+                        realm=realm,
+                        details=details,
+                        principal=principal)
                     error = self._assign_principal(principal)
                     if error:
                         return error
@@ -261,8 +260,12 @@ class PendingAuthCryptosign(PendingAuth):
                     return types.Challenge(self._authmethod, extra)
 
                 def on_authenticate_error(err):
-                    self.log.info('{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
-                                  klass=self.__class__.__name__, realm=realm, details=details, err=err)
+                    self.log.info(
+                        '{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
+                        klass=self.__class__.__name__,
+                        realm=realm,
+                        details=details,
+                        err=err)
                     try:
                         return self._marshal_dynamic_authenticator_error(err)
                     except Exception as e:
@@ -279,7 +282,8 @@ class PendingAuthCryptosign(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
+                              format(self._config['type']))
 
     def authenticate(self, signed_message):
         """
@@ -297,7 +301,8 @@ class PendingAuthCryptosign(PendingAuth):
                 return types.Deny(message='signed message is invalid (not a HEX encoded string)')
 
             if len(signed_message) != 96:
-                return types.Deny(message='signed message has invalid length (was {}, but should have been 96)'.format(len(signed_message)))
+                return types.Deny(message='signed message has invalid length (was {}, but should have been 96)'.format(
+                    len(signed_message)))
 
             # now verify the signed message versus the client public key ..
             try:
@@ -313,10 +318,10 @@ class PendingAuthCryptosign(PendingAuth):
             # what we expected => accept the client
             return self._accept()
 
+        # should not arrive here .. but who knows
         except Exception as e:
-
-            # should not arrive here .. but who knows
-            return types.Deny(message='internal error: {}'.format(e))
+            self.log.failure()
+            return types.Deny(message='INTERNAL ERROR ({})'.format(e))
 
 
 class PendingAuthCryptosignProxy(PendingAuthCryptosign):
@@ -329,7 +334,9 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
 
     def hello(self, realm, details):
         self.log.debug('{klass}.hello(realm={realm}, details={details}) ...',
-                       klass=self.__class__.__name__, realm=realm, details=details)
+                       klass=self.__class__.__name__,
+                       realm=realm,
+                       details=details)
         if not details.authextra:
             return types.Deny(message='missing required details.authextra')
         for attr in ['proxy_authid', 'proxy_authrole', 'proxy_realm']:
@@ -371,9 +378,7 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
             return self._accept()
 
         def error(f):
-            return types.Deny(
-                "Internal error: {}".format(f)
-            )
+            return types.Deny("Internal error: {}".format(f))
 
         txaio.add_callbacks(f, assign, error)
         return f

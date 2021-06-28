@@ -1,0 +1,16 @@
+{
+    "version": 2,
+    "controller": {
+        "fabric": {
+            "transport": {
+                "type": "websocket",
+                "endpoint": {
+                    "type": "tcp",
+                    "host": "localhost",
+                    "port": 9000
+                },
+                "url": "ws://localhost:9000/ws"
+            }
+        }
+    }
+}

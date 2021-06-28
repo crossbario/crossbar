@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -46,7 +23,7 @@ from autobahn.wamp import serializer
 from autobahn.wamp import role
 from autobahn import util
 
-publishedMessage = namedtuple("pub", ["id"])
+publishedMessage = namedtuple("publishedMessage", ["id"])
 
 
 class MockPublisherSession(object):
@@ -59,12 +36,7 @@ class MockPublisherSession(object):
         def publish(topic, *args, **kwargs):
             messageID = random.randint(0, 100000)
 
-            self._published_messages.append({
-                "id": messageID,
-                "topic": topic,
-                "args": args,
-                "kwargs": kwargs
-            })
+            self._published_messages.append({"id": messageID, "topic": topic, "args": args, "kwargs": kwargs})
 
             return publishedMessage(id=messageID)
 
@@ -95,8 +67,16 @@ def makeSignedArguments(params, signKey, signSecret, body):
     return params
 
 
-def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecure=False,
-                   headers=None, sign=False, signKey=None, signSecret=None):
+def renderResource(resource,
+                   path,
+                   params=None,
+                   method=b"GET",
+                   body=b"",
+                   isSecure=False,
+                   headers=None,
+                   sign=False,
+                   signKey=None,
+                   signSecret=None):
 
     params = {} if params is None else params
     headers = {} if params is None else headers
@@ -107,8 +87,7 @@ def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecur
     if sign:
         params = makeSignedArguments(params, signKey, signSecret, body)
 
-    req = request(path, args=params, method=method, isSecure=isSecure,
-                  headers=headers, body=body)
+    req = request(path, args=params, method=method, isSecure=isSecure, headers=headers, body=body)
 
     d = _render(resource, req)
     d.addCallback(_cb, req)
@@ -119,13 +98,11 @@ MockResponse = namedtuple("MockResponse", ["code", "headers"])
 
 
 class MockHeaders(object):
-
     def getAllRawHeaders(self):
         return {b"foo": [b"bar"]}
 
 
 class MockWebTransport(object):
-
     def __init__(self, testCase):
         self.testCase = testCase
         self._code = None
@@ -138,8 +115,7 @@ class MockWebTransport(object):
 
     def request(self, *args, **kwargs):
         self.maderequest = {"args": args, "kwargs": kwargs}
-        resp = MockResponse(headers=MockHeaders(),
-                            code=self._code)
+        resp = MockResponse(headers=MockHeaders(), code=self._code)
         d = Deferred()
         reactor.callLater(0.0, d.callback, resp)
         return d
@@ -152,7 +128,6 @@ class MockWebTransport(object):
 
 
 class MockTransport(object):
-
     def __init__(self, handler):
         self._log = False
         self._handler = handler

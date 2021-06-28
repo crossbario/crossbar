@@ -1,0 +1,5 @@
+FlatBuffers
+    filter call_regexp_common C++
+    extension fbs
+    3rd_gen_scale 0.77
+    end_of_line_continuation \\$

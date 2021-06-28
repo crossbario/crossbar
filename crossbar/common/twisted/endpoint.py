@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -69,11 +46,8 @@ except ImportError as e:
     _HAS_TLS = False
     _LACKS_TLS_MSG = "{}".format(e)
 
-__all__ = ('create_listening_endpoint_from_config',
-           'create_listening_port_from_config',
-           'create_connecting_endpoint_from_config',
-           'create_connecting_port_from_config',
-           'extract_peer_certificate')
+__all__ = ('create_listening_endpoint_from_config', 'create_listening_port_from_config',
+           'create_connecting_endpoint_from_config', 'create_connecting_port_from_config', 'extract_peer_certificate')
 
 
 def extract_peer_certificate(transport):
@@ -153,7 +127,8 @@ def _create_tls_server_context(config, cbdir, log):
             extra_cert_filepath = abspath(join(cbdir, fname))
             with open(extra_cert_filepath, 'r') as f:
                 extra_certs.append(Certificate.loadPEM(f.read()).original)
-            log.info("Loading server TLS chain certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
+            log.info("Loading server TLS chain certificate from {extra_cert_filepath}",
+                     extra_cert_filepath=extra_cert_filepath)
 
     # list of certificate authority certificate objects to use to verify the peer's certificate
     ca_certs = None
@@ -204,8 +179,7 @@ def _create_tls_server_context(config, cbdir, log):
             'ECDHE-RSA-AES128-SHA256:'
             'DHE-RSA-AES128-SHA256:'
             'ECDHE-RSA-AES128-SHA:'
-            'DHE-RSA-AES128-SHA:'
-        )
+            'DHE-RSA-AES128-SHA:')
 
     # DH modes require a parameter file
     if 'dhparam' in config:
@@ -286,13 +260,11 @@ def _create_tls_client_context(config, cbdir, log):
     # explicit trust (certificate) root
     ca_certs = None
     if 'ca_certificates' in config:
-        log.info("TLS client using explicit trust ({cnt_certs} certificates)", cnt_certs=len(config['ca_certificates']))
+        log.info("TLS client using explicit trust ({cnt_certs} certificates)",
+                 cnt_certs=len(config['ca_certificates']))
         ca_certs = []
         for cert_fname in [os.path.abspath(os.path.join(cbdir, x)) for x in (config['ca_certificates'])]:
-            cert = crypto.load_certificate(
-                crypto.FILETYPE_PEM,
-                open(cert_fname, 'rb').read()
-            )
+            cert = crypto.load_certificate(crypto.FILETYPE_PEM, open(cert_fname, 'rb').read())
             log.info("TLS client trust root CA certificate loaded from '{fname}'", fname=cert_fname)
             ca_certs.append(cert)
         ca_certs = OpenSSLCertificateAuthorities(ca_certs)
@@ -312,7 +284,7 @@ def _create_tls_client_context(config, cbdir, log):
 
         cert_fname = os.path.abspath(os.path.join(cbdir, config['certificate']))
         with open(cert_fname, 'r') as f:
-            cert = Certificate.loadPEM(f.read(),)
+            cert = Certificate.loadPEM(f.read(), )
             log.info("Loaded client TLS certificate from '{cert_fname}' (cn='{cert_cn}', sha256={cert_sha256}..)",
                      cert_fname=cert_fname,
                      cert_cn=cert.getSubject().CN,
@@ -387,11 +359,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
                 context = _create_tls_server_context(config['tls'], cbdir, log)
 
                 if version == 4:
-                    endpoint = SSL4ServerEndpoint(reactor,
-                                                  port,
-                                                  context,
-                                                  backlog=backlog,
-                                                  interface=interface)
+                    endpoint = SSL4ServerEndpoint(reactor, port, context, backlog=backlog, interface=interface)
                 elif version == 6:
                     raise Exception("TLS on IPv6 not implemented")
                 else:
@@ -403,15 +371,9 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
             # create a non-TLS server endpoint
             #
             if version == 4:
-                endpoint = TCP4ServerEndpoint(reactor,
-                                              port,
-                                              backlog=backlog,
-                                              interface=interface)
+                endpoint = TCP4ServerEndpoint(reactor, port, backlog=backlog, interface=interface)
             elif version == 6:
-                endpoint = TCP6ServerEndpoint(reactor,
-                                              port,
-                                              backlog=backlog,
-                                              interface=interface)
+                endpoint = TCP6ServerEndpoint(reactor, port, backlog=backlog, interface=interface)
             else:
                 raise Exception("invalid TCP protocol version {}".format(version))
 
@@ -430,8 +392,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
         # if there is already something there, delete it.
         #
         if path.exists():
-            log.info(("{path} exists, attempting to remove before using as a "
-                     "UNIX socket"), path=path)
+            log.info(("{path} exists, attempting to remove before using as a " "UNIX socket"), path=path)
             path.remove()
 
         # create the endpoint
@@ -446,9 +407,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
     elif config['type'] == 'onion':  # or "tor"? r "tor_onion"?
         port = config['port']
         private_key_fname = _ensure_absolute(config['private_key_file'], cbdir)
-        tor_control_ep = create_connecting_endpoint_from_config(
-            config['tor_control_endpoint'], cbdir, reactor, log
-        )
+        tor_control_ep = create_connecting_endpoint_from_config(config['tor_control_endpoint'], cbdir, reactor, log)
         version = config.get('version', 3)  # default to modern version 3
 
         try:
@@ -463,7 +422,6 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
 
         @implementer(IStreamServerEndpoint)
         class _EphemeralOnion(object):
-
             @defer.inlineCallbacks
             def listen(self, proto_factory):
                 # we don't care which local TCP port we listen on, but
@@ -498,6 +456,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
                     ports=" ".join(hs.ports),
                 )
                 defer.returnValue(target_port)
+
         endpoint = _EphemeralOnion()
 
     else:
@@ -650,15 +609,9 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
             # create a non-TLS client endpoint
             #
             if version == 4:
-                endpoint = TCP4ClientEndpoint(reactor,
-                                              host,
-                                              port,
-                                              timeout=timeout)
+                endpoint = TCP4ClientEndpoint(reactor, host, port, timeout=timeout)
             elif version == 6:
-                endpoint = TCP6ClientEndpoint(reactor,
-                                              host,
-                                              port,
-                                              timeout=timeout)
+                endpoint = TCP6ClientEndpoint(reactor, host, port, timeout=timeout)
             else:
                 raise Exception("invalid TCP protocol version {}".format(version))
 
@@ -690,10 +643,13 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
             log.warn("Non-TLS connection traversing Tor network; end-to-end encryption advised")
 
         socks_endpoint = TCP4ClientEndpoint(
-            reactor, "127.0.0.1", socks_port,
+            reactor,
+            "127.0.0.1",
+            socks_port,
         )
         endpoint = txtorcon.TorClientEndpoint(
-            host, port,
+            host,
+            port,
             socks_endpoint=socks_endpoint,
             reactor=reactor,
             use_tls=tls,

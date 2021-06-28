@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -43,10 +20,7 @@ from txaio import make_logger
 from crossbar._logging import cb_logging_aware, escape_formatting, record_separator
 from crossbar.common.processinfo import ProcessInfo
 
-__all__ = ('ControllerWorkerProcess',
-           'RouterWorkerProcess',
-           'ContainerWorkerProcess',
-           'GuestWorkerProcess',
+__all__ = ('ControllerWorkerProcess', 'RouterWorkerProcess', 'ContainerWorkerProcess', 'GuestWorkerProcess',
            'WebSocketTesteeWorkerProcess')
 
 
@@ -118,11 +92,11 @@ class WorkerProcess(object):
 
         IMPORTANT: this slightly differs between native workers and guest workers!
         """
-        assert(self.status == 'starting')
-        assert(self.connected is None)
-        assert(self.proto is None)
-        assert(self.pid is None)
-        assert(self.pinfo is None)
+        assert (self.status == 'starting')
+        assert (self.connected is None)
+        assert (self.proto is None)
+        assert (self.pid is None)
+        assert (self.pinfo is None)
         self.status = 'connected'
         self.connected = datetime.utcnow()
         self.proto = proto
@@ -136,17 +110,17 @@ class WorkerProcess(object):
 
         The worker is now ready for use!
         """
-        assert(self.status in ['starting', 'connected'])
-        assert(self.started is None)
-        assert(self.proto is not None or proto is not None)
+        assert (self.status in ['starting', 'connected'])
+        assert (self.started is None)
+        assert (self.proto is not None or proto is not None)
 
         if not self.pid:
             self.pid = proto.transport.pid
         if not self.pinfo:
             self.pinfo = ProcessInfo(self.pid)
 
-        assert(self.pid is not None)
-        assert(self.pinfo is not None)
+        assert (self.pid is not None)
+        assert (self.pinfo is not None)
 
         self.status = 'started'
         self.proto = self.proto or proto
@@ -162,8 +136,7 @@ class WorkerProcess(object):
         lost.
         """
         if self._log_rich and self._log_data != "":
-            self._logger.warn("REMAINING LOG BUFFER AFTER EXIT FOR PID {pid}:",
-                              pid=self.pid)
+            self._logger.warn("REMAINING LOG BUFFER AFTER EXIT FOR PID {pid}:", pid=self.pid)
 
             for log in self._log_data.split(os.linesep):
                 self._logger.warn(escape_formatting(log))
@@ -174,7 +147,7 @@ class WorkerProcess(object):
         """
         Handle a log message (or a fragment of such) coming in.
         """
-        assert(childFD in self._log_fds)
+        assert (childFD in self._log_fds)
 
         system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
 
@@ -219,8 +192,7 @@ class WorkerProcess(object):
                 event_namespace = event.pop("namespace", None)
                 level = event.pop("level")
 
-                self._logger.emit(level, event_text, log_system=system,
-                                  cb_namespace=event_namespace, **event)
+                self._logger.emit(level, event_text, log_system=system, cb_namespace=event_namespace, **event)
                 self._log_entries.append(event)
 
                 if self._log_topic:
@@ -248,10 +220,7 @@ class WorkerProcess(object):
         over one of the pipes used for communicating with the worker.
         """
         if fd not in self._stats:
-            self._stats[fd] = {
-                'count': 0,
-                'bytes': 0
-            }
+            self._stats[fd] = {'count': 0, 'bytes': 0}
         self._stats[fd]['count'] += 1
         self._stats[fd]['bytes'] += dlen
 
@@ -266,6 +235,7 @@ class WorkerProcess(object):
 
             def print_stats():
                 self._logger.info("Worker {id} -> Controller traffic: {stats}", id=self.id, stats=self._stats)
+
             self._stats_printer = LoopingCall(print_stats)
             self._stats_printer.start(period)
 

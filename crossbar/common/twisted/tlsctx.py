@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -81,7 +58,6 @@ SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECD
 # Resorted to prioritize ECDH (hence favor performance over cipher strength) - no gain in practice, that doesn't
 # change the effectively accepted cipher with common browsers/clients
 # SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA'
-
 
 # Named curves built into OpenSSL .. can be listed using:
 #
@@ -193,7 +169,6 @@ ELLIPTIC_CURVES = {
     SSL.SN_X9_62_c2tnb359v1: SSL.NID_X9_62_c2tnb359v1,
     SSL.SN_X9_62_c2pnb368w1: SSL.NID_X9_62_c2pnb368w1,
     SSL.SN_X9_62_c2tnb431r1: SSL.NID_X9_62_c2tnb431r1,
-
     SSL.SN_X9_62_prime192v1: SSL.NID_X9_62_prime192v1,
     SSL.SN_X9_62_prime192v2: SSL.NID_X9_62_prime192v2,
     SSL.SN_X9_62_prime192v3: SSL.NID_X9_62_prime192v3,
@@ -279,13 +254,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             # X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN		19
             # X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY	20
             if errno in [19, 20]:
-                self.log.debug(
-                    "Can't find CA certificate to verify against or self-signed "
-                    "certificate."
-                )
-                self.log.debug(
-                    "Is 'ca_certificates' endpoint configuration missing a cert?"
-                )
+                self.log.debug("Can't find CA certificate to verify against or self-signed " "certificate.")
+                self.log.debug("Is 'ca_certificates' endpoint configuration missing a cert?")
         return preverify_ok
 
     def cacheContext(self):
@@ -312,7 +282,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 try:
                     ctx.load_tmp_dh(self._dhParamFilename)
                 except Exception:
-                    self.log.failure("Error: OpenSSL DH modes not active - failed to load DH parameter file [{log_failure}]")
+                    self.log.failure(
+                        "Error: OpenSSL DH modes not active - failed to load DH parameter file [{log_failure}]")
                 else:
                     self.log.info("Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded.")
             else:
@@ -332,8 +303,7 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             except Exception:
                 self.log.failure("Warning: OpenSSL failed to set ECDH default curve [{log_failure}]")
             else:
-                self.log.info("Ok, OpenSSL is using ECDH elliptic curve {curve}",
-                              curve=ECDH_DEFAULT_CURVE_NAME)
+                self.log.info("Ok, OpenSSL is using ECDH elliptic curve {curve}", curve=ECDH_DEFAULT_CURVE_NAME)
 
             # load certificate (chain) into context
             #

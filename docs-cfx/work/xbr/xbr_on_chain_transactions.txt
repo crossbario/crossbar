@@ -1,0 +1,48 @@
+                                                              .--------------.
+       ______________                                         | Ethereum     |
+  o    \             \                                        |              |
+ /|\    ) Consumer A  )------------------------------------>  |              |
+ / \   /_____________/                                        |              |
+       ______________                                         |              |
+  o    \             \                                        |              |
+ /|\    ) Provider E  )------------------------------------>  |              |
+ / \   /_____________/                                        |              |
+                         - register with network              |              |
+                         - register with carrier              |              |
+                         - join market                        |              |
+                         - open payment/revenue channel       |              |
+                         - close payment/revenue channel      |              |
+                         - leave market                       |              |
+                         - unregister from carrier            |              |
+                         - unregister from network            |              |
+                                                              |              |
+                                                              |              |
+      ______________                                          |              |
+ o    \             \                                         |              |
+/|\    ) Market C    )------------------------------------->  |              |
+/ \   /_____________/                                         |              |
+                         - register with network              |              |
+                         - register with carrier              |              |
+                         - register market                    |              |
+                         - open payment channel               |              |
+                         - close payment channel              |              |
+                         - approve market member              |              |
+                         - ban market member                  |              |
+                         - unregister market                  |              |
+                         - unregister from carrier            |              |
+                         - unregister from network            |              |
+      ______________                                          |              |
+ o    \             \                                         |              |
+/|\    ) Carrier B   )------------------------------------->  |              |
+/ \   /_____________/                                         |              |
+      ______________                                          |              |
+ o    \             \                                         |              |
+/|\    ) Carrier D   )------------------------------------->  |              |
+/ \   /_____________/                                         |              |
+                         - register with network              |              |
+                         - register node                      |              |
+                         - unregister node                    |              |
+                         - approve subscriber                 |              |
+                         - cancel subscriber                  |              |
+                         - unregister from network            |              |
+                                                              '--------------'

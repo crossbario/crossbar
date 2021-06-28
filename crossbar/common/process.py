@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -39,7 +16,6 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
-
 try:
     # Manhole support needs a couple of packages optional for Crossbar.
     # So we catch import errors and note those.
@@ -52,8 +28,7 @@ except ImportError as e:
     _MANHOLE_MISSING_REASON = str(e)
 else:
     _HAS_MANHOLE = True
-    _MANHOLE_MISSING_REASON = None
-
+    _MANHOLE_MISSING_REASON = ''
 
 from autobahn.util import utcnow, utcstr, rtime
 from autobahn.twisted.wamp import ApplicationSession
@@ -76,14 +51,13 @@ if _HAS_PSUTIL:
     from crossbar.common.monitor import ProcessMonitor
 
 if _HAS_MANHOLE:
-    class ManholeService(object):
 
+    class ManholeService(object):
         """
         Manhole service running inside a native processes (controller, router, container).
 
         This class is for _internal_ use within NativeProcess.
         """
-
         def __init__(self, config, who):
             """
             Ctor.
@@ -215,7 +189,8 @@ class NativeProcess(ApplicationSession):
                 procs.append(reg.procedure)
 
         if errors:
-            raise ApplicationError('crossbar.error.cannot_start', 'management API could not be initialized',
+            raise ApplicationError('crossbar.error.cannot_start',
+                                   'management API could not be initialized',
                                    errors=errors)
         else:
             self.log.debug('Ok, registered {len_reg} management procedures on realm "{realm}" [{func}]:\n\n{procs}\n',
@@ -316,7 +291,8 @@ class NativeProcess(ApplicationSession):
             p.cpu_affinity(_cpus)
             new_affinity = p.cpu_affinity()
             if set(_cpus) != set(new_affinity):
-                raise Exception('CPUs mismatch after affinity setting ({} != {})'.format(set(_cpus), set(new_affinity)))
+                raise Exception('CPUs mismatch after affinity setting ({} != {})'.format(
+                    set(_cpus), set(new_affinity)))
         except Exception as e:
             emsg = "Could not set CPU affinity: {}".format(e)
             self.log.failure(emsg)
@@ -345,8 +321,7 @@ class NativeProcess(ApplicationSession):
 
         :returns: Dictionary with process information.
         """
-        self.log.debug("{cls}.get_process_info",
-                       cls=self.__class__.__name__)
+        self.log.debug("{cls}.get_process_info", cls=self.__class__.__name__)
 
         if self._pinfo:
             # psutil.AccessDenied
@@ -390,7 +365,8 @@ class NativeProcess(ApplicationSession):
         :type interval: float
         """
         self.log.debug("{cls}.set_process_stats_monitoring(interval = {interval})",
-                       cls=self.__class__.__name__, interval=interval)
+                       cls=self.__class__.__name__,
+                       interval=interval)
 
         if self._pinfo:
 
@@ -475,8 +451,7 @@ class NativeProcess(ApplicationSession):
                 },
                 'duration': duration
             },
-            options=PublishOptions(exclude=details.caller)
-        )
+            options=PublishOptions(exclude=details.caller))
 
         return duration
 
@@ -535,8 +510,7 @@ class NativeProcess(ApplicationSession):
         :param config: Manhole service configuration.
         :type config: dict
         """
-        self.log.debug("{cls}.start_manhole(config = {config})",
-                       cls=self.__class__.__name__, config=config)
+        self.log.debug("{cls}.start_manhole(config = {config})", cls=self.__class__.__name__, config=config)
 
         if not _HAS_MANHOLE:
             emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
@@ -556,8 +530,7 @@ class NativeProcess(ApplicationSession):
             raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
         from twisted.conch.ssh import keys
-        from twisted.conch.manhole_ssh import (
-            ConchFactory, TerminalRealm, TerminalSession)
+        from twisted.conch.manhole_ssh import (ConchFactory, TerminalRealm, TerminalSession)
         from twisted.conch.manhole import ColoredManhole
         from twisted.conch.checkers import SSHPublicKeyDatabase
 
@@ -576,7 +549,8 @@ class NativeProcess(ApplicationSession):
         # setup user authentication
         #
         authorized_keys = {
-            'oberstet': 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCz7K1QwDhaq/Bi8o0uqiJQuVFCDQL5rbRvMClLHRx9KE3xP2Fh2eapzXuYGSgtG9Fyz1UQd+1oNM3wuNnT/DsBUBQrECP4bpFIHcJkMaFTARlCagkXosWsadzNnkW0osUCuHYMrzBJuXWF2GH+0OFCtVu+8E+4Mhvchu9xsHG8PM92SpI6aP0TtmT9D/0Bsm9JniRj8kndeS+iWG4s/pEGj7Rg7eGnbyQJt/9Jc1nWl6PngGbwp63dMVmh+8LP49PtfnxY8m9fdwpL4oW9U8beYqm8hyfBPN2yDXaehg6RILjIa7LU2/6bu96ZgnIz26zi/X9XlnJQt2aahWJs1+GR oberstet@thinkpad-t430s'
+            'oberstet':
+            'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCz7K1QwDhaq/Bi8o0uqiJQuVFCDQL5rbRvMClLHRx9KE3xP2Fh2eapzXuYGSgtG9Fyz1UQd+1oNM3wuNnT/DsBUBQrECP4bpFIHcJkMaFTARlCagkXosWsadzNnkW0osUCuHYMrzBJuXWF2GH+0OFCtVu+8E+4Mhvchu9xsHG8PM92SpI6aP0TtmT9D/0Bsm9JniRj8kndeS+iWG4s/pEGj7Rg7eGnbyQJt/9Jc1nWl6PngGbwp63dMVmh+8LP49PtfnxY8m9fdwpL4oW9U8beYqm8hyfBPN2yDXaehg6RILjIa7LU2/6bu96ZgnIz26zi/X9XlnJQt2aahWJs1+GR oberstet@thinkpad-t430s'
         }
         checker = PublicKeyChecker(authorized_keys)
 
@@ -604,12 +578,8 @@ class NativeProcess(ApplicationSession):
         private_key = keys.Key.fromFile(os.path.join(self.cbdir, 'ssh_host_rsa_key'))
         public_key = private_key.public()
 
-        publicKeys = {
-            b'ssh-rsa': public_key
-        }
-        privateKeys = {
-            b'ssh-rsa': private_key
-        }
+        publicKeys = {b'ssh-rsa': public_key}
+        privateKeys = {b'ssh-rsa': private_key}
         factory.publicKeys = publicKeys
         factory.privateKeys = privateKeys
 
@@ -626,11 +596,8 @@ class NativeProcess(ApplicationSession):
         self.publish(starting_topic, starting_info, options=PublishOptions(exclude=details.caller))
 
         try:
-            self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'],
-                                                                                 self.cbdir,
-                                                                                 factory,
-                                                                                 self._reactor,
-                                                                                 self.log)
+            self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'], self.cbdir,
+                                                                                 factory, self._reactor, self.log)
         except Exception as e:
             self._manhole_service = None
             emsg = "Manhole service endpoint cannot listen: {}".format(e)

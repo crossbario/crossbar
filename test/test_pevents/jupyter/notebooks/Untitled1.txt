@@ -1,0 +1,40 @@
+
+%matplotlib inline
+
+import math
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+import zlmdb
+from cfxdb.schema import ZdbSchema
+
+
+
+# create pandas dataframe from data collected in lists
+df = pd.DataFrame({
+    'x': np.asarray(vec_x, dtype='uint16'),
+    'y': np.asarray(vec_y, dtype='uint16'),
+    'category': np.asarray(vec_category, dtype='uint8'),
+    'value2': np.asarray(vec_value2, dtype='float32')
+})
+
+# compute some basic statistics
+df.describe()
+
+
+def trunc(val):
+    return int(val / 20)
+
+df3 = pd.DataFrame({
+    'x': df['x'].apply(trunc),
+    'y': df['y'].apply(trunc),
+    'value': df['value2'],
+})
+
+# compute aggregate
+df4 = df3.pivot_table(index='x', columns='y', values='value', aggfunc=np.median)
+
+# draw heatmap
+sns.heatmap(df4, annot=True, fmt=".3f")
+

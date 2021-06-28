@@ -33,6 +33,18 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
+run_ganache:
+	docker-compose up --force-recreate ganache
+
+fix_ganache_permissions:
+	sudo chown -R 1000:1000 ./test/ganache
+
+clean_ganache:
+	-rm -rf ./test/ganache/.data
+	mkdir -p ./test/ganache/.data
+
+logs_service:
+	sudo journalctl -f -u github-actions-crossbar.service
 
 # Targets for Sphinx-based documentation
 #
@@ -59,27 +71,25 @@ docs_run: docs
 docs_clean:
 	-rm -rf ./docs/_build
 
-
 # freeze our dependencies
 freeze:
 	# do everything in a fresh environment
-	rm -rf vers
+	-rm -rf vers
 	virtualenv vers
+	vers/bin/pip3 install -U "pip==19.3.1" wheel hashin pip-licenses
 
 	# install and freeze latest versions of minimum requirements
 	vers/bin/pip3 install -r requirements-min.txt
 	vers/bin/pip3 freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-pinned.txt
 
 	# persist OSS license list of our exact dependencies
-	vers/bin/pip3 install pip-licenses
-	vers/bin/pip-licenses --from=classifier -a -o name > crossbar/LICENSES-OSS
-	# vers/bin/pip-licenses --from=classifier -a -o name -r > docs/oss_licenses_table.rst
+	vers/bin/pip-licenses --from=classifier -a -o name > LICENSES-OSS
+	vers/bin/pip-licenses --from=classifier -a -o name --format=rst > docs/soss_licenses_table.rst
 
 	# hash all dependencies for repeatable builds
 	vers/bin/pip3 install hashin
 	-rm requirements.txt
 	cat requirements-pinned.txt | xargs vers/bin/hashin > requirements.txt
-
 
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
@@ -183,23 +193,15 @@ flake8_stats:
 version:
 	PYTHONPATH=. python -m crossbar.controller.cli version
 
-pyflakes:
-	pyflakes crossbar
 
-pep8:
-	pep8 --statistics --ignore=E501 -qq .
+# auto-format code - WARNING: this my change files, in-place!
+autoformat:
+	yapf -ri --style=yapf.ini \
+		--exclude="crossbar/shell/reflection/*" \
+		--exclude="crossbar/master/database/*" \
+		--exclude="crossbar/worker/test/examples/syntaxerror.py" \
+		crossbar
 
-pep8_show_e231:
-	pep8 --select=E231 --show-source
-
-autopep8:
-	autopep8 -ri --aggressive --ignore=E501 .
-
-pylint:
-	pylint -d line-too-long,invalid-name crossbar
-
-find_classes:
-	find crossbar -name "*.py" -exec grep -Hi "^class" {} \; | grep -iv test
 
 # sudo apt install gource ffmpeg
 gource:

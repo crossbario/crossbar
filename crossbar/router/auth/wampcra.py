@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -38,8 +15,7 @@ from crossbar.router.auth.pending import PendingAuth
 
 import txaio
 
-
-__all__ = ('PendingAuthWampCra',)
+__all__ = ('PendingAuthWampCra', )
 
 
 class PendingAuthWampCra(PendingAuth):
@@ -51,7 +27,10 @@ class PendingAuthWampCra(PendingAuth):
 
     def __init__(self, pending_session_id, transport_info, realm_container, config):
         super(PendingAuthWampCra, self).__init__(
-            pending_session_id, transport_info, realm_container, config,
+            pending_session_id,
+            transport_info,
+            realm_container,
+            config,
         )
 
         # The signature we expect the client to send in AUTHENTICATE.
@@ -81,9 +60,7 @@ class PendingAuthWampCra(PendingAuth):
         signature = auth.compute_wcs(secret, challenge.encode('utf8')).decode('ascii')
 
         # extra data to send to client in CHALLENGE
-        extra = {
-            'challenge': challenge
-        }
+        extra = {'challenge': challenge}
 
         # when using salted passwords, provide the client with
         # the salt and then PBKDF2 parameters used
@@ -165,9 +142,9 @@ class PendingAuthWampCra(PendingAuth):
 
             init_d = txaio.as_future(self._init_function_authenticator)
 
-            def init(error):
-                if error:
-                    return error
+            def init(result):
+                if result:
+                    return result
 
                 self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
                 self._session_details['authid'] = details.authid
@@ -184,7 +161,8 @@ class PendingAuthWampCra(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
+                              format(self._config['type']))
 
     def authenticate(self, signature):
 

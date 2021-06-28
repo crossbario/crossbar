@@ -1,0 +1,36 @@
+# Default values for crossbar-cfc (YAML)
+
+replicaCount: 1
+
+image:
+  repository: IMAGE_REPO_REQUIRED
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: LoadBalancer
+  port: 9000
+
+etcd:
+  host: cfc-etcd
+
+mailgun:
+  key: MAILGUN_KEY_REQUIRED
+  url: MAILGUN_URL_REQUIRED
+  from: MAILGUN_FROM_REQUIRED
+
+ingress:
+  enabled: false
+  annotations: {}
+  path: /
+  hosts:
+    - cfc.local
+  tls: []
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

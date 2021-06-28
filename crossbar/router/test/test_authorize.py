@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -60,7 +37,6 @@ class MockRealmContainer(object):
 
 
 class TestDynamicAuth(unittest.TestCase):
-
     @defer.inlineCallbacks
     def test_authextra_wampcryptosign(self):
         """
@@ -83,6 +59,7 @@ class TestDynamicAuth(unittest.TestCase):
                     "what": "authenticator-supplied authextra",
                 }
             })
+
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
@@ -132,6 +109,7 @@ class TestDynamicAuth(unittest.TestCase):
                     "what": "authenticator-supplied authextra",
                 }
             })
+
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
@@ -183,6 +161,7 @@ class TestDynamicAuth(unittest.TestCase):
                     "what": "authenticator-supplied authextra",
                 }
             })
+
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
@@ -233,6 +212,7 @@ class TestDynamicAuth(unittest.TestCase):
                     "what": "authenticator-supplied authextra",
                 }
             })
+
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
@@ -283,6 +263,7 @@ class TestDynamicAuth(unittest.TestCase):
                     "what": "authenticator-supplied authextra",
                 }
             })
+
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
@@ -320,7 +301,6 @@ class TestDynamicAuth(unittest.TestCase):
 
 
 class TestRouterRoleStaticAuth(unittest.TestCase):
-
     def test_ruleset_empty(self):
         permissions = []
         role = RouterRoleStaticAuth(None, 'testrole', permissions)
@@ -332,17 +312,15 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
                 self.assertFalse(authorization['allow'])
 
     def test_ruleset_1(self):
-        permissions = [
-            {
-                'uri': 'com.example.*',
-                'allow': {
-                    'call': True,
-                    'register': True,
-                    'publish': True,
-                    'subscribe': True
-                }
+        permissions = [{
+            'uri': 'com.example.*',
+            'allow': {
+                'call': True,
+                'register': True,
+                'publish': True,
+                'subscribe': True
             }
-        ]
+        }]
         role = RouterRoleStaticAuth(None, 'testrole', permissions)
         actions = ['call', 'register', 'publish', 'subscribe']
         uris = [('com.example.1', True), ('myuri', False), ('', False)]
@@ -352,17 +330,7 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
                 self.assertEqual(authorization['allow'], allow)
 
     def test_ruleset_2(self):
-        permissions = [
-            {
-                'uri': '*',
-                'allow': {
-                    'call': True,
-                    'register': True,
-                    'publish': True,
-                    'subscribe': True
-                }
-            }
-        ]
+        permissions = [{'uri': '*', 'allow': {'call': True, 'register': True, 'publish': True, 'subscribe': True}}]
         role = RouterRoleStaticAuth(None, 'testrole', permissions)
         actions = ['call', 'register', 'publish', 'subscribe']
         uris = [('com.example.1', True), ('myuri', True), ('', True)]
@@ -373,79 +341,50 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
 
 
 class TestRouterRoleStaticAuthWild(unittest.TestCase):
-
     def setUp(self):
-        permissions = [
-            {
-                'uri': 'com..private',
-                'match': 'wildcard',
-                'allow': {
-                    'call': True,
-                    'register': False,
-                    'publish': False,
-                    'subscribe': False,
-                }
-            },
-            {
-                'uri': 'com.something_specific.private',
-                'match': 'exact',
-                'allow': {
-                    'call': False,
-                    'register': True,
-                    'publish': False,
-                    'subscribe': False
-                }
-            },
-            {
-                'uri': 'com.',
-                'match': 'prefix',
-                'allow': {
-                    'call': False,
-                    'register': False,
-                    'publish': True,
-                    'subscribe': False
-                }
+        permissions = [{
+            'uri': 'com..private',
+            'match': 'wildcard',
+            'allow': {
+                'call': True,
+                'register': False,
+                'publish': False,
+                'subscribe': False,
             }
-        ]
+        }, {
+            'uri': 'com.something_specific.private',
+            'match': 'exact',
+            'allow': {
+                'call': False,
+                'register': True,
+                'publish': False,
+                'subscribe': False
+            }
+        }, {
+            'uri': 'com.',
+            'match': 'prefix',
+            'allow': {
+                'call': False,
+                'register': False,
+                'publish': True,
+                'subscribe': False
+            }
+        }]
         self.role = RouterRoleStaticAuth(None, 'testrole', permissions)
 
     def test_exact_before_wildcard(self):
         # exact matches should always be preferred over wildcards
-        self.assertEqual(
-            False,
-            self.role.authorize(None, 'com.something_specific.private', 'call', {})['allow']
-        )
-        self.assertEqual(
-            True,
-            self.role.authorize(None, 'com.something_specific.private', 'register', {})['allow']
-        )
+        self.assertEqual(False, self.role.authorize(None, 'com.something_specific.private', 'call', {})['allow'])
+        self.assertEqual(True, self.role.authorize(None, 'com.something_specific.private', 'register', {})['allow'])
 
     def test_wildcard_before_prefix(self):
         # wildcards should be preferred over prefix
-        self.assertEqual(
-            True,
-            self.role.authorize(None, 'com.foo.private', 'call', {})['allow']
-        )
-        self.assertEqual(
-            False,
-            self.role.authorize(None, 'com.foo.private', 'register', {})['allow']
-        )
-        self.assertEqual(
-            False,
-            self.role.authorize(None, 'com.foo.private', 'publish', {})['allow']
-        )
+        self.assertEqual(True, self.role.authorize(None, 'com.foo.private', 'call', {})['allow'])
+        self.assertEqual(False, self.role.authorize(None, 'com.foo.private', 'register', {})['allow'])
+        self.assertEqual(False, self.role.authorize(None, 'com.foo.private', 'publish', {})['allow'])
 
     def test_prefix(self):
         # wildcards should be preferred over prefix
-        self.assertEqual(
-            False,
-            self.role.authorize(None, 'com.whatever', 'call', {})['allow']
-        )
-        self.assertEqual(
-            False,
-            self.role.authorize(None, 'com.whatever', 'register', {})['allow']
-        )
-        self.assertEqual(
-            True,
-            self.role.authorize(None, 'com.whatever', 'publish', {})['allow']
-        )
+        self.assertEqual(False, self.role.authorize(None, 'com.whatever', 'call', {})['allow'])
+        self.assertEqual(False, self.role.authorize(None, 'com.whatever', 'register', {})['allow'])
+        self.assertEqual(True, self.role.authorize(None, 'com.whatever', 'publish', {})['allow'])

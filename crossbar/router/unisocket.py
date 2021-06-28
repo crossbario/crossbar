@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -36,7 +13,6 @@ txaio.use_twisted()  # noqa
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet.interfaces import IProtocolNegotiationFactory
 from zope.interface import implementer
-
 
 __all__ = (
     'UniSocketServerProtocol',
@@ -100,7 +76,8 @@ class UniSocketServerProtocol(Protocol):
                 # we switch to (as only the specific protocol knows what is allowed for the other
                 # parts). iow, we solely switch based on the HTTP Request-URI.
                 if len(rl) != 3:
-                    self.log.warn('received invalid HTTP request line for HTTP protocol subswitch: "{request_line}"', request_line=request_line)
+                    self.log.warn('received invalid HTTP request line for HTTP protocol subswitch: "{request_line}"',
+                                  request_line=request_line)
                     self.transport.loseConnection()
                     return
 
@@ -118,16 +95,25 @@ class UniSocketServerProtocol(Protocol):
                 else:
                     request_uri_first_component = ''
 
-                self.log.debug('switching to HTTP on Request-URI {request_uri}, mapping part {request_uri_first_component}', request_uri=request_uri, request_uri_first_component=request_uri_first_component)
+                self.log.debug(
+                    'switching to HTTP on Request-URI {request_uri}, mapping part {request_uri_first_component}',
+                    request_uri=request_uri,
+                    request_uri_first_component=request_uri_first_component)
 
                 # _first_ try to find a matching URL prefix in the WebSocket factory map ..
                 if self._factory._websocket_factory_map:
                     for uri_component, websocket_factory in self._factory._websocket_factory_map.items():
                         if request_uri_first_component == uri_component:
                             self._proto = websocket_factory.buildProtocol(self._addr)
-                            self.log.debug('found and build websocket protocol for request URI {request_uri}, mapping part {request_uri_first_component}', request_uri=request_uri, request_uri_first_component=request_uri_first_component)
+                            self.log.debug(
+                                'found and build websocket protocol for request URI {request_uri}, mapping part {request_uri_first_component}',
+                                request_uri=request_uri,
+                                request_uri_first_component=request_uri_first_component)
                             break
-                    self.log.debug('no mapping found for request URI {request_uri}, trying to map part {request_uri_first_component}', request_uri=request_uri, request_uri_first_component=request_uri_first_component)
+                    self.log.debug(
+                        'no mapping found for request URI {request_uri}, trying to map part {request_uri_first_component}',
+                        request_uri=request_uri,
+                        request_uri_first_component=request_uri_first_component)
 
                 if not self._proto:
                     # mmh, still no protocol, so there has to be a Twisted Web (a "Site") factory

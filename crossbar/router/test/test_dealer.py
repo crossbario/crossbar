@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -49,7 +26,6 @@ from twisted.internet import defer
 class TestDealer(unittest.TestCase):
     """
     """
-
     def setUp(self):
         """
         Setup router and router session factories.
@@ -65,21 +41,18 @@ class TestDealer(unittest.TestCase):
         # allow everything
         self.router = self.router_factory.get('realm1')
         self.router.add_role(
-            RouterRoleStaticAuth(
-                self.router,
-                'test_role',
-                default_permissions={
-                    'uri': 'com.example.',
-                    'match': 'prefix',
-                    'allow': {
-                        'call': True,
-                        'register': True,
-                        'publish': True,
-                        'subscribe': True,
-                    }
-                }
-            )
-        )
+            RouterRoleStaticAuth(self.router,
+                                 'test_role',
+                                 default_permissions={
+                                     'uri': 'com.example.',
+                                     'match': 'prefix',
+                                     'allow': {
+                                         'call': True,
+                                         'register': True,
+                                         'publish': True,
+                                         'subscribe': True,
+                                     }
+                                 }))
 
         # create a router session factory
         self.session_factory = RouterSessionFactory(self.router_factory)
@@ -97,9 +70,7 @@ class TestDealer(unittest.TestCase):
 
         session = mock.Mock()
         session._realm = 'realm1'
-        self.router.authorize = mock.Mock(
-            return_value=defer.succeed({'allow': True, 'disclose': True})
-        )
+        self.router.authorize = mock.Mock(return_value=defer.succeed({'allow': True, 'disclose': True}))
         rap = RouterApplicationSession(session, self.router_factory)
 
         rap.send(message.Hello("realm1", {'caller': role.RoleCallerFeatures()}))
@@ -110,9 +81,7 @@ class TestDealer(unittest.TestCase):
 
         # re-set the authorize, as the Deferred from above is already
         # used-up and it gets called again to authorize the Call
-        self.router.authorize = mock.Mock(
-            return_value=defer.succeed({'allow': True, 'disclose': True})
-        )
+        self.router.authorize = mock.Mock(return_value=defer.succeed({'allow': True, 'disclose': True}))
         rap.send(message.Call(42, 'foo'))
 
         orig = rap.send
@@ -123,6 +92,7 @@ class TestDealer(unittest.TestCase):
         def wrapper(*args, **kw):
             d.callback(args[0])
             return orig(*args, **kw)
+
         rap.send = wrapper
 
         # we can do this *after* the call to send() the Goodbye
@@ -170,29 +140,18 @@ class TestDealer(unittest.TestCase):
 
         self.router.authorize = mock.Mock(side_effect=authorize)
 
-        dealer.processRegister(session, message.Register(
-            1,
-            'com.example.my.proc',
-            'exact',
-            message.Register.INVOKE_SINGLE,
-            1
-        ))
+        dealer.processRegister(session,
+                               message.Register(1, 'com.example.my.proc', 'exact', message.Register.INVOKE_SINGLE, 1))
 
         registered_msg = messages[-1]
         self.assertIsInstance(registered_msg, message.Registered)
 
-        dealer.processCall(session, message.Call(
-            2,
-            'com.example.my.proc',
-            []
-        ))
+        dealer.processCall(session, message.Call(2, 'com.example.my.proc', []))
 
         invocation_msg = messages[-1]
         self.assertIsInstance(invocation_msg, message.Invocation)
 
-        dealer.processCancel(session, message.Cancel(
-            2
-        ))
+        dealer.processCancel(session, message.Cancel(2))
 
         # we should receive an INTERRUPT from the dealer now -- note
         # that our session is both the caller and the callee in this
@@ -235,32 +194,19 @@ class TestDealer(unittest.TestCase):
 
         self.router.authorize = mock.Mock(side_effect=authorize)
 
-        dealer.processRegister(session0, message.Register(
-            1,
-            'com.example.my.proc',
-            'exact',
-            message.Register.INVOKE_SINGLE,
-            2
-        ))
+        dealer.processRegister(session0,
+                               message.Register(1, 'com.example.my.proc', 'exact', message.Register.INVOKE_SINGLE, 2))
 
         registered_msg = messages[-1]
         self.assertIsInstance(registered_msg, message.Registered)
 
         # two calls outstanding to the endpoint, both happen to use
         # the same ID (42) which is legal
-        dealer.processCall(session0, message.Call(
-            42,
-            'com.example.my.proc',
-            []
-        ))
+        dealer.processCall(session0, message.Call(42, 'com.example.my.proc', []))
 
         invocation_msg0 = messages[-1]
         self.assertIsInstance(invocation_msg0, message.Invocation)
-        dealer.processCall(session1, message.Call(
-            42,
-            'com.example.my.proc',
-            []
-        ))
+        dealer.processCall(session1, message.Call(42, 'com.example.my.proc', []))
 
         invocation_msg1 = messages[-1]
         self.assertIsInstance(invocation_msg1, message.Invocation)
@@ -277,11 +223,8 @@ class TestDealer(unittest.TestCase):
         self.assertIsInstance(interrupt_msg0, message.Interrupt)
         self.assertEqual(interrupt_msg0.request, invocation_msg0.request)
 
-        dealer.processInvocationError(session0, message.Error(
-            message.Invocation.MESSAGE_TYPE,
-            invocation_msg0.request,
-            'wamp.error.canceled'
-        ))
+        dealer.processInvocationError(
+            session0, message.Error(message.Invocation.MESSAGE_TYPE, invocation_msg0.request, 'wamp.error.canceled'))
 
     def test_call_cancel_without_callee_support(self):
         last_message = {'1': []}
@@ -301,29 +244,18 @@ class TestDealer(unittest.TestCase):
 
         self.router.authorize = mock.Mock(side_effect=authorize)
 
-        dealer.processRegister(session, message.Register(
-            1,
-            'com.example.my.proc',
-            'exact',
-            message.Register.INVOKE_SINGLE,
-            1
-        ))
+        dealer.processRegister(session,
+                               message.Register(1, 'com.example.my.proc', 'exact', message.Register.INVOKE_SINGLE, 1))
 
         registered_msg = last_message['1']
         self.assertIsInstance(registered_msg, message.Registered)
 
-        dealer.processCall(session, message.Call(
-            2,
-            'com.example.my.proc',
-            []
-        ))
+        dealer.processCall(session, message.Call(2, 'com.example.my.proc', []))
 
         invocation_msg = last_message['1']
         self.assertIsInstance(invocation_msg, message.Invocation)
 
-        dealer.processCancel(session, message.Cancel(
-            2
-        ))
+        dealer.processCancel(session, message.Cancel(2))
 
         # set message to None to make sure that we get nothing back
         last_message['1'] = None
@@ -355,13 +287,8 @@ class TestDealer(unittest.TestCase):
 
         self.router.authorize = mock.Mock(side_effect=authorize)
 
-        dealer.processRegister(session, message.Register(
-            1,
-            u'com.example.my.proc',
-            u'exact',
-            message.Register.INVOKE_SINGLE,
-            1
-        ))
+        dealer.processRegister(
+            session, message.Register(1, u'com.example.my.proc', u'exact', message.Register.INVOKE_SINGLE, 1))
 
         registered_msg = messages[-1]
         self.assertIsInstance(registered_msg, message.Registered)
@@ -410,13 +337,8 @@ class TestDealer(unittest.TestCase):
 
         self.router.authorize = mock.Mock(side_effect=authorize)
 
-        dealer.processRegister(session, message.Register(
-            1,
-            u'com.example.my.proc',
-            u'exact',
-            message.Register.INVOKE_SINGLE,
-            1
-        ))
+        dealer.processRegister(
+            session, message.Register(1, u'com.example.my.proc', u'exact', message.Register.INVOKE_SINGLE, 1))
 
         registered_msg = messages[-1]
         self.assertIsInstance(registered_msg, message.Registered)
@@ -465,13 +387,8 @@ class TestDealer(unittest.TestCase):
 
         self.router.authorize = mock.Mock(side_effect=authorize)
 
-        dealer.processRegister(session, message.Register(
-            1,
-            u'com.example.my.proc',
-            u'exact',
-            message.Register.INVOKE_SINGLE,
-            1
-        ))
+        dealer.processRegister(
+            session, message.Register(1, u'com.example.my.proc', u'exact', message.Register.INVOKE_SINGLE, 1))
 
         registered_msg = messages[-1]
         self.assertIsInstance(registered_msg, message.Registered)
@@ -520,13 +437,8 @@ class TestDealer(unittest.TestCase):
 
         self.router.authorize = mock.Mock(side_effect=authorize)
 
-        dealer.processRegister(session, message.Register(
-            1,
-            u'com.example.my.proc',
-            u'exact',
-            message.Register.INVOKE_SINGLE,
-            1
-        ))
+        dealer.processRegister(
+            session, message.Register(1, u'com.example.my.proc', u'exact', message.Register.INVOKE_SINGLE, 1))
 
         registered_msg = messages[-1]
         self.assertIsInstance(registered_msg, message.Registered)
@@ -560,9 +472,7 @@ class TestDealer(unittest.TestCase):
 
         session = mock.Mock()
         session._realm = 'realm1'
-        self.router.authorize = mock.Mock(
-            return_value=defer.succeed({'allow': True, 'disclose': True})
-        )
+        self.router.authorize = mock.Mock(return_value=defer.succeed({'allow': True, 'disclose': True}))
         rap = RouterApplicationSession(session, self.router_factory)
 
         rap.send(message.Hello("realm1", {'caller': role.RoleCallerFeatures()}))
@@ -572,9 +482,7 @@ class TestDealer(unittest.TestCase):
 
         # re-set the authorize, as the Deferred from above is already
         # used-up and it gets called again to authorize the Call
-        self.router.authorize = mock.Mock(
-            return_value=defer.succeed({'allow': True, 'disclose': True})
-        )
+        self.router.authorize = mock.Mock(return_value=defer.succeed({'allow': True, 'disclose': True}))
 
         # re-register the same procedure
         rap.send(message.Register(2, 'foo', force_reregister=True))
@@ -649,22 +557,13 @@ class TestDealer(unittest.TestCase):
 
         self.router.authorize = mock.Mock(side_effect=authorize)
 
-        dealer.processRegister(session, message.Register(
-            1,
-            'com.example.my.proc',
-            'exact',
-            message.Register.INVOKE_SINGLE,
-            1
-        ))
+        dealer.processRegister(session,
+                               message.Register(1, 'com.example.my.proc', 'exact', message.Register.INVOKE_SINGLE, 1))
 
         registered_msg = last_message['1']
         self.assertIsInstance(registered_msg, message.Registered)
 
-        dealer.processCall(caller_session, message.Call(
-            2,
-            'com.example.my.proc',
-            []
-        ))
+        dealer.processCall(caller_session, message.Call(2, 'com.example.my.proc', []))
 
         invocation_msg = last_message['1']
         self.assertIsInstance(invocation_msg, message.Invocation)
@@ -697,22 +596,13 @@ class TestDealer(unittest.TestCase):
 
         self.router.authorize = mock.Mock(side_effect=authorize)
 
-        dealer.processRegister(session, message.Register(
-            1,
-            'com.example.my.proc',
-            'exact',
-            message.Register.INVOKE_SINGLE,
-            1
-        ))
+        dealer.processRegister(session,
+                               message.Register(1, 'com.example.my.proc', 'exact', message.Register.INVOKE_SINGLE, 1))
 
         registered_msg = last_message['1']
         self.assertIsInstance(registered_msg, message.Registered)
 
-        dealer.processCall(caller_session, message.Call(
-            2,
-            'com.example.my.proc',
-            []
-        ))
+        dealer.processCall(caller_session, message.Call(2, 'com.example.my.proc', []))
 
         invocation_msg = last_message['1']
         self.assertIsInstance(invocation_msg, message.Invocation)
@@ -759,13 +649,13 @@ class TestDealer(unittest.TestCase):
 
         # we register out procedure, with concurrency=1
 
-        dealer.processRegister(session, message.Register(
-            request=1,
-            procedure='com.example.my.proc',
-            match='exact',
-            invoke=message.Register.INVOKE_SINGLE,
-            concurrency=1
-        ))
+        dealer.processRegister(
+            session,
+            message.Register(request=1,
+                             procedure='com.example.my.proc',
+                             match='exact',
+                             invoke=message.Register.INVOKE_SINGLE,
+                             concurrency=1))
 
         registered_msg = callee_messages[-1]
         self.assertIsInstance(registered_msg, message.Registered)
@@ -773,11 +663,7 @@ class TestDealer(unittest.TestCase):
         # we have registered our procedure that has concurrency=1
         # and now we call it
 
-        dealer.processCall(caller_session, message.Call(
-            2,
-            'com.example.my.proc',
-            []
-        ))
+        dealer.processCall(caller_session, message.Call(2, 'com.example.my.proc', []))
 
         # we pretend that the call caused an error of some sort
         invocation_msg = callee_messages[-1]
@@ -796,11 +682,7 @@ class TestDealer(unittest.TestCase):
         # previously-outstanding call was resolved with an error
         # (before bug 1105 being fixed this wouldn't work properly)
 
-        dealer.processCall(caller_session, message.Call(
-            3,
-            'com.example.my.proc',
-            ['foo']
-        ))
+        dealer.processCall(caller_session, message.Call(3, 'com.example.my.proc', ['foo']))
         invocation_msg = callee_messages[-1]
         self.assertIsInstance(invocation_msg, message.Invocation)
 

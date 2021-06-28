@@ -1,0 +1,278 @@
+{
+    "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
+    "version": 2,
+    "controller": {
+        "id": "mynode1",
+        "options": {
+            "title": "Kernreaktor 7",
+            "shutdown": ["shutdown_on_last_worker_exit"]
+        },
+        "manhole": {
+            "endpoint": {
+                "type": "tcp",
+                "port": 6022,
+                "tls": {
+                    "certificate": "server.crt",
+                    "key": "server.key",
+                    "dhparam": "dhparam.pem",
+                    "ca_certificates": [
+                        "intermediate.cert.pem",
+                        "ca.cert.pem"
+                    ]
+                }
+            },
+            "users": [
+                {
+                    "user": "crossbar",
+                    "password": "crossbar"
+                }
+            ]
+        },
+        "connections": [
+            {
+                "type": "postgres",
+                "host": "localhost",
+                "port": 5432,
+                "database": "postgres",
+                "user": "postgres",
+                "password": "postgres",
+                "options": {
+                    "min_connections": 5,
+                    "max_connections": 20
+                }
+            }
+        ]
+    },
+    "workers": [
+        {
+            "type": "guest",
+            "executable": "/bin/sh",
+            "arguments": [
+                "tick.sh"
+            ],
+            "options": {
+                "workdir": ".."
+            }
+        },
+        {
+            "id": "wstestee1",
+            "type": "websocket-testee",
+            "transport": {
+                "type": "websocket",
+                "endpoint": {
+                    "type": "tcp",
+                    "interface": "127.0.0.1",
+                    "port": 9000,
+                    "shared": true,
+                    "backlog": 500
+                }
+            },
+            "options": {
+                "title": "Crossbar.io WebSocket Testee 1/2",
+                "cpu_affinity": [0]
+            }
+        },
+        {
+            "id": "wstestee2",
+            "type": "websocket-testee",
+            "transport": {
+                "type": "websocket",
+                "endpoint": {
+                    "type": "tcp",
+                    "interface": "127.0.0.1",
+                    "port": 9000,
+                    "shared": true,
+                    "backlog": 500
+                }
+            },
+            "options": {
+                "title": "Crossbar.io WebSocket Testee 2/2",
+                "cpu_affinity": [1]
+            }
+        },
+        {
+            "type": "router",
+            "realms": [
+                {
+                    "name": "realm1",
+                    "roles": [
+                        {
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "websocket",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 9001
+                    }
+                },
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8090
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "static",
+                            "directory": "../web"
+                        },
+                        "ws": {
+                            "type": "websocket"
+                        }
+                    }
+                },
+                {
+                    "type": "rawsocket",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 9002
+                    },
+                    "serializers": ["cbor", "msgpack"],
+                    "options": {
+                        "max_message_size": 1000000
+                    },
+                    "auth": {
+                        "anonymous": {
+                            "type": "static",
+                            "role": "anonymous"
+                        }
+                    }
+                },
+                {
+                    "type": "universal",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                    },
+                    "rawsocket": {
+                    },
+                    "websocket": {
+                        "ws": {
+                            "type": "websocket"
+                        }
+                    },
+                    "web": {
+                        "paths": {
+                            "/": {
+                                "type": "nodeinfo"
+                            },
+                            "tmp": {
+                                "type": "static",
+                                "directory": "/tmp",
+                                "options": {
+                                    "enable_directory_listing": true,
+                                    "cache_timeout": 600,
+                                    "mime_types": {
+                                    }
+                                }
+                            },
+                            "crossbar": {
+                                "type": "redirect",
+                                "url": "https://crossbar.io"
+                            },
+                            "foobar": {
+                                "type": "json",
+                                "value": {
+                                    "foo": 23,
+                                    "bar": ["baz", 666]
+                                },
+                                "options": {
+                                    "prettify": true,
+                                    "allow_cross_origin": true,
+                                    "discourage_caching": true
+                                }
+                            },
+                            "ws2": {
+                                "type": "websocket",
+                                "url": "ws://localhost:8080/ws2",
+                                "serializers": ["cbor", "json"]
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "type": "container",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "myapp.MySession",
+                    "realm": "realm1",
+                    "transport": {
+                        "type": "websocket",
+                        "endpoint": {
+                            "type": "tcp",
+                            "host": "127.0.0.1",
+                            "port": 8080
+                        },
+                        "url": "ws://127.0.0.1:8080/ws"
+                    }
+                }
+            ]
+        },
+        {
+            "transports": [
+                {
+                    "type": "universal",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 9005
+                    },
+                    "websocket": {
+                    }
+                }
+            ],
+            "type": "router",
+            "realms": [
+                {
+                    "name": "realm2",
+                    "roles": [
+                        {
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "publish": true,
+                                        "register": true,
+                                        "subscribe": true
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

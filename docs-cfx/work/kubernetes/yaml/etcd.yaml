@@ -1,0 +1,6 @@
+apiVersion: "etcd.database.coreos.com/v1beta2"
+kind: "EtcdCluster"
+metadata:
+  name: "cfc-etcd"
+spec:
+  size: 3
