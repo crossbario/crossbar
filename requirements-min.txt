@@ -20,6 +20,7 @@ git+https://github.com/crossbario/py-multihash.git@remove-dep-version-limits#egg
 h2>=3.2.0,<4.0.0
 hexbytes>=0.2.1
 humanize>=0.5.1
+# twisted/http2 needs <6.0.0:
 hyperframe>=5.2.0,<6.0.0
 idna<2.6,>=2.5
 importlib-resources>=4.1.1
