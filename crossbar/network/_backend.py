@@ -1895,7 +1895,7 @@ class Backend(object):
             raise RuntimeError('Invalid block_number "{}"'.format(block_number))
 
         if type(contract_adr) != bytes or len(contract_adr) != 20:
-            raise RuntimeError('Invalid contract_adr "{}"'.format(contract_adr)) # type: ignore
+            raise RuntimeError('Invalid contract_adr "{}"'.format(contract_adr))  # type: ignore
 
         if type(actor_type) != int:
             raise RuntimeError('Invalid actor_type {}'.format(type(actor_type)))
