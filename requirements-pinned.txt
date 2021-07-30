@@ -121,7 +121,7 @@ watchdog==2.0.2
 wcwidth==0.2.5
 web3==5.17.0
 websocket-client==0.58.0
-websockets==8.1
+websockets==9.1
 Werkzeug==1.0.1
 wsaccel==0.6.3
 xbr==21.2.1
