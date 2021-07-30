@@ -1521,7 +1521,7 @@ class Backend(object):
         with self._db.begin() as txn:
             block = self._xbr.blocks[txn, block_no]
             if not block:
-                raise ApplicationError('crossbar.error.no_such_object', 'no block {}'.format(block_no))
+                raise ApplicationError('crossbar.error.no_such_object', 'no block {}'.format(block_no.decode()))
 
         return block.marshal()
 
@@ -1895,7 +1895,7 @@ class Backend(object):
             raise RuntimeError('Invalid block_number "{}"'.format(block_number))
 
         if type(contract_adr) != bytes or len(contract_adr) != 20:
-            raise RuntimeError('Invalid contract_adr "{}"'.format(contract_adr))
+            raise RuntimeError('Invalid contract_adr "{}"'.format(contract_adr)) # type: ignore
 
         if type(actor_type) != int:
             raise RuntimeError('Invalid actor_type {}'.format(type(actor_type)))
