@@ -29,9 +29,6 @@ extras_require = {
 # reqs = 'requirements.txt'
 reqs = 'requirements-latest.txt'
 
-# https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
-dependency_links = []
-
 with open(reqs) as f:
     for line in f.read().splitlines():
         line = line.strip()
@@ -45,10 +42,12 @@ with open(reqs) as f:
                 extras_require[parts[1]].append(parts[0])
             else:
                 name = parts[0]
+                # Starting pip 18.1 adding packages from other repositores
+                # can be done with install_require parameter.
+                # https://stackoverflow.com/a/54216163
                 if name.startswith('git+'):
-                    dependency_links.append(name)
                     pkgname = name.split('=')[1]
-                    install_requires.append(pkgname)
+                    install_requires.append(f"{pkgname} @ {name}")
                 else:
                     install_requires.append(name)
 

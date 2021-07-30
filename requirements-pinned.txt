@@ -4,7 +4,7 @@ arrow==1.0.3
 attrs==20.3.0
 autobahn==21.3.1
 Automat==20.2.0
-base58==2.1.0
+base58==1.0.3
 bcrypt==3.2.0
 binaryornot==0.4.4
 bitarray==1.2.2
@@ -71,12 +71,12 @@ prompt-toolkit==3.0.18
 protobuf==3.15.7
 psutil==5.8.0
 PTable==0.9.2
-py-cid==0.4.0
+git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
 py-ecc==5.2.0
 py-eth-sig-utils==0.4.0
 py-multibase==1.0.3
 py-multicodec==0.2.1
-py-multihash==2.1.0
+git+https://github.com/crossbario/py-multihash.git@remove-dep-version-limits#egg=py-multihash
 py-ubjson==0.16.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8

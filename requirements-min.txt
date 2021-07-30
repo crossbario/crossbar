@@ -17,10 +17,11 @@ flask>=1.1.1
 git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
 git+https://github.com/crossbario/py-multihash.git@remove-dep-version-limits#egg=py-multihash
 # twisted/http2 needs <4:
-h2==3.2.0
+h2>=3.2.0,<4.0.0
 hexbytes>=0.2.1
 humanize>=0.5.1
-hyperframe>=5.2.0
+# twisted/http2 needs <6.0.0:
+hyperframe>=5.2.0,<6.0.0
 idna<2.6,>=2.5
 importlib-resources>=4.1.1
 incremental>=17.5.0
