@@ -554,7 +554,10 @@ def _run_command_init(options, reactor, personality):
 
     log.info("Initializing application directory '{options.appdir}' ..", options=options)
 
-    get_started_hint = Templates.init(options.appdir, template='default')
+    if personality.NAME == 'master':
+        get_started_hint = Templates.init(options.appdir, template='master')
+    else:
+        get_started_hint = Templates.init(options.appdir, template='default')
 
     _maybe_generate_key(cbdir)
 

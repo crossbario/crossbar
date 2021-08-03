@@ -35,6 +35,13 @@ class Templates:
             'basedir': "node/templates/default",
             'params': {},
             'skip_jinja': ['autobahn.js', 'autobahn.min.js', 'autobahn.min.jgz']
+        },
+        'master': {
+            'name': 'master',
+            'help': 'A WAMP router speaking WebSocket plus a static Web server.',
+            'basedir': "node/templates/master",
+            'params': {},
+            'skip_jinja': ['autobahn.js', 'autobahn.min.js', 'autobahn.min.jgz']
         }
     }
     """
