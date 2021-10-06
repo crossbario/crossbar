@@ -810,7 +810,9 @@ class RouterController(TransportController):
 
         self.components[id] = RouterComponent(id, config, session)
         router = self._router_factory.get(realm)
-        self._router_session_factory.add(session, router, authrole=config.get('role', 'anonymous'),
+        self._router_session_factory.add(session,
+                                         router,
+                                         authrole=config.get('role', 'anonymous'),
                                          authid=uuid4.__str__())
         self.log.debug(
             "Added component {id} (type '{name}')",
