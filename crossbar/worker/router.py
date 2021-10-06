@@ -813,7 +813,7 @@ class RouterController(TransportController):
         self._router_session_factory.add(session,
                                          router,
                                          authrole=config.get('role', 'anonymous'),
-                                         authid=uuid4.__str__())
+                                         authid=uuid4().__str__())
         self.log.debug(
             "Added component {id} (type '{name}')",
             id=id,
