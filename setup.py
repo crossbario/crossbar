@@ -25,9 +25,9 @@ extras_require = {
 }
 
 # reqs = 'requirements-min.txt'
-# reqs = 'requirements-pinned.txt'
+reqs = 'requirements-pinned.txt'
 # reqs = 'requirements.txt'
-reqs = 'requirements-latest.txt'
+# reqs = 'requirements-latest.txt'
 
 with open(reqs) as f:
     for line in f.read().splitlines():

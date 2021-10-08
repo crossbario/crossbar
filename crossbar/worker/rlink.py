@@ -47,6 +47,8 @@ class BridgeSession(ApplicationSession):
         self._exclude_authid = None
         self._exclude_authrole = None
 
+        self._is_remote_reconnect = False
+
     def onMessage(self, msg):
         if msg._router_internal is not None:
             if isinstance(msg, Event):
@@ -218,7 +220,7 @@ class BridgeSession(ApplicationSession):
 
         # called when a registration is created on the local router
         @inlineCallbacks
-        def on_registration_create(reg_session, reg_details, details=None):
+        def on_registration_create(reg_session, reg_details, details=None, is_remote_reconnect=False):
             """
             Event handler fired when a new registration was created on this router.
 
@@ -234,11 +236,14 @@ class BridgeSession(ApplicationSession):
                 return
 
             if reg_details['id'] in self._regs:
-                # this should not happen actually, but not sure ..
-                self.log.error('on_registration_create: reg ID {reg_id} already in map {method}',
-                               reg_id=reg_details['id'],
-                               method=hltype(BridgeSession._setup_invocation_forwarding))
-                return
+                if not self.IS_REMOTE_LEG and is_remote_reconnect:
+                    pass
+                else:
+                    # this should not happen actually, but not sure ..
+                    self.log.error('on_registration_create: reg ID {reg_id} already in map {method}',
+                                   reg_id=reg_details['id'],
+                                   method=hltype(BridgeSession._setup_invocation_forwarding))
+                    return
 
             self._regs[reg_details['id']] = reg_details
             self._regs[reg_details['id']]['reg'] = None
@@ -306,14 +311,20 @@ class BridgeSession(ApplicationSession):
                 )
                 return result
 
-            reg = yield other.register(on_call,
-                                       uri,
-                                       options=RegisterOptions(
-                                           details_arg='details',
-                                           invoke=reg_details.get('invoke', None),
-                                       ))
-
-            if not reg:
+            try:
+                reg = yield other.register(on_call,
+                                           uri,
+                                           options=RegisterOptions(
+                                               details_arg='details',
+                                               invoke=reg_details.get('invoke', None),
+                                           ))
+                print(f"Registered {uri}, remote={self.IS_REMOTE_LEG}")
+            except Exception as e:
+                if isinstance(e, ApplicationError) and e.error == 'wamp.error.procedure_already_exists':
+                    other_leg = 'local' if self.IS_REMOTE_LEG else 'remote'
+                    self.log.debug(f"on_registration_create: tried to register procedure {uri} on {other_leg} "
+                                   f"session but it's already registered.")
+                    return
                 raise Exception("fatal: could not forward-register '{}'".format(uri))
 
             # so ... if, during that "yield" above while we register
@@ -366,12 +377,28 @@ class BridgeSession(ApplicationSession):
 
             self.log.info("{other} unsubscribed from {uri}".format(other=other, uri=uri))
 
-        # get current registrations on the router
-        regs = yield self.call("wamp.registration.list")
-        for reg_id in regs['exact']:
-            reg = yield self.call("wamp.registration.get", reg_id)
-            assert reg['id'] == reg_id, "Logic error, registration IDs don't match"
-            yield on_registration_create(self._session_id, reg)
+        @inlineCallbacks
+        def register_current(is_remote_reconnect=False):
+            # get current registrations on the router
+            regs = yield self.call("wamp.registration.list")
+            for reg_id in regs['exact']:
+                reg = yield self.call("wamp.registration.get", reg_id)
+                assert reg['id'] == reg_id, "Logic error, registration IDs don't match"
+                yield on_registration_create(self._session_id, reg, is_remote_reconnect=is_remote_reconnect)
+
+        @inlineCallbacks
+        def register_delayed(session, details):
+            yield register_current(is_remote_reconnect=self._is_remote_reconnect)
+
+        def on_remote_leave(session, details):
+            print("Remote Link Session: left")
+            self._is_remote_reconnect = True
+
+        if self.IS_REMOTE_LEG:
+            yield register_current()
+        else:
+            other.on('join', register_delayed)
+            other.on('leave', on_remote_leave)
 
         # listen to when new registrations are created on the local router
         yield self.subscribe(on_registration_create,
