@@ -379,8 +379,8 @@ class TestBrokerPublish(unittest.TestCase):
         broker.processPublish(session1, pubmsg)
 
         # neither session should have sent anything on its transport
-        self.assertEquals(session0._transport.method_calls, [])
-        self.assertEquals(session1._transport.method_calls, [])
+        self.assertEqual(session0._transport.method_calls, [])
+        self.assertEqual(session1._transport.method_calls, [])
 
     def test_publish_traced_events(self):
         """

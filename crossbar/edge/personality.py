@@ -7,7 +7,7 @@
 
 import time
 from typing import Dict
-from collections import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from pprint import pformat
 
 import six

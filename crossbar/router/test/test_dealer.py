@@ -534,7 +534,7 @@ class TestDealer(unittest.TestCase):
         def yield_from_wrong_session():
             dealer.processYield(session2, yieldMsg)
 
-        self.failUnlessRaises(ProtocolError, yield_from_wrong_session)
+        self.assertRaises(ProtocolError, yield_from_wrong_session)
 
     def test_caller_detach_interrupt_cancel_supported(self):
         last_message = {'1': []}
