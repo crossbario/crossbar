@@ -10,6 +10,7 @@ from twisted.internet.defer import Deferred, DeferredList, maybeDeferred, return
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 from twisted.internet.defer import succeed
+from uuid import uuid4
 
 from autobahn import wamp
 from autobahn.util import utcstr
@@ -809,7 +810,10 @@ class RouterController(TransportController):
 
         self.components[id] = RouterComponent(id, config, session)
         router = self._router_factory.get(realm)
-        self._router_session_factory.add(session, router, authrole=config.get('role', 'anonymous'))
+        self._router_session_factory.add(session,
+                                         router,
+                                         authrole=config.get('role', 'anonymous'),
+                                         authid=uuid4().__str__())
         self.log.debug(
             "Added component {id} (type '{name}')",
             id=id,
