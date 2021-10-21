@@ -7,7 +7,7 @@
 
 import time
 from typing import Dict
-from collections import Mapping
+from collections.abc import Mapping
 from pprint import pformat
 
 import txaio
