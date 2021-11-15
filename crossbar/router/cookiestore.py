@@ -292,7 +292,7 @@ class CookieStoreFileBacked(CookieStore):
         with open(self._cookie_file_name, 'w') as cookie_file:
             for cbtid, cookie in self._cookies.items():
                 expiration_delta = datetime.timedelta(seconds=int(cookie['max_age']))
-                upper_limit = util.utcstr(datetime.datetime.now() - expiration_delta)
+                upper_limit = util.utcstr(datetime.datetime.utcnow() - expiration_delta)
                 if cookie['created'] < upper_limit:
                     # This cookie is expired, discard
                     continue
