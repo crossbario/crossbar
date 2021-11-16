@@ -4,7 +4,6 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-import binascii
 import importlib
 import os
 import socket
@@ -226,7 +225,7 @@ class Node(object):
 
         return config_source, config_path
 
-    def has_key(self):
+    def is_key_loaded(self):
         return self._node_key is not None
 
     def _add_global_roles(self):

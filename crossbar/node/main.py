@@ -813,7 +813,7 @@ def _run_command_start(options, reactor, personality):
 
     # possibly generate new node key
     #
-    if not node.has_key():
+    if not node.is_key_loaded():
         node.load_keys(options.cbdir)
 
     # if vmprof global profiling is enabled via command line option, this will carry

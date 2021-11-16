@@ -3413,7 +3413,8 @@ def check_node_key(personality, config):
         raise InvalidConfigException("'classname' attribute in controller nodekey configuration must be a string")
 
     if not isinstance(config['private_key'], str) or not os.path.exists(config['private_key']):
-        raise InvalidConfigException("'private_key' attribute in controller nodekey configuration must be a valid file")
+        raise InvalidConfigException(
+            "'private_key' attribute in controller nodekey configuration must be a valid file")
 
 
 def check_config(personality, config):
