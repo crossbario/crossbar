@@ -794,10 +794,6 @@ def _run_command_start(options, reactor, personality):
 
     log.debug('Running on realm="{realm}" from cbdir="{cbdir}"', realm=hlid(node.realm), cbdir=hlid(options.cbdir))
 
-    # possibly generate new node key
-    #
-    node.load_keys(options.cbdir)
-
     # check and load the node configuration
     #
     try:
@@ -814,6 +810,11 @@ def _run_command_start(options, reactor, personality):
         log.info('Node configuration loaded [config_source={config_source}, config_path={config_path}]',
                  config_source=hl(config_source, bold=True, color='green'),
                  config_path=hlid(config_path))
+
+    # possibly generate new node key
+    #
+    if not node.has_key():
+        node.load_keys(options.cbdir)
 
     # if vmprof global profiling is enabled via command line option, this will carry
     # the file where vmprof writes its profile data

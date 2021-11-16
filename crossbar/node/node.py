@@ -4,16 +4,20 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-
+import binascii
+import importlib
 import os
 import socket
+import sys
 
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue, gatherResults
 from twisted.internet.defer import succeed
+from twisted.python.failure import Failure
 
 from txaio import make_logger
 
 from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.cryptosign import SigningKeyBase
 from autobahn.wamp.types import CallOptions, ComponentConfig
 
 from crossbar._util import hltype, hlid, hluserid, hl
@@ -200,7 +204,30 @@ class Node(object):
 
             self.personality.check_config(self.personality, self._config)
 
+        if 'nodekey' in self._config['controller']:
+            # construct node key object here
+            try:
+                klassname = self._config['controller']['nodekey']['classname']
+                module_name, klass_name = klassname.rsplit('.', 1)
+                module = importlib.import_module(module_name)
+                klass = getattr(module, klass_name)
+            except Exception:
+                emsg = "Failed to import class '{}'\n{}".format(klassname, Failure().getTraceback())
+                self.log.debug(emsg)
+                self.log.debug("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
+                raise ApplicationError("crossbar.error.class_import_failed", emsg, pythonpath=sys.path)
+
+            if not issubclass(klass, SigningKeyBase):
+                raise ApplicationError("crossbar.error.class_import_failed",
+                                       "signing key not derived of SigningKeyBase")
+
+            key = self._config['controller']['nodekey']['private_key']
+            self._node_key = klass.from_raw_key(key)
+
         return config_source, config_path
+
+    def has_key(self):
+        return self._node_key is not None
 
     def _add_global_roles(self):
         controller_role_config = {

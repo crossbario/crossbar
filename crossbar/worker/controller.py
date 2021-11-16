@@ -47,6 +47,7 @@ class WorkerController(NativeProcess):
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
         NativeProcess.__init__(self, config=config, reactor=reactor, personality=personality)
+        print(config, personality, "ASSSSSSSSSSSSSSSSSSSSSSSSSSs")
 
         # Release (public) key
         self._release_pubkey = _read_release_key()
