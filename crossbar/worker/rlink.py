@@ -508,7 +508,11 @@ class RLinkRemoteSession(BridgeSession):
                 authrole=authrole,
                 authextra=authextra)
 
-            self.join(self.config.realm, authmethods=authmethods, authid=authid, authrole=authrole, authextra=authextra)
+            self.join(self.config.realm,
+                      authmethods=authmethods,
+                      authid=authid,
+                      authrole=authrole,
+                      authextra=authextra)
 
         res = self._rlink_manager._controller.get_public_key()
         res.addCallback(actually_join)

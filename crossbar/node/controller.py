@@ -418,7 +418,11 @@ class NodeController(NativeProcess):
         return self._workers[worker_id].getlog(limit)
 
     @wamp.register(None)
-    def sign_challenge(self, challenge_method, challenge_extra, channel_id_raw, channel_id_type='tls-unique',
+    def sign_challenge(self,
+                       challenge_method,
+                       challenge_extra,
+                       channel_id_raw,
+                       channel_id_type='tls-unique',
                        details=None):
         challenge = Challenge(challenge_method, challenge_extra)
         data = format_challenge(challenge, channel_id_raw, channel_id_type)
