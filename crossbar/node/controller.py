@@ -23,8 +23,9 @@ from twisted.internet.error import ProcessExitedAlready
 from twisted.python.runtime import platform
 
 from autobahn.util import utcnow, utcstr
+from autobahn.wamp.cryptosign import format_challenge, sign_challenge
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, ComponentConfig
+from autobahn.wamp.types import PublishOptions, ComponentConfig, Challenge
 from autobahn import wamp
 
 import crossbar
@@ -415,6 +416,17 @@ class NodeController(NativeProcess):
             raise ApplicationError('crossbar.error.no_such_worker', emsg)
 
         return self._workers[worker_id].getlog(limit)
+
+    @wamp.register(None)
+    def sign_challenge(self, challenge_method, challenge_extra, channel_id_raw, channel_id_type='tls-unique',
+                       details=None):
+        challenge = Challenge(challenge_method, challenge_extra)
+        data = format_challenge(challenge, channel_id_raw, channel_id_type)
+        return sign_challenge(data, self._node._node_key.sign)
+
+    @wamp.register(None)
+    def get_public_key(self, details=None):
+        return self._node._node_key.public_key()
 
     def _start_native_worker(self, worker_type, worker_id, worker_options=None, details=None):
 
