@@ -104,7 +104,6 @@ class TestDocker(unittest.TestCase):
         result = self.client.fs_open(0, '/home/myfiles')
         assert result == files_result
 
-    @unittest.expectedFailure
     def test_fs_get_fail(self):
         with self.assertRaises(FileNotFoundError):
             self.client.fs_open(0, '/home/myfile')
