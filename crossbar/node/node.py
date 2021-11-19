@@ -203,7 +203,7 @@ class Node(object):
 
             self.personality.check_config(self.personality, self._config)
 
-        if 'nodekey' in self._config['controller']:
+        if 'controller' in self._config and 'nodekey' in self._config['controller']:
             # construct node key object here
             try:
                 klassname = self._config['controller']['nodekey']['classname']
