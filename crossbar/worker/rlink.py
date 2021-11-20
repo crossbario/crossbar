@@ -478,36 +478,44 @@ class RLinkRemoteSession(BridgeSession):
         authextra = self.config.extra.get('authextra', {})
         authmethods = ['cryptosign']
 
-        authextra.update({
-            # forward the client pubkey: this allows us to omit authid as
-            # the router can identify us with the pubkey already
-            'pubkey': self._rlink_manager._controller._node_key.public_key(),
+        def actually_join(public_key):
+            authextra.update({
+                # forward the client pubkey: this allows us to omit authid as
+                # the router can identify us with the pubkey already
+                'pubkey': public_key,
 
-            # not yet implemented. a public key the router should provide
-            # a trustchain for it's public key. the trustroot can eg be
-            # hard-coded in the client, or come from a command line option.
-            'trustroot': None,
+                # not yet implemented. a public key the router should provide
+                # a trustchain for it's public key. the trustroot can eg be
+                # hard-coded in the client, or come from a command line option.
+                'trustroot': None,
 
-            # not yet implemented. for authenticating the router, this
-            # challenge will need to be signed by the router and send back
-            # in AUTHENTICATE for client to verify. A string with a hex
-            # encoded 32 bytes random value.
-            'challenge': None,
+                # not yet implemented. for authenticating the router, this
+                # challenge will need to be signed by the router and send back
+                # in AUTHENTICATE for client to verify. A string with a hex
+                # encoded 32 bytes random value.
+                'challenge': None,
 
-            # https://tools.ietf.org/html/rfc5929
-            'channel_binding': 'tls-unique'
-        })
+                # https://tools.ietf.org/html/rfc5929
+                'channel_binding': 'tls-unique'
+            })
 
-        self.log.info(
-            '{klass}.join(realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra})',
-            klass=self.__class__.__name__,
-            realm=self.config.realm,
-            authmethods=authmethods,
-            authid=authid,
-            authrole=authrole,
-            authextra=authextra)
+            self.log.info(
+                '{klass}.join(realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra})',
+                klass=self.__class__.__name__,
+                realm=self.config.realm,
+                authmethods=authmethods,
+                authid=authid,
+                authrole=authrole,
+                authextra=authextra)
 
-        self.join(self.config.realm, authmethods=authmethods, authid=authid, authrole=authrole, authextra=authextra)
+            self.join(self.config.realm,
+                      authmethods=authmethods,
+                      authid=authid,
+                      authrole=authrole,
+                      authextra=authextra)
+
+        res = self._rlink_manager._controller.get_public_key()
+        res.addCallback(actually_join)
 
     def onChallenge(self, challenge):
         self.log.debug('{klass}.onChallenge(challenge={challenge})',
@@ -523,7 +531,8 @@ class RLinkRemoteSession(BridgeSession):
             # is fine - the router is authentic wrt our trustroot.
 
             # sign the challenge with our private key.
-            signed_challenge = self._rlink_manager._controller._node_key.sign_challenge(self, challenge)
+            signed_challenge = self._rlink_manager._controller.sign_challenge(
+                challenge, self._rlink_manager._controller._transport.get_channel_id())
 
             # send back the signed challenge for verification
             return signed_challenge
