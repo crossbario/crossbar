@@ -3383,7 +3383,7 @@ def check_controller(personality, controller, ignore=[]):
             type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'manhole', 'connections'] + ignore:
+        if k not in ['id', 'options', 'manhole', 'connections', 'keyring'] + ignore:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
@@ -3394,6 +3394,33 @@ def check_controller(personality, controller, ignore=[]):
 
     if 'manhole' in controller:
         personality.check_manhole(personality, controller['manhole'])
+
+    if 'keyring' in controller:
+        personality.check_node_key(personality, controller['keyring'])
+
+
+def check_node_key(personality, config):
+    if not isinstance(config, Mapping):
+        raise InvalidConfigException(
+            "controller keyring configuration item must be a dictionary ({} encountered)".format(type(config)))
+
+    if 'type' not in config:
+        raise InvalidConfigException("missing attribute 'type' in controller keyring configuration")
+
+    type_ = config.get("type", None)
+    if type_ == "file":
+        for k in config:
+            if k not in ['type', 'path']:
+                raise InvalidConfigException(
+                    "encountered unknown attribute '{}' in controller keyring configuration".format(k))
+    elif type_ == "hsm":
+        for k in config:
+            if k not in ['type', 'driver', 'port']:
+                raise InvalidConfigException(
+                    "encountered unknown attribute '{}' in controller keyring configuration".format(k))
+    else:
+        raise InvalidConfigException("encountered unknown 'type' in controller keyring configuration. "
+                                     "Only 'file' and 'hsm' are supported")
 
 
 def check_config(personality, config):
