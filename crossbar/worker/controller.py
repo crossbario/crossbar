@@ -371,7 +371,7 @@ class WorkerController(NativeProcess):
 
     @inlineCallbacks
     def sign_challenge(self, challenge: Challenge, channel_id):
-        result = yield self.call("crossbar.sign_challenge", challenge.extra, channel_id)
+        result = yield self.call("crossbar.sign_challenge", challenge.method, challenge.extra, channel_id)
         return result
 
     @inlineCallbacks

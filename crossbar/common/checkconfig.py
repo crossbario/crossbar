@@ -3383,7 +3383,7 @@ def check_controller(personality, controller, ignore=[]):
             type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'manhole', 'connections', 'nodekey'] + ignore:
+        if k not in ['id', 'options', 'manhole', 'connections', 'keyring'] + ignore:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
@@ -3395,26 +3395,32 @@ def check_controller(personality, controller, ignore=[]):
     if 'manhole' in controller:
         personality.check_manhole(personality, controller['manhole'])
 
-    if 'nodekey' in controller:
-        personality.check_node_key(personality, controller['nodekey'])
+    if 'keyring' in controller:
+        personality.check_node_key(personality, controller['keyring'])
 
 
 def check_node_key(personality, config):
     if not isinstance(config, Mapping):
         raise InvalidConfigException(
-            "controller nodekey configuration item must be a dictionary ({} encountered)".format(type(config)))
+            "controller keyring configuration item must be a dictionary ({} encountered)".format(type(config)))
 
-    for k in config:
-        if k not in ['classname', 'private_key']:
-            raise InvalidConfigException(
-                "encountered unknown attribute '{}' in controller nodekey configuration".format(k))
+    if 'type' not in config:
+        raise InvalidConfigException("missing attribute 'type' in controller keyring configuration")
 
-    if not isinstance(config['classname'], str):
-        raise InvalidConfigException("'classname' attribute in controller nodekey configuration must be a string")
-
-    if not isinstance(config['private_key'], str) or not os.path.exists(config['private_key']):
-        raise InvalidConfigException(
-            "'private_key' attribute in controller nodekey configuration must be a valid file")
+    type_ = config.get("type", None)
+    if type_ == "file":
+        for k in config:
+            if k not in ['type', 'path']:
+                raise InvalidConfigException(
+                    "encountered unknown attribute '{}' in controller keyring configuration".format(k))
+    elif type_ == "hsm":
+        for k in config:
+            if k not in ['type', 'driver', 'port']:
+                raise InvalidConfigException(
+                    "encountered unknown attribute '{}' in controller keyring configuration".format(k))
+    else:
+        raise InvalidConfigException("encountered unknown 'type' in controller keyring configuration. "
+                                     "Only 'file' and 'hsm' are supported")
 
 
 def check_config(personality, config):
