@@ -276,6 +276,7 @@ class Personality(object):
     # top level
     check_controller = checkconfig.check_controller
     check_controller_options = checkconfig.check_controller_options
+    check_node_key = checkconfig.check_node_key
     check_worker = checkconfig.check_worker
 
     # native workers
