@@ -4,7 +4,6 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-
 import os
 import socket
 
@@ -14,6 +13,7 @@ from twisted.internet.defer import succeed
 from txaio import make_logger
 
 from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.cryptosign import SigningKey
 from autobahn.wamp.types import CallOptions, ComponentConfig
 
 from crossbar._util import hltype, hlid, hluserid, hl
@@ -200,7 +200,18 @@ class Node(object):
 
             self.personality.check_config(self.personality, self._config)
 
+        if 'controller' in self._config and 'keyring' in self._config['controller']:
+            keyring_type = self._config['controller']['keyring']['type']
+            if keyring_type == 'file':
+                key_path = self._config['controller']['keyring']['path']
+                self._node_key = SigningKey.from_raw_key(key_path)
+            else:
+                raise RuntimeError("NotImplemented: hsm authentication is currently not implemented.")
+
         return config_source, config_path
+
+    def is_key_loaded(self):
+        return self._node_key is not None
 
     def _add_global_roles(self):
         controller_role_config = {

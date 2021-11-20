@@ -18,7 +18,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.util import utcnow
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions
+from autobahn.wamp.types import PublishOptions, Challenge
 from autobahn.wamp import cryptosign
 from autobahn import wamp
 
@@ -368,3 +368,13 @@ class WorkerController(NativeProcess):
         self.publish(topic, res, options=PublishOptions(exclude=details.caller))
 
         return res
+
+    @inlineCallbacks
+    def sign_challenge(self, challenge: Challenge, channel_id):
+        result = yield self.call("crossbar.sign_challenge", challenge.method, challenge.extra, channel_id)
+        return result
+
+    @inlineCallbacks
+    def get_public_key(self):
+        result = yield self.call("crossbar.get_public_key")
+        return result
