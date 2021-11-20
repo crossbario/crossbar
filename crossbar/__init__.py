@@ -204,7 +204,7 @@ def run():
     # if no known top-level command was given, fallback to "edge" mode
     if command not in _TOP_COMMANDS:
         args = [command] + args
-        command = 'edge'
+        command = 'standalone'
 
     # redirect a plain "crossbar legal" to "crossbar master legal"
     if command == 'legal':
