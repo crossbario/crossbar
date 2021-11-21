@@ -85,7 +85,7 @@ class CookieStore(object):
         # cookie tracking data
         cbtData = {
             # UTC timestamp when the cookie was created
-            'created': util.utcnow(),
+            'created': datetime.datetime.now(datetime.timezone.utc),
 
             # maximum lifetime of the tracking/authenticating cookie
             'max_age': self._cookie_max_age,
@@ -292,7 +292,7 @@ class CookieStoreFileBacked(CookieStore):
         with open(self._cookie_file_name, 'w') as cookie_file:
             for cbtid, cookie in self._cookies.items():
                 expiration_delta = datetime.timedelta(seconds=int(cookie['max_age']))
-                upper_limit = util.utcstr(datetime.datetime.now() - expiration_delta)
+                upper_limit = util.utcstr(datetime.datetime.now(datetime.timezone.utc) - expiration_delta)
                 if cookie['created'] < upper_limit:
                     # This cookie is expired, discard
                     continue
