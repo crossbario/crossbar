@@ -318,7 +318,6 @@ class BridgeSession(ApplicationSession):
                                                details_arg='details',
                                                invoke=reg_details.get('invoke', None),
                                            ))
-                print(f"Registered {uri}, remote={self.IS_REMOTE_LEG}")
             except Exception as e:
                 if isinstance(e, ApplicationError) and e.error == 'wamp.error.procedure_already_exists':
                     other_leg = 'local' if self.IS_REMOTE_LEG else 'remote'
@@ -390,8 +389,9 @@ class BridgeSession(ApplicationSession):
         def register_delayed(session, details):
             yield register_current(is_remote_reconnect=self._is_remote_reconnect)
 
-        def on_remote_leave(session, details):
-            print("Remote Link Session: left")
+        def on_remote_leave(_session, _details):
+            # The remote session has closed, keep a reference for the next
+            # connect.
             self._is_remote_reconnect = True
 
         if self.IS_REMOTE_LEG:
