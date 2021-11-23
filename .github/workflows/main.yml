@@ -136,7 +136,7 @@ jobs:
       run: |
         # remove autobahn as updating to latest is broken if installing
         # from github. see https://stackoverflow.com/a/68432209
-        pip uninstall autobahn txaio -y
+        pip uninstall autobahn -y
         pip install -r requirements-latest.txt
         pip install .
 
