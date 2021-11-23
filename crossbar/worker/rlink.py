@@ -47,8 +47,6 @@ class BridgeSession(ApplicationSession):
         self._exclude_authid = None
         self._exclude_authrole = None
 
-        self._is_remote_reconnect = False
-
     def onMessage(self, msg):
         if msg._router_internal is not None:
             if isinstance(msg, Event):
@@ -209,7 +207,7 @@ class BridgeSession(ApplicationSession):
         self.log.debug("{me}: event forwarding setup done", me=self)
 
     @inlineCallbacks
-    def _setup_invocation_forwarding(self, other):
+    def _setup_invocation_forwarding(self, other: ApplicationSession):
 
         self.log.info(
             "setup invocation forwarding between {me} and {other} (exclude_authid={exclude_authid}, exclude_authrole={exclude_authrole})",
@@ -220,7 +218,7 @@ class BridgeSession(ApplicationSession):
 
         # called when a registration is created on the local router
         @inlineCallbacks
-        def on_registration_create(reg_session, reg_details, details=None, is_remote_reconnect=False):
+        def on_registration_create(reg_session, reg_details, details=None):
             """
             Event handler fired when a new registration was created on this router.
 
@@ -236,14 +234,11 @@ class BridgeSession(ApplicationSession):
                 return
 
             if reg_details['id'] in self._regs:
-                if not self.IS_REMOTE_LEG and is_remote_reconnect:
-                    pass
-                else:
-                    # this should not happen actually, but not sure ..
-                    self.log.error('on_registration_create: reg ID {reg_id} already in map {method}',
-                                   reg_id=reg_details['id'],
-                                   method=hltype(BridgeSession._setup_invocation_forwarding))
-                    return
+                # this should not happen actually, but not sure ..
+                self.log.error('on_registration_create: reg ID {reg_id} already in map {method}',
+                               reg_id=reg_details['id'],
+                               method=hltype(BridgeSession._setup_invocation_forwarding))
+                return
 
             self._regs[reg_details['id']] = reg_details
             self._regs[reg_details['id']]['reg'] = None
@@ -377,27 +372,39 @@ class BridgeSession(ApplicationSession):
             self.log.info("{other} unsubscribed from {uri}".format(other=other, uri=uri))
 
         @inlineCallbacks
-        def register_current(is_remote_reconnect=False):
+        def register_current():
             # get current registrations on the router
             regs = yield self.call("wamp.registration.list")
             for reg_id in regs['exact']:
                 reg = yield self.call("wamp.registration.get", reg_id)
                 assert reg['id'] == reg_id, "Logic error, registration IDs don't match"
-                yield on_registration_create(self._session_id, reg, is_remote_reconnect=is_remote_reconnect)
+                yield on_registration_create(self._session_id, reg)
 
         @inlineCallbacks
-        def register_delayed(session, details):
-            yield register_current(is_remote_reconnect=self._is_remote_reconnect)
+        def on_remote_join(_session, _details):
+            yield register_current()
 
         def on_remote_leave(_session, _details):
-            # The remote session has closed, keep a reference for the next
-            # connect.
-            self._is_remote_reconnect = True
+            # The remote session has ended, clear subscriptions and
+            # registrations records.
+            # Clearing these dictionaries helps avoid the case where
+            # local procedures are not registered on the remote leg
+            # on reestablishment of remote session.
+            # See: https://github.com/crossbario/crossbar/issues/1909
+            self._subs = {}
+            self._regs = {}
 
         if self.IS_REMOTE_LEG:
             yield register_current()
         else:
-            other.on('join', register_delayed)
+            # from the local leg, don't try to register procedures on the
+            # remote leg unless the remote session is established.
+            # This avoids issues where in-router components register procedures
+            # on startup and when the rlink is setup, the local leg tries to
+            # register procedures on the remote leg, even though the connection
+            # hasn't established.
+            # See: https://github.com/crossbario/crossbar/issues/1895
+            other.on('join', on_remote_join)
             other.on('leave', on_remote_leave)
 
         # listen to when new registrations are created on the local router
