@@ -314,6 +314,8 @@ class BridgeSession(ApplicationSession):
                                                invoke=reg_details.get('invoke', None),
                                            ))
             except Exception as e:
+                # FIXME: partially fixes https://github.com/crossbario/crossbar/issues/1894,
+                #  however we need to make sure this situation never happens.
                 if isinstance(e, ApplicationError) and e.error == 'wamp.error.procedure_already_exists':
                     other_leg = 'local' if self.IS_REMOTE_LEG else 'remote'
                     self.log.debug(f"on_registration_create: tried to register procedure {uri} on {other_leg} "
