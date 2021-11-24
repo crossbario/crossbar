@@ -186,14 +186,32 @@ class BridgeSession(ApplicationSession):
 
             self.log.debug("{other} unsubscribed from {uri}".format(other=other, uri=uri))
 
-        # get current subscriptions on the router
-        #
-        subs = yield self.call("wamp.subscription.list")
-        for sub_id in subs['exact']:
-            sub = yield self.call("wamp.subscription.get", sub_id)
+        @inlineCallbacks
+        def forward_current_subs():
+            # get current subscriptions on the router
+            #
+            subs = yield self.call("wamp.subscription.list")
+            for sub_id in subs['exact']:
+                sub = yield self.call("wamp.subscription.get", sub_id)
 
-            if not sub['uri'].startswith("wamp."):
-                yield on_subscription_create(sub_id, sub)
+                if not sub['uri'].startswith("wamp."):
+                    yield on_subscription_create(sub_id, sub)
+
+        @inlineCallbacks
+        def on_remote_join(_session, _details):
+            yield forward_current_subs()
+
+        def on_remote_leave(_session, _details):
+            # The remote session has ended, clear subscription records
+            self._subs = {}
+
+        if self.IS_REMOTE_LEG:
+            yield forward_current_subs()
+        else:
+            # from the local leg, don't try to forward events on the
+            # remote leg unless the remote session is established.
+            other.on('join', on_remote_join)
+            other.on('leave', on_remote_leave)
 
         # listen to when new subscriptions are created on the local router
         yield self.subscribe(on_subscription_create,
@@ -387,13 +405,11 @@ class BridgeSession(ApplicationSession):
             yield register_current()
 
         def on_remote_leave(_session, _details):
-            # The remote session has ended, clear subscriptions and
-            # registrations records.
-            # Clearing these dictionaries helps avoid the case where
+            # The remote session has ended, clear registration records.
+            # Clearing this dictionary helps avoid the case where
             # local procedures are not registered on the remote leg
             # on reestablishment of remote session.
             # See: https://github.com/crossbario/crossbar/issues/1909
-            self._subs = {}
             self._regs = {}
 
         if self.IS_REMOTE_LEG:
