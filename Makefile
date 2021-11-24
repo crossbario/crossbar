@@ -85,6 +85,7 @@ freeze:
 	# persist OSS license list of our exact dependencies
 	vers/bin/pip-licenses --from=classifier -a -o name > LICENSES-OSS
 	vers/bin/pip-licenses --from=classifier -a -o name --format=rst > docs/soss_licenses_table.rst
+	sed -i '1s;^;OSS Licenses\n============\n\n;' docs/soss_licenses_table.rst
 
 	# hash all dependencies for repeatable builds
 	vers/bin/pip3 install hashin
