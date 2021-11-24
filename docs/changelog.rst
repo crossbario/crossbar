@@ -5,6 +5,23 @@
 Changelog
 =========
 
+21.11.1
+-------
+
+* fix: subscription forwarding (#1915)
+* fix: RLink fixes (#1913)
+* fix: make standalone the default personality (#1900)
+* new: implement dynamic node key (#1906)
+* fix: Python 3.10 compatibility issues (#1897)
+* fix: add systemd-notify support to docs (#1883)
+* fix: assign authid to router components to work with rlinks (#1893)
+* fix: install from source (#1884)
+* new: depend on Autobahn v21.11.1
+* new: expand WAP web service (#1878)
+* fix: various adjustments and fixes after integration of FX code base
+* new: open-source code for "Crossbar.io FX" (~26k LOC), incl. router-to-router links
+* new: changed license from AGPLv3 to [EUPLv1.2](https://eupl.eu/1.2/en) (under IP ownership of Crossbar.io Technologies GmbH)
+
 21.3.1
 ------
 
