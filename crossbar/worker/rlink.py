@@ -406,7 +406,7 @@ class BridgeSession(ApplicationSession):
 
         def on_remote_leave(_session, _details):
             # The remote session has ended, clear registration records.
-            # Clearing this dictionaries helps avoid the case where
+            # Clearing this dictionary helps avoid the case where
             # local procedures are not registered on the remote leg
             # on reestablishment of remote session.
             # See: https://github.com/crossbario/crossbar/issues/1909
