@@ -85,11 +85,13 @@ freeze:
 	# persist OSS license list of our exact dependencies
 	vers/bin/pip-licenses --from=classifier -a -o name > LICENSES-OSS
 	vers/bin/pip-licenses --from=classifier -a -o name --format=rst > docs/soss_licenses_table.rst
+	sed -i '1s;^;OSS Licenses\n============\n\n;' docs/soss_licenses_table.rst
 
 	# hash all dependencies for repeatable builds
 	vers/bin/pip3 install hashin
 	-rm requirements.txt
-	cat requirements-pinned.txt | xargs vers/bin/hashin > requirements.txt
+	# FIXME: we are using our own unpublished forks of "py-cid" and "py-multihash" for which hashin won't find version data on pypi
+	-cat requirements-pinned.txt | grep -v "py-cid" | grep -v "py-multihash" | xargs vers/bin/hashin > requirements.txt
 
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt

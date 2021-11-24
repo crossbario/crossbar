@@ -1,5 +1,5 @@
 attrs>=17.2.0
-autobahn[twisted,encryption,compress,serialization,scram,xbr]>=21.3.1
+autobahn[twisted,encryption,compress,serialization,scram,xbr]>=21.11.1
 base58>=2.1.0
 bcrypt>=3.1.6
 bitstring>=3.1.5
@@ -67,7 +67,8 @@ txtorcon>=20.0.0
 u-msgpack-python>=2.4.1
 urllib3>=1.21.1,<1.27
 validate-email>=1.3
-vmprof>=0.4.15
+# use vmprof master until https://github.com/vmprof/vmprof-python/issues/240 is fixed
+git+https://github.com/vmprof/vmprof-python.git#egg=vmprof
 watchdog>=0.8.3
 web3>=5.13.1
 werkzeug>=0.14.1
