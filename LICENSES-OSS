@@ -72,7 +72,7 @@
  mistune              0.8.4      BSD License                                                                                          Hsiaoming Yang                                                 
  mnemonic             0.20       MIT License                                                                                          Trezor                                                         
  morphys              1.0        MIT License                                                                                          Michał Kaliński                                                
- msgpack              1.0.2      Apache Software License                                                                              Inada Naoki                                                    
+ msgpack              1.0.3      Apache Software License                                                                              Inada Naoki                                                    
  multiaddr            0.0.9      MIT License                                                                                          Steven Buss                                                    
  multidict            5.2.0      Apache Software License                                                                              Andrew Svetlov                                                 
  mypy-extensions      0.4.3      MIT License                                                                                          The mypy developers                                            
@@ -138,6 +138,5 @@
  xbr                  21.2.1     Apache Software License                                                                              Crossbar.io Technologies GmbH                                  
  yapf                 0.29.0     Apache Software License                                                                              Bill Wendling                                                  
  yarl                 1.7.2      Apache Software License                                                                              Andrew Svetlov                                                 
- zipp                 3.6.0      MIT License                                                                                          Jason R. Coombs                                                
  zlmdb                21.2.1     MIT License                                                                                          Crossbar.io Technologies GmbH                                  
  zope.interface       5.4.0      Zope Public License                                                                                  Zope Foundation and Contributors                               

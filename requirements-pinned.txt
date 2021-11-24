@@ -63,7 +63,7 @@ MarkupSafe==2.0.1
 mistune==0.8.4
 mnemonic==0.20
 morphys==1.0
-msgpack==1.0.2
+msgpack==1.0.3
 multiaddr==0.0.9
 multidict==5.2.0
 mypy-extensions==0.4.3
@@ -109,7 +109,7 @@ rlp==2.0.1
 sdnotify==0.3.2
 service-identity==21.1.0
 setproctitle==1.2.2
-setuptools==58.2.0
+setuptools==58.3.0
 six==1.16.0
 sortedcontainers==2.4.0
 spake2==0.8
@@ -138,6 +138,5 @@ wsaccel==0.6.3
 xbr==21.2.1
 yapf==0.29.0
 yarl==1.7.2
-zipp==3.6.0
 zlmdb==21.2.1
 zope.interface==5.4.0
