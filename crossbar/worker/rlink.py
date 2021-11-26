@@ -634,7 +634,18 @@ class RLinkRemoteSession(BridgeSession):
         if on_ready and not on_ready.called:
             self.config.extra['on_ready'].callback(self)
 
+    @inlineCallbacks
     def onLeave(self, details):
+        # When the rlink is going down, make sure to unsubscribe to
+        # all events that are subscribed on the local-leg.
+        # This avoids duplicate events that would otherwise arrive
+        # See: https://github.com/crossbario/crossbar/issues/1916
+        for k, v in self._subs.items():
+            if v['sub'].active:
+                yield v['sub'].unsubscribe()
+
+        self._subs = {}
+
         self.config.extra['other']._tracker.connected = False
         self.log.warn(
             '{klass}.onLeave(): rlink remote session left! (realm={realm}, authid={authid}, authrole={authrole}, session={session}, details={details}) {method}',
