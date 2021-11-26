@@ -201,17 +201,12 @@ class BridgeSession(ApplicationSession):
         def on_remote_join(_session, _details):
             yield forward_current_subs()
 
-        def on_remote_leave(_session, _details):
-            # The remote session has ended, clear subscription records
-            self._subs = {}
-
         if self.IS_REMOTE_LEG:
             yield forward_current_subs()
         else:
             # from the local leg, don't try to forward events on the
             # remote leg unless the remote session is established.
             other.on('join', on_remote_join)
-            other.on('leave', on_remote_leave)
 
         # listen to when new subscriptions are created on the local router
         yield self.subscribe(on_subscription_create,
