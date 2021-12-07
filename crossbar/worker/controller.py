@@ -51,13 +51,6 @@ class WorkerController(NativeProcess):
         # Release (public) key
         self._release_pubkey = _read_release_key()
 
-        # Node (private) key (as a string, in hex)
-        node_key_hex = _read_node_key(self.config.extra.cbdir, private=True)['hex']
-        privkey = nacl.signing.SigningKey(node_key_hex, encoder=nacl.encoding.HexEncoder)
-
-        # WAMP-cryptosign signing key
-        self._node_key = cryptosign.SigningKey(privkey)
-
     def onConnect(self):
         """
         Called when the worker has connected to the node's management router.
