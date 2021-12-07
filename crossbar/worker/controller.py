@@ -11,15 +11,12 @@ import pkg_resources
 import jinja2
 import signal
 
-import nacl
-
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn.util import utcnow
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, Challenge
-from autobahn.wamp import cryptosign
 from autobahn import wamp
 
 from txaio import make_logger
@@ -27,7 +24,7 @@ from txaio import make_logger
 from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcess
 from crossbar.common.profiler import PROFILERS
-from crossbar.common.key import _read_node_key, _read_release_key
+from crossbar.common.key import _read_release_key
 from crossbar._util import term_print
 
 __all__ = ('WorkerController', )
