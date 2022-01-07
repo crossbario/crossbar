@@ -911,7 +911,7 @@ def check_listening_endpoint_tcp(endpoint):
     :type endpoint: dict
     """
     for k in endpoint:
-        if k not in ['type', 'version', 'port', 'portrange', 'shared', 'interface', 'backlog', 'tls']:
+        if k not in ['type', 'version', 'port', 'portrange', 'shared', 'interface', 'backlog', 'tls', 'user_timeout']:
             raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint".format(k))
 
     if 'portrange' in endpoint:
@@ -962,6 +962,15 @@ def check_listening_endpoint_tcp(endpoint):
 
     if 'backlog' in endpoint:
         check_endpoint_backlog(endpoint['backlog'])
+
+    if 'user_timeout' in endpoint:
+        user_timeout = endpoint['user_timeout']
+        if not isinstance(user_timeout, int):
+            raise InvalidConfigException(
+                "'user_timeout' attribute in endpoint must be integer ({} encountered)".format(type(user_timeout)))
+        if user_timeout < 0 or user_timeout > 65535:
+            raise InvalidConfigException(
+                "invalid value {} for 'user_timeout' attribute in endpoint".format(user_timeout))
 
 
 def check_listening_endpoint_unix(endpoint):

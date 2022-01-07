@@ -495,7 +495,11 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
     #
     shared = config.get('shared', False)
 
-    if config['type'] == 'tcp' and shared:
+    # the TCP socket user timeout option
+    #
+    user_timeout = config.get('user_timeout', None)
+
+    if config['type'] == 'tcp' and (shared or user_timeout is not None):
 
         # the TCP protocol version (v4 or v6)
         #
@@ -527,7 +531,8 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
                                                       backlog,
                                                       interface,
                                                       reactor,
-                                                      shared=shared)
+                                                      shared=shared,
+                                                      user_timeout=user_timeout)
                 elif version == 6:
                     raise Exception("TLS on IPv6 not implemented")
                 else:
@@ -535,7 +540,13 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
             else:
                 raise Exception("TLS transport requested, but TLS packages not available:\n{}".format(_LACKS_TLS_MSG))
         else:
-            listening_port = CustomTCPPort(port, factory, backlog, interface, reactor, shared=shared)
+            listening_port = CustomTCPPort(port,
+                                           factory,
+                                           backlog,
+                                           interface,
+                                           reactor,
+                                           shared=shared,
+                                           user_timeout=user_timeout)
 
         try:
             listening_port.startListening()
