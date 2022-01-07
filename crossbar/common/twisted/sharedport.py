@@ -39,7 +39,7 @@ elif sys.platform == 'win32':
 
 # FIXME: DragonFly BSD claims support: http://lists.dragonflybsd.org/pipermail/commits/2013-May/130083.html
 
-__all__ = ('create_stream_socket', 'SharedPort', 'SharedTLSPort')
+__all__ = ('create_stream_socket', 'CustomTCPPort', 'CustomTCPTLSPort')
 
 
 def create_stream_socket(addressFamily, shared=False):
@@ -79,7 +79,7 @@ def create_stream_socket(addressFamily, shared=False):
     return s
 
 
-class SharedPort(tcp.Port):
+class CustomTCPPort(tcp.Port):
     """
     A custom TCP port which allows to set socket options for sharing TCP ports between multiple processes.
     """
@@ -108,7 +108,7 @@ class SharedPort(tcp.Port):
         return s
 
 
-class SharedTLSPort(SharedPort, ssl.Port):
+class CustomTCPTLSPort(CustomTCPPort, ssl.Port):
     """
     A custom TLS port which allows to set socket options for sharing (the underlying) TCP ports between multiple processes.
     """
