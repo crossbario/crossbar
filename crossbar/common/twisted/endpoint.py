@@ -491,7 +491,11 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
             # random free port
             config['port'] = get_free_tcp_port(host=config.get('interface', ''))
 
-    if config['type'] == 'tcp' and config.get('shared', False):
+    # the TCP socket sharing option
+    #
+    shared = config.get('shared', False)
+
+    if config['type'] == 'tcp' and shared:
 
         # the TCP protocol version (v4 or v6)
         #
@@ -508,10 +512,6 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
         # the TCP accept queue depth
         #
         backlog = int(config.get('backlog', 50))
-
-        # the TCP socket sharing option
-        #
-        shared = config.get('shared', False)
 
         # create a listening port
         #
