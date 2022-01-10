@@ -39,7 +39,7 @@ elif sys.platform == 'win32':
 
 # FIXME: DragonFly BSD claims support: http://lists.dragonflybsd.org/pipermail/commits/2013-May/130083.html
 
-__all__ = ('create_stream_socket', 'SharedPort', 'SharedTLSPort')
+__all__ = ('create_stream_socket', 'CustomTCPPort', 'CustomTCPTLSPort')
 
 
 def create_stream_socket(addressFamily, shared=False):
@@ -79,15 +79,16 @@ def create_stream_socket(addressFamily, shared=False):
     return s
 
 
-class SharedPort(tcp.Port):
+class CustomTCPPort(tcp.Port):
     """
     A custom TCP port which allows to set socket options for sharing TCP ports between multiple processes.
     """
-    def __init__(self, port, factory, backlog=50, interface='', reactor=None, shared=False):
+    def __init__(self, port, factory, backlog=50, interface='', reactor=None, shared=False, user_timeout=None):
         if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
             raise Exception("shared sockets unsupported on this system")
         else:
             self._shared = shared
+            self._user_timeout = user_timeout
 
         tcp.Port.__init__(self, port, factory, backlog, interface, reactor)
 
@@ -105,17 +106,30 @@ class SharedPort(tcp.Port):
                     raise Exception("logic error")
             else:
                 raise Exception("shared sockets unsupported on this system")
+
+        if self._user_timeout is not None:
+            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_USER_TIMEOUT, self._user_timeout)
+
         return s
 
 
-class SharedTLSPort(SharedPort, ssl.Port):
+class CustomTCPTLSPort(CustomTCPPort, ssl.Port):
     """
     A custom TLS port which allows to set socket options for sharing (the underlying) TCP ports between multiple processes.
     """
-    def __init__(self, port, factory, ctxFactory, backlog=50, interface='', reactor=None, shared=False):
+    def __init__(self,
+                 port,
+                 factory,
+                 ctxFactory,
+                 backlog=50,
+                 interface='',
+                 reactor=None,
+                 shared=False,
+                 user_timeout=None):
         if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
             raise Exception("shared sockets unsupported on this system")
         else:
             self._shared = shared
+            self._user_timeout = user_timeout
 
         ssl.Port.__init__(self, port, factory, ctxFactory, backlog, interface, reactor)
