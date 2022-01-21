@@ -123,7 +123,7 @@ txaio==21.2.1
 txtorcon==21.1.0
 typing-extensions==4.0.0
 u-msgpack-python==2.7.1
-ujson==4.3.0
+ujson==5.1.0
 urllib3==1.26.7
 validate-email==1.3
 varint==1.0.2
