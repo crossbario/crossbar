@@ -2,13 +2,25 @@ import time
 import sys
 import os
 
-def test_import_0():
+def test_import_1():
+    started = time.monotonic_ns()
+    import autobahn
+    ended = time.monotonic_ns()
+    return ended - started
+
+def test_import_2():
+    started = time.monotonic_ns()
+    from autobahn import xbr
+    ended = time.monotonic_ns()
+    return ended - started
+
+def test_import_3():
     started = time.monotonic_ns()
     from crossbar import personality as standalone
     ended = time.monotonic_ns()
     return ended - started
 
-def test_import_1():
+def test_import_4():
     started = time.monotonic_ns()
     from crossbar import personality as standalone
     from crossbar import edge
@@ -18,13 +30,19 @@ def test_import_1():
     ended = time.monotonic_ns()
     return ended - started
 
-def test_import_2():
+def test_import_5():
+    started = time.monotonic_ns()
+    import zlmdb
+    ended = time.monotonic_ns()
+    return ended - started
+
+def test_import_6():
     started = time.monotonic_ns()
     import cfxdb
     ended = time.monotonic_ns()
     return ended - started
 
-def test_import_3():
+def test_import_7():
     started = time.monotonic_ns()
     import autobahn
     import cbor
@@ -38,25 +56,14 @@ def test_import_3():
     ended = time.monotonic_ns()
     return ended - started
 
-def test_import_4():
-    started = time.monotonic_ns()
-    import autobahn
-    ended = time.monotonic_ns()
-    return ended - started
-
-def test_import_5():
-    started = time.monotonic_ns()
-    import zlmdb
-    ended = time.monotonic_ns()
-    return ended - started
-
 tests = {
-    '0': (test_import_0, 'crossbar oss'),
-    '1': (test_import_1, 'crossbar full'),
-    '2': (test_import_2, 'cfxdb'),
-    '3': (test_import_3, 'all cfxdb deps'),
-    '4': (test_import_4, 'only autobahn'),
+    '1': (test_import_1, 'only autobahn'),
+    '2': (test_import_2, 'xbr from autobahn'),
+    '3': (test_import_3, 'crossbar oss'),
+    '4': (test_import_4, 'crossbar full'),
     '5': (test_import_5, 'only zlmdb'),
+    '6': (test_import_6, 'cfxdb'),
+    '7': (test_import_7, 'all cfxdb deps'),
 }
 
 test = None
@@ -69,5 +76,5 @@ if test:
     print()
 else:
     for i in range(len(tests)):
-        cmd = ' '.join([sys.executable, __file__, str(i)])
+        cmd = ' '.join([sys.executable, __file__, str(i + 1)])
         os.system(cmd)

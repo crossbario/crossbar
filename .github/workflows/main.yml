@@ -141,6 +141,10 @@ jobs:
       run: |
         python -c "import crossbar; print(crossbar.__version__)"
 
+    - name: Run Python import tests
+      run: |
+        python ./test/test_imports.py
+
     - name: Run unit tests (Twisted Trial)
       run: |
         python -m twisted.trial crossbar
