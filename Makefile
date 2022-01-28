@@ -76,7 +76,7 @@ freeze:
 	# do everything in a fresh environment
 	-rm -rf vers
 	virtualenv vers
-	vers/bin/pip3 install -U "pip==19.3.1" wheel hashin pip-licenses
+	vers/bin/pip3 install pip wheel hashin pip-licenses
 
 	# install and freeze latest versions of minimum requirements
 	vers/bin/pip3 install -r requirements-min.txt
@@ -91,7 +91,10 @@ freeze:
 	vers/bin/pip3 install hashin
 	-rm requirements.txt
 	# FIXME: we are using our own unpublished forks of "py-cid" and "py-multihash" for which hashin won't find version data on pypi
-	-cat requirements-pinned.txt | grep -v "py-cid" | grep -v "py-multihash" | xargs vers/bin/hashin > requirements.txt
+	-cat requirements-pinned.txt | grep -v "py-cid" | grep -v "py-multihash" | grep -v "vmprof" | xargs vers/bin/hashin > requirements.txt
+	-cat requirements-pinned.txt | grep "py-cid" >> requirements.txt
+	-cat requirements-pinned.txt | grep "py-multihash" >> requirements.txt
+	-cat requirements-pinned.txt | grep "vmprof" >> requirements.txt
 
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
