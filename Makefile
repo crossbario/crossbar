@@ -76,7 +76,7 @@ freeze:
 	# do everything in a fresh environment
 	-rm -rf vers
 	virtualenv vers
-	vers/bin/pip3 install -U "pip==19.3.1" wheel hashin pip-licenses
+	vers/bin/pip3 install pip wheel hashin pip-licenses
 
 	# install and freeze latest versions of minimum requirements
 	vers/bin/pip3 install -r requirements-min.txt
