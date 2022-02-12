@@ -5,6 +5,15 @@
 #
 #####################################################################################
 
+# IMPORTANT:
+#
+# 1. You must use pip 22.0.3 or later
+#       pls https://github.com/crossbario/crossbar/pull/1943#issuecomment-1037569885
+#
+# 2. No, we can't add that pip version requirement here
+#       see https://stackoverflow.com/a/60159094/884770
+#
+
 import os
 
 from setuptools import setup, find_packages
@@ -99,6 +108,7 @@ setup(
                  "Programming Language :: Python :: 3.7",
                  "Programming Language :: Python :: 3.8",
                  "Programming Language :: Python :: 3.9",
+                 "Programming Language :: Python :: 3.10",
                  "Programming Language :: Python :: Implementation :: CPython",
                  "Programming Language :: Python :: Implementation :: PyPy",
                  "Topic :: Internet",
