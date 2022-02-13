@@ -132,7 +132,7 @@ jobs:
 
     - name: Install Crossbar.io package dependencies & Crossbar.io
       run: |
-        pip install --ignore-installed -r requirements-latest.txt
+        pip install -r requirements-min.txt
         pip install .
 
     - name: Display Crossbar.io version
