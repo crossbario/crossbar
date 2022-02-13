@@ -130,9 +130,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
 
+    # pip install -r requirements-min.txt
     - name: Install Crossbar.io package dependencies & Crossbar.io
       run: |
-        pip install -r requirements-min.txt
+        pip install -r requirements-latest.txt
         pip install .
 
     - name: Display Crossbar.io version
