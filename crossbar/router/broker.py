@@ -563,6 +563,7 @@ class Broker(object):
                                                     publisher_authid=publisher_authid,
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic,
+                                                    transaction_hash=publish.transaction_hash,
                                                     enc_algo=publish.enc_algo,
                                                     enc_key=publish.enc_key,
                                                     enc_serializer=publish.enc_serializer,
@@ -576,6 +577,7 @@ class Broker(object):
                                                     publisher_authid=publisher_authid,
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic,
+                                                    transaction_hash=publish.transaction_hash,
                                                     forward_for=forward_for)
 
                             # if the publish message had a correlation ID, this will also be the
