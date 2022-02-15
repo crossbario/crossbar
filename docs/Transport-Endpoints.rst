@@ -81,7 +81,7 @@ parameters:
 +--------------+------------------------------------------------------------------------------------------------------------------------------+
 | tls          | optional endpoint TLS configuration (see below)                                                                              |
 +--------------+------------------------------------------------------------------------------------------------------------------------------+
-| user-timeout | optional TCP user timeout in ms transmitted data may remain unacked before connection close, see ``TCP_USER_TIMEOUT`` in     |
+| user_timeout | optional TCP user timeout in ms transmitted data may remain unacked before connection close, see ``TCP_USER_TIMEOUT`` in     |
 |              | `tcp(7) <https://man7.org/linux/man-pages/man7/tcp.7.html>`__, 0 behaves like not configured [1]_ (default: not configured)  |
 +--------------+------------------------------------------------------------------------------------------------------------------------------+
 
