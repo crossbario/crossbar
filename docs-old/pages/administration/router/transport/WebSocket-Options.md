@@ -76,7 +76,8 @@ For example, here is a configuration for a production WebSocket service with con
       "close_handshake_timeout": 1000,
       "auto_ping_interval": 10000,
       "auto_ping_timeout": 5000,
-      "auto_ping_size": 4
+      "auto_ping_size": 12,
+      "auto_ping_restart_on_any_traffic": true
    }
 }
 ```
