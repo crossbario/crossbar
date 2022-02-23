@@ -29,7 +29,7 @@
  cbor2                 5.4.2.post1  MIT License                                                                                          Alex Grönholm                                                  
  certifi               2021.10.8    Mozilla Public License 2.0 (MPL 2.0)                                                                 Kenneth Reitz                                                  
  cffi                  1.15.0       MIT License                                                                                          Armin Rigo, Maciej Fijalkowski                                 
- cfxdb                 22.2.1       Other/Proprietary License                                                                            Crossbar.io Technologies GmbH                                  
+ cfxdb                 22.2.2       MIT License                                                                                          Crossbar.io Technologies GmbH                                  
  chardet               4.0.0        GNU Library or Lesser General Public License (LGPL)                                                  Mark Pilgrim                                                   
  charset-normalizer    2.0.12       MIT License                                                                                          Ahmed TAHRI @Ousret                                            
  click                 8.0.4        BSD License                                                                                          Armin Ronacher                                                 
