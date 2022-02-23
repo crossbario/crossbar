@@ -15,7 +15,7 @@ import pprint
 from datetime import datetime
 from collections import OrderedDict
 
-import cbor
+import cbor2
 import nacl
 import numpy as np
 
@@ -1063,7 +1063,7 @@ class DomainController(ApplicationSession):
             verify_key = self._node_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)
 
             # serialize metering data
-            raw_data = cbor.dumps(rec.marshal())
+            raw_data = cbor2.dumps(rec.marshal())
 
             # sign metering data with master node (private) key
             signed_msg = self._node_key.sign(raw_data)
