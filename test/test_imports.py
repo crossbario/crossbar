@@ -45,7 +45,7 @@ def test_import_6():
 def test_import_7():
     started = time.monotonic_ns()
     import autobahn
-    import cbor
+    import cbor2
     import flatbuffers
     import numpy
     import multihash
