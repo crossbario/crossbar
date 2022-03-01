@@ -76,5 +76,5 @@ web3>=5.13.1
 werkzeug>=0.14.1
 wsaccel>=0.6.2; platform_python_implementation=='CPython'
 xbr>=21.2.1
-zlmdb>=22.2.1
+zlmdb>=22.3.1.dev1
 zope.interface>=4.4.2
