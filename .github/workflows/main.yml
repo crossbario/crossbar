@@ -133,8 +133,8 @@ jobs:
     # pip install -r requirements-min.txt
     - name: Install Crossbar.io package dependencies & Crossbar.io
       run: |
-        pip install .
         pip install -U -r requirements-latest.txt
+        pip install .
 
     - name: Display Crossbar.io version
       run: |
