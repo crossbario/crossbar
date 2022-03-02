@@ -13,8 +13,8 @@ _initialize_mrealms
 ## Environment
 
 ```
-export CROSSBARFX_METERING_URL="https://metering.crossbario.com/submit"
-export CROSSBARFX_DISABLE_CE=1
+export CROSSBAR_METERING_URL="https://metering.crossbario.com/submit"
+export CROSSBAR_DISABLE_CE=1
 ```
 
 ## CE
@@ -24,7 +24,7 @@ export CROSSBARFX_DISABLE_CE=1
     "id": "change_engine",
     "type": "container",
     "options": {
-        "disabled": "CROSSBARFX_DISABLE_CE",
+        "disabled": "CROSSBAR_DISABLE_CE",
         "pythonpath": [".."],
         "expose_shared": true,
         "expose_controller": true
@@ -50,11 +50,11 @@ export CROSSBARFX_DISABLE_CE=1
 ```
 
 ```
-export CROSSBARFX_DISABLE_CE=1
+export CROSSBAR_DISABLE_CE=1
 ```
 
 ```
-2019-06-23T05:44:39+0200 [Controller    466] Skip start of worker Container change_engine (disabled from envvar CROSSBARFX_DISABLE_CE)
+2019-06-23T05:44:39+0200 [Controller    466] Skip start of worker Container change_engine (disabled from envvar CROSSBAR_DISABLE_CE)
 ```
 
 ## Databases
