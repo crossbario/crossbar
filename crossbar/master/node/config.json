@@ -251,14 +251,14 @@
                             "period": 300,
                             "submit": {
                                 "period": 300,
-                                "url": "${CROSSBARFX_METERING_URL}",
+                                "url": "${CROSSBAR_METERING_URL}",
                                 "timeout": 5,
                                 "maxerrors": 10
                             }
                         },
                         "auto_default_mrealm": {
                             "enabled": true,
-                            "watch_to_pair": "${CROSSBARFX_WATCH_TO_PAIR}",
+                            "watch_to_pair": "${CROSSBAR_WATCH_TO_PAIR}",
                             "watch_to_pair_pattern": null,
                             "write_pairing_file": true,
                             "management_url": "${CROSSBAR_FABRIC_URL}",
