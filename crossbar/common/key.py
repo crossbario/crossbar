@@ -183,7 +183,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         if os.path.exists(pubkey_path):
             pub_tags = _parse_key_file(pubkey_path, private=False)
             # node-authid is optional!
-            for tag in ['creator', 'created-at', 'machine-id', 'node-authid', 'public-key-ed25519']:
+            for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519']:
                 if tag not in pub_tags:
                     raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))
 
