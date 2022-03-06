@@ -14,6 +14,7 @@ import threading
 import pprint
 from datetime import datetime
 from collections import OrderedDict
+from pathlib import Path
 
 import cbor2
 import nacl
@@ -312,7 +313,9 @@ class DomainController(ApplicationSession):
                 self._watch_to_pair = checkconfig.maybe_from_env('auto_default_mrealm.watch_to_pair',
                                                                  self._watch_to_pair,
                                                                  hide_value=False)
-                if self._watch_to_pair and os.path.isdir(self._watch_to_pair):
+                if self._watch_to_pair:
+                    self._watch_to_pair = Path(self._watch_to_pair)
+                if self._watch_to_pair and self._watch_to_pair.is_dir():
                     node_dir_pat = self._auto_default_mrealm.get('watch_to_pair_pattern', None)
                     if node_dir_pat:
                         node_dir_pat = re.compile(node_dir_pat)
@@ -477,8 +480,11 @@ class DomainController(ApplicationSession):
                     self._watch_and_pair_count = 0
                     self._watch_and_pair_lc.start(10)
                 else:
-                    self.log.warn('skipping to watch "{watch_to_pair}" for node auto-pairing - not a directory!',
-                                  watch_to_pair=self._watch_to_pair)
+                    if self._watch_to_pair:
+                        self.log.warn('skipping to watch "{watch_to_pair}" for node auto-pairing - not a directory!',
+                                      watch_to_pair=self._watch_to_pair.absolute())
+                    else:
+                        self.log.warn('skipping to watch for node auto-pairing - no directory configured!')
 
         # initialize management backends
         #
