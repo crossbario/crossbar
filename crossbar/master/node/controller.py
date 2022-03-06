@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Crossbar.io FX Master
+# Crossbar.io Master
 # Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ###############################################################################
@@ -432,7 +432,7 @@ class DomainController(ApplicationSession):
                                                 ('activation-code', activation_code),
                                                 ('public-key-ed25519', pubkey),
                                             ])
-                                            file_msg = 'Crossbar.io FX node activation\n\n'
+                                            file_msg = 'Crossbar.io node activation\n\n'
                                             try:
                                                 _write_node_key(activation_file, file_tags, file_msg)
                                             except OSError as e:

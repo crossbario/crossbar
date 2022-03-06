@@ -1,10 +1,10 @@
 Building from Sources
 =====================
 
-This recipe describes building Crossbar.io FX *from sources*, on a completely
+This recipe describes building Crossbar.io *from sources*, on a completely
 fresh **Ubuntu 18.04 Server**.
 
-The recipe is intended *for Crossbar.io developers hacking on Crossbar.io FX code itself*
+The recipe is intended *for Crossbar.io developers hacking on Crossbar.io code itself*
 and currently requires access to company internal, private Git repositories.
 
 Prepare OS

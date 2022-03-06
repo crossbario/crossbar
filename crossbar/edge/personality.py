@@ -1,6 +1,6 @@
 ##############################################################################
 #
-#                        Crossbar.io FX
+#                        Crossbar.io
 #     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ##############################################################################
@@ -149,7 +149,7 @@ def check_database(personality, database):
 def check_controller_fabric(personality, fabric):
     """
     Check controller Fabric configuration override (which essentially is only
-    for debugging purposes or for people running Crossbar.io FX Service on-premise)
+    for debugging purposes or for people running Crossbar.io Service on-premise)
 
     :param fabric: The Fabric configuration to check.
     :type fabric: dict
@@ -349,7 +349,7 @@ _native_workers.update({
     }
 })
 
-_TITLE = "Crossbar.io FX"
+_TITLE = "Crossbar.io"
 
 # sudo apt install figlet && figlet -f smslant "Crossbar FX"
 _BANNER = r"""
@@ -364,7 +364,7 @@ _BANNER = r"""
     Copyright (c) 2013-{year} Crossbar.io Technologies GmbH. All rights reserved.
 """
 
-_DESC = """Crossbar.io FX is a decentralized data plane for XBR/WAMP based application
+_DESC = """Crossbar.io is a decentralized data plane for XBR/WAMP based application
 service and data routing, built on Crossbar.io OSS."""
 
 

@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Crossbar.io FX Master
+# Crossbar.io Master
 # Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ###############################################################################
@@ -373,7 +373,7 @@ class FabricServiceNodeManager(ApplicationSession):
 
 class FabricCenterNode(node.FabricNode):
     """
-    Crossbar.io FX Master node personality.
+    Crossbar.io Master node personality.
     """
     DEFAULT_CONFIG_PATH = 'master/node/config.json'
 

@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Crossbar.io FX Master
+# Crossbar.io Master
 # Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ###############################################################################
@@ -94,7 +94,7 @@ def check_controller_options(personality, options, ignore=[]):
     return checkconfig.check_controller_options(personality, options, ignore)
 
 
-_TITLE = "Crossbar.io FX"
+_TITLE = "Crossbar.io"
 
 # sudo apt install figlet && figlet -f smslant "Crossbar FX"
 _BANNER = r"""
@@ -109,7 +109,7 @@ _BANNER = r"""
     Copyright (c) 2013-{year} Crossbar.io Technologies GmbH. All rights reserved.
 """
 
-_DESC = """Crossbar.io FX - decentralized data-plane."""
+_DESC = """Crossbar.io - decentralized data-plane."""
 
 
 class Personality(CrossbarFabricPersonality):

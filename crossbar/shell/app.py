@@ -351,7 +351,7 @@ class Application(object):
 
         # the realm can be set from command line, env var, the profile
         # or can be None, which means the user will be joined to the global
-        # Crossbar.io FX users realm (u'com.crossbario.fabric')
+        # Crossbar.io users realm (u'com.crossbario.fabric')
         realm = cfg.realm or profile.realm or None
 
         # the authrole can be set from command line, env var, the profile
@@ -360,7 +360,7 @@ class Application(object):
         authrole = cfg.role or profile.role or None
 
         # this will be fired when the ShellClient below actually has joined
-        # the respective realm on Crossbar.io FX (either the global users
+        # the respective realm on Crossbar.io (either the global users
         # realm, or a management realm the user has a role on)
         done = txaio.create_future()
 
@@ -389,7 +389,7 @@ class Application(object):
             # user requests sending of a new authentication code (while an old one is still pending)
             extra[u'request_new_activation_code'] = cfg.new_code
 
-        # this is the WAMP ApplicationSession that connects the CLI to Crossbar.io FX
+        # this is the WAMP ApplicationSession that connects the CLI to Crossbar.io
         self.session = client.ShellClient(ComponentConfig(realm, extra))
 
         runner = ApplicationRunner(url, realm, ssl=cert_options)

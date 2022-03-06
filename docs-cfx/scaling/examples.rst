@@ -1,15 +1,15 @@
 Examples
 ========
 
-The following describes some common setups using Crossbar.io FX and
+The following describes some common setups using Crossbar.io and
 Web/Router Clusters for High-availability (HA), scale-up (utilizing multiple
 CPU core on a single host) and scale-out (utilizing multiple hosts).
 
 .. note::
 
-    The examples here will work with all Crossbar.io FX binary flavors, that is
+    The examples here will work with all Crossbar.io binary flavors, that is
     Docker (CPython and PyPy), snap and EXE (single-file executable). However,
-    The Docker/PyPy image of Crossbar.io FX is recommended for production, and
+    The Docker/PyPy image of Crossbar.io is recommended for production, and
     should be used for any performance tests and benchmarking.
 
 .. contents:: :local:
@@ -22,7 +22,7 @@ Prerequisites
 CrossbarFX CLI
 ..............
 
-Download and install the Crossbar.io FX single-file executable, which embeds
+Download and install the Crossbar.io single-file executable, which embeds
 a command line inferface (CLI) to the master node:
 
 .. code-block:: console
@@ -80,7 +80,7 @@ and
 * the default management realm (automatically created)
 * the three managed nodes auto-paired to the default management realm
 
-The following describes how to start these 4 nodes using the Crossbar.io FX Docker image
+The following describes how to start these 4 nodes using the Crossbar.io Docker image
 all on the local machine, eg a developer notebook. Since all nodes are run on one host,
 and to keep things simple, the nodes will listen on different ports:
 
@@ -153,7 +153,7 @@ To **start** a Docker container with a **master node**:
     docker-compose up master
 
 You should see log output of the master node booting the first time. The master node should pick up the
-public key of the default profile from your Crossbar.io FX shell (CLI) dotdir:
+public key of the default profile from your Crossbar.io shell (CLI) dotdir:
 
 .. code-block:: console
 

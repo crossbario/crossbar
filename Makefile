@@ -71,6 +71,9 @@ docs_run: docs
 docs_clean:
 	-rm -rf ./docs/_build
 
+fix_fx_strings:
+	find . -type f -exec sed -i 's/Crossbar.io/Crossbar.io/g' {} \;
+
 # freeze our dependencies
 freeze:
 	# do everything in a fresh environment

@@ -396,7 +396,7 @@ export PATH=${HOME}/cpy392/bin:${PATH}
 
 ### Installing from Wheels
 
-Run [this script](https://github.com/crossbario/crossbarfx/blob/master/docs/_static/crossbarfx-install-from-wheels.sh) to install Crossbar.io FX from wheels (x86-64):
+Run [this script](https://github.com/crossbario/crossbarfx/blob/master/docs/_static/crossbarfx-install-from-wheels.sh) to install Crossbar.io from wheels (x86-64):
 
 ```
 cd ~
@@ -536,7 +536,7 @@ Usage: crossbarfx <command>
    Twisted          : 18.7.0-EPollReactor
    LMDB             : 0.94/lmdb-0.9.22
    Python           : 3.7.0/CPython
- Crossbar.io FX     : 18.9.1
+ Crossbar.io     : 18.9.1
  Frozen executable  : yes
  Operating system   : Linux-4.4.0-134-generic-x86_64-with-debian-stretch-sid
  Host machine       : x86_64

@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Crossbar.io FX Master
+# Crossbar.io Master
 # Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ###############################################################################
