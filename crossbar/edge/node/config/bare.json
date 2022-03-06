@@ -5,7 +5,6 @@
     "options": {
       "shutdown": ["shutdown_on_shutdown_requested"],
       "enable_parallel_worker_start": true
-    },
-    "enable_docker": true
+    }
   }
 }
