@@ -1,6 +1,6 @@
 ##############################################################################
 #
-#                        Crossbar.io FX
+#                        Crossbar.io
 #     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ##############################################################################
@@ -52,7 +52,7 @@ def _parse_activation_file(path):
 
     .. code-block::console
 
-        Crossbar.io FX node activation
+        Crossbar.io node activation
 
         created-at: 2020-07-05T11:49:59.125Z
         management-url: ws://localhost:9000/ws
@@ -555,9 +555,9 @@ def compute_mgmt_uplink_config(log, cbdir, config, fn_reboot=None, use_activatio
 
 class FabricNode(node.Node):
     """
-    Crossbar.io FX node personality.
+    Crossbar.io node personality.
     """
-    DEFAULT_CONFIG_PATH = 'edge/node/config/pairme.json'
+    DEFAULT_CONFIG_PATH = 'edge/node/config/bare.json'
     NODE_CONTROLLER = FabricNodeControllerSession
 
     def __init__(self, personality, cbdir=None, reactor=None, native_workers=None, options=None):
@@ -750,7 +750,7 @@ class FabricNode(node.Node):
                                     else:
                                         self.log.info(
                                             click.style(
-                                                'Connected to Crossbar.io FX Master at management realm "{realm}", set node ID "{node_id}" (extra={node_extra}, session_id={session_id})',
+                                                'Connected to Crossbar.io Master at management realm "{realm}", set node ID "{node_id}" (extra={node_extra}, session_id={session_id})',
                                                 fg='green',
                                                 bold=True),
                                             realm=self._management_realm,
@@ -779,7 +779,7 @@ class FabricNode(node.Node):
                                         break
                         else:
                             self.log.warn(
-                                'Uplink Crossbar.io FX Master session established, but no bridge session setup!'
+                                'Uplink Crossbar.io Master session established, but no bridge session setup!'
                             )
                     except Exception as e:
                         self.log.warn('error in on_ready: {}'.format(e))
@@ -834,11 +834,11 @@ class FabricNode(node.Node):
                             self.log.failure()
                         else:
                             self.log.debug(
-                                'Disconnected from Crossbar.io FX Master for management realm "{realm}"',
+                                'Disconnected from Crossbar.io Master for management realm "{realm}"',
                                 realm=self._management_realm)
                     else:
                         self.log.warn(
-                            'Uplink Crossbar.io FX Master session lost, but no bridge session setup!')
+                            'Uplink Crossbar.io Master session lost, but no bridge session setup!')
 
                     self._manager, self._management_realm, self._management_session_id, self._node_id, self._node_extra = None, None, None, None, None
 
@@ -852,7 +852,7 @@ class FabricNode(node.Node):
                 session = NodeManagementSession(self._manager_runner, config)
                 return session
 
-            self.log.info('Connecting to Crossbar.io FX Master at {url} ..', url=url)
+            self.log.info('Connecting to Crossbar.io Master at {url} ..', url=url)
 
             yield self._manager_runner.run(make, start_reactor=False, auto_reconnect=True)
 

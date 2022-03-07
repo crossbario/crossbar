@@ -1,11 +1,10 @@
 ###############################################################################
 #
-# Crossbar.io FX Master
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Crossbar.io Master
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
-import time
 from typing import Dict
 from collections.abc import Mapping
 from pprint import pformat
@@ -18,7 +17,6 @@ from crossbar.node.node import NodeOptions
 from crossbar.personality import Personality as CrossbarPersonality
 from crossbar.edge.personality import Personality as CrossbarFabricPersonality
 
-import crossbar
 from crossbar.master.node.node import FabricCenterNode
 
 from crossbar.master.webservice import RouterWebServiceRegisterMe
@@ -94,42 +92,11 @@ def check_controller_options(personality, options, ignore=[]):
     return checkconfig.check_controller_options(personality, options, ignore)
 
 
-_TITLE = "Crossbar.io FX"
-
-# sudo apt install figlet && figlet -f smslant "Crossbar FX"
-_BANNER = r"""
-    :::::::::::::::::
-          :::::          _____                 __              _____  __
-    :::::   :   :::::   / ___/______  ___ ___ / /  ___ _____  / __/ |/_/
-    :::::::   :::::::  / /__/ __/ _ \(_-<(_-</ _ \/ _ `/ __/ / _/_>  <
-    :::::   :   :::::  \___/_/  \___/___/___/_.__/\_,_/_/   /_/ /_/|_|
-          :::::
-    :::::::::::::::::   {title} v{version} [{build}]
-
-    Copyright (c) 2013-{year} Crossbar.io Technologies GmbH. All rights reserved.
-"""
-
-_DESC = """Crossbar.io FX - decentralized data-plane."""
-
-
 class Personality(CrossbarFabricPersonality):
 
     log = txaio.make_logger()
 
     NAME = 'master'
-
-    TITLE = _TITLE
-
-    DESC = _DESC
-
-    BANNER = _BANNER.format(title=_TITLE,
-                            version=crossbar.__version__,
-                            build=crossbar.__build__,
-                            year=time.strftime('%Y'))
-
-    LEGAL = ('crossbar', 'LEGAL')
-    LICENSE = ('crossbar', 'LICENSE')
-    LICENSES_OSS = ('crossbar', 'LICENSES-OSS')
 
     TEMPLATE_DIRS = [('crossbar', 'master/webservice/templates')] + CrossbarFabricPersonality.TEMPLATE_DIRS
 

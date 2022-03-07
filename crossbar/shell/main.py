@@ -1,7 +1,7 @@
 ###############################################################################
 #
 # Crossbar.io Shell
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -78,7 +78,7 @@ class Config(object):
         return u'Config(resource_type={}, resource={})'.format(self.resource_type, self.resource)
 
 
-@click.group(help="Crossbar.io FX Command Line", invoke_without_command=True)
+@click.group(help="Crossbar.io Command Line", invoke_without_command=True)
 @click.option(
     '--profile',
     envvar='CBF_PROFILE',
@@ -185,7 +185,7 @@ def cmd_version(ctx):
     platform_str = platform.platform(terse=True, aliased=True)
 
     click.echo()
-    click.echo(hl("  Crossbar.io FX Shell") + ' - Command line tool for Crossbar.io FX')
+    click.echo(hl("  Crossbar.io Shell") + ' - Command line tool for Crossbar.io')
     click.echo()
     click.echo('  {:<24}: {}'.format('Version', hl('{} (build {})'.format(__version__, __build__))))
     click.echo('  {:<24}: {}'.format('Platform', hl(platform_str)))
@@ -214,7 +214,7 @@ def cmd_init(ctx, yes):
     ctx.obj.app.run_context(ctx)
 
 
-@cli.command(name='auth', help='authenticate user with Crossbar.io FX')
+@cli.command(name='auth', help='authenticate user with Crossbar.io')
 @click.option(
     '--code',
     default=None,

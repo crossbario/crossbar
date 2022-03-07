@@ -1,5 +1,5 @@
 WHEELS=${PWD}/jupyter/.wheels
-CROSSBARFX_ROOT=${HOME}/scm/crossbario/crossbarfx
+CROSSBAR_ROOT=${HOME}/scm/crossbario/crossbarfx
 
 
 default:
@@ -11,7 +11,7 @@ clean_wheels:
 	ls -la $(WHEELS)
 
 build_wheels:
-	CROSSBARFX_ROOT=$(CROSSBARFX_ROOT) pip wheel --no-cache-dir --no-deps --wheel-dir=$(WHEELS) \
+	CROSSBAR_ROOT=$(CROSSBAR_ROOT) pip wheel --no-cache-dir --no-deps --wheel-dir=$(WHEELS) \
 		../../../zlmdb \
 		../../cfxdb
 	ls -la $(WHEELS)

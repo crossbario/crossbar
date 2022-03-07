@@ -157,7 +157,7 @@ def _write_node_key(filepath, tags, msg):
 
 def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
-    was_new = True
+    was_new = None
     privkey_path = os.path.join(cbdir, privfile)
     pubkey_path = os.path.join(cbdir, pubfile)
 
@@ -220,8 +220,11 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
         if 'CROSSBAR_NODE_ID' in os.environ and os.environ['CROSSBAR_NODE_ID'].strip() != '':
             node_authid = os.environ['CROSSBAR_NODE_ID']
+            log.info('using node_authid from environment variable CROSSBAR_NODE_ID: "{node_authid}"',
+                     node_authid=node_authid)
         else:
             node_authid = socket.gethostname()
+            log.info('using node_authid from hostname: "{node_authid}"', node_authid=node_authid)
 
         # first, write the public file
         tags = OrderedDict([
@@ -239,7 +242,11 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         msg = 'Crossbar.io node private key - KEEP THIS SAFE!\n\n'
         _write_node_key(privkey_path, tags, msg)
 
-        log.info('New node key pair generated! Public key is {pubkey}', pubkey=hlid('0x' + pubkey_hex))
+        log.info('New node key pair generated! public-key-ed25519={pubkey}, node-authid={node_authid}',
+                 pubkey=hlid('0x' + pubkey_hex),
+                 node_authid=node_authid)
+
+        was_new = True
 
     # fix file permissions on node public/private key files
     # note: we use decimals instead of octals as octal literals have changed between Py2/3

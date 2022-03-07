@@ -1,7 +1,7 @@
 ###############################################################################
 #
 # Crossbar.io Quickstart
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -87,8 +87,8 @@ _cookiecutters = [
     # Crossbar.io
     (None, 'Crossbar.io'),
     ('{}/cookiecutter-crossbar'.format(CC1), 'Create a Crossbar.io OSS app router'),
-    ('{}/cookiecutter-crossbar-fabric'.format(CC1), 'Create a Crossbar.io FX app router'),
-    ('{}/cookiecutter-crossbar-fabric-center'.format(CC1), 'Create a Crossbar.io FX cluster controller'),
+    ('{}/cookiecutter-crossbar-fabric'.format(CC1), 'Create a Crossbar.io app router'),
+    ('{}/cookiecutter-crossbar-fabric-center'.format(CC1), 'Create a Crossbar.io cluster controller'),
 
     # XBR
     (None, 'XBR'),

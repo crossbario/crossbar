@@ -1,6 +1,6 @@
 # Master automation testing
 
-## Automated CI test using Docker Crossbar.io FX
+## Automated CI test using Docker Crossbar.io
 
 To test:
 
@@ -27,7 +27,7 @@ Add the following to `/etc/hosts`:
 ```
 
 
-## Manual test using host Crossbar.io FX
+## Manual test using host Crossbar.io
 
 In a first terminal, run:
 

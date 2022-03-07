@@ -71,6 +71,11 @@ docs_run: docs
 docs_clean:
 	-rm -rf ./docs/_build
 
+# find . -type f -exec sed -i 's/Crossbar.io/Crossbar.io/g' {} \;
+fix_fx_strings:
+	find . -type f -exec sed -i 's/Copyright (c) Crossbar.io Technologies GmbH. All rights reserved./Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2./g' {} \;
+
+
 # freeze our dependencies
 freeze:
 	# do everything in a fresh environment

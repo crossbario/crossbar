@@ -1,6 +1,6 @@
 ##############################################################################
 #
-#                        Crossbar.io FX
+#                        Crossbar.io
 #     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ##############################################################################
@@ -14,7 +14,7 @@ class XbrNetworkNodeControllerSession(FabricNodeControllerSession):
 
 class XbrNetworkNode(FabricNode):
     """
-    Crossbar.io FX node personality.
+    Crossbar.io node personality.
     """
     DEFAULT_CONFIG_PATH = 'network/node/config.json'
     NODE_CONTROLLER = XbrNetworkNodeControllerSession

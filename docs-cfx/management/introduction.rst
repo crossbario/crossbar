@@ -4,10 +4,10 @@ Introduction
 Control-/Data-plane Architecture
 --------------------------------
 
-Crossbar.io has a single-node, multi-process (worker) architecture. Crossbar.io FX adds management and automation for multi-node cluster of nodes and allows
+Crossbar.io has a single-node, multi-process (worker) architecture. Crossbar.io adds management and automation for multi-node cluster of nodes and allows
 to scale up and out WAMP routing workloads and provides auto-managing of all resources in a whole cluster from a single point of management.
 
-All WAMP application routing Crossbar.io FX nodes that are managed in one administrative domain connect to a *master node*
+All WAMP application routing Crossbar.io nodes that are managed in one administrative domain connect to a *master node*
 via managment uplinks. The master node can then control the managed nodes via an API built into every node, an can coordinate
 resource across nodes.
 
@@ -16,10 +16,10 @@ management traffic (**control-plane**):
 
 .. figure:: /_static/crossbarfx-central-control-plane.svg
     :align: center
-    :alt: Crossbar.io FX central control plane
+    :alt: Crossbar.io central control plane
     :figclass: align-center
 
-    Crossbar.io FX central control plane (:download:`Crossbar.io FX central control plane </_static/crossbarfx-central-control-plane.pdf>`)
+    Crossbar.io central control plane (:download:`Crossbar.io central control plane </_static/crossbarfx-central-control-plane.pdf>`)
 
 Management Clients
 ------------------

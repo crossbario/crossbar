@@ -1,6 +1,6 @@
 ##############################################################################
 #
-#                        Crossbar.io FX
+#                        Crossbar.io
 #     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ##############################################################################
@@ -112,7 +112,7 @@ class RegisterMeResource(Resource):
 
 class RouterWebServiceRegisterMe(RouterWebService):
     """
-    Crossbar.io FX "register-me" home page.
+    Crossbar.io "register-me" home page.
 
     IMPORTANT: this web service is only indented to run inside master nodes!
     """
