@@ -1593,7 +1593,7 @@ class ApplicationRealmManager(object):
             principal_oid = self.schema.idx_principals_by_name[txn, (obj.arealm_oid, obj.authid)]
             if principal_oid:
                 raise ApplicationError(
-                    'crossbar.error.no_such_object',
+                    'crossbar.error.already_exists',
                     'principal with name (authid) "{}" already exist in application realm'.format(obj.authid))
 
             self.schema.principals[txn, obj.oid] = obj
