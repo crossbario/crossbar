@@ -184,18 +184,18 @@ class CmdAddPrincipal(CmdAdd):
             arealm = await session.call('crossbarfabriccenter.mrealm.arealm.get_arealm_by_name', self.arealm)
             arealm_oid = arealm['oid']
 
-        role = self.config.get('authrole', None)
+        role = self.config.get('role', None)
         assert role is not None and type(role) == str
+
         try:
-            role_oid_ = uuid.UUID(role)
+            role_oid = uuid.UUID(role)
+            role_obj = await session.call('crossbarfabriccenter.mrealm.arealm.get_role', role_oid)
         except:
             role_obj = await session.call('crossbarfabriccenter.mrealm.arealm.get_role_by_name', role)
             role_oid = role_obj['oid']
-        else:
-            role_oid = str(role_oid_)
 
         config = copy.deepcopy(self.config)
-        del config['authrole']
+        del config['role']
         config['role_oid'] = role_oid
 
         try:

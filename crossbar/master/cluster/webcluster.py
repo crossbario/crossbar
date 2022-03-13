@@ -16,6 +16,7 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import CallDetails, PublishOptions, RegisterOptions
 
 from crossbar.common import checkconfig
+from crossbar.webservice import archive
 from crossbar._util import hl, hlid, hltype, hlval, get_free_tcp_port
 from cfxdb.mrealm import WebCluster, WebClusterNodeMembership, WebService
 from cfxdb.mrealm import cluster
@@ -399,6 +400,7 @@ class WebClusterManager(object):
     _WEB_SERVICE_CHECKERS = {
         'path': checkconfig.check_web_path_service_path,
         'static': checkconfig.check_web_path_service_static,
+        'archive': archive.RouterWebServiceArchive.check,
         'json': checkconfig.check_web_path_service_json,
         'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
         'redirect': checkconfig.check_web_path_service_redirect,

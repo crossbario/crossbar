@@ -160,19 +160,6 @@ class RouterClusterManager(object):
     # publication options for management API events
     _PUBOPTS = PublishOptions(acknowledge=True)
 
-    # map of allowed web services
-    _WEB_SERVICE_CHECKERS = {
-        'path': checkconfig.check_web_path_service_path,
-        'static': checkconfig.check_web_path_service_static,
-        'json': checkconfig.check_web_path_service_json,
-        'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
-        'redirect': checkconfig.check_web_path_service_redirect,
-        'reverseproxy': checkconfig.check_web_path_service_reverseproxy,
-        'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
-        'cgi': checkconfig.check_web_path_service_cgi,
-        'wsgi': checkconfig.check_web_path_service_wsgi,
-    }
-
     def __init__(self, session, globaldb, globalschema, db, schema, reactor=None):
         """
 
@@ -233,7 +220,7 @@ class RouterClusterManager(object):
     @inlineCallbacks
     def start(self, prefix):
         """
-        Start the Web-cluster manager.
+        Start the Router-cluster manager.
 
         :return:
         """
@@ -289,7 +276,7 @@ class RouterClusterManager(object):
     @inlineCallbacks
     def stop(self):
         """
-        Stop the (currently running) Web-cluster manager.
+        Stop the (currently running) Router-cluster manager.
 
         :return:
         """
