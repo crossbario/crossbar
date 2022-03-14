@@ -1845,23 +1845,18 @@ class ApplicationRealmManager(object):
         raise NotImplementedError()
 
     @wamp.register(None, check_types=True)
-    def list_roles(self,
-                   arealm_oid: str,
-                   return_names: Optional[bool] = None,
-                   details: Optional[CallDetails] = None) -> List[str]:
+    def list_roles(self, return_names: Optional[bool] = None, details: Optional[CallDetails] = None) -> List[str]:
         """
-        Returns list of Arealm IDs. Detail information for a Arealm
-        can be retrieved using the ID and the "get_arealm" procedure.
+        Returns list of roles defined.
 
-        :param return_names: Return arealm names instead of  object IDs
+        :param return_names: Return roles names instead of  object IDs
 
-        :return: List of application object IDs or names.
+        :return: List of role object IDs or names.
         """
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(arealm_oid={arealm_oid}, return_names={return_names}, details={details})',
+        self.log.info('{func}(return_names={return_names}, details={details})',
                       func=hltype(self.list_roles),
-                      arealm_oid=hlid(arealm_oid),
                       return_names=hlval(return_names),
                       details=details)
 
@@ -2025,10 +2020,6 @@ class ApplicationRealmManager(object):
 
         :return: List of permissions object IDs of this role.
         """
-        assert type(role_oid) == str
-        assert prefix is None or type(prefix) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(role_oid={role_oid}, prefix="{prefix}", details={details})',
                       func=hltype(self.list_role_permissions),
                       role_oid=hlid(role_oid),
@@ -2038,14 +2029,21 @@ class ApplicationRealmManager(object):
         try:
             role_oid_ = uuid.UUID(role_oid)
         except Exception:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid role_oid "{}"'.format(role_oid))
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid role_oid "{}"'.format(role_oid_))
 
         with self.db.begin() as txn:
             role = self.schema.roles[txn, role_oid_]
             if not role:
                 raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
 
-        return role.marshal()
+            res = []
+            for permission_oid in self.schema.idx_permissions_by_uri.select(txn,
+                                                                            from_key=(role_oid_, ''),
+                                                                            to_key=(role_oid_, 'Z' * 1000),
+                                                                            return_keys=False):
+                res.append(str(permission_oid))
+
+        return res
 
     @wamp.register(None, check_types=True)
     async def add_role_permission(self,
@@ -2056,7 +2054,7 @@ class ApplicationRealmManager(object):
         """
         Add a permission to a role.
 
-        :param arealm_oid: OID of the Arealm to which to add the role permission.
+        :param arealm_oid: OID of the application realm to which to add the role permission.
         :param uri: WAMP URI (pattern) of the permission to add.
         :param permission: Permission definition
 
@@ -2189,7 +2187,10 @@ class ApplicationRealmManager(object):
         return res_obj
 
     @wamp.register(None, check_types=True)
-    def list_arealm_roles(self, arealm_oid: str, details: Optional[CallDetails] = None) -> List[str]:
+    def list_arealm_roles(self,
+                          arealm_oid: str,
+                          return_names: Optional[bool] = None,
+                          details: Optional[CallDetails] = None) -> List[str]:
         """
         List roles currently associated with the given application realm.
 
@@ -2197,12 +2198,10 @@ class ApplicationRealmManager(object):
 
         :return: List of role object IDs of roles associated with the application realm.
         """
-        assert type(arealm_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
-        self.log.info('{func}(arealm_oid={arealm_oid}, details={details})',
+        self.log.info('{func}(arealm_oid={arealm_oid}, return_names={return_names}, details={details})',
                       func=hltype(self.list_arealm_roles),
                       arealm_oid=hlid(arealm_oid),
+                      return_names=return_names,
                       details=details)
 
         try:
@@ -2219,9 +2218,15 @@ class ApplicationRealmManager(object):
             res = []
             for _, role_oid in self.schema.arealm_role_associations.select(txn,
                                                                            from_key=(arealm_oid_,
-                                                                                     uuid.UUID(bytes=b'\0' * 16)),
+                                                                                     uuid.UUID(bytes=b'\x00' * 16)),
+                                                                           to_key=(arealm_oid_,
+                                                                                   uuid.UUID(bytes=b'\xff' * 16)),
                                                                            return_values=False):
-                res.append(str(role_oid))
+                if return_names:
+                    role = self.schema.roles[txn, role_oid]
+                    res.append(role.name)
+                else:
+                    res.append(str(role_oid))
             return res
 
     @wamp.register(None, check_types=True)

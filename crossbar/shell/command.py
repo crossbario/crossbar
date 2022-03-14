@@ -773,7 +773,7 @@ class CmdListRouterTransports(CmdList):
         return self._post(session, result)
 
 
-class CmdListApplicationRealms(CmdList):
+class CmdListARealms(CmdList):
     """
     MREALM: Get list of application realms defined on a mrealm.
     """
@@ -788,9 +788,9 @@ class CmdListApplicationRealms(CmdList):
         return self._post(session, result)
 
 
-class CmdListRoles(CmdList):
+class CmdListARealmRoles(CmdList):
     """
-    MREALM: Get list of roles defined on a mrealm.
+    MREALM: Get list of roles associated with the given application realm defined on a mrealm.
     """
     def __init__(self, arealm, names=False):
         CmdList.__init__(self)
@@ -808,9 +808,47 @@ class CmdListRoles(CmdList):
         else:
             arealm_oid = str(arealm_oid)
 
-        result = await session.call('crossbarfabriccenter.mrealm.arealm.list_roles',
+        result = await session.call('crossbarfabriccenter.mrealm.arealm.list_arealm_roles',
                                     arealm_oid,
                                     return_names=self.names)
+        return self._post(session, result)
+
+
+class CmdListRoles(CmdList):
+    """
+    MREALM: Get list of roles defined on a mrealm.
+    """
+    def __init__(self, names=False):
+        CmdList.__init__(self)
+        self.names = names
+
+    async def run(self, session):
+        self._pre(session)
+
+        result = await session.call('crossbarfabriccenter.mrealm.arealm.list_roles', return_names=self.names)
+        return self._post(session, result)
+
+
+class CmdListRolePermissions(CmdList):
+    """
+    MREALM: Get list of permissions defined for a role.
+    """
+    def __init__(self, role):
+        CmdList.__init__(self)
+        self.role = role
+
+    async def run(self, session):
+        self._pre(session)
+
+        try:
+            role_oid = uuid.UUID(self.role)
+        except:
+            role = await session.call('crossbarfabriccenter.mrealm.arealm.get_role_by_name', self.role)
+            role_oid = role['oid']
+        else:
+            role_oid = str(role_oid)
+
+        result = await session.call('crossbarfabriccenter.mrealm.arealm.list_role_permissions', role_oid)
         return self._post(session, result)
 
 

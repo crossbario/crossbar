@@ -1075,16 +1075,32 @@ def cmd_list_router_transports(ctx, node, worker):
               help='return application realm names instead of object IDs')
 @click.pass_context
 def cmd_list_arealms(ctx, names):
-    cmd = command.CmdListApplicationRealms(names=names)
+    cmd = command.CmdListARealms(names=names)
     ctx.obj.app.run_context(ctx, cmd)
 
 
-@cmd_list.command(name='roles', help='list (application client) roles')
+@cmd_list.command(name='arealm-roles', help='list roles associated with application realm')
 @click.argument('arealm')
 @click.option('--names/--no-names', default=False, type=bool, help='return role names instead of object IDs')
 @click.pass_context
-def cmd_list_roles(ctx, arealm, names):
-    cmd = command.CmdListRoles(arealm, names=names)
+def cmd_list_arealm_roles(ctx, arealm, names):
+    cmd = command.CmdListARealmRoles(arealm, names=names)
+    ctx.obj.app.run_context(ctx, cmd)
+
+
+@cmd_list.command(name='roles', help='list roles')
+@click.option('--names/--no-names', default=False, type=bool, help='return role names instead of object IDs')
+@click.pass_context
+def cmd_list_roles(ctx, names):
+    cmd = command.CmdListRoles(names=names)
+    ctx.obj.app.run_context(ctx, cmd)
+
+
+@cmd_list.command(name='role-permissions', help='list role permissions')
+@click.argument('role')
+@click.pass_context
+def cmd_list_role_permissions(ctx, role):
+    cmd = command.CmdListRolePermissions(role)
     ctx.obj.app.run_context(ctx, cmd)
 
 
