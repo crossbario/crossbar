@@ -7,7 +7,7 @@
 
 import os
 import uuid
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 from pprint import pformat
 
 import numpy as np
@@ -18,6 +18,7 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import CallDetails, PublishOptions, RegisterOptions
 
 from crossbar._util import hl, hlid, hltype, hlval
+import zlmdb
 from cfxdb.mrealm import ApplicationRealm, ApplicationRealmRoleAssociation, Role, Permission, \
     WorkerGroupStatus, Principal, Credential
 
@@ -50,11 +51,20 @@ class ApplicationRealmMonitor(object):
         :param interval: Run this monitor periodically every `interval` seconds.
         :type interval: float
         """
+        # the arealm manager this monitor is started from
         self._manager = manager
+
+        # the arealm this monitor is working for
         self._arealm_oid = arealm_oid
+
+        # the interval (in seconds) this monitor will check the arealm
         self._interval = interval
 
+        # when this monitor is running, the looping call periodically executed
         self._loop = None
+
+        # while self._loop is being executed (which happens every self._interval secs),
+        # this flag is set
         self._check_and_apply_in_progress = False
 
     @property
@@ -77,7 +87,6 @@ class ApplicationRealmMonitor(object):
         :return:
         """
         assert self._loop is None
-
         self._loop = LoopingCall(self.check_and_apply)
         self._loop.start(self._interval)
 
@@ -96,7 +105,9 @@ class ApplicationRealmMonitor(object):
         Run one iteration of the background monitor check & apply cycle.
         """
         if self._check_and_apply_in_progress:
-            self.log.info(
+            # we prohibit running the iteration multiple times concurrently. this might
+            # happen when the iteration takes longer than the interval the monitor is set to
+            self.log.warn(
                 '{func} {action} for application realm {arealm_oid} skipped! check & apply already in progress.',
                 action=hl('check & apply run skipped', color='red', bold=True),
                 func=hltype(self.check_and_apply),
@@ -118,6 +129,9 @@ class ApplicationRealmMonitor(object):
         try:
             with self._manager.db.begin(write=False) as txn:
                 arealm = self._manager.schema.arealms[txn, self._arealm_oid]
+                assert arealm
+
+                # only process arealm when status is STATUS_STARTING or STATUS_RUNNING
                 if arealm.status in [ApplicationRealm.STATUS_STARTING, ApplicationRealm.STATUS_RUNNING]:
 
                     # collect roles associated with the arealm
@@ -127,10 +141,14 @@ class ApplicationRealmMonitor(object):
                         role = self._manager.schema.roles[txn, role_oid]
                         roles.append(role)
 
+                    # get the routercluster workergroup for this arealm
                     if arealm.workergroup_oid:
                         workergroup = self._manager.schema.router_workergroups[txn, arealm.workergroup_oid]
+                        assert workergroup
 
-                        # idx_clusterplacement_by_workername: (workergroup_oid, cluster_oid, node_oid, worker_name) -> placement_oid
+                        # get all workergroup worker placements for this workergroup, using index
+                        #   idx_clusterplacement_by_workername:
+                        #       (workergroup_oid, cluster_oid, node_oid, worker_name) -> placement_oid
                         workergroup_placements = [
                             placement_oid
                             for placement_oid in self._manager.schema.idx_clusterplacement_by_workername.select(
@@ -142,13 +160,21 @@ class ApplicationRealmMonitor(object):
                                 return_keys=False)
                         ]
                         if not workergroup_placements:
-                            self.log.info(
+                            self.log.warn(
                                 '{func} no placements yet for router cluster worker group {workergroup_oid} and arealm {arealm_oid}!',
                                 func=hltype(self.check_and_apply),
                                 workergroup_oid=hlid(arealm.workergroup_oid),
                                 arealm_oid=hlid(arealm.oid))
 
                         else:
+                            self.log.info(
+                                '{func} ok, found {cnt_placements} worker placements for router cluster worker group {workergroup_oid} and arealm {arealm_oid}',
+                                func=hltype(self.check_and_apply),
+                                cnt_placements=hlval(len(workergroup_placements)),
+                                workergroup_oid=hlid(arealm.workergroup_oid),
+                                arealm_oid=hlid(arealm.oid))
+
+                            # construct helper map: node_oid -> (node_pubkey, node_authid)
                             xx_fixme = {}
                             with self._manager.gdb.begin() as txn2:
                                 for placement_oid in workergroup_placements:
@@ -158,6 +184,7 @@ class ApplicationRealmMonitor(object):
                                 for node in self._manager.gschema.nodes.select(txn2, return_keys=False):
                                     xx_fixme[node.oid] = (node.pubkey, node.authid)
 
+                            # apply routercluster worker placements for nodes/workers involved
                             success = yield self._apply_placements(
                                 txn,
                                 arealm,
@@ -209,7 +236,15 @@ class ApplicationRealmMonitor(object):
                                       func=hltype(self.check_and_apply),
                                       status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
                         is_running_completely = False
+                else:
+                    self.log.info('{func} {action} for application realm {arealm_oid} (status is {arealm_status})',
+                                  action=hl('check & apply skipped', color='yellow', bold=True),
+                                  func=hltype(self.check_and_apply),
+                                  arealm_oid=hlid(self._arealm_oid),
+                                  arealm_status=arealm.status)
 
+            # if the status is STATUS_STARTING and we have indeed completed startup in this iteration,
+            # update the status and publish an event
             if arealm.status in [ApplicationRealm.STATUS_STARTING] and is_running_completely:
                 with self._manager.db.begin(write=True) as txn:
                     arealm = self._manager.schema.arealms[txn, self._arealm_oid]
@@ -226,6 +261,7 @@ class ApplicationRealmMonitor(object):
                                                      arealm_started,
                                                      options=self._manager._PUBOPTS)
         except:
+            # catch-all just logs the problem, ensuring we continue to run (or retry next iteration) ..
             self.log.failure()
 
         if is_running_completely:
@@ -396,18 +432,34 @@ class ApplicationRealmMonitor(object):
         returnValue(routes)
 
     @inlineCallbacks
-    def _apply_placements(self, txn, arealm, workergroup, workergroup_placements, placement_nodes_keys, xx_fixme):
+    def _apply_placements(self, txn: zlmdb.Transaction, arealm: cfxdb.mrealm.ApplicationRealm,
+                          workergroup: cfxdb.mrealm.RouterWorkerGroup, workergroup_placements: List[uuid.UUID],
+                          placement_nodes_keys: Dict[uuid.UUID, Tuple[str, str]], xx_fixme: Dict[uuid.UUID,
+                                                                                                 Tuple[str, str]]):
+        """
+        Apply worker placements for workergroup of routercluster.
 
+        :param txn: Open database transaction within to run.
+        :param arealm: Application realm to process placements for.
+        :param workergroup: Router worker group to process placements for.
+        :param workergroup_placements: List of placement object IDs.
+        :param placement_nodes_keys: Map of node object IDs to pair of node public key and authid.
+        :param xx_fixme: Map of node object IDs to pair of node public key and authid.
+        """
+        # keep track of placements that are new or modified
         modified_placements = {}
+
+        # this flag will remain true as long as we could process all placements successfully
         is_running_completely = True
 
+        # I) iterate over all placements sequentially
         for placement_oid in workergroup_placements:
             placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
             self.log.info('{func} applying router cluster worker group placement:\n{placement}',
                           func=hltype(self.check_and_apply),
                           placement=pformat(placement.marshal()))
 
-            # place the worker on this node
+            # place the worker on this node and (router) worker
             node_oid = placement.node_oid
             worker_name = placement.worker_name
 
@@ -415,7 +467,7 @@ class ApplicationRealmMonitor(object):
             # instance of crossbar.master.mrealm.controller.Node
             node = self._manager._session.nodes.get(str(node_oid), None)
 
-            # the node must be online for us to manage it ..
+            # the node must be found and must be currently online for us to manage it
             if node and node.status == 'online':
 
                 # FIXME: this is None!
@@ -427,7 +479,7 @@ class ApplicationRealmMonitor(object):
                               node_authid=hlid(node_authid),
                               node_oid=hlid(node_oid))
 
-                # get worker run-time information (obtained by calling into the live node)
+                # II.1) get worker run-time information (obtained by calling into the live node)
                 worker = None
                 try:
                     worker = yield self._manager._session.call('crossbarfabriccenter.remote.node.get_worker',
@@ -450,8 +502,7 @@ class ApplicationRealmMonitor(object):
                                   node_oid=hlid(node_oid),
                                   worker_name=hlid(worker_name))
 
-                # if there isn't a worker running (with worker ID as we expect) already,
-                # start a new router worker ..
+                # II.2) if there isn't a worker running (with worker ID as we expect) already, start a new router worker
                 if not worker:
                     worker_options = {
                         'env': {
@@ -482,6 +533,7 @@ class ApplicationRealmMonitor(object):
                     transport_id = 'tnp_{}'.format(worker_name)
                     transport = None
 
+                    # III.1) get transport run-time information (obtained by calling into the live node)
                     try:
                         transport = yield self._manager._session.call(
                             'crossbarfabriccenter.remote.router.get_router_transport', str(node_oid), worker_name,
@@ -502,8 +554,8 @@ class ApplicationRealmMonitor(object):
                             worker_name=hlid(worker_name),
                             transport_id=hlid(transport_id))
 
-                    # if there isn't a transport started (with transport ID as we expect) already,
-                    # start a new transport ..
+                    # III.2) if there isn't a transport started (with transport ID as we expect) already,
+                    # start a new transport
                     if not transport:
                         USE_UDS = False
                         if USE_UDS:
@@ -583,6 +635,8 @@ class ApplicationRealmMonitor(object):
                             placement_obj.tcp_listening_port = tcp_listening_port
                             modified_placements[placement_oid] = placement_obj
 
+                    # IV.1) get arealm run-time information (obtained by calling into the live node)
+
                     runtime_realm_id = 'rlm_{}'.format(str(arealm.oid)[:8])
                     running_arealm = None
 
@@ -606,6 +660,8 @@ class ApplicationRealmMonitor(object):
                             worker_name=hlid(worker_name),
                             runtime_realm_id=hlid(runtime_realm_id))
 
+                    # IV.2) if there isn't an arealm started (with realm ID as we expect) already,
+                    # start a new arealm
                     if not running_arealm:
                         # FIXME: setup roles from config
                         realm_config = {
@@ -818,8 +874,11 @@ class ApplicationRealmMonitor(object):
                                   func=hltype(self.check_and_apply),
                                   node_oid=node_oid,
                                   nodes=list(self._manager._session.nodes.keys()))
+
+                # if we are missing a node we expect, we didn't run completely successfully
                 is_running_completely = False
 
+        # if we did indeed process a new/modified placement, store this changed information
         if modified_placements:
             with self._manager.db.begin(write=True) as txn:
                 for placement_oid, placement in modified_placements.items():
@@ -829,6 +888,7 @@ class ApplicationRealmMonitor(object):
                                   placement_oid=hlid(placement_oid),
                                   placement=placement)
 
+        # if we processed everything (we expected) successfully, then return True
         returnValue(is_running_completely)
 
 
