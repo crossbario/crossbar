@@ -1343,7 +1343,33 @@ class CmdShowRole(CmdShow):
         return self._post(session, result)
 
 
-class CmdShowApplicationRealmRole(CmdShow):
+class CmdShowRolePermission(CmdShow):
+    """
+    MREALM: show role permission by role UUID or name, and optionally URI
+    """
+    def __init__(self, role, uri):
+        CmdShow.__init__(self)
+        self.role = role
+        self.uri = uri
+
+    async def run(self, session):
+        self._pre(session)
+
+        try:
+            role_oid = uuid.UUID(self.role)
+        except:
+            role = await session.call('crossbarfabriccenter.mrealm.arealm.get_role_by_name', self.role)
+            role_oid = role['oid']
+        else:
+            role_oid = str(role_oid)
+
+        result = await session.call('crossbarfabriccenter.mrealm.arealm.get_role_permissions_by_uri', role_oid,
+                                    self.uri)
+
+        return self._post(session, result)
+
+
+class CmdShowARealmRole(CmdShow):
     """
     MREALM: show application realm role association.
     """

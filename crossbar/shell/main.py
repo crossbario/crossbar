@@ -82,7 +82,7 @@ class Config(object):
 @click.option(
     '--profile',
     envvar='CBF_PROFILE',
-    default=u'default',
+    default='default',
     help="Set the profile to be used",
 )
 @click.option(
@@ -1323,12 +1323,21 @@ def cmd_show_role(ctx, role):
     ctx.obj.app.run_context(ctx, cmd)
 
 
+@cmd_show.command(name='role-permission', help='show role permission')
+@click.argument('role')
+@click.argument('uri')
+@click.pass_context
+def cmd_show_role_permission(ctx, role, uri):
+    cmd = command.CmdShowRolePermission(role, uri)
+    ctx.obj.app.run_context(ctx, cmd)
+
+
 @cmd_show.command(name='arealm-role', help='show arealm-role association')
 @click.argument('arealm')
 @click.argument('role')
 @click.pass_context
 def cmd_show_arealm_role(ctx, arealm, role):
-    cmd = command.CmdShowApplicationRealmRole(arealm, role)
+    cmd = command.CmdShowARealmRole(arealm, role)
     ctx.obj.app.run_context(ctx, cmd)
 
 

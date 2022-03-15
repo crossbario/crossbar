@@ -7,7 +7,7 @@
 
 import os
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pprint import pformat
 
 import numpy as np
@@ -2037,9 +2037,11 @@ class ApplicationRealmManager(object):
                 raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
 
             res = []
+            from_key = (role_oid_, prefix if prefix else '')
+            to_key = (uuid.UUID(int=(int(role_oid_) + 1)), '')
             for permission_oid in self.schema.idx_permissions_by_uri.select(txn,
-                                                                            from_key=(role_oid_, ''),
-                                                                            to_key=(role_oid_, 'Z' * 1000),
+                                                                            from_key=from_key,
+                                                                            to_key=to_key,
                                                                             return_keys=False):
                 res.append(str(permission_oid))
 
@@ -2185,6 +2187,47 @@ class ApplicationRealmManager(object):
         res_obj = permission.marshal()
 
         return res_obj
+
+    @wamp.register(None, check_types=True)
+    def get_role_permissions_by_uri(self,
+                                    role_oid: str,
+                                    prefix: Optional[str] = None,
+                                    details: Optional[CallDetails] = None) -> List[Dict]:
+        """
+        Get information for the permission on a role.
+
+        :param role_oid: Object ID of the role to retrieve the permission for.
+        :param permission_oid: Object ID of the permission to retrieve.
+
+        :return: Permission definition.
+        """
+        self.log.info('{func}(role_oid={role_oid}, prefix={prefix}, details={details})',
+                      role_oid=hlid(role_oid),
+                      prefix=hlval(prefix),
+                      func=hltype(self.get_role_permission),
+                      details=details)
+
+        try:
+            role_oid_ = uuid.UUID(role_oid)
+        except Exception:
+            raise ApplicationError('wamp.error.invalid_argument', 'invalid role_oid "{}"'.format(role_oid))
+
+        with self.db.begin() as txn:
+            role = self.schema.roles[txn, role_oid_]
+            if not role:
+                raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
+
+            res = []
+            from_key = (role_oid_, prefix if prefix else '')
+            to_key = (uuid.UUID(int=(int(role_oid_) + 1)), '')
+            for permission_oid in self.schema.idx_permissions_by_uri.select(txn,
+                                                                            from_key=from_key,
+                                                                            to_key=to_key,
+                                                                            return_keys=False):
+                permission = self.schema.permissions[txn, permission_oid]
+                res.append(permission.marshal())
+
+        return res
 
     @wamp.register(None, check_types=True)
     def list_arealm_roles(self,
