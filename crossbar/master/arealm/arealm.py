@@ -406,6 +406,7 @@ class ApplicationRealmMonitor(object):
                 realm_name=hlval(realm_name))
             routes = []
 
+        # FIXME: proxy routes for all realms X roles
         for placement_oid in workergroup_placements:
             placement = self._manager.schema.router_workergroup_placements[txn, placement_oid, ]
 

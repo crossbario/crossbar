@@ -1199,12 +1199,16 @@ class ProxyController(TransportController):
             # the route config is a map with role name as key
             result = any(authrole in route.config for route in realm_routes.values())
         else:
+            realm_routes = None
             result = False
-        self.log.debug('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
-                       func=hltype(ProxyController.has_role),
-                       realm=hlid(realm),
-                       authrole=hlid(authrole),
-                       result=hlval(result))
+        self.log.info(
+            '{func}(realm="{realm}", authrole="{authrole}") -> {result} [routes={routes}, realm_routes={realm_routes}]',
+            func=hltype(ProxyController.has_role),
+            realm=hlid(realm),
+            authrole=hlid(authrole),
+            result=hlval(result),
+            realm_routes=hlval([route.config for route in realm_routes.values()] if realm_routes else []),
+            routes=sorted(self._routes.keys()))
         return result
 
     @inlineCallbacks
