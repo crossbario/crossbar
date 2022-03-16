@@ -721,17 +721,17 @@ class ApplicationRealmMonitor(object):
                                         'match':
                                         Permission.MATCH_TYPES_TOSTR[permission.match] if permission.match else None,
                                         'allow': {
-                                            'call': permission.allow_call,
-                                            'register': permission.allow_register,
-                                            'publish': permission.allow_publish,
-                                            'subscribe': permission.allow_subscribe
+                                            'call': permission.allow_call or False,
+                                            'register': permission.allow_register or False,
+                                            'publish': permission.allow_publish or False,
+                                            'subscribe': permission.allow_subscribe or False
                                         },
                                         'disclose': {
-                                            'caller': permission.disclose_caller,
-                                            'publisher': permission.disclose_publisher
+                                            'caller': permission.disclose_caller or False,
+                                            'publisher': permission.disclose_publisher or False
                                         },
                                         'cache':
-                                        permission.cache
+                                        permission.cache or False
                                     })
 
                                 runtime_role_config = {'name': role.name, 'permissions': permissions}
