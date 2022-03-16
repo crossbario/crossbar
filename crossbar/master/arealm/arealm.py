@@ -663,47 +663,9 @@ class ApplicationRealmMonitor(object):
                     # IV.2) if there isn't an arealm started (with realm ID as we expect) already,
                     # start a new arealm
                     if not running_arealm:
-                        # FIXME: setup roles from config
+                        # required default roles: anonymous, rlink
                         realm_config = {
-                            "name":
-                            arealm.name,
-                            "roles": [{
-                                "name":
-                                "anonymous",
-                                "permissions": [{
-                                    "uri": "",
-                                    "match": "prefix",
-                                    "allow": {
-                                        "call": True,
-                                        "register": True,
-                                        "publish": True,
-                                        "subscribe": True
-                                    },
-                                    "disclose": {
-                                        "caller": True,
-                                        "publisher": True
-                                    },
-                                    "cache": True
-                                }]
-                            }, {
-                                "name":
-                                "rlink",
-                                "permissions": [{
-                                    "uri": "",
-                                    "match": "prefix",
-                                    "allow": {
-                                        "call": True,
-                                        "register": True,
-                                        "publish": True,
-                                        "subscribe": True
-                                    },
-                                    "disclose": {
-                                        "caller": True,
-                                        "publisher": True
-                                    },
-                                    "cache": True
-                                }]
-                            }]
+                            "name": arealm.name,
                         }
                         try:
                             # start the application realm on the remote node worker
@@ -722,30 +684,77 @@ class ApplicationRealmMonitor(object):
                         except:
                             self.log.failure()
                             is_running_completely = False
-                        else:
-                            # start all roles defined in the realm configuration on the remote node worker
-                            i = 1
-                            for role in realm_config['roles']:
-                                runtime_role_id = 'rle_{}_{}'.format(str(arealm.oid)[:8], i)
 
-                                role_started = yield self._manager._session.call(
-                                    'crossbarfabriccenter.remote.router.start_router_realm_role', str(node_oid),
-                                    worker_name, runtime_realm_id, runtime_role_id, role)
-
+                    if running_arealm:
+                        # start all roles defined in the realm configuration on the remote node worker
+                        from_key = (arealm.oid, uuid.UUID(bytes=b'\x00' * 16))
+                        to_key = (uuid.UUID(int=(int(arealm.oid) + 1)), uuid.UUID(bytes=b'\x00' * 16))
+                        for _, role_oid in self._manager.schema.arealm_role_associations.select(txn,
+                                                                                                from_key=from_key,
+                                                                                                to_key=to_key,
+                                                                                                return_values=False):
+                            role = self._manager.schema.roles[txn, role_oid]
+                            runtime_role_id = 'rle_{}'.format(str(role.oid)[:8])
+                            try:
                                 running_role = yield self._manager._session.call(
                                     'crossbarfabriccenter.remote.router.get_router_realm_role', str(node_oid),
                                     worker_name, runtime_realm_id, runtime_role_id)
+                            except ApplicationError as e:
+                                if e.error != 'crossbar.error.no_such_object':
+                                    # anything but "no_such_object" is unexpected (and fatal)
+                                    raise
+                                self.log.info(
+                                    '{func} No role {runtime_role_id} currently running for router cluster worker {worker_name}: starting role ..',
+                                    func=hltype(self.check_and_apply),
+                                    worker_name=hlid(worker_name),
+                                    runtime_role_id=hlid(runtime_role_id))
+
+                                permissions = []
+                                from_key2 = (role.oid, '')
+                                to_key2 = (uuid.UUID(int=(int(role.oid) + 1)), '')
+                                for permission_oid in self._manager.schema.idx_permissions_by_uri.select(
+                                        txn, from_key=from_key2, to_key=to_key2, return_keys=False):
+                                    permission = self._manager.schema.permissions[txn, permission_oid]
+                                    permissions.append({
+                                        'uri':
+                                        permission.uri,
+                                        'match':
+                                        Permission.MATCH_TYPES_TOSTR[permission.match] if permission.match else None,
+                                        'allow': {
+                                            'call': permission.allow_call,
+                                            'register': permission.allow_register,
+                                            'publish': permission.allow_publish,
+                                            'subscribe': permission.allow_subscribe
+                                        },
+                                        'disclose': {
+                                            'caller': permission.disclose_caller,
+                                            'publisher': permission.disclose_publisher
+                                        },
+                                        'cache':
+                                        permission.cache
+                                    })
+
+                                runtime_role_config = {'name': role.name, 'permissions': permissions}
+
+                                role_started = yield self._manager._session.call(
+                                    'crossbarfabriccenter.remote.router.start_router_realm_role', str(node_oid),
+                                    worker_name, runtime_realm_id, runtime_role_id, runtime_role_config)
 
                                 self.log.info(
                                     '{func} Application realm role {runtime_role_id} started on router cluster worker {worker_name} [{role_started}]',
                                     func=hltype(self.check_and_apply),
                                     worker_name=hlid(worker_name),
-                                    runtime_role_id=hlid(running_role['id']),
+                                    runtime_role_id=hlid(runtime_role_id),
                                     role_started=role_started)
+                            else:
+                                self.log.info(
+                                    '{func} Ok, role {runtime_role_id} already running for router cluster worker {worker_name} [{running_role}].',
+                                    func=hltype(self.check_and_apply),
+                                    worker_name=hlid(worker_name),
+                                    runtime_role_id=hlid(runtime_role_id),
+                                    running_role=running_role)
 
-                                i += 1
-
-                    # if we have a running application realm by now, start router-to-router links
+                    # IV.3) if we have a running application realm by now, start router-to-router links
                     # between this worker, and every other worker in this router worker group
                     if running_arealm:
                         for other_placement_oid in workergroup_placements:
