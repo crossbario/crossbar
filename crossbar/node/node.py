@@ -562,6 +562,8 @@ class Node(object):
                             "Configuring {worker_logname} ..",
                             worker_logname=worker_logname,
                         )
+
+                        # _configure_native_worker_router, _configure_native_worker_container, ...
                         method_name = '_configure_native_worker_{}'.format(worker_type.replace('-', '_'))
                         try:
                             config_fn = getattr(self, method_name)
@@ -888,9 +890,9 @@ class Node(object):
                 transport_id=hlid(transport_id),
             )
 
-            # XXX we're doing startup, and begining proxy workers --
+            # XXX we're doing startup, and beginning proxy workers --
             # want to share the web-transport etc etc stuff between
-            # these and otehr kinds of routers / transports
+            # these and other kinds of routers / transports
             yield self._controller.call('crossbar.worker.{}.start_proxy_transport'.format(worker_id),
                                         transport_id,
                                         transport,
@@ -898,7 +900,7 @@ class Node(object):
 
             if transport['type'] == 'web':
                 paths = transport.get('paths', {})
-            elif transport['type'] in ('universal'):
+            elif transport['type'] == 'universal':
                 paths = transport.get('web', {}).get('paths', {})
             else:
                 paths = None

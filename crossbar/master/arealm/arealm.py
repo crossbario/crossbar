@@ -280,19 +280,33 @@ class ApplicationRealmMonitor(object):
     @inlineCallbacks
     def _apply_worker_backends(self, txn, wc_node_oid, wc_worker_id, workergroup_placements, placement_nodes_keys,
                                arealm):
+        """
+        For given webcluster worker ``(wc_node_oid, wc_worker_id)``, setup backend connections and routes
+        to all router workers ``workergroup_placements`` of the router worker group of the given
+        application realm ``arealm``.
+        """
+        # iterate over all router worker placements in the router cluster worker group.
+        # we need to setup:
+        #   - a connection and
+        #   - routes
+        # for each placement on the given (wc_node_oid, wc_worker_id) webcluster worker
+        #
         for placement_oid in workergroup_placements:
             placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
             self.log.info('{func} applying router cluster worker group placement:\n{placement}',
                           func=hltype(self.check_and_apply),
                           placement=pformat(placement.marshal()))
 
-            # place the worker on this node
+            # the router worker this placement targets
             node_oid = placement.node_oid
             node_authid = placement_nodes_keys[node_oid][1] if node_oid in placement_nodes_keys else None
             worker_name = placement.worker_name
             tcp_listening_port = placement.tcp_listening_port
 
+            # we will name the connection on our proxy worker along the target node/worker
             connection_id = 'cnc_{}_{}'.format(node_authid, worker_name)
+
+            # check if a connection with the respective name is already running
             try:
                 connection = yield self._manager._session.call(
                     'crossbarfabriccenter.remote.proxy.get_proxy_connection', str(wc_node_oid), wc_worker_id,
@@ -316,7 +330,13 @@ class ApplicationRealmMonitor(object):
                     wc_worker_id=hlid(wc_worker_id),
                     connection_id=hlid(connection_id))
 
+            # if no connection is running, and if the target placement has a TCP port configured,
+            # start a new connection on the proxy worker
+            #
+            # see: :class:`crossbar.worker.proxy.ProxyConnection`
+            #
             if not connection and tcp_listening_port:
+                # transport configuration for proxy worker -> router worker connections
                 config = {
                     "transport": {
                         "type": "rawsocket",
@@ -345,6 +365,11 @@ class ApplicationRealmMonitor(object):
                               func=hltype(self.check_and_apply),
                               connection=connection)
 
+            # if by now we do have a connection on the proxy worker, setup all routes (for the arealm)
+            # using the connection
+            #
+            # see: :class:`crossbar.worker.proxy.ProxyRoute`
+            #
             if connection:
                 # proxy routes use "realm name" as key (not a synthetic ID)
                 realm_name = arealm.name
@@ -378,14 +403,15 @@ class ApplicationRealmMonitor(object):
                         workergroup_placements,
                         wc_node_oid,
                         wc_worker_id,
-                        realm_name,
+                        arealm,
                         placement_nodes_keys,
                     )
                     routes.extend(new_routes)
 
     @inlineCallbacks
-    def _start_proxy_routes(self, txn, workergroup_placements, wc_node_oid, wc_worker_id, realm_name,
+    def _start_proxy_routes(self, txn, workergroup_placements, wc_node_oid, wc_worker_id, arealm,
                             placement_nodes_keys):
+        realm_name = arealm.name
         try:
             routes = yield self._manager._session.call(
                 'crossbarfabriccenter.remote.proxy.list_proxy_realm_routes',
@@ -413,23 +439,32 @@ class ApplicationRealmMonitor(object):
             # can placement.node_oid *not* be in this map?
             node_authid = placement_nodes_keys[placement.node_oid][1]
             connection_id = 'cnc_{}_{}'.format(node_authid, placement.worker_name)
-            config = {'anonymous': connection_id}
 
-            existing = any(route['config'].get('anonymous', False) == connection_id for route in routes)
-            if not existing:
-                try:
-                    route = yield self._manager._session.call(
-                        'crossbarfabriccenter.remote.proxy.start_proxy_realm_route', str(wc_node_oid), wc_worker_id,
-                        realm_name, config)
-                except Exception as e:
-                    self.log.error('Proxy route failed: {e}', e=e)
-                else:
-                    self.log.info(
-                        '{func} Proxy backend route started:\n{route}',
-                        func=hltype(self.check_and_apply),
-                        route=route,
-                    )
-                    routes.append(route)
+            # config = {'anonymous': connection_id}
+            config = {}
+            from_key = (arealm.oid, uuid.UUID(bytes=b'\x00' * 16))
+            to_key = (uuid.UUID(int=(int(arealm.oid) + 1)), uuid.UUID(bytes=b'\x00' * 16))
+            for _, role_oid in self._manager.schema.arealm_role_associations.select(txn,
+                                                                                    from_key=from_key,
+                                                                                    to_key=to_key,
+                                                                                    return_values=False):
+                role = self._manager.schema.roles[txn, role_oid]
+                config[role.name] = connection_id
+
+            # existing = any(route['config'].get(role.name, None) == connection_id for route in routes)
+
+            try:
+                route = yield self._manager._session.call('crossbarfabriccenter.remote.proxy.start_proxy_realm_route',
+                                                          str(wc_node_oid), wc_worker_id, realm_name, config)
+            except Exception as e:
+                self.log.error('Proxy route failed: {e}', e=e)
+            else:
+                self.log.info(
+                    '{func} Proxy backend route started:\n{route}',
+                    func=hltype(self.check_and_apply),
+                    route=route,
+                )
+                routes.append(route)
         returnValue(routes)
 
     @inlineCallbacks
@@ -664,7 +699,7 @@ class ApplicationRealmMonitor(object):
                     # IV.2) if there isn't an arealm started (with realm ID as we expect) already,
                     # start a new arealm
                     if not running_arealm:
-                        # required default roles: anonymous, rlink
+                        # FIXME: required default roles: anonymous, rlink
                         realm_config = {
                             "name": arealm.name,
                         }

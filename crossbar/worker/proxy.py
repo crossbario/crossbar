@@ -10,6 +10,7 @@ import binascii
 from pprint import pformat
 
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
+from twisted.internet.error import DNSLookupError
 
 from txaio import make_logger, as_future, time_ns
 
@@ -973,6 +974,12 @@ class ProxyRoute(object):
         topic = '{}.on_proxy_route_started'.format(self._controller._uri_prefix)
         yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
 
+        self.log.info('{func} proxy route {route_id} started for realm "{realm}":\n{config}',
+                      func=hltype(self.start),
+                      route_id=hlid(self._route_id),
+                      realm=hlval(self._realm_name),
+                      config=pformat(self._config))
+
     @inlineCallbacks
     def stop(self):
         """
@@ -989,6 +996,11 @@ class ProxyRoute(object):
 
         topic = '{}.on_proxy_route_stopped'.format(self._controller._uri_prefix)
         yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
+
+        self.log.info('{func} proxy route {route_id} stopped for realm "{realm}"',
+                      func=hltype(self.start),
+                      route_id=hlid(self._route_id),
+                      realm=hlval(self._realm_name))
 
 
 class ProxyConnection(object):
@@ -1304,7 +1316,13 @@ class ProxyController(TransportController):
             realm=hlid(realm),
             authrole=hlid(authrole))
 
-        backend_proto = yield make_backend_connection(backend_config, frontend, self._cbdir)
+        try:
+            backend_proto = yield make_backend_connection(backend_config, frontend, self._cbdir)
+        except DNSLookupError as e:
+            self.log.warn('{func} proxy worker could not connect to router backend: DNS resolution failed ({error})',
+                          func=hltype(self.map_backend),
+                          error=str(e))
+            raise e
 
         if frontend:
             self._backends_by_frontend[frontend] = backend_proto
