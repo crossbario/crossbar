@@ -419,11 +419,11 @@ class RouterController(TransportController):
             # note: this is to enable eg built-in "trusted" authrole
             result = result or authrole in self._service_sessions[realm]
 
-        self.log.debug('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
-                       func=hltype(RouterController.has_role),
-                       realm=hlid(realm),
-                       authrole=hlid(authrole),
-                       result=hlval(result))
+        self.log.info('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
+                      func=hltype(RouterController.has_role),
+                      realm=hlid(realm),
+                      authrole=hlid(authrole),
+                      result=hlval(result))
         return result
 
     def set_service_session(self, session, realm, authrole):
