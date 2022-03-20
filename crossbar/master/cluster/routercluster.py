@@ -10,6 +10,7 @@ from typing import Optional, List
 from pprint import pformat
 
 import numpy as np
+from sortedcontainers import SortedDict
 
 from autobahn import wamp
 from autobahn.wamp.exception import ApplicationError
@@ -154,6 +155,10 @@ class RouterClusterManager(object):
     endpoints on many (frontend) workers over many nodes using applying
     a shared, common transport definition, such as regarding the Web services
     configured on URL paths of the Web transport.
+
+    - routercluster
+      - routercluster nodes
+      - routercluster workergroup
     """
     log = make_logger()
 
@@ -215,7 +220,8 @@ class RouterClusterManager(object):
         # with objects of class RouterClusterMonitor
         self._monitors = {}
 
-        self._index_mod = 0
+        # helper for _place_worker(): index modulo map by workergroup_oid
+        self._index_mod = {}
 
     @inlineCallbacks
     def start(self, prefix):
@@ -1136,40 +1142,69 @@ class RouterClusterManager(object):
             raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
 
         with self.db.begin(write=True) as txn:
+            # get routercluster on which to create a new workergroup
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if not routercluster:
                 raise ApplicationError('crossbar.error.no_such_object',
                                        'no object with oid {} found'.format(routercluster_oid_))
 
-            nodes = []
+            # create new workergroup object
+            workergroup_obj = RouterWorkerGroup.parse(workergroup)
+            workergroup_obj.oid = uuid.uuid4()
+            workergroup_obj.cluster_oid = routercluster_oid_
+            workergroup_obj.status = WorkerGroupStatus.STOPPED
+            workergroup_obj.changed = time_ns()
+
+            # if no explicit workergroup name was given, auto-assign a name
+            if not workergroup_obj.name:
+                workergroup_obj.name = 'cwg_{}'.format(str(workergroup_obj.oid)[:8])
+
+            # store workergroup in database
+            self.schema.router_workergroups[txn, workergroup_obj.oid] = workergroup_obj
+            self.log.info('New router worker group object stored in database:\n{workergroup}',
+                          workergroup=pformat(workergroup_obj.marshal()))
+
+            # collect all node OIDs currently associated with the router cluster
+            # into a dict sorted by the current number of placements
+            nodes = SortedDict()
             for _, node_oid in self.schema.routercluster_node_memberships.select(
                     txn,
                     from_key=(routercluster_oid_, uuid.UUID(bytes=b'\0' * 16)),
                     to_key=(uuid.UUID(int=(int(routercluster_oid_) + 1)), uuid.UUID(bytes=b'\0' * 16)),
                     return_values=False):
-                nodes.append(node_oid)
 
-            workergroup_obj = RouterWorkerGroup.parse(workergroup)
-            workergroup_obj.oid = uuid.uuid4()
-            if not workergroup_obj.name:
-                workergroup_obj.name = 'cwg_{}'.format(str(workergroup_obj.oid)[:8])
-            workergroup_obj.cluster_oid = routercluster_oid_
-            workergroup_obj.status = WorkerGroupStatus.STOPPED
-            workergroup_obj.changed = time_ns()
+                # count current number of placements associated with given node
+                cnt = 0
+                for _ in self.schema.idx_workergroup_by_placement.select(
+                        txn,
+                        from_key=(workergroup_obj.cluster_oid, node_oid, uuid.UUID(bytes=b'\0' * 16),
+                                  uuid.UUID(bytes=b'\0' * 16)),
+                        to_key=(workergroup_obj.cluster_oid, uuid.UUID(int=(int(node_oid) + 1)),
+                                uuid.UUID(bytes=b'\0' * 16), uuid.UUID(bytes=b'\0' * 16)),
+                        return_keys=False):
+                    cnt += 1
 
-            self.schema.router_workergroups[txn, workergroup_obj.oid] = workergroup_obj
-            self.log.info('New router worker group object stored in database:\n{workergroup}',
-                          workergroup=pformat(workergroup_obj.marshal()))
+                # the dict is sorted ascending by cnt, that is nodes.peekitem(0)
+                # will be a node with the smallest current number of placements
+                nodes[node_oid] = cnt
 
+            # create and store workergroup worker placements on nodes for the new workergroup
             for i in range(workergroup_obj.scale):
+                # new placement on a node with smallest number of current placements
+                placement_node_oid = nodes.peekitem(0)
+
                 placement = RouterWorkerGroupClusterPlacement()
                 placement.oid = uuid.uuid4()
                 placement.worker_group_oid = workergroup_obj.oid
                 placement.cluster_oid = routercluster_oid_
-                placement.node_oid = self._place_worker(placement.cluster_oid, placement.worker_group_oid, nodes, i)
+                placement.node_oid = placement_node_oid
                 placement.worker_name = '{}_{}'.format(workergroup_obj.name, i + 1)
 
                 self.schema.router_workergroup_placements[txn, placement.oid] = placement
+
+                # keep track of new placement in our sorted dict
+                nodes[placement_node_oid] += 1
+
                 self.log.info('New router worker group placement object stored in database:\n{placement}',
                               placement=pformat(placement.marshal()))
 
@@ -1402,25 +1437,3 @@ class RouterClusterManager(object):
             details=details)
 
         raise NotImplementedError()
-
-    def _place_worker(self, routercluster_oid: uuid.UUID, workergroup_oid: uuid.UUID, nodes: List[uuid.UUID], i: int):
-        """
-        Place a new worker in a router worker group running on a router cluster, specifically place
-        the node on a node from the given list.
-
-        :param routercluster_oid:
-        :param workergroup_oid:
-        :param nodes:
-        :param i:
-
-        :return:
-        """
-        assert isinstance(routercluster_oid, uuid.UUID)
-        assert isinstance(workergroup_oid, uuid.UUID)
-        assert type(nodes) == list and all(isinstance(oid, uuid.UUID) for oid in nodes)
-        assert len(nodes) > 0
-
-        # FIXME: smarter placement of workers
-        # return random.choice(nodes)
-        self._index_mod += 1
-        return nodes[self._index_mod % len(nodes)]
