@@ -160,6 +160,7 @@ class MrealmController(ApplicationSession):
 
         self._tick_looper = None
         self._check_nodes_looper = None
+        self._check_nodes_in_progress = False
 
         # Release (public) key
         self._release_pubkey_hex = _read_release_key()['hex']
@@ -773,20 +774,20 @@ class MrealmController(ApplicationSession):
             self._nodes[node_oid].last_active = time_ns()
 
             if self._nodes[node_oid].status == 'online':
-                self.log.info('{action} [oid={node_oid}, session={session_id}, status={status}] {func}',
-                              action=hl('Ok, managed node "{}" is still alive'.format(node_authid),
-                                        color='green',
-                                        bold=False),
-                              node_oid=hlid(node_oid),
-                              session_id=hlid(details.publisher),
-                              status=hlval(self._nodes[node_oid].status),
-                              func=hltype(self._on_node_heartbeat))
+                self.log.debug('{action} [oid={node_oid}, session={session_id}, status={status}] {func}',
+                               action=hl('Ok, managed node "{}" is still alive'.format(node_authid),
+                                         color='green',
+                                         bold=False),
+                               node_oid=hlid(node_oid),
+                               session_id=hlid(details.publisher),
+                               status=hlval(self._nodes[node_oid].status),
+                               func=hltype(self._on_node_heartbeat))
             else:
                 self.log.info('{action} [oid={node_oid}, session={session_id}, status={status}] {func}',
                               action=hl('Ok, managed node "{}" became alive (again) [status={} -> online]'.format(
                                   node_authid, self._nodes[node_oid].status),
-                                        color='yellow',
-                                        bold=True),
+                                  color='yellow',
+                                  bold=True),
                               node_oid=hlid(node_oid),
                               session_id=hlid(details.publisher),
                               status=hlval(self._nodes[node_oid].status),
