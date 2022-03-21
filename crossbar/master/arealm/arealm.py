@@ -1012,25 +1012,35 @@ class ApplicationRealmManager(object):
     @inlineCallbacks
     def start(self, prefix):
         assert self._started is None, 'cannot start arealm manager - already running!'
+        assert self._prefix is None
 
-        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
+        self._started = time_ns()
+        # crossbarfabriccenter.mrealm.arealm
+        self._prefix = prefix[:-1] if prefix.endswith('.') else prefix
+
+        regs = yield self._session.register(self,
+                                            prefix='{}.'.format(self._prefix),
+                                            options=RegisterOptions(details_arg='details'))
         procs = [reg.procedure for reg in regs]
-        self.log.info('Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n',
-                      api=hl('Application realm manager API', color='green', bold=True),
-                      func=hltype(self.start),
-                      procs=hl(pformat(procs), color='white', bold=True))
+        self.log.info(
+            'Mrealm controller {api} registered management procedures prefix "{prefix}" [{func}]:\n\n{procs}\n',
+            api=hl('Application realm manager API', color='green', bold=True),
+            func=hltype(self.start),
+            prefix=hlval(self._prefix),
+            procs=hl(pformat(procs), color='white', bold=True))
 
         # start all application realm monitors ..
         cnt_started = 0
         cnt_skipped = 0
+        dl = []
         with self.db.begin() as txn:
             arealm_oids = self.schema.arealms.select(txn, return_values=False)
             for arealm_oid in arealm_oids:
                 arealm = self.schema.arealms[txn, arealm_oid]
                 if arealm.status in [ApplicationRealm.STATUS_STARTING, ApplicationRealm.STATUS_RUNNING]:
-                    monitor = ApplicationRealmMonitor(self, arealm_oid)
-                    monitor.start()
                     assert arealm_oid not in self._monitors
+                    monitor = ApplicationRealmMonitor(self, arealm_oid)
+                    dl.append(monitor.start())
                     self._monitors[arealm_oid] = monitor
                     cnt_started += 1
                     self.log.info(
@@ -1055,16 +1065,29 @@ class ApplicationRealmManager(object):
             cnt_skipped=hlval(cnt_skipped),
             func=hltype(self.start))
 
-        self._started = time_ns()
         self.log.info('Application realm manager ready for management realm {mrealm_oid}! [{func}]',
                       mrealm_oid=hlid(self._mrealm_oid),
                       func=hltype(self.start))
 
+        # return txaio.gather(dl)
+
     @inlineCallbacks
     def stop(self):
         assert self._started > 0, 'cannot stop arealm manager - currently not running!'
-        yield sleep(0)
+
+        # stop all application realm monitors ..
+        dl = []
+        for arealm_oid, arealm_monitor in self._monitors.items():
+            dl.append(arealm_monitor.stop())
+            del self._monitors[arealm_oid]
         self._started = None
+        self.log.info(
+            'Ok, application realm manager for management realm {mrealm_oid} stopped ({cnt_stopped} monitors stopped) [{func}]',
+            mrealm_oid=hlid(self._mrealm_oid),
+            cnt_stopped=len(dl),
+            func=hltype(self.start))
+
+        # return txaio.gather(dl)
 
     @wamp.register(None, check_types=True)
     def list_arealms(self, return_names: Optional[bool] = None, details: Optional[CallDetails] = None) -> List[str]:

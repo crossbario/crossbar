@@ -378,10 +378,10 @@ class WebClusterMonitor(object):
             action = 'check & apply run finished with problems left'
 
         self._check_and_apply_in_progress = False
-        self.log.debug('{func} {action} for webcluster {webcluster}!',
-                       action=hl(action, color=color, bold=True),
-                       func=hltype(self.check_and_apply),
-                       webcluster=hlid(self._webcluster_oid))
+        self.log.info('{func} {action} for webcluster {webcluster}!',
+                      action=hl(action, color=color, bold=True),
+                      func=hltype(self.check_and_apply),
+                      webcluster=hlid(self._webcluster_oid))
 
 
 class WebClusterManager(object):
@@ -478,24 +478,35 @@ class WebClusterManager(object):
         :return:
         """
         assert self._started is None, 'cannot start web cluster manager - already running!'
+        assert self._prefix is None
 
-        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
+        self._started = time_ns()
+
+        # crossbarfabriccenter.mrealm.webcluster
+        self._prefix = prefix[:-1] if prefix.endswith('.') else prefix
+
+        regs = yield self._session.register(self,
+                                            prefix='{}.'.format(self._prefix),
+                                            options=RegisterOptions(details_arg='details'))
         procs = [reg.procedure for reg in regs]
-        self.log.debug('Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n',
-                       api=hl('Web cluster manager API', color='green', bold=True),
-                       func=hltype(self.start),
-                       procs=hl(pformat(procs), color='white', bold=True))
+        self.log.debug(
+            'Web cluster manager {api} registered management procedures using prefix "{prefix}" [{func}]:\n\n{procs}\n',
+            api=hl('Web cluster manager API', color='green', bold=True),
+            func=hltype(self.start),
+            prefix=hlval(self._prefix),
+            procs=hl(pformat(procs), color='white', bold=True))
 
         # start all web cluster monitors ..
         cnt_started = 0
         cnt_skipped = 0
+        dl = []
         with self.db.begin() as txn:
             webcluster_oids = self.schema.webclusters.select(txn, return_values=False)
             for webcluster_oid in webcluster_oids:
                 webcluster = self.schema.webclusters[txn, webcluster_oid]
                 if webcluster.status in [cluster.STATUS_STARTING, cluster.STATUS_RUNNING]:
                     monitor = WebClusterMonitor(self, webcluster_oid)
-                    monitor.start()
+                    dl.append(monitor.start())
                     assert webcluster_oid not in self._monitors
                     self._monitors[webcluster_oid] = monitor
                     cnt_started += 1
@@ -520,10 +531,11 @@ class WebClusterManager(object):
             cnt_skipped=hlval(cnt_skipped),
             func=hltype(self.start))
 
-        self._started = time_ns()
         self.log.info('Web cluster manager ready for management realm {mrealm_oid}! [{func}]',
                       mrealm_oid=hlid(self._mrealm_oid),
                       func=hltype(self.start))
+
+        # return txaio.gather(dl)
 
     @inlineCallbacks
     def stop(self):
@@ -533,8 +545,20 @@ class WebClusterManager(object):
         :return:
         """
         assert self._started > 0, 'cannot stop web cluster manager - currently not running!'
-        yield sleep(0)
+
+        # stop all web cluster monitors ..
+        dl = []
+        for webcluster_oid, webcluster_monitor in self._monitors.items():
+            dl.append(webcluster_monitor.stop())
+            del self._monitors[webcluster_oid]
         self._started = None
+        self.log.info(
+            'Ok, web cluster manager for management realm {mrealm_oid} stopped ({cnt_stopped} monitors stopped) [{func}]',
+            mrealm_oid=hlid(self._mrealm_oid),
+            cnt_stopped=len(dl),
+            func=hltype(self.start))
+
+        # return txaio.gather(dl)
 
     @wamp.register(None, check_types=True)
     def list_webclusters(self,

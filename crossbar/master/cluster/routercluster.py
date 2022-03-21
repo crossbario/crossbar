@@ -110,7 +110,6 @@ class RouterClusterMonitor(object):
                                   node_oid=hlid(node_oid))
 
                     # FIXME: check all workers we expect for data planes associated with this router cluster are running
-                    is_running_completely = False
 
                 else:
                     self.log.warn('{func} Router cluster node {node_oid} not running [status={status}]',
@@ -232,16 +231,22 @@ class RouterClusterManager(object):
         assert self._started is None, 'cannot start router cluster manager - already running!'
         assert self._prefix is None
 
-        # register management procedures
-        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
-        procs = [reg.procedure for reg in regs]
-        self.log.info('Cluster manager registered {api} management procedures [{func}]:\n\n{procs}\n',
-                      api=hl('Router cluster manager API', color='green', bold=True),
-                      func=hltype(self.start),
-                      procs=hl(pformat(procs), color='white', bold=True))
-
         self._started = time_ns()
-        self._prefix = prefix
+
+        # crossbarfabriccenter.mrealm.routercluster
+        self._prefix = prefix[:-1] if prefix.endswith('.') else prefix
+
+        # register management procedures
+        regs = yield self._session.register(self,
+                                            prefix='{}.'.format(self._prefix),
+                                            options=RegisterOptions(details_arg='details'))
+        procs = [reg.procedure for reg in regs]
+        self.log.info(
+            'Router cluster manager registered {api} management procedures using prefix "{prefix}" [{func}]:\n\n{procs}\n',
+            api=hl('Router cluster manager API', color='green', bold=True),
+            func=hltype(self.start),
+            prefix=hlval(self._prefix),
+            procs=hl(pformat(procs), color='white', bold=True))
 
         # start all router cluster monitors
         cnt_started = 0
@@ -258,18 +263,14 @@ class RouterClusterManager(object):
                     self._monitors[routercluster_oid] = monitor
                     cnt_started += 1
                     self.log.info(
-                        '{func}(prefix="{prefix}"): {action} for router cluster {routercluster_oid} in {status})',
-                        action=hl('cluster monitor started', color='green', bold=True),
-                        prefix=hlval(prefix),
+                        'Router cluster monitor started for router cluster {routercluster_oid} in status {status} [{func}]',
                         func=hltype(self.start),
                         routercluster_oid=hlid(routercluster_oid),
                         status=hlval(routercluster.status))
                 else:
                     cnt_skipped += 1
                     self.log.info(
-                        '{func}(prefix="{prefix}"): {action} for router cluster {routercluster_oid} in status {status}',
-                        action=hl('cluster monitor skipped', color='green', bold=True),
-                        prefix=hlval(prefix),
+                        'Router cluster monitor skipped for router cluster {routercluster_oid} in status {status} [{func}]',
                         func=hltype(self.start),
                         routercluster_oid=hlid(routercluster_oid),
                         status=hlval(routercluster.status))
@@ -279,10 +280,11 @@ class RouterClusterManager(object):
             cnt_skipped=hlval(cnt_skipped),
             func=hltype(self.start))
 
-        self.log.info('Ok, router cluster manager for management realm {mrealm_oid} ready [{func}]',
+        self.log.info('Router cluster manager for management realm {mrealm_oid} ready [{func}]',
                       mrealm_oid=hlid(self._mrealm_oid),
                       func=hltype(self.start))
-        return txaio.gather(dl)
+
+        # return txaio.gather(dl)
 
     def stop(self):
         """
@@ -303,7 +305,8 @@ class RouterClusterManager(object):
             mrealm_oid=hlid(self._mrealm_oid),
             cnt_stopped=len(dl),
             func=hltype(self.start))
-        return txaio.gather(dl)
+
+        # return txaio.gather(dl)
 
     @wamp.register(None, check_types=True)
     def list_routerclusters(self,
@@ -1147,10 +1150,9 @@ class RouterClusterManager(object):
                 cnt = 0
                 for _ in self.schema.idx_workergroup_by_placement.select(
                         txn,
-                        from_key=(workergroup_obj.cluster_oid, node_oid, uuid.UUID(bytes=b'\0' * 16),
-                                  uuid.UUID(bytes=b'\0' * 16)),
+                        from_key=(workergroup_obj.cluster_oid, node_oid, uuid.UUID(bytes=b'\0' * 16)),
                         to_key=(workergroup_obj.cluster_oid, uuid.UUID(int=(int(node_oid) + 1)),
-                                uuid.UUID(bytes=b'\0' * 16), uuid.UUID(bytes=b'\0' * 16)),
+                                uuid.UUID(bytes=b'\0' * 16)),
                         return_keys=False):
                     cnt += 1
 
@@ -1161,7 +1163,12 @@ class RouterClusterManager(object):
             # create and store workergroup worker placements on nodes for the new workergroup
             for i in range(workergroup_obj.scale):
                 # new placement on a node with smallest number of current placements
-                placement_node_oid = nodes.peekitem(0)
+                placement_node_oid, placement_node_cnt = nodes.peekitem(0)
+
+                self.log.info(
+                    'Router worker placement selected node {placement_node_oid} with current worker count {placement_node_cnt}',
+                    placement_node_oid=hlid(placement_node_oid),
+                    placement_node_cnt=hlval(placement_node_cnt))
 
                 placement = RouterWorkerGroupClusterPlacement()
                 placement.oid = uuid.uuid4()
