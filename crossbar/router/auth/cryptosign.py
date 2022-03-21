@@ -350,7 +350,7 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
 
         # with authentictors of type "*-proxy", the principal returned in authenticating the
         # incoming backend connection is ignored ..
-        f = super(PendingAuthCryptosignProxy, self).hello(realm, details)
+        f = txaio.as_future(super(PendingAuthCryptosignProxy, self).hello, realm, details)
 
         def assign(res):
             """
