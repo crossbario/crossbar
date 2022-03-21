@@ -699,9 +699,30 @@ class ApplicationRealmMonitor(object):
                     # IV.2) if there isn't an arealm started (with realm ID as we expect) already,
                     # start a new arealm
                     if not running_arealm:
-                        # FIXME: required default roles: anonymous, rlink
                         realm_config = {
-                            "name": arealm.name,
+                            "name":
+                            arealm.name,
+
+                            # built-in (reserved) roles
+                            "roles": [{
+                                "name":
+                                "rlink",
+                                "permissions": [{
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": True,
+                                        "register": True,
+                                        "publish": True,
+                                        "subscribe": True
+                                    },
+                                    "disclose": {
+                                        "caller": True,
+                                        "publisher": True
+                                    },
+                                    "cache": True
+                                }]
+                            }]
                         }
                         try:
                             # start the application realm on the remote node worker
@@ -720,6 +741,24 @@ class ApplicationRealmMonitor(object):
                         except:
                             self.log.failure()
                             is_running_completely = False
+                        else:
+                            # start all built-in (reserved) roles on the remote node worker
+                            i = 1
+                            for role in realm_config['roles']:
+                                runtime_role_id = 'rle_{}_builtin_{}'.format(str(arealm.oid)[:8], i)
+                                role_started = yield self._manager._session.call(
+                                    'crossbarfabriccenter.remote.router.start_router_realm_role', str(node_oid),
+                                    worker_name, runtime_realm_id, runtime_role_id, role)
+                                running_role = yield self._manager._session.call(
+                                    'crossbarfabriccenter.remote.router.get_router_realm_role', str(node_oid),
+                                    worker_name, runtime_realm_id, runtime_role_id)
+                                self.log.info(
+                                    '{func} Application realm role {runtime_role_id} started on router cluster worker {worker_name} [{role_started}]',
+                                    func=hltype(self.check_and_apply),
+                                    worker_name=hlid(worker_name),
+                                    runtime_role_id=hlid(running_role['id']),
+                                    role_started=role_started)
+                                i += 1
 
                     if running_arealm:
                         # start all roles defined in the realm configuration on the remote node worker
@@ -730,6 +769,11 @@ class ApplicationRealmMonitor(object):
                                                                                                 to_key=to_key,
                                                                                                 return_values=False):
                             role = self._manager.schema.roles[txn, role_oid]
+
+                            # make sure role name is not reserved
+                            assert role.name not in ['rlink'
+                                                     ], 'use of reserved role name "rlink" in role {}'.format(role_oid)
+
                             runtime_role_id = 'rle_{}'.format(str(role.oid)[:8])
                             try:
                                 running_role = yield self._manager._session.call(
