@@ -10,7 +10,7 @@ import iso8601
 import humanize
 import pprint
 import binascii
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Any
 from pprint import pformat
 
 import six
@@ -22,7 +22,7 @@ import nacl.signing
 import nacl.encoding
 
 from twisted.internet import defer
-from twisted.internet.defer import inlineCallbacks, returnValue, DeferredList
+from twisted.internet.defer import inlineCallbacks, returnValue, DeferredList, Deferred
 from twisted.internet.task import LoopingCall
 from twisted.web import client
 
@@ -673,8 +673,8 @@ class MrealmController(ApplicationSession):
             worker_id=hlid(worker_id),
             heartbeat_seq=hlid(heartbeat_seq),
             heartbeat_time=hlid(heartbeat_time),
-            publisher=hlid(details.publisher),
-            authid=hlid(details.publisher_authid))
+            publisher=hlid(details.publisher) if details else None,
+            authid=hlid(details.publisher_authid) if details else None)
 
         self.log.debug('Raw worker heartbeat: \n{heartbeat}', heartbeat=pprint.pformat(heartbeat))
 
@@ -764,8 +764,8 @@ class MrealmController(ApplicationSession):
             heartbeat_workers=heartbeat_workers,
             heartbeat_seq=hlid(heartbeat_seq),
             heartbeat_time=hlid(heartbeat_time),
-            publisher=hlid(details.publisher),
-            authid=hlid(details.publisher_authid))
+            publisher=hlid(details.publisher) if details else None,
+            authid=hlid(details.publisher_authid) if details else None)
 
         self.log.debug('Raw node heartbeat:\n{heartbeat}', heartbeat=pprint.pformat(heartbeat))
 
@@ -797,7 +797,7 @@ class MrealmController(ApplicationSession):
                                         color='green',
                                         bold=True),
                               node_oid=hlid(node_oid),
-                              session_id=hlid(details.publisher),
+                              session_id=hlid(details.publisher) if details else None,
                               status=hlval(self._nodes[node_oid].status),
                               func=hltype(self._on_node_heartbeat))
         else:
@@ -813,7 +813,7 @@ class MrealmController(ApplicationSession):
                                          color='green',
                                          bold=False),
                                node_oid=hlid(node_oid),
-                               session_id=hlid(details.publisher),
+                               session_id=hlid(details.publisher) if details else None,
                                status=hlval(self._nodes[node_oid].status),
                                func=hltype(self._on_node_heartbeat))
             else:
@@ -823,7 +823,7 @@ class MrealmController(ApplicationSession):
                                         color='yellow',
                                         bold=True),
                               node_oid=hlid(node_oid),
-                              session_id=hlid(details.publisher),
+                              session_id=hlid(details.publisher) if details else None,
                               status=hlval(self._nodes[node_oid].status),
                               func=hltype(self._on_node_heartbeat))
                 self._nodes[node_oid].status = 'online'
@@ -831,7 +831,7 @@ class MrealmController(ApplicationSession):
         # heartbeat['authid'] = details.publisher_authid
         heartbeat['authid'] = node_authid
         heartbeat['node_id'] = node_oid
-        heartbeat['session'] = details.publisher
+        heartbeat['session'] = details.publisher if details else None
 
         mrealm_id = node.mrealm_oid
         mnode_log = MNodeLog.parse(mrealm_id, uuid.UUID(node_oid), heartbeat)
@@ -845,9 +845,9 @@ class MrealmController(ApplicationSession):
                 self.schema.mnode_logs[txn, (mnode_log.timestamp, mnode_log.node_id)] = mnode_log
 
             self.log.debug('{msg} [timestamp={timestamp}, node_id={node_id}]',
-                           msg=hl(
-                               'New node HEARTBEAT persisted in database -> checking for pubkey="{}"'.format(pubkey),
-                               bold=True),
+                           msg=hl('New node HEARTBEAT persisted in database -> checking for pubkey="{}"'.format(
+                               node.pubkey),
+                                  bold=True),
                            timestamp=hlid(mnode_log.timestamp),
                            node_id=hlid(mnode_log.node_id))
 
@@ -1173,15 +1173,18 @@ class MrealmController(ApplicationSession):
 
     @inlineCallbacks
     @wamp.register(None, check_types=True)
-    def get_trace_data(self, trace_id, limit=None, details: Optional[CallDetails] = None) -> dict:
+    def get_trace_data(self,
+                       trace_id: str,
+                       limit: Optional[int] = None,
+                       details: Optional[CallDetails] = None) -> Deferred:
         self.log.info('get_trace_data(trace_id="{trace_id}", limit="{limit}")', trace_id=trace_id, limit=limit)
 
         trace = self._traces.get(trace_id, None)
         if trace:
-            if trace.eligible_reader_roles:
+            if trace.eligible_reader_roles and details:
                 if details.caller_authrole not in trace.eligible_reader_roles:
                     raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
-            if trace.exclude_reader_roles:
+            if trace.exclude_reader_roles and details:
                 if details.caller_authrole in trace.exclude_reader_roles:
                     raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
         else:
@@ -1202,7 +1205,7 @@ class MrealmController(ApplicationSession):
                 dl.append(defer.fail('node not online'))
 
         trace_data_results = yield DeferredList(dl)
-        result = {}
+        result: Dict[str, Any] = {}
         for (node_id, worker_id), (success, data) in six.moves.zip(trace.traced_workers, trace_data_results):
             if node_id not in result:
                 result[node_id] = {}
@@ -1224,23 +1227,24 @@ class MrealmController(ApplicationSession):
         """
         trace = self._traces.get(trace_id, None)
         if trace:
-            if trace.eligible_reader_roles:
+            if trace.eligible_reader_roles and details:
                 if details.caller_authrole not in trace.eligible_reader_roles:
                     self.log.debug(
                         'get_trace({trace_id}) -> trace found, but not authorized (role "{caller_authrole}" is not eligible)!',
                         trace_id=trace_id,
-                        caller_authrole=details.caller_authrole)
+                        caller_authrole=details.caller_authrole if details else None)
                     return None
-            if trace.exclude_reader_roles:
+            if trace.exclude_reader_roles and details:
                 if details.caller_authrole in trace.exclude_reader_roles:
                     self.log.debug(
                         'get_trace({trace_id}) -> trace found, but not authorized (role "{caller_authrole}" is excluded)!',
                         trace_id=trace_id,
-                        caller_authrole=details.caller_authrole)
+                        caller_authrole=details.caller_authrole if details else None)
                     return None
             return trace.marshal()
         else:
             self.log.debug('get_trace({trace_id}) -> no such trace', trace_id=trace_id)
+            return None
 
     @wamp.register(None, check_types=True)
     def get_traces(self, details: Optional[CallDetails] = None) -> List[str]:
@@ -1253,14 +1257,14 @@ class MrealmController(ApplicationSession):
         """
         trace_ids = []
         for trace in self._traces.values():
-            if trace.eligible_reader_roles:
+            if trace.eligible_reader_roles and details:
                 if details.caller_authrole not in trace.eligible_reader_roles:
                     self.log.info(
                         'get_traces() -> trace "{trace_id}" found, but not authorized (role "{caller_authrole}" is not eligible)!',
                         trace_id=trace.trace_id,
                         caller_authrole=details.caller_authrole)
                     continue
-            if trace.exclude_reader_roles:
+            if trace.exclude_reader_roles and details:
                 if details.caller_authrole in trace.exclude_reader_roles:
                     self.log.info(
                         'get_traces() -> trace "{trace_id}" found, but not authorized (role "{caller_authrole}" is excluded)!',
@@ -1304,7 +1308,7 @@ class MrealmController(ApplicationSession):
         trace = Trace(trace_id, traced_workers, trace_options, eligible_reader_roles, exclude_reader_roles, status)
         self._traces[trace_id] = trace
 
-        trace_created = {
+        trace_created: Dict[str, Any] = {
             # FIXME
         }
 
@@ -1320,7 +1324,7 @@ class MrealmController(ApplicationSession):
 
     @inlineCallbacks
     @wamp.register(None, check_types=True)
-    def start_trace(self, trace_id: str, details: Optional[CallDetails] = None) -> dict:
+    def start_trace(self, trace_id: str, details: Optional[CallDetails] = None) -> Deferred:
         """
         Start a previously created trace.
 
@@ -1413,7 +1417,7 @@ class MrealmController(ApplicationSession):
 
     @inlineCallbacks
     @wamp.register(None, check_types=True)
-    def stop_trace(self, trace_id: str, details: Optional[CallDetails] = None) -> dict:
+    def stop_trace(self, trace_id: str, details: Optional[CallDetails] = None) -> Deferred:
         """
         Stop a running trace.
 
@@ -1505,7 +1509,7 @@ class MrealmController(ApplicationSession):
         if trace.status not in ['stopped', 'stopping_failed']:
             raise Exception('cannot delete trace with ID "{}" currently in status "{}"'.format(trace_id, trace.status))
 
-        trace_deleted = {
+        trace_deleted: Dict[str, Any] = {
             # FIXME
         }
 
