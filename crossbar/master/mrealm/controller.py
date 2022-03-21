@@ -839,8 +839,6 @@ class MrealmController(ApplicationSession):
 
         # this is the pubkey under which an aggregate usage record (see below) will be stored
         if node.pubkey == heartbeat_pubkey:
-            pubkey = binascii.a2b_hex(node.pubkey)
-
             with self.db.begin(write=True) as txn:
                 self.schema.mnode_logs[txn, (mnode_log.timestamp, mnode_log.node_id)] = mnode_log
 
