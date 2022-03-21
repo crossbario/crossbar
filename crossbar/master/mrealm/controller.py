@@ -9,7 +9,6 @@ import uuid
 import iso8601
 import humanize
 import pprint
-import binascii
 from typing import Optional, Dict, List, Tuple, Any
 from pprint import pformat
 
