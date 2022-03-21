@@ -244,7 +244,7 @@ class PendingAuthCryptosign(PendingAuth):
                 auth_d = txaio.as_future(self._authenticator, realm, details.authid, self._session_details)
 
                 def on_authenticate_ok(principal):
-                    self.log.info(
+                    self.log.debug(
                         '{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_ok(principal={principal})',
                         klass=self.__class__.__name__,
                         realm=realm,
@@ -260,7 +260,7 @@ class PendingAuthCryptosign(PendingAuth):
                     return types.Challenge(self._authmethod, extra)
 
                 def on_authenticate_error(err):
-                    self.log.info(
+                    self.log.debug(
                         '{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
                         klass=self.__class__.__name__,
                         realm=realm,
@@ -350,7 +350,7 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
 
         # with authentictors of type "*-proxy", the principal returned in authenticating the
         # incoming backend connection is ignored ..
-        f = super(PendingAuthCryptosignProxy, self).hello(realm, details)
+        f = txaio.as_future(super(PendingAuthCryptosignProxy, self).hello, realm, details)
 
         def assign(res):
             """

@@ -377,7 +377,7 @@ class ProxyFrontendSession(object):
         Now we do any authentication necessary with them and connect
         to our backend.
         """
-        self.log.info('{func}(msg={msg})', func=hltype(self._process_Hello), msg=msg)
+        self.log.debug('{func}(msg={msg})', func=hltype(self._process_Hello), msg=msg)
         self._pending_session_id = util.id()
         self._goodbye_sent = False
 
@@ -415,6 +415,7 @@ class ProxyFrontendSession(object):
                                      authextra=msg.authextra,
                                      session_roles=msg.roles,
                                      pending_session=self._pending_session_id)
+
         auth_config = self._transport_config.get('auth', None)
 
         # if authentication is _not_ configured, allow anyone to join as "anonymous"!
@@ -701,9 +702,9 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
 
     :param cbdir: The node directory.
     """
-    log.info('{func}() connecting with config=\n{config}',
-             func=hltype(make_backend_connection),
-             config=pformat(backend_config))
+    log.debug('{func}() connecting with config=\n{config}',
+              func=hltype(make_backend_connection),
+              config=pformat(backend_config))
 
     from twisted.internet import reactor
 
@@ -741,6 +742,11 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
 
     # client-factory
     factory = _create_transport_factory(reactor, backend, create_session)
+    # Reduce noise from logs, otherwise for each connect/disconnect to the backend
+    # we get an entry in the router logs like
+    # Starting factory <autobahn.twisted.rawsocket.WampRawSocketClientFactory object at 0x7f38954ed9c0>
+    # Stopping factory <autobahn.twisted.rawsocket.WampRawSocketClientFactory object at 0x7f38954ed9c0>
+    factory.noisy = False
     endpoint = _create_transport_endpoint(reactor, backend_config['transport']['endpoint'])
     transport_d = endpoint.connect(factory)
 
@@ -1213,7 +1219,7 @@ class ProxyController(TransportController):
         else:
             realm_routes = None
             result = False
-        self.log.info(
+        self.log.debug(
             '{func}(realm="{realm}", authrole="{authrole}") -> {result} [routes={routes}, realm_routes={realm_routes}]',
             func=hltype(ProxyController.has_role),
             realm=hlid(realm),
@@ -1351,7 +1357,7 @@ class ProxyController(TransportController):
                 # session and delete it
                 backend.leave()
                 del self._backends_by_frontend[frontend]
-                self.log.info(
+                self.log.debug(
                     '{func}: ok, unmapped frontend session {frontend_session_id} from backend session {backend_session_id}',
                     func=hltype(self.unmap_backend),
                     frontend_session_id=hlid(frontend._session_id),
