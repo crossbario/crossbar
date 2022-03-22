@@ -47,15 +47,27 @@ class RouterClusterMonitor(object):
 
     @property
     def is_started(self):
+        """
+
+        :return:
+        """
         return self._loop is not None and self._loop.running
 
     def start(self):
+        """
+
+        :return:
+        """
         assert self._loop is None
 
-        self._loop = LoopingCall(self.check_and_apply)
+        self._loop = LoopingCall(self._check_and_apply)
         self._loop.start(self._interval)
 
     def stop(self):
+        """
+
+        :return:
+        """
         assert self._loop is not None
 
         self._loop.stop()
@@ -63,24 +75,20 @@ class RouterClusterMonitor(object):
         self._check_and_apply_in_progress = False
 
     @inlineCallbacks
-    def check_and_apply(self):
-        """
-
-        :return:
-        """
+    def _check_and_apply(self):
         if self._check_and_apply_in_progress:
             # we prohibit running the iteration multiple times concurrently. this might
             # happen when the iteration takes longer than the interval the monitor is set to
             self.log.warn(
                 '{func} {action} for routercluster {routercluster} skipped! check & apply already in progress.',
                 action=hl('check & apply run skipped', color='red', bold=True),
-                func=hltype(self.check_and_apply),
+                func=hltype(self._check_and_apply),
                 routercluster=hlid(self._routercluster_oid))
             return
         else:
             self.log.info('{func} {action} for routercluster {routercluster} ..',
                           action=hl('check & apply run started', color='green', bold=True),
-                          func=hltype(self.check_and_apply),
+                          func=hltype(self._check_and_apply),
                           routercluster=hlid(self._routercluster_oid))
             self._check_and_apply_in_progress = True
 
@@ -107,14 +115,14 @@ class RouterClusterMonitor(object):
 
                 if node and node.status == 'online':
                     self.log.info('{func} Ok, router cluster node {node_oid} is running!',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._check_and_apply),
                                   node_oid=hlid(node_oid))
 
                     # FIXME: check all workers we expect for data planes associated with this router cluster are running
 
                 else:
                     self.log.warn('{func} Router cluster node {node_oid} not running [status={status}]',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._check_and_apply),
                                   node_oid=hlid(node_oid),
                                   status=hl(node.status if node else 'offline'))
                     is_running_completely = False
@@ -147,7 +155,7 @@ class RouterClusterMonitor(object):
         self._check_and_apply_in_progress = False
         self.log.info('{func} {action} for routercluster {routercluster}!',
                       action=hl(action, color=color, bold=True),
-                      func=hltype(self.check_and_apply),
+                      func=hltype(self._check_and_apply),
                       routercluster=hlid(self._routercluster_oid))
 
 

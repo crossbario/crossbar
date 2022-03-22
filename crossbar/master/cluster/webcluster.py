@@ -7,7 +7,7 @@
 
 import uuid
 from pprint import pformat
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 
 import numpy as np
 
@@ -50,22 +50,39 @@ class WebClusterMonitor(object):
 
     @property
     def is_started(self):
+        """
+
+        :return:
+        """
         return self._loop is not None and self._loop.running
 
     def start(self):
+        """
+
+        :return:
+        """
         assert self._loop is None
 
-        self._loop = LoopingCall(self.check_and_apply)
+        self._loop = LoopingCall(self._check_and_apply)
         self._loop.start(self._interval)
 
     def stop(self):
+        """
+
+        :return:
+        """
         assert self._loop is not None
 
         self._loop.stop()
         self._loop = None
         self._check_and_apply_in_progress = False
 
-    def get_cluster_workers(self, filter_online=False):
+    def get_cluster_workers(self, filter_online: bool = False) -> List[Tuple[str, str]]:
+        """
+
+        :param filter_online:
+        :return:
+        """
         res = []
         for node_oid, worker_id in self._workers:
             if not filter_online or self._workers[(node_oid, worker_id)]['status'] == 'started':
@@ -73,23 +90,19 @@ class WebClusterMonitor(object):
         return res
 
     @inlineCallbacks
-    def check_and_apply(self):
-        """
-
-        :return:
-        """
+    def _check_and_apply(self):
         if self._check_and_apply_in_progress:
             # we prohibit running the iteration multiple times concurrently. this might
             # happen when the iteration takes longer than the interval the monitor is set to
             self.log.info('{func} {action} for webcluster {webcluster} skipped! check & apply already in progress.',
                           action=hl('check & apply run skipped', color='red', bold=True),
-                          func=hltype(self.check_and_apply),
+                          func=hltype(self._check_and_apply),
                           webcluster=hlid(self._webcluster_oid))
             return
         else:
             self.log.info('{func} {action} for webcluster {webcluster} ..',
                           action=hl('check & apply run started', color='green', bold=True),
-                          func=hltype(self.check_and_apply),
+                          func=hltype(self._check_and_apply),
                           webcluster=hlid(self._webcluster_oid))
             self._check_and_apply_in_progress = True
 
@@ -114,7 +127,7 @@ class WebClusterMonitor(object):
 
                 if membership.standby:
                     self.log.debug('{func} Web cluster node {node_oid} is configured for standby',
-                                   func=hltype(self.check_and_apply),
+                                   func=hltype(self._check_and_apply),
                                    node_oid=hlid(node_oid))
                     continue
 
@@ -123,7 +136,7 @@ class WebClusterMonitor(object):
 
                 if node and node.status == 'online':
                     self.log.debug('{func} Ok, web cluster node {node_oid} is running!',
-                                   func=hltype(self.check_and_apply),
+                                   func=hltype(self._check_and_apply),
                                    node_oid=hlid(node_oid))
 
                     # we expect "parallel" workers to run on this node ..
@@ -134,7 +147,7 @@ class WebClusterMonitor(object):
 
                         self.log.debug(
                             '{func} Performing checks for configured proxy worker {worker_index}/{parallel} [{worker_id}] ..',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._check_and_apply),
                             worker_index=hlid(worker_index + 1),
                             worker_id=hlid(worker_id),
                             parallel=hlid(membership.parallel))
@@ -155,7 +168,7 @@ class WebClusterMonitor(object):
                         else:
                             self.log.debug(
                                 '{func} Ok, web cluster worker {worker_id} already running on node {node_oid}!',
-                                func=hltype(self.check_and_apply),
+                                func=hltype(self._check_and_apply),
                                 node_oid=hlid(node_oid),
                                 worker_id=hlid(worker_id))
 
@@ -171,7 +184,7 @@ class WebClusterMonitor(object):
                                     'crossbarfabriccenter.remote.node.get_worker', node_oid, worker_id)
                                 self.log.info(
                                     '{func} Web cluster worker {worker_id} started on node {node_oid} [{worker_started}]',
-                                    func=hltype(self.check_and_apply),
+                                    func=hltype(self._check_and_apply),
                                     node_oid=hlid(node_oid),
                                     worker_id=hlid(worker_id),
                                     worker_started=worker_started)
@@ -195,13 +208,13 @@ class WebClusterMonitor(object):
                                     raise
                                 self.log.info(
                                     '{func} No Transport {transport_id} currently running for Web cluster worker {worker_id}: starting transport ..',
-                                    func=hltype(self.check_and_apply),
+                                    func=hltype(self._check_and_apply),
                                     worker_id=hlid(worker_id),
                                     transport_id=hlid(transport_id))
                             else:
                                 self.log.debug(
                                     '{func} Ok, transport {transport_id} already running on Web cluster worker {worker_id}',
-                                    func=hltype(self.check_and_apply),
+                                    func=hltype(self._check_and_apply),
                                     worker_id=hlid(worker_id),
                                     transport_id=hlid(transport_id))
 
@@ -242,7 +255,7 @@ class WebClusterMonitor(object):
                                         transport_id)
                                     self.log.info(
                                         '{func} Transport {transport_id} started on Web cluster worker {worker_id} [{transport_started}]',
-                                        func=hltype(self.check_and_apply),
+                                        func=hltype(self._check_and_apply),
                                         worker_id=hlid(worker_id),
                                         transport_id=hlid(transport_id),
                                         transport_started=transport_started)
@@ -278,14 +291,14 @@ class WebClusterMonitor(object):
                                             raise
                                         self.log.info(
                                             '{func} No Web service currently running on path "{path}" for Web cluster worker {worker_id} web transport {transport_id}: starting web service ..',
-                                            func=hltype(self.check_and_apply),
+                                            func=hltype(self._check_and_apply),
                                             path=hlval(path),
                                             worker_id=hlid(worker_id),
                                             transport_id=hlid(transport_id))
                                     else:
                                         self.log.debug(
                                             '{func} Ok, web service on path "{path}" is already running for Web cluster worker {worker_id} web transport {transport_id}',
-                                            func=hltype(self.check_and_apply),
+                                            func=hltype(self._check_and_apply),
                                             path=hlval(path),
                                             worker_id=hlid(worker_id),
                                             transport_id=hlid(transport_id))
@@ -307,7 +320,7 @@ class WebClusterMonitor(object):
                                                 node_oid, worker_id, transport_id, path, webservice_config)
                                             self.log.info(
                                                 '{func} Web service started on transport {transport_id} and path "{path}" [{webservice_started}]',
-                                                func=hltype(self.check_and_apply),
+                                                func=hltype(self._check_and_apply),
                                                 transport_id=hlid(transport_id),
                                                 path=hlval(path),
                                                 webservice_started=webservice_started)
@@ -325,7 +338,7 @@ class WebClusterMonitor(object):
                                     if arealm and arealm.status == ApplicationRealmStatus.RUNNING and arealm.workergroup_oid:
                                         self.log.debug(
                                             '{func} node {node_id} - worker {worker_id} - webcluster "{webcluster_name}": backend router workergroup {workergroup_oid} is associated with this frontend web cluster for application realm "{arealm_name}"',
-                                            func=hltype(self.check_and_apply),
+                                            func=hltype(self._check_and_apply),
                                             node_id=hlval(str(node.node_id)),
                                             worker_id=hlval(worker_id),
                                             webcluster_name=hlval(webcluster.name),
@@ -337,7 +350,7 @@ class WebClusterMonitor(object):
                         workers[wk] = worker
                 else:
                     self.log.warn('{func} Web cluster node {node_oid} not running [status={status}]',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._check_and_apply),
                                   node_oid=hlid(node_oid),
                                   status=hl(node.status if node else 'offline'))
                     is_running_completely = False
@@ -369,7 +382,7 @@ class WebClusterMonitor(object):
                 status = 'MISSING'
             self.log.info(
                 '{func} webcluster {webcluster_oid} worker {worker_id} on node {node_oid} has status {status}',
-                func=hltype(self.check_and_apply),
+                func=hltype(self._check_and_apply),
                 worker_id=hlid(worker_id),
                 node_oid=hlid(node_oid),
                 webcluster_oid=hlid(self._webcluster_oid),
@@ -385,7 +398,7 @@ class WebClusterMonitor(object):
         self._check_and_apply_in_progress = False
         self.log.info('{func} {action} for webcluster {webcluster}!',
                       action=hl(action, color=color, bold=True),
-                      func=hltype(self.check_and_apply),
+                      func=hltype(self._check_and_apply),
                       webcluster=hlid(self._webcluster_oid))
 
 

@@ -87,7 +87,8 @@ class ApplicationRealmMonitor(object):
         :return:
         """
         assert self._loop is None
-        self._loop = LoopingCall(self.check_and_apply)
+
+        self._loop = LoopingCall(self._check_and_apply)
         self._loop.start(self._interval)
 
     def stop(self):
@@ -95,14 +96,19 @@ class ApplicationRealmMonitor(object):
         Stop running this monitor.
         """
         assert self._loop is not None
+
         self._loop.stop()
         self._loop = None
         self._check_and_apply_in_progress = False
 
     @inlineCallbacks
-    def check_and_apply(self):
+    def _check_and_apply(self):
         """
         Run one iteration of the background monitor check & apply cycle.
+
+        - _apply_routercluster_placements (L194)
+        - _apply_webcluster_backends (L232)
+            - _apply_webcluster_routes
         """
         if self._check_and_apply_in_progress:
             # we prohibit running the iteration multiple times concurrently. this might
@@ -110,13 +116,13 @@ class ApplicationRealmMonitor(object):
             self.log.warn(
                 '{func} {action} for application realm {arealm_oid} skipped! check & apply already in progress.',
                 action=hl('check & apply run skipped', color='red', bold=True),
-                func=hltype(self.check_and_apply),
+                func=hltype(self._check_and_apply),
                 arealm_oid=hlid(self._arealm_oid))
             return
         else:
             self.log.info('{func} {action} for application realm {arealm_oid} ..',
                           action=hl('check & apply run started', color='green', bold=True),
-                          func=hltype(self.check_and_apply),
+                          func=hltype(self._check_and_apply),
                           arealm_oid=hlid(self._arealm_oid))
             self._check_and_apply_in_progress = True
 
@@ -162,14 +168,14 @@ class ApplicationRealmMonitor(object):
                         if not workergroup_placements:
                             self.log.warn(
                                 '{func} no placements yet for router cluster worker group {workergroup_oid} and arealm {arealm_oid}!',
-                                func=hltype(self.check_and_apply),
+                                func=hltype(self._check_and_apply),
                                 workergroup_oid=hlid(arealm.workergroup_oid),
                                 arealm_oid=hlid(arealm.oid))
 
                         else:
                             self.log.info(
                                 '{func} ok, found {cnt_placements} worker placements for router cluster worker group {workergroup_oid} and arealm {arealm_oid}',
-                                func=hltype(self.check_and_apply),
+                                func=hltype(self._check_and_apply),
                                 cnt_placements=hlval(len(workergroup_placements)),
                                 workergroup_oid=hlid(arealm.workergroup_oid),
                                 arealm_oid=hlid(arealm.oid))
@@ -185,7 +191,7 @@ class ApplicationRealmMonitor(object):
                                     xx_fixme[node.oid] = (node.pubkey, node.authid)
 
                             # apply routercluster worker placements for nodes/workers involved
-                            success = yield self._apply_placements(
+                            success = yield self._apply_routercluster_placements(
                                 txn,
                                 arealm,
                                 workergroup,
@@ -198,7 +204,7 @@ class ApplicationRealmMonitor(object):
 
                     else:
                         self.log.warn('{func} application realm in status {status}, but no worker group associated!',
-                                      func=hltype(self.check_and_apply),
+                                      func=hltype(self._check_and_apply),
                                       status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
                         is_running_completely = False
 
@@ -215,15 +221,15 @@ class ApplicationRealmMonitor(object):
                         #
                         wc_workers = self._manager._session._webcluster_manager.get_webcluster_workers(
                             arealm.webcluster_oid, filter_online=True)
-                        self.log.info('{func} Ok, found {cnt_workers} running web cluster workers ..',
-                                      func=hltype(self.check_and_apply),
-                                      cnt_workers=len(wc_workers) if wc_workers else 0)
+                        self.log.debug('{func} Ok, found {cnt_workers} running web cluster workers ..',
+                                       func=hltype(self._check_and_apply),
+                                       cnt_workers=len(wc_workers) if wc_workers else 0)
 
                         # on each webcluster worker, setup backend connections and routes to all router workers of
                         # the router worker group of this application realm
                         for wc_node_oid, wc_worker_id in wc_workers:
 
-                            yield self._apply_worker_backends(
+                            _is_running_completely = yield self._apply_webcluster_backends(
                                 txn,
                                 wc_node_oid,
                                 wc_worker_id,
@@ -231,17 +237,19 @@ class ApplicationRealmMonitor(object):
                                 placement_nodes_keys,
                                 arealm,
                             )
+                            if is_running_completely:
+                                is_running_completely = _is_running_completely
                     else:
                         self.log.warn('{func} application realm in status {status}, but no web cluster associated!',
-                                      func=hltype(self.check_and_apply),
+                                      func=hltype(self._check_and_apply),
                                       status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
                         is_running_completely = False
                 else:
-                    self.log.info('{func} {action} for application realm {arealm_oid} (status is {arealm_status})',
-                                  action=hl('check & apply skipped', color='yellow', bold=True),
-                                  func=hltype(self.check_and_apply),
-                                  arealm_oid=hlid(self._arealm_oid),
-                                  arealm_status=arealm.status)
+                    self.log.debug('{func} {action} for application realm {arealm_oid} (status is {arealm_status})',
+                                   action=hl('check & apply skipped', color='yellow', bold=True),
+                                   func=hltype(self._check_and_apply),
+                                   arealm_oid=hlid(self._arealm_oid),
+                                   arealm_status=arealm.status)
 
             # if the status is STATUS_STARTING and we have indeed completed startup in this iteration,
             # update the status and publish an event
@@ -274,12 +282,12 @@ class ApplicationRealmMonitor(object):
         self._check_and_apply_in_progress = False
         self.log.info('{func} {action} for application realm {arealm_oid}!',
                       action=hl(action, color=color, bold=True),
-                      func=hltype(self.check_and_apply),
+                      func=hltype(self._check_and_apply),
                       arealm_oid=hlid(self._arealm_oid))
 
     @inlineCallbacks
-    def _apply_worker_backends(self, txn, wc_node_oid, wc_worker_id, workergroup_placements, placement_nodes_keys,
-                               arealm):
+    def _apply_webcluster_backends(self, txn, wc_node_oid, wc_worker_id, workergroup_placements, placement_nodes_keys,
+                                   arealm):
         """
         For given webcluster worker ``(wc_node_oid, wc_worker_id)``, setup backend connections and routes
         to all router workers ``workergroup_placements`` of the router worker group of the given
@@ -291,11 +299,12 @@ class ApplicationRealmMonitor(object):
         #   - routes
         # for each placement on the given (wc_node_oid, wc_worker_id) webcluster worker
         #
+        is_running_completely = True
         for placement_oid in workergroup_placements:
             placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
-            self.log.info('{func} applying router cluster worker group placement:\n{placement}',
-                          func=hltype(self.check_and_apply),
-                          placement=pformat(placement.marshal()))
+            self.log.debug('{func} applying router cluster worker group placement:\n{placement}',
+                           func=hltype(self._check_and_apply),
+                           placement=pformat(placement.marshal()))
 
             # the router worker this placement targets
             node_oid = placement.node_oid
@@ -315,17 +324,18 @@ class ApplicationRealmMonitor(object):
                 if e.error != 'crossbar.error.no_such_object':
                     # anything but "no_such_object" is unexpected (and fatal)
                     raise
+                is_running_completely = False
                 connection = None
-                self.log.info(
+                self.log.warn(
                     '{func} No connection {connection_id} currently running for web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}: starting backend connection ..',
-                    func=hltype(self.check_and_apply),
+                    func=hltype(self._check_and_apply),
                     wc_node_oid=hlid(wc_node_oid),
                     wc_worker_id=hlid(wc_worker_id),
                     connection_id=hlid(connection_id))
             else:
-                self.log.info(
+                self.log.debug(
                     '{func} Ok, connection {connection_id} already running on web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}',
-                    func=hltype(self.check_and_apply),
+                    func=hltype(self._check_and_apply),
                     wc_node_oid=hlid(wc_node_oid),
                     wc_worker_id=hlid(wc_worker_id),
                     connection_id=hlid(connection_id))
@@ -362,7 +372,7 @@ class ApplicationRealmMonitor(object):
                     connection_id, config)
 
                 self.log.info('{func} Proxy backend connection started:\n{connection}',
-                              func=hltype(self.check_and_apply),
+                              func=hltype(self._check_and_apply),
                               connection=connection)
 
             # if by now we do have a connection on the proxy worker, setup all routes (for the arealm)
@@ -383,22 +393,23 @@ class ApplicationRealmMonitor(object):
                     if e.error != 'crossbar.error.no_such_object':
                         # anything but "no_such_object" is unexpected (and fatal)
                         raise
-                    self.log.info(
+                    is_running_completely = False
+                    self.log.warn(
                         '{func} No route for realm "{realm_name}" currently running for web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}: starting backend route ..',
-                        func=hltype(self.check_and_apply),
+                        func=hltype(self._check_and_apply),
                         wc_node_oid=hlid(wc_node_oid),
                         wc_worker_id=hlid(wc_worker_id),
                         realm_name=hlval(realm_name))
                 else:
-                    self.log.info(
+                    self.log.debug(
                         '{func} Ok, route for realm "{realm_name}" already running on web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}',
-                        func=hltype(self.check_and_apply),
+                        func=hltype(self._check_and_apply),
                         wc_node_oid=hlid(wc_node_oid),
                         wc_worker_id=hlid(wc_worker_id),
                         realm_name=hlval(realm_name))
 
                 if not routes or len(routes) != len(workergroup_placements):
-                    new_routes = yield self._start_proxy_routes(
+                    new_routes, _is_running_completely = yield self._apply_webcluster_routes(
                         txn,
                         workergroup_placements,
                         wc_node_oid,
@@ -407,10 +418,15 @@ class ApplicationRealmMonitor(object):
                         placement_nodes_keys,
                     )
                     routes.extend(new_routes)
+                    if is_running_completely:
+                        is_running_completely = _is_running_completely
+
+        return is_running_completely
 
     @inlineCallbacks
-    def _start_proxy_routes(self, txn, workergroup_placements, wc_node_oid, wc_worker_id, arealm,
-                            placement_nodes_keys):
+    def _apply_webcluster_routes(self, txn, workergroup_placements, wc_node_oid, wc_worker_id, arealm,
+                                 placement_nodes_keys):
+        is_running_completely = True
         realm_name = arealm.name
         try:
             routes = yield self._manager._session.call(
@@ -424,9 +440,10 @@ class ApplicationRealmMonitor(object):
             if e.error != 'crossbar.error.no_such_object':
                 # anything but "no_such_object" is unexpected (and fatal)
                 raise
+            is_running_completely = False
             self.log.info(
                 '{func} No routes for realm "{realm_name}" currently running for web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}: starting backend routes ..',
-                func=hltype(self._start_proxy_routes),
+                func=hltype(self._apply_webcluster_routes),
                 wc_node_oid=hlid(wc_node_oid),
                 wc_worker_id=hlid(wc_worker_id),
                 realm_name=hlval(realm_name))
@@ -461,17 +478,19 @@ class ApplicationRealmMonitor(object):
             else:
                 self.log.info(
                     '{func} Proxy backend route started:\n{route}',
-                    func=hltype(self.check_and_apply),
+                    func=hltype(self._check_and_apply),
                     route=route,
                 )
                 routes.append(route)
-        returnValue(routes)
+        returnValue((routes, is_running_completely))
 
     @inlineCallbacks
-    def _apply_placements(self, txn: zlmdb.Transaction, arealm: cfxdb.mrealm.ApplicationRealm,
-                          workergroup: cfxdb.mrealm.RouterWorkerGroup, workergroup_placements: List[uuid.UUID],
-                          placement_nodes_keys: Dict[uuid.UUID, Tuple[str, str]], xx_fixme: Dict[uuid.UUID,
-                                                                                                 Tuple[str, str]]):
+    def _apply_routercluster_placements(self, txn: zlmdb.Transaction, arealm: cfxdb.mrealm.ApplicationRealm,
+                                        workergroup: cfxdb.mrealm.RouterWorkerGroup,
+                                        workergroup_placements: List[uuid.UUID],
+                                        placement_nodes_keys: Dict[uuid.UUID,
+                                                                   Tuple[str, str]], xx_fixme: Dict[uuid.UUID,
+                                                                                                    Tuple[str, str]]):
         """
         Apply worker placements for workergroup of routercluster.
 
@@ -492,7 +511,7 @@ class ApplicationRealmMonitor(object):
         for placement_oid in workergroup_placements:
             placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
             self.log.info('{func} applying router cluster worker group placement:\n{placement}',
-                          func=hltype(self.check_and_apply),
+                          func=hltype(self._check_and_apply),
                           placement=pformat(placement.marshal()))
 
             # place the worker on this node and (router) worker
@@ -511,7 +530,7 @@ class ApplicationRealmMonitor(object):
                 node_authid = placement_nodes_keys[node_oid][1]
 
                 self.log.info('{func} Ok, router cluster node "{node_authid}" ({node_oid}) is running!',
-                              func=hltype(self.check_and_apply),
+                              func=hltype(self._check_and_apply),
                               node_authid=hlid(node_authid),
                               node_oid=hlid(node_oid))
 
@@ -526,7 +545,7 @@ class ApplicationRealmMonitor(object):
                         raise
                     self.log.info(
                         '{func} No router cluster worker {worker_name} currently running on node {node_oid}: starting worker ..',
-                        func=hltype(self.check_and_apply),
+                        func=hltype(self._check_and_apply),
                         node_oid=hlid(node_oid),
                         worker_name=hlid(worker_name))
                 except:
@@ -534,7 +553,7 @@ class ApplicationRealmMonitor(object):
                     raise
                 else:
                     self.log.info('{func} Ok, router cluster worker {worker_name} already running on node {node_oid}!',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._check_and_apply),
                                   node_oid=hlid(node_oid),
                                   worker_name=hlid(worker_name))
 
@@ -555,7 +574,7 @@ class ApplicationRealmMonitor(object):
                                                                    str(node_oid), worker_name)
                         self.log.info(
                             '{func} Router cluster worker {worker_name} started on node {node_oid} [{worker_started}]',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._check_and_apply),
                             node_oid=hlid(node_oid),
                             worker_name=hlid(worker['id']),
                             worker_started=worker_started)
@@ -580,13 +599,13 @@ class ApplicationRealmMonitor(object):
                             raise
                         self.log.info(
                             '{func} No Transport {transport_id} currently running for Web cluster worker {worker_name}: starting transport ..',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._check_and_apply),
                             worker_name=hlid(worker_name),
                             transport_id=hlid(transport_id))
                     else:
                         self.log.info(
                             '{func} Ok, transport {transport_id} already running on Web cluster worker {worker_name}',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._check_and_apply),
                             worker_name=hlid(worker_name),
                             transport_id=hlid(transport_id))
 
@@ -655,7 +674,7 @@ class ApplicationRealmMonitor(object):
                                 transport_id)
                             self.log.info(
                                 '{func} Transport {transport_id} started on router cluster worker {worker_name} [{transport_started}]',
-                                func=hltype(self.check_and_apply),
+                                func=hltype(self._check_and_apply),
                                 worker_name=hlid(worker_name),
                                 transport_id=hlid(transport_id),
                                 transport_started=transport_started)
@@ -686,13 +705,13 @@ class ApplicationRealmMonitor(object):
                             raise
                         self.log.info(
                             '{func} No application realm {runtime_realm_id} currently running for router cluster worker {worker_name}: starting application realm ..',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._check_and_apply),
                             worker_name=hlid(worker_name),
                             runtime_realm_id=hlid(runtime_realm_id))
                     else:
                         self.log.info(
                             '{func} Ok, application realm {runtime_realm_id} already running on router cluster worker {worker_name}',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._check_and_apply),
                             worker_name=hlid(worker_name),
                             runtime_realm_id=hlid(runtime_realm_id))
 
@@ -734,7 +753,7 @@ class ApplicationRealmMonitor(object):
                                 runtime_realm_id)
                             self.log.info(
                                 '{func} Application realm {runtime_realm_id} started on router cluster worker {worker_name} [{realm_started}]',
-                                func=hltype(self.check_and_apply),
+                                func=hltype(self._check_and_apply),
                                 worker_name=hlid(worker_name),
                                 runtime_realm_id=hlid(running_arealm['id']),
                                 realm_started=realm_started)
@@ -754,7 +773,7 @@ class ApplicationRealmMonitor(object):
                                     worker_name, runtime_realm_id, runtime_role_id)
                                 self.log.info(
                                     '{func} Application realm role {runtime_role_id} started on router cluster worker {worker_name} [{role_started}]',
-                                    func=hltype(self.check_and_apply),
+                                    func=hltype(self._check_and_apply),
                                     worker_name=hlid(worker_name),
                                     runtime_role_id=hlid(running_role['id']),
                                     role_started=role_started)
@@ -785,7 +804,7 @@ class ApplicationRealmMonitor(object):
                                     raise
                                 self.log.info(
                                     '{func} No role {runtime_role_id} currently running for router cluster worker {worker_name}: starting role ..',
-                                    func=hltype(self.check_and_apply),
+                                    func=hltype(self._check_and_apply),
                                     worker_name=hlid(worker_name),
                                     runtime_role_id=hlid(runtime_role_id))
 
@@ -822,14 +841,14 @@ class ApplicationRealmMonitor(object):
 
                                 self.log.info(
                                     '{func} Application realm role {runtime_role_id} started on router cluster worker {worker_name} [{role_started}]',
-                                    func=hltype(self.check_and_apply),
+                                    func=hltype(self._check_and_apply),
                                     worker_name=hlid(worker_name),
                                     runtime_role_id=hlid(runtime_role_id),
                                     role_started=role_started)
                             else:
                                 self.log.info(
                                     '{func} Ok, role {runtime_role_id} already running for router cluster worker {worker_name} [{running_role}].',
-                                    func=hltype(self.check_and_apply),
+                                    func=hltype(self._check_and_apply),
                                     worker_name=hlid(worker_name),
                                     runtime_role_id=hlid(runtime_role_id),
                                     running_role=running_role)
@@ -848,7 +867,7 @@ class ApplicationRealmMonitor(object):
                             if other_node_oid != node_oid or other_worker_name != worker_name:
                                 self.log.info(
                                     '{func} Verifying rlink from {node_oid} / {worker_name} to {other_node_oid} / {other_worker_name} ..',
-                                    func=hltype(self.check_and_apply),
+                                    func=hltype(self._check_and_apply),
                                     node_oid=hlid(node_oid),
                                     worker_name=hlid(worker_name),
                                     other_node_oid=hlid(other_node_oid),
@@ -876,7 +895,7 @@ class ApplicationRealmMonitor(object):
                                     else:
                                         self.log.info(
                                             '{func} Ok, rlink target router worker {worker_name} is running on node {node_oid}!',
-                                            func=hltype(self.check_and_apply),
+                                            func=hltype(self._check_and_apply),
                                             node_oid=hlid(other_node_oid),
                                             worker_name=hlid(other_worker_name))
 
@@ -898,13 +917,13 @@ class ApplicationRealmMonitor(object):
                                             raise
                                         self.log.warn(
                                             '{func} No rlink {runtime_rlink_id} currently running for router cluster worker {worker_name}: starting rlink ..',
-                                            func=hltype(self.check_and_apply),
+                                            func=hltype(self._check_and_apply),
                                             worker_name=hlid(worker_name),
                                             runtime_rlink_id=hlid(runtime_rlink_id))
                                     else:
                                         self.log.info(
                                             '{func} Ok, rlink {runtime_rlink_id} already running on router cluster worker {worker_name}',
-                                            func=hltype(self.check_and_apply),
+                                            func=hltype(self._check_and_apply),
                                             worker_name=hlid(worker_name),
                                             runtime_rlink_id=hlid(runtime_rlink_id))
 
@@ -913,7 +932,7 @@ class ApplicationRealmMonitor(object):
 
                                         if not other_placement.tcp_listening_port:
                                             self.log.warn('{func} No listening port in placement!',
-                                                          func=hltype(self.check_and_apply))
+                                                          func=hltype(self._check_and_apply))
                                         else:
                                             rlink_config = {
                                                 'realm': realm_name,
@@ -955,12 +974,12 @@ class ApplicationRealmMonitor(object):
             else:
                 if node:
                     self.log.warn('{func} Router cluster node {node_oid} not running [status={status}]',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._check_and_apply),
                                   node_oid=hlid(node_oid),
                                   status=hl(node.status if node else 'offline'))
                 else:
                     self.log.warn('{func} Router cluster node {node_oid} from placement not found! [nodes={nodes}]',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._check_and_apply),
                                   node_oid=node_oid,
                                   nodes=list(self._manager._session.nodes.keys()))
 
@@ -973,7 +992,7 @@ class ApplicationRealmMonitor(object):
                 for placement_oid, placement in modified_placements.items():
                     self._manager.schema.router_workergroup_placements[txn, placement_oid] = placement
                     self.log.info('{func} Ok, placement {placement_oid} updated:\n{placement}',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._check_and_apply),
                                   placement_oid=hlid(placement_oid),
                                   placement=placement)
 
