@@ -1021,7 +1021,7 @@ class MrealmController(ApplicationSession):
     @wamp.register(None, check_types=True)
     def get_nodes(self,
                   status: Optional[str] = None,
-                  return_names: Optional[str] = None,
+                  return_names: Optional[bool] = None,
                   details: Optional[CallDetails] = None) -> List[str]:
         """
         Returns list of nodes.
@@ -1031,10 +1031,6 @@ class MrealmController(ApplicationSession):
 
         :returns: List of node IDs or node names.
         """
-        assert status is None or type(status) == str
-        assert return_names is None or type(return_names) == bool
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(status={status}, details.caller_authid={caller_authid})',
                       status=hlval(status),
                       func=hltype(self.get_nodes),
@@ -1081,9 +1077,6 @@ class MrealmController(ApplicationSession):
 
         :returns: Node information object.
         """
-        assert type(node_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         try:
             _node_oid = uuid.UUID(node_oid)
         except Exception as e:

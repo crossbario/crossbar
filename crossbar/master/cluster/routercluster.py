@@ -53,15 +53,14 @@ class RouterClusterMonitor(object):
         assert self._loop is None
 
         self._loop = LoopingCall(self.check_and_apply)
-        d = self._loop.start(self._interval)
-        return d
+        self._loop.start(self._interval)
 
     def stop(self):
         assert self._loop is not None
-        d = self._loop.stop()
+
+        self._loop.stop()
         self._loop = None
         self._check_and_apply_in_progress = False
-        return d
 
     @inlineCallbacks
     def check_and_apply(self):
@@ -70,7 +69,9 @@ class RouterClusterMonitor(object):
         :return:
         """
         if self._check_and_apply_in_progress:
-            self.log.info(
+            # we prohibit running the iteration multiple times concurrently. this might
+            # happen when the iteration takes longer than the interval the monitor is set to
+            self.log.warn(
                 '{func} {action} for routercluster {routercluster} skipped! check & apply already in progress.',
                 action=hl('check & apply run skipped', color='red', bold=True),
                 func=hltype(self.check_and_apply),
@@ -637,7 +638,7 @@ class RouterClusterManager(object):
             self.schema.routerclusters[txn, routercluster_oid_] = routercluster
 
         monitor = RouterClusterMonitor(self, routercluster_oid_)
-        await monitor.start()
+        monitor.start()
         assert routercluster_oid_ not in self._monitors
         self._monitors[routercluster_oid_] = monitor
 

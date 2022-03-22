@@ -60,6 +60,7 @@ class WebClusterMonitor(object):
 
     def stop(self):
         assert self._loop is not None
+
         self._loop.stop()
         self._loop = None
         self._check_and_apply_in_progress = False
@@ -78,6 +79,8 @@ class WebClusterMonitor(object):
         :return:
         """
         if self._check_and_apply_in_progress:
+            # we prohibit running the iteration multiple times concurrently. this might
+            # happen when the iteration takes longer than the interval the monitor is set to
             self.log.info('{func} {action} for webcluster {webcluster} skipped! check & apply already in progress.',
                           action=hl('check & apply run skipped', color='red', bold=True),
                           func=hltype(self.check_and_apply),
@@ -364,11 +367,13 @@ class WebClusterMonitor(object):
                 status = worker['status'].upper()
             else:
                 status = 'MISSING'
-            self.log.info('{func} {node_oid} {worker_id} {status}',
-                          func=hltype(self.check_and_apply),
-                          worker_id=hlid(worker_id),
-                          node_oid=hlid(node_oid),
-                          status=hlval(status))
+            self.log.info(
+                '{func} webcluster {webcluster_oid} worker {worker_id} on node {node_oid} has status {status}',
+                func=hltype(self.check_and_apply),
+                worker_id=hlid(worker_id),
+                node_oid=hlid(node_oid),
+                webcluster_oid=hlid(self._webcluster_oid),
+                status=hlval(status))
 
         if is_running_completely:
             color = 'green'
