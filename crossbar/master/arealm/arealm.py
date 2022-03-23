@@ -1008,8 +1008,13 @@ class ApplicationRealmManager(object):
     # publication options for management API events
     _PUBOPTS = PublishOptions(acknowledge=True)
 
-    def __init__(self, session, globaldb: zlmdb.Database, globalschema: cfxdb.globalschema.GlobalSchema,
-                 db: zlmdb.Database, schema: cfxdb.mrealmschema.MrealmSchema, reactor=None):
+    def __init__(self,
+                 session,
+                 globaldb: zlmdb.Database,
+                 globalschema: cfxdb.globalschema.GlobalSchema,
+                 db: zlmdb.Database,
+                 schema: cfxdb.mrealmschema.MrealmSchema,
+                 reactor=None):
         """
 
         :param session: Backend of user created management realms.
@@ -1057,7 +1062,7 @@ class ApplicationRealmManager(object):
 
         # application realm monitors, containing a map, for every application realm in state STARTING or RUNNING
         # with objects of class ApplicationRealmMonitor
-        self._monitors = {}
+        self._monitors: Dict[uuid.UUID, ApplicationRealmMonitor] = {}
 
     @inlineCallbacks
     def start(self, prefix):
