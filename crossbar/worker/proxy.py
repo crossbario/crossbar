@@ -1004,7 +1004,7 @@ class ProxyRoute(object):
         yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
 
         self.log.info('{func} proxy route {route_id} stopped for realm "{realm}"',
-                      func=hltype(self.start),
+                      func=hltype(self.stop),
                       route_id=hlid(self._route_id),
                       realm=hlval(self._realm_name))
 
@@ -1651,6 +1651,11 @@ class ProxyController(TransportController):
         route = self._routes[realm_name][route_id]
         yield route.stop()
         del self._routes[realm_name][route_id]
+
+        # If all routes are stopped, clear the realm from routes map
+        # Relevant discussion: https://github.com/crossbario/crossbar/pull/1968
+        if len(self._routes[realm_name]) == 0:
+            del self._routes[realm_name]
 
         returnValue(route.marshal())
 
