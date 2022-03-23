@@ -1334,12 +1334,11 @@ class ProxyController(TransportController):
             self._backends_by_frontend[frontend] = backend_proto
 
         self.log.info(
-            '{func}: ok, proxy backend session {session_id} opened mapping frontend session to realm "{realm}", authrole "{authrole}"',
+            '{func}: ok, proxy backend connection opened mapping frontend session to realm "{realm}", authrole "{authrole}"',
             func=hltype(self.map_backend),
             backend_config=pformat(backend_config),
             realm=hlid(realm),
-            authrole=hlid(authrole),
-            session_id=hlid(backend_proto._session_id))
+            authrole=hlid(authrole))
 
         returnValue(backend_proto)
 
