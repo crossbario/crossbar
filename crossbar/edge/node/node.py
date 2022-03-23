@@ -42,7 +42,7 @@ except ImportError:
 
 _ALLOWED_ACTIVATION_TAGS = [
     'created-at', 'management-url', 'management-realm', 'management-realm-oid', 'node-oid', 'node-authid',
-    'activation-code', 'public-key-ed25519'
+    'node-cluster-ip', 'activation-code', 'public-key-ed25519'
 ]
 
 

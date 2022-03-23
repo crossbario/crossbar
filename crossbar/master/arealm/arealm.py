@@ -174,7 +174,7 @@ class ApplicationRealmMonitor(object):
 
                         else:
                             self.log.info(
-                                '{func} ok, found {cnt_placements} worker placements for router cluster worker group {workergroup_oid} and arealm {arealm_oid}',
+                                '{func} Applying {cnt_placements} worker placements for router cluster worker group {workergroup_oid}, arealm {arealm_oid}',
                                 func=hltype(self._check_and_apply),
                                 cnt_placements=hlval(len(workergroup_placements)),
                                 workergroup_oid=hlid(arealm.workergroup_oid),
@@ -299,6 +299,7 @@ class ApplicationRealmMonitor(object):
         #   - routes
         # for each placement on the given (wc_node_oid, wc_worker_id) webcluster worker
         #
+        return
         is_running_completely = True
         for placement_oid in workergroup_placements:
             placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
@@ -408,7 +409,7 @@ class ApplicationRealmMonitor(object):
                         wc_worker_id=hlid(wc_worker_id),
                         realm_name=hlval(realm_name))
 
-                if not routes or len(routes) != len(workergroup_placements):
+                if (not routes or len(routes) != len(workergroup_placements)):
                     new_routes, _is_running_completely = yield self._apply_webcluster_routes(
                         txn,
                         workergroup_placements,
@@ -510,7 +511,7 @@ class ApplicationRealmMonitor(object):
         # I) iterate over all placements sequentially
         for placement_oid in workergroup_placements:
             placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
-            self.log.info('{func} applying router cluster worker group placement:\n{placement}',
+            self.log.info('{func} Applying router cluster worker group placement:\n{placement}',
                           func=hltype(self._check_and_apply),
                           placement=pformat(placement.marshal()))
 
@@ -529,10 +530,10 @@ class ApplicationRealmMonitor(object):
                 node_authid = node.node_authid
                 node_authid = placement_nodes_keys[node_oid][1]
 
-                self.log.info('{func} Ok, router cluster node "{node_authid}" ({node_oid}) is running!',
-                              func=hltype(self._check_and_apply),
-                              node_authid=hlid(node_authid),
-                              node_oid=hlid(node_oid))
+                self.log.debug('{func} Ok, router cluster node "{node_authid}" ({node_oid}) is running!',
+                               func=hltype(self._check_and_apply),
+                               node_authid=hlid(node_authid),
+                               node_oid=hlid(node_oid))
 
                 # II.1) get worker run-time information (obtained by calling into the live node)
                 worker = None
@@ -543,7 +544,7 @@ class ApplicationRealmMonitor(object):
                     if e.error != 'crossbar.error.no_such_worker':
                         # anything but "no_such_worker" is unexpected (and fatal)
                         raise
-                    self.log.info(
+                    self.log.warn(
                         '{func} No router cluster worker {worker_name} currently running on node {node_oid}: starting worker ..',
                         func=hltype(self._check_and_apply),
                         node_oid=hlid(node_oid),
@@ -552,10 +553,11 @@ class ApplicationRealmMonitor(object):
                     self.log.failure()
                     raise
                 else:
-                    self.log.info('{func} Ok, router cluster worker {worker_name} already running on node {node_oid}!',
-                                  func=hltype(self._check_and_apply),
-                                  node_oid=hlid(node_oid),
-                                  worker_name=hlid(worker_name))
+                    self.log.debug(
+                        '{func} Ok, router cluster worker {worker_name} already running on node {node_oid}!',
+                        func=hltype(self._check_and_apply),
+                        node_oid=hlid(node_oid),
+                        worker_name=hlid(worker_name))
 
                 # II.2) if there isn't a worker running (with worker ID as we expect) already, start a new router worker
                 if not worker:
@@ -603,7 +605,7 @@ class ApplicationRealmMonitor(object):
                             worker_name=hlid(worker_name),
                             transport_id=hlid(transport_id))
                     else:
-                        self.log.info(
+                        self.log.debug(
                             '{func} Ok, transport {transport_id} already running on Web cluster worker {worker_name}',
                             func=hltype(self._check_and_apply),
                             worker_name=hlid(worker_name),
@@ -709,7 +711,7 @@ class ApplicationRealmMonitor(object):
                             worker_name=hlid(worker_name),
                             runtime_realm_id=hlid(runtime_realm_id))
                     else:
-                        self.log.info(
+                        self.log.debug(
                             '{func} Ok, application realm {runtime_realm_id} already running on router cluster worker {worker_name}',
                             func=hltype(self._check_and_apply),
                             worker_name=hlid(worker_name),
@@ -846,7 +848,7 @@ class ApplicationRealmMonitor(object):
                                     runtime_role_id=hlid(runtime_role_id),
                                     role_started=role_started)
                             else:
-                                self.log.info(
+                                self.log.debug(
                                     '{func} Ok, role {runtime_role_id} already running for router cluster worker {worker_name} [{running_role}].',
                                     func=hltype(self._check_and_apply),
                                     worker_name=hlid(worker_name),
@@ -861,11 +863,23 @@ class ApplicationRealmMonitor(object):
                                                                                                  other_placement_oid]
                             other_node_oid = placement.node_oid
                             other_worker_name = other_placement.worker_name
+                            assert other_node_oid
+                            assert other_worker_name
+
+                            other_node = self._manager.gschema.nodes[txn, other_node_oid]
+                            self.log.info(
+                                '{func} Rlink other node worker is on node {other_node_oid}, worker {other_worker_name}, cluster_ip {cluster_ip}:\n{other_node}',
+                                other_node_oid=hlid(other_node_oid),
+                                other_worker_name=hlid(other_worker_name),
+                                cluster_ip=hlval(other_node.cluster_ip) if other_node else None,
+                                other_node=pformat(other_node.marshal()) if other_node else None,
+                                func=hltype(self._check_and_apply))
+                            assert other_node
 
                             # don't create rlinks back to a router worker itself (only all _other_
                             # router workers in the same router worker group)
                             if other_node_oid != node_oid or other_worker_name != worker_name:
-                                self.log.info(
+                                self.log.debug(
                                     '{func} Verifying rlink from {node_oid} / {worker_name} to {other_node_oid} / {other_worker_name} ..',
                                     func=hltype(self._check_and_apply),
                                     node_oid=hlid(node_oid),
@@ -875,9 +889,9 @@ class ApplicationRealmMonitor(object):
 
                                 # get run-time information for the node (as maintained here in our master view of the external world)
                                 # instance of crossbar.master.mrealm.controller.Node
-                                other_node = self._manager._session.nodes.get(str(other_node_oid), None)
+                                other_node_status = self._manager._session.nodes.get(str(other_node_oid), None)
 
-                                if other_node and other_node.status == 'online':
+                                if other_node_status and other_node_status.status == 'online':
 
                                     # get worker run-time information (obtained by calling into the live node)
                                     worker = None
@@ -893,7 +907,7 @@ class ApplicationRealmMonitor(object):
                                         self.log.failure()
                                         raise
                                     else:
-                                        self.log.info(
+                                        self.log.debug(
                                             '{func} Ok, rlink target router worker {worker_name} is running on node {node_oid}!',
                                             func=hltype(self._check_and_apply),
                                             node_oid=hlid(other_node_oid),
@@ -921,55 +935,60 @@ class ApplicationRealmMonitor(object):
                                             worker_name=hlid(worker_name),
                                             runtime_rlink_id=hlid(runtime_rlink_id))
                                     else:
-                                        self.log.info(
+                                        self.log.debug(
                                             '{func} Ok, rlink {runtime_rlink_id} already running on router cluster worker {worker_name}',
                                             func=hltype(self._check_and_apply),
                                             worker_name=hlid(worker_name),
                                             runtime_rlink_id=hlid(runtime_rlink_id))
 
                                     if not running_rlink:
-                                        self.log.warn('FIXME: call start_router_realm_link!')
-
-                                        if not other_placement.tcp_listening_port:
-                                            self.log.warn('{func} No listening port in placement!',
-                                                          func=hltype(self._check_and_apply))
+                                        if not other_placement.tcp_listening_port or not other_node.cluster_ip:
+                                            self.log.warn(
+                                                '{func} Missing rlink target cluster listening port or IP in placement (cluster_ip={cluster_ip}, tcp_listening_port={tcp_listening_port})',
+                                                cluster_ip=hlval(other_node.cluster_ip),
+                                                tcp_listening_port=hlval(other_placement.tcp_listening_port),
+                                                func=hltype(self._check_and_apply))
+                                            is_running_completely = False
                                         else:
                                             rlink_config = {
                                                 'realm': realm_name,
                                                 'authid': node_authid,
                                                 'transport': {
-                                                    'type': 'rawsocket',
+                                                    'type':
+                                                    'rawsocket',
                                                     'endpoint': {
                                                         'type': 'tcp',
-                                                        'host': '127.0.0.1',
+                                                        'host': other_node.cluster_ip,
                                                         'port': other_placement.tcp_listening_port
                                                     },
-                                                    'serializer': 'cbor',
-                                                    'url': 'rs://localhost',
+                                                    'serializer':
+                                                    'cbor',
+                                                    'url':
+                                                    'rs://{}:{}'.format(other_node.cluster_ip,
+                                                                        other_placement.tcp_listening_port),
                                                 },
                                                 'forward_local_invocations': True,
                                                 'forward_remote_invocations': False,
                                                 'forward_local_events': True,
                                                 'forward_remote_events': False,
                                             }
-                                            try:
-                                                rlink_started = yield self._manager._session.call(
-                                                    'crossbarfabriccenter.remote.router.start_router_realm_link',
-                                                    str(other_node_oid), other_worker_name, runtime_realm_id,
-                                                    runtime_rlink_id, rlink_config)
-                                                print(pformat(rlink_started))
+                                            rlink_started = yield self._manager._session.call(
+                                                'crossbarfabriccenter.remote.router.start_router_realm_link',
+                                                str(other_node_oid), other_worker_name, runtime_realm_id,
+                                                runtime_rlink_id, rlink_config)
 
-                                                running_rlink = yield self._manager._session.call(
-                                                    'crossbarfabriccenter.remote.router.get_router_realm_link',
-                                                    str(other_node_oid), other_worker_name, runtime_realm_id,
-                                                    runtime_rlink_id)
-                                                print(pformat(running_rlink))
-                                            except ApplicationError as e:
-                                                if e.error not in [
-                                                        'crossbar.error.no_such_object', 'wamp.error.no_such_procedure'
-                                                ]:
-                                                    # anything but "no_such_object" is unexpected (and fatal)
-                                                    raise
+                                            running_rlink = yield self._manager._session.call(
+                                                'crossbarfabriccenter.remote.router.get_router_realm_link',
+                                                str(other_node_oid), other_worker_name, runtime_realm_id,
+                                                runtime_rlink_id)
+
+                                            self.log.info(
+                                                '{func} Rlink {runtime_rlink_id} started on router cluster worker {worker_name}:\n{rlink_started}\n{running_rlink}',
+                                                func=hltype(self._check_and_apply),
+                                                rlink_started=pformat(rlink_started),
+                                                running_rlink=pformat(running_rlink),
+                                                worker_name=hlid(worker_name),
+                                                runtime_rlink_id=hlid(runtime_rlink_id))
 
             else:
                 if node:
