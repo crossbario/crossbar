@@ -1004,7 +1004,7 @@ class ProxyRoute(object):
         yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
 
         self.log.info('{func} proxy route {route_id} stopped for realm "{realm}"',
-                      func=hltype(self.start),
+                      func=hltype(self.stop),
                       route_id=hlid(self._route_id),
                       realm=hlval(self._realm_name))
 
@@ -1190,7 +1190,7 @@ class ProxyController(TransportController):
         :returns: True if a route to the realm (for any role) exists.
         :rtype: bool
         """
-        result = realm in self._routes
+        result = realm in self._routes and len(self._routes[realm]) > 0
         self.log.debug('{func}(realm="{realm}") -> {result}',
                        func=hltype(ProxyController.has_realm),
                        realm=hlid(realm),
