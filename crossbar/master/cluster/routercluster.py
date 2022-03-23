@@ -1185,6 +1185,9 @@ class RouterClusterManager(object):
                 placement.cluster_oid = routercluster_oid_
                 placement.node_oid = placement_node_oid
                 placement.worker_name = '{}_{}'.format(workergroup_obj.name, i + 1)
+                placement.status = WorkerGroupStatus.STOPPED
+                placement.changed = time_ns()
+                placement.tcp_listening_port = 0
 
                 self.schema.router_workergroup_placements[txn, placement.oid] = placement
 

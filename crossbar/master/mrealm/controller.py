@@ -461,7 +461,7 @@ class MrealmController(ApplicationSession):
                     if self._nodes[node_id].status == 'offline':
                         # this is "expected" - we already knew that the node is offline, and hence the call is failing
                         # because of "no_such_procedure" is exactly what will happen as the node is offline
-                        self.log.debug(
+                        self.log.warn(
                             '{action} [status={status}] {func}',
                             action=hl('Warning, managed node "{}" still not connected or operational'.format(node_id),
                                       color='red',
@@ -507,12 +507,12 @@ class MrealmController(ApplicationSession):
                 self._nodes[node_id].last_activity = Node.LAST_ACTIVITY_CHECK
                 self._nodes[node_id].last_active = time_ns()
                 if self._nodes[node_id].status == 'online':
-                    self.log.debug('{action} [status={status}] {func}',
-                                   action=hl('Ok, managed node "{}" is still healthy'.format(node_id),
-                                             color='green',
-                                             bold=False),
-                                   status=hlval(self._nodes[node_id].status),
-                                   func=hltype(self.check_and_apply))
+                    self.log.info('{action} [status={status}] {func}',
+                                  action=hl('Ok, managed node "{}" is still healthy'.format(node_id),
+                                            color='green',
+                                            bold=False),
+                                  status=hlval(self._nodes[node_id].status),
+                                  func=hltype(self.check_and_apply))
                 else:
                     self.log.info('{action} [status={status} -> "{new_status}"] {func}',
                                   action=hl('Ok, managed node "{}" became healthy (again)'.format(node_id),
