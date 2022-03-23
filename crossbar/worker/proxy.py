@@ -1190,7 +1190,7 @@ class ProxyController(TransportController):
         :returns: True if a route to the realm (for any role) exists.
         :rtype: bool
         """
-        result = realm in self._routes and len(self._routes[realm]) > 0
+        result = realm in self._routes
         self.log.debug('{func}(realm="{realm}") -> {result}',
                        func=hltype(ProxyController.has_realm),
                        realm=hlid(realm),
@@ -1651,6 +1651,11 @@ class ProxyController(TransportController):
         route = self._routes[realm_name][route_id]
         yield route.stop()
         del self._routes[realm_name][route_id]
+
+        # If all routes are stopped, clear the realm from routes map
+        # Relevant discussion: https://github.com/crossbario/crossbar/pull/1968
+        if len(self._routes[realm_name]) == 0:
+            del self._routes[realm_name]
 
         returnValue(route.marshal())
 
