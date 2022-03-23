@@ -7,7 +7,7 @@
 
 import os
 import uuid
-from typing import Optional, List, Dict, Tuple, Any
+from typing import Optional, List, Dict
 from pprint import pformat
 
 import numpy as np
@@ -1008,23 +1008,19 @@ class ApplicationRealmManager(object):
     # publication options for management API events
     _PUBOPTS = PublishOptions(acknowledge=True)
 
-    def __init__(self, session, globaldb, globalschema, db, schema, reactor=None):
+    def __init__(self, session, globaldb: zlmdb.Database, globalschema: cfxdb.globalschema.GlobalSchema,
+                 db: zlmdb.Database, schema: cfxdb.mrealmschema.MrealmSchema, reactor=None):
         """
 
         :param session: Backend of user created management realms.
-        :type session: :class:`crossbar.master.mrealm.controller.MrealmController`
 
         :param globaldb: Global database handle.
-        :type globaldb: :class:`zlmdb.Database`
 
         :param globalschema: Global database schema.
-        :type globalschema: :class:`cfxdb.globalschema.GlobalSchema`
 
         :param db: Management realm database handle.
-        :type db: :class:`zlmdb.Database`
 
         :param schema: Management realm database schema.
-        :type schema: :class:`cfxdb.mrealmschema.MrealmSchema`
         """
         self._session = session
 
