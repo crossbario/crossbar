@@ -1638,7 +1638,7 @@ class ProxyController(TransportController):
         :return: Run-time information about the stopped route.
         """
         self.log.info('{func}(realm_name={realm_name}, caller_authid="{caller_authid}")',
-                      func=hltype(self.stop_proxy_route),
+                      func=hltype(self.stop_proxy_realm_route),
                       realm_name=realm_name,
                       caller_authid=hlval(details.caller_authid))
         if realm_name not in self._routes:
