@@ -151,7 +151,7 @@ class ApplicationRealmMonitor(object):
                     assert workergroup
 
                     # get all workergroup worker placements for this workergroup
-                    workergroup_placements = []
+                    workergroup_placements: List[RouterWorkerGroupClusterPlacement] = []
 
                     # idx_clusterplacement_by_workername: (workergroup_oid, cluster_oid, node_oid, worker_name)
                     #                                       -> placement_oid
@@ -437,7 +437,7 @@ class ApplicationRealmMonitor(object):
         for placement in workergroup_placements:
 
             # can placement.node_oid *not* be in this map?
-            node_authid = placement_nodes_keys[placement.node_oid][1]
+            node_authid = placement_nodes_keys[placement.node_oid].authid
             connection_id = 'cnc_{}_{}'.format(node_authid, placement.worker_name)
 
             # config = {'anonymous': connection_id}
@@ -765,82 +765,81 @@ class ApplicationRealmMonitor(object):
                         from_key = (arealm.oid, uuid.UUID(bytes=b'\x00' * 16))
                         to_key = (uuid.UUID(int=(int(arealm.oid) + 1)), uuid.UUID(bytes=b'\x00' * 16))
 
-                        for _, role_oid in self._manager.schema.arealm_role_associations.select(txn,
-                                                                                                from_key=from_key,
-                                                                                                to_key=to_key,
-                                                                                                return_values=False):
-                            role = self._manager.schema.roles[txn, role_oid]
+                        with self._manager.db.begin() as txn:
+                            for _, role_oid in self._manager.schema.arealm_role_associations.select(
+                                    txn, from_key=from_key, to_key=to_key, return_values=False):
+                                role = self._manager.schema.roles[txn, role_oid]
 
-                            # make sure role name is not reserved
-                            assert role.name not in ['rlink'
-                                                     ], 'use of reserved role name "rlink" in role {}'.format(role_oid)
+                                # make sure role name is not reserved
+                                assert role.name not in [
+                                    'rlink'
+                                ], 'use of reserved role name "rlink" in role {}'.format(role_oid)
 
-                            runtime_role_id = 'rle_{}'.format(str(role.oid)[:8])
-                            try:
-                                running_role = yield self._manager._session.call(
-                                    'crossbarfabriccenter.remote.router.get_router_realm_role', str(node_oid),
-                                    worker_name, runtime_realm_id, runtime_role_id)
-                            except ApplicationError as e:
-                                if e.error != 'crossbar.error.no_such_object':
-                                    # anything but "no_such_object" is unexpected (and fatal)
-                                    raise
-                                self.log.info(
-                                    '{func} No role {runtime_role_id} currently running for router cluster worker {worker_name}: starting role ..',
-                                    func=hltype(self._apply_routercluster_placements),
-                                    worker_name=hlid(worker_name),
-                                    runtime_role_id=hlid(runtime_role_id))
+                                runtime_role_id = 'rle_{}'.format(str(role.oid)[:8])
+                                try:
+                                    running_role = yield self._manager._session.call(
+                                        'crossbarfabriccenter.remote.router.get_router_realm_role', str(node_oid),
+                                        worker_name, runtime_realm_id, runtime_role_id)
+                                except ApplicationError as e:
+                                    if e.error != 'crossbar.error.no_such_object':
+                                        # anything but "no_such_object" is unexpected (and fatal)
+                                        raise
+                                    self.log.info(
+                                        '{func} No role {runtime_role_id} currently running for router cluster worker {worker_name}: starting role ..',
+                                        func=hltype(self._apply_routercluster_placements),
+                                        worker_name=hlid(worker_name),
+                                        runtime_role_id=hlid(runtime_role_id))
 
-                                permissions = []
-                                from_key2 = (role.oid, '')
-                                to_key2 = (uuid.UUID(int=(int(role.oid) + 1)), '')
-                                for permission_oid in self._manager.schema.idx_permissions_by_uri.select(
-                                        txn, from_key=from_key2, to_key=to_key2, return_keys=False):
-                                    permission = self._manager.schema.permissions[txn, permission_oid]
-                                    permissions.append({
-                                        'uri':
-                                        permission.uri,
-                                        'match':
-                                        Permission.MATCH_TYPES_TOSTR[permission.match] if permission.match else None,
-                                        'allow': {
-                                            'call': permission.allow_call or False,
-                                            'register': permission.allow_register or False,
-                                            'publish': permission.allow_publish or False,
-                                            'subscribe': permission.allow_subscribe or False
-                                        },
-                                        'disclose': {
-                                            'caller': permission.disclose_caller or False,
-                                            'publisher': permission.disclose_publisher or False
-                                        },
-                                        'cache':
-                                        permission.cache or False
-                                    })
+                                    permissions = []
+                                    from_key2 = (role.oid, '')
+                                    to_key2 = (uuid.UUID(int=(int(role.oid) + 1)), '')
+                                    for permission_oid in self._manager.schema.idx_permissions_by_uri.select(
+                                            txn, from_key=from_key2, to_key=to_key2, return_keys=False):
+                                        permission = self._manager.schema.permissions[txn, permission_oid]
+                                        permissions.append({
+                                            'uri':
+                                            permission.uri,
+                                            'match':
+                                            Permission.MATCH_TYPES_TOSTR[permission.match]
+                                            if permission.match else None,
+                                            'allow': {
+                                                'call': permission.allow_call or False,
+                                                'register': permission.allow_register or False,
+                                                'publish': permission.allow_publish or False,
+                                                'subscribe': permission.allow_subscribe or False
+                                            },
+                                            'disclose': {
+                                                'caller': permission.disclose_caller or False,
+                                                'publisher': permission.disclose_publisher or False
+                                            },
+                                            'cache':
+                                            permission.cache or False
+                                        })
 
-                                runtime_role_config = {'name': role.name, 'permissions': permissions}
+                                    runtime_role_config = {'name': role.name, 'permissions': permissions}
 
-                                role_started = yield self._manager._session.call(
-                                    'crossbarfabriccenter.remote.router.start_router_realm_role', str(node_oid),
-                                    worker_name, runtime_realm_id, runtime_role_id, runtime_role_config)
+                                    role_started = yield self._manager._session.call(
+                                        'crossbarfabriccenter.remote.router.start_router_realm_role', str(node_oid),
+                                        worker_name, runtime_realm_id, runtime_role_id, runtime_role_config)
 
-                                self.log.info(
-                                    '{func} Application realm role {runtime_role_id} started on router cluster worker {worker_name} [{role_started}]',
-                                    func=hltype(self._apply_routercluster_placements),
-                                    worker_name=hlid(worker_name),
-                                    runtime_role_id=hlid(runtime_role_id),
-                                    role_started=role_started)
-                            else:
-                                self.log.debug(
-                                    '{func} Ok, role {runtime_role_id} already running for router cluster worker {worker_name} [{running_role}].',
-                                    func=hltype(self._apply_routercluster_placements),
-                                    worker_name=hlid(worker_name),
-                                    runtime_role_id=hlid(runtime_role_id),
-                                    running_role=running_role)
+                                    self.log.info(
+                                        '{func} Application realm role {runtime_role_id} started on router cluster worker {worker_name} [{role_started}]',
+                                        func=hltype(self._apply_routercluster_placements),
+                                        worker_name=hlid(worker_name),
+                                        runtime_role_id=hlid(runtime_role_id),
+                                        role_started=role_started)
+                                else:
+                                    self.log.debug(
+                                        '{func} Ok, role {runtime_role_id} already running for router cluster worker {worker_name} [{running_role}].',
+                                        func=hltype(self._apply_routercluster_placements),
+                                        worker_name=hlid(worker_name),
+                                        runtime_role_id=hlid(runtime_role_id),
+                                        running_role=running_role)
 
                     # IV.3) if we have a running application realm by now, start router-to-router links
                     # between this worker, and every other worker in this router worker group
                     if running_arealm:
-                        for other_placement_oid in workergroup_placements:
-                            other_placement = self._manager.schema.router_workergroup_placements[txn,
-                                                                                                 other_placement_oid]
+                        for other_placement in workergroup_placements:
                             other_node_oid = placement.node_oid
                             other_worker_name = other_placement.worker_name
                             assert other_node_oid
