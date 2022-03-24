@@ -57,6 +57,7 @@ service_identity>=17.0.0
 setproctitle>=1.1.10
 setuptools>=36.2.7
 six>=1.13.0
+sortedcontainers>=2.4.0
 stringcase>=1.2.0
 tabulate>=0.7.7
 treq>=20.4.1

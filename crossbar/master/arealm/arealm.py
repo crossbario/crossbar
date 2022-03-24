@@ -7,7 +7,7 @@
 
 import os
 import uuid
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict
 from pprint import pformat
 
 import numpy as np
@@ -20,7 +20,7 @@ from autobahn.wamp.types import CallDetails, PublishOptions, RegisterOptions
 from crossbar._util import hl, hlid, hltype, hlval
 import zlmdb
 from cfxdb.mrealm import ApplicationRealm, ApplicationRealmRoleAssociation, Role, Permission, \
-    WorkerGroupStatus, Principal, Credential
+    WorkerGroupStatus, Principal, Credential, RouterWorkerGroupClusterPlacement, Node
 
 import txaio
 txaio.use_twisted()
@@ -87,7 +87,8 @@ class ApplicationRealmMonitor(object):
         :return:
         """
         assert self._loop is None
-        self._loop = LoopingCall(self.check_and_apply)
+
+        self._loop = LoopingCall(self._check_and_apply)
         self._loop.start(self._interval)
 
     def stop(self):
@@ -95,14 +96,19 @@ class ApplicationRealmMonitor(object):
         Stop running this monitor.
         """
         assert self._loop is not None
+
         self._loop.stop()
         self._loop = None
         self._check_and_apply_in_progress = False
 
     @inlineCallbacks
-    def check_and_apply(self):
+    def _check_and_apply(self):
         """
         Run one iteration of the background monitor check & apply cycle.
+
+        - _apply_routercluster_placements (L194)
+        - _apply_webcluster_backends (L232)
+            - _apply_webcluster_routes
         """
         if self._check_and_apply_in_progress:
             # we prohibit running the iteration multiple times concurrently. this might
@@ -110,159 +116,147 @@ class ApplicationRealmMonitor(object):
             self.log.warn(
                 '{func} {action} for application realm {arealm_oid} skipped! check & apply already in progress.',
                 action=hl('check & apply run skipped', color='red', bold=True),
-                func=hltype(self.check_and_apply),
+                func=hltype(self._check_and_apply),
                 arealm_oid=hlid(self._arealm_oid))
             return
         else:
             self.log.info('{func} {action} for application realm {arealm_oid} ..',
                           action=hl('check & apply run started', color='green', bold=True),
-                          func=hltype(self.check_and_apply),
+                          func=hltype(self._check_and_apply),
                           arealm_oid=hlid(self._arealm_oid))
             self._check_and_apply_in_progress = True
 
-        is_running_completely = True
-        workergroup = None
-        workergroup_placements = []
-        # map of pubkeys of (distinct) nodes this router worker group runs workers on
-        placement_nodes_keys = {}
+        # collect information on resources that ought to be running for the arealm
+        with self._manager.db.begin() as txn:
+            arealm = self._manager.schema.arealms[txn, self._arealm_oid]
 
-        try:
-            with self._manager.db.begin(write=False) as txn:
-                arealm = self._manager.schema.arealms[txn, self._arealm_oid]
-                assert arealm
+            # the object must be in database, otherwise this is a logic error
+            assert arealm
 
-                # only process arealm when status is STATUS_STARTING or STATUS_RUNNING
-                if arealm.status in [ApplicationRealm.STATUS_STARTING, ApplicationRealm.STATUS_RUNNING]:
+            # only process arealm when status is STATUS_STARTING or STATUS_RUNNING
+            if arealm.status in [ApplicationRealm.STATUS_STARTING, ApplicationRealm.STATUS_RUNNING]:
 
-                    # collect roles associated with the arealm
-                    roles = []
-                    for _, role_oid in self._manager.schema.arealm_role_associations.select(
-                            txn, from_key=(self._arealm_oid, uuid.UUID(bytes=b'\0' * 16)), return_values=False):
-                        role = self._manager.schema.roles[txn, role_oid]
-                        roles.append(role)
+                # collect roles associated with the arealm
+                roles = []
+                for _, role_oid in self._manager.schema.arealm_role_associations.select(
+                        txn, from_key=(self._arealm_oid, uuid.UUID(bytes=b'\0' * 16)), return_values=False):
+                    role = self._manager.schema.roles[txn, role_oid]
+                    roles.append(role)
 
-                    # get the routercluster workergroup for this arealm
-                    if arealm.workergroup_oid:
-                        workergroup = self._manager.schema.router_workergroups[txn, arealm.workergroup_oid]
-                        assert workergroup
+                # get the routercluster workergroup for this arealm
+                if arealm.workergroup_oid:
+                    workergroup = self._manager.schema.router_workergroups[txn, arealm.workergroup_oid]
 
-                        # get all workergroup worker placements for this workergroup, using index
-                        #   idx_clusterplacement_by_workername:
-                        #       (workergroup_oid, cluster_oid, node_oid, worker_name) -> placement_oid
-                        workergroup_placements = [
-                            placement_oid
-                            for placement_oid in self._manager.schema.idx_clusterplacement_by_workername.select(
-                                txn,
-                                from_key=(workergroup.oid, uuid.UUID(bytes=b'\0' * 16), uuid.UUID(bytes=b'\0' * 16),
-                                          ''),
-                                to_key=(uuid.UUID(int=(int(workergroup.oid) + 1)), uuid.UUID(bytes=b'\0' * 16),
-                                        uuid.UUID(bytes=b'\0' * 16), ''),
-                                return_keys=False)
-                        ]
-                        if not workergroup_placements:
-                            self.log.warn(
-                                '{func} no placements yet for router cluster worker group {workergroup_oid} and arealm {arealm_oid}!',
-                                func=hltype(self.check_and_apply),
-                                workergroup_oid=hlid(arealm.workergroup_oid),
-                                arealm_oid=hlid(arealm.oid))
+                    # the object must be in database, otherwise this is a logic error
+                    assert workergroup
 
-                        else:
-                            self.log.info(
-                                '{func} ok, found {cnt_placements} worker placements for router cluster worker group {workergroup_oid} and arealm {arealm_oid}',
-                                func=hltype(self.check_and_apply),
-                                cnt_placements=hlval(len(workergroup_placements)),
-                                workergroup_oid=hlid(arealm.workergroup_oid),
-                                arealm_oid=hlid(arealm.oid))
+                    # get all workergroup worker placements for this workergroup
+                    workergroup_placements: List[RouterWorkerGroupClusterPlacement] = []
 
-                            # construct helper map: node_oid -> (node_pubkey, node_authid)
-                            xx_fixme = {}
-                            with self._manager.gdb.begin() as txn2:
-                                for placement_oid in workergroup_placements:
-                                    placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
-                                    node = self._manager.gschema.nodes[txn2, placement.node_oid]
-                                    placement_nodes_keys[node.oid] = (node.pubkey, node.authid)
-                                for node in self._manager.gschema.nodes.select(txn2, return_keys=False):
-                                    xx_fixme[node.oid] = (node.pubkey, node.authid)
+                    # idx_clusterplacement_by_workername: (workergroup_oid, cluster_oid, node_oid, worker_name)
+                    #                                       -> placement_oid
+                    for placement_oid in self._manager.schema.idx_clusterplacement_by_workername.select(
+                            txn,
+                            from_key=(workergroup.oid, uuid.UUID(bytes=b'\0' * 16), uuid.UUID(bytes=b'\0' * 16), ''),
+                            to_key=(uuid.UUID(int=(int(workergroup.oid) + 1)), uuid.UUID(bytes=b'\0' * 16),
+                                    uuid.UUID(bytes=b'\0' * 16), ''),
+                            return_keys=False):
+                        placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
+                        workergroup_placements.append(placement)
 
-                            # apply routercluster worker placements for nodes/workers involved
-                            success = yield self._apply_placements(
-                                txn,
-                                arealm,
-                                workergroup,
-                                workergroup_placements,
-                                placement_nodes_keys,
-                                xx_fixme,
-                            )
-                            if not success:
-                                is_running_completely = False
-
-                    else:
-                        self.log.warn('{func} application realm in status {status}, but no worker group associated!',
-                                      func=hltype(self.check_and_apply),
-                                      status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
-                        is_running_completely = False
-
-                    # if the application realm has a (frontend) webcluster assigned (to accept incoming client
-                    # connections), setup proxy backend connections and routes to the router workers in the
-                    # router worker group of the application realm
-                    if arealm.webcluster_oid:
-                        # get list of nodes/workers for the webcluster, eg:
-                        #
-                        # [('309fa904-9f32-47b9-901c-33ec78b0c582', 'cpw-edc6ba18-0'),
-                        #  ('309fa904-9f32-47b9-901c-33ec78b0c582', 'cpw-edc6ba18-1'),
-                        #  ('4f19d9e0-4b28-45fc-bbb0-8e46e6d79376', 'cpw-edc6ba18-0'),
-                        #  ('4f19d9e0-4b28-45fc-bbb0-8e46e6d79376', 'cpw-edc6ba18-1')]
-                        #
-                        wc_workers = self._manager._session._webcluster_manager.get_webcluster_workers(
-                            arealm.webcluster_oid, filter_online=True)
-                        self.log.info('{func} Ok, found {cnt_workers} running web cluster workers ..',
-                                      func=hltype(self.check_and_apply),
-                                      cnt_workers=len(wc_workers) if wc_workers else 0)
-
-                        # on each webcluster worker, setup backend connections and routes to all router workers of
-                        # the router worker group of this application realm
-                        for wc_node_oid, wc_worker_id in wc_workers:
-
-                            yield self._apply_worker_backends(
-                                txn,
-                                wc_node_oid,
-                                wc_worker_id,
-                                workergroup_placements,
-                                placement_nodes_keys,
-                                arealm,
-                            )
-                    else:
-                        self.log.warn('{func} application realm in status {status}, but no web cluster associated!',
-                                      func=hltype(self.check_and_apply),
-                                      status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
-                        is_running_completely = False
                 else:
-                    self.log.info('{func} {action} for application realm {arealm_oid} (status is {arealm_status})',
-                                  action=hl('check & apply skipped', color='yellow', bold=True),
-                                  func=hltype(self.check_and_apply),
-                                  arealm_oid=hlid(self._arealm_oid),
-                                  arealm_status=arealm.status)
+                    self.log.warn('{func} application realm in status {status}, but no worker group associated!',
+                                  func=hltype(self._check_and_apply),
+                                  status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
+                    self._check_and_apply_in_progress = False
+                    return
+            else:
+                self.log.warn('{func} {action} for application realm {arealm_oid} (status is {arealm_status})',
+                              action=hl('check & apply skipped', color='yellow', bold=True),
+                              func=hltype(self._check_and_apply),
+                              arealm_oid=hlid(self._arealm_oid),
+                              arealm_status=arealm.status)
+                self._check_and_apply_in_progress = False
+                return
 
-            # if the status is STATUS_STARTING and we have indeed completed startup in this iteration,
-            # update the status and publish an event
-            if arealm.status in [ApplicationRealm.STATUS_STARTING] and is_running_completely:
-                with self._manager.db.begin(write=True) as txn:
-                    arealm = self._manager.schema.arealms[txn, self._arealm_oid]
-                    arealm.status = ApplicationRealm.STATUS_RUNNING
-                    arealm.changed = time_ns()
-                    self._manager.schema.arealms[txn, arealm.oid] = arealm
+        # whenever we encounter a resource not running or in error, this flag is set False
+        is_running_completely = True
 
-                arealm_started = {
-                    'oid': str(arealm.oid),
-                    'status': ApplicationRealm.STATUS_BY_CODE[arealm.status],
-                    'changed': arealm.changed,
-                }
-                yield self._manager._session.publish('{}.on_arealm_started'.format(self._manager._prefix),
-                                                     arealm_started,
-                                                     options=self._manager._PUBOPTS)
-        except:
-            # catch-all just logs the problem, ensuring we continue to run (or retry next iteration) ..
-            self.log.failure()
+        # map of nodes this router worker group runs workers on
+        placement_nodes = {}
+
+        if workergroup_placements:
+            self.log.info(
+                '{func} Applying {cnt_placements} worker placements for router cluster worker group {workergroup_oid}, arealm {arealm_oid}',
+                func=hltype(self._check_and_apply),
+                cnt_placements=hlval(len(workergroup_placements)),
+                workergroup_oid=hlid(arealm.workergroup_oid),
+                arealm_oid=hlid(arealm.oid))
+
+            with self._manager.gdb.begin() as txn:
+                for node in self._manager.gschema.nodes.select(txn, return_keys=False):
+                    placement_nodes[node.oid] = node
+
+            # apply routercluster worker placements for nodes/workers involved
+            success = yield self._apply_routercluster_placements(arealm, workergroup, workergroup_placements,
+                                                                 placement_nodes)
+            if not success:
+                is_running_completely = False
+        else:
+            self.log.warn(
+                '{func} no placements configured for router cluster worker group {workergroup_oid} and arealm {arealm_oid}!',
+                func=hltype(self._check_and_apply),
+                workergroup_oid=hlid(arealm.workergroup_oid),
+                arealm_oid=hlid(arealm.oid))
+            is_running_completely = False
+
+        # if the application realm has a (frontend) webcluster assigned (to accept incoming client
+        # connections), setup proxy backend connections and routes to the router workers in the
+        # router worker group of the application realm
+        if arealm and arealm.webcluster_oid and workergroup_placements:
+            # get list of nodes/workers for the webcluster, eg:
+            #
+            # [('309fa904-9f32-47b9-901c-33ec78b0c582', 'cpw-edc6ba18-0'),
+            #  ('309fa904-9f32-47b9-901c-33ec78b0c582', 'cpw-edc6ba18-1'),
+            #  ('4f19d9e0-4b28-45fc-bbb0-8e46e6d79376', 'cpw-edc6ba18-0'),
+            #  ('4f19d9e0-4b28-45fc-bbb0-8e46e6d79376', 'cpw-edc6ba18-1')]
+            #
+            wc_workers = self._manager._session._webcluster_manager.get_webcluster_workers(arealm.webcluster_oid,
+                                                                                           filter_online=True)
+            self.log.debug('{func} Ok, found {cnt_workers} running web cluster workers ..',
+                           func=hltype(self._check_and_apply),
+                           cnt_workers=len(wc_workers) if wc_workers else 0)
+
+            # on each webcluster worker, setup backend connections and routes to all router workers of
+            # the router worker group of this application realm
+            for wc_node_oid, wc_worker_id in wc_workers:
+                success = yield self._apply_webcluster_backends(wc_node_oid, wc_worker_id, workergroup_placements,
+                                                                placement_nodes, arealm)
+                if not success:
+                    is_running_completely = False
+        else:
+            self.log.warn('{func} application realm in status {status}, but no web cluster associated!',
+                          func=hltype(self._check_and_apply),
+                          status=hlval(ApplicationRealm.STATUS_BY_CODE[arealm.status]))
+            is_running_completely = False
+
+        # if the status is STATUS_STARTING and we have indeed completed startup in this iteration,
+        # update the status in the database and publish an event
+        if arealm.status in [ApplicationRealm.STATUS_STARTING] and is_running_completely:
+            with self._manager.db.begin(write=True) as txn:
+                arealm = self._manager.schema.arealms[txn, self._arealm_oid]
+                arealm.status = ApplicationRealm.STATUS_RUNNING
+                arealm.changed = time_ns()
+                self._manager.schema.arealms[txn, arealm.oid] = arealm
+
+            arealm_started = {
+                'oid': str(arealm.oid),
+                'status': ApplicationRealm.STATUS_BY_CODE[arealm.status],
+                'changed': arealm.changed,
+            }
+            yield self._manager._session.publish('{}.on_arealm_started'.format(self._manager._prefix),
+                                                 arealm_started,
+                                                 options=self._manager._PUBOPTS)
 
         if is_running_completely:
             color = 'green'
@@ -274,34 +268,34 @@ class ApplicationRealmMonitor(object):
         self._check_and_apply_in_progress = False
         self.log.info('{func} {action} for application realm {arealm_oid}!',
                       action=hl(action, color=color, bold=True),
-                      func=hltype(self.check_and_apply),
+                      func=hltype(self._check_and_apply),
                       arealm_oid=hlid(self._arealm_oid))
 
     @inlineCallbacks
-    def _apply_worker_backends(self, txn, wc_node_oid, wc_worker_id, workergroup_placements, placement_nodes_keys,
-                               arealm):
+    def _apply_webcluster_backends(self, wc_node_oid, wc_worker_id, workergroup_placements, placement_nodes, arealm):
         """
         For given webcluster worker ``(wc_node_oid, wc_worker_id)``, setup backend connections and routes
         to all router workers ``workergroup_placements`` of the router worker group of the given
         application realm ``arealm``.
         """
+        is_running_completely = True
+
         # iterate over all router worker placements in the router cluster worker group.
-        # we need to setup:
+        # for each placement on the given (wc_node_oid, wc_worker_id) webcluster worker, we need to setup:
         #   - a connection and
         #   - routes
-        # for each placement on the given (wc_node_oid, wc_worker_id) webcluster worker
-        #
-        for placement_oid in workergroup_placements:
-            placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
-            self.log.info('{func} applying router cluster worker group placement:\n{placement}',
-                          func=hltype(self.check_and_apply),
-                          placement=pformat(placement.marshal()))
+        for placement in workergroup_placements:
+            self.log.debug('{func} applying router cluster worker group placement:\n{placement}',
+                           func=hltype(self._apply_webcluster_backends),
+                           placement=pformat(placement.marshal()))
 
             # the router worker this placement targets
             node_oid = placement.node_oid
-            node_authid = placement_nodes_keys[node_oid][1] if node_oid in placement_nodes_keys else None
             worker_name = placement.worker_name
             tcp_listening_port = placement.tcp_listening_port
+
+            node_authid = placement_nodes[node_oid].authid
+            node_cluster_ip = placement_nodes[node_oid].cluster_ip
 
             # we will name the connection on our proxy worker along the target node/worker
             connection_id = 'cnc_{}_{}'.format(node_authid, worker_name)
@@ -315,17 +309,18 @@ class ApplicationRealmMonitor(object):
                 if e.error != 'crossbar.error.no_such_object':
                     # anything but "no_such_object" is unexpected (and fatal)
                     raise
+                is_running_completely = False
                 connection = None
-                self.log.info(
+                self.log.warn(
                     '{func} No connection {connection_id} currently running for web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}: starting backend connection ..',
-                    func=hltype(self.check_and_apply),
+                    func=hltype(self._apply_webcluster_backends),
                     wc_node_oid=hlid(wc_node_oid),
                     wc_worker_id=hlid(wc_worker_id),
                     connection_id=hlid(connection_id))
             else:
-                self.log.info(
+                self.log.debug(
                     '{func} Ok, connection {connection_id} already running on web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}',
-                    func=hltype(self.check_and_apply),
+                    func=hltype(self._apply_webcluster_backends),
                     wc_node_oid=hlid(wc_node_oid),
                     wc_worker_id=hlid(wc_worker_id),
                     connection_id=hlid(connection_id))
@@ -342,10 +337,10 @@ class ApplicationRealmMonitor(object):
                         "type": "rawsocket",
                         "endpoint": {
                             "type": "tcp",
-                            # FIXME: we assume the authid for the node was set to the hostname of that node, and
-                            #        that the node is reachable using this hostname from other nodes (eg inside a
-                            #        private network)
-                            "host": node_authid,
+                            # we assume the authid for the node was set to the hostname of that node, and
+                            # that the node is reachable using this hostname from other nodes (eg inside a
+                            # private network)
+                            "host": node_cluster_ip,
                             "port": tcp_listening_port
                         },
                         "url": "ws://{}".format(node_authid),
@@ -362,7 +357,7 @@ class ApplicationRealmMonitor(object):
                     connection_id, config)
 
                 self.log.info('{func} Proxy backend connection started:\n{connection}',
-                              func=hltype(self.check_and_apply),
+                              func=hltype(self._apply_webcluster_backends),
                               connection=connection)
 
             # if by now we do have a connection on the proxy worker, setup all routes (for the arealm)
@@ -383,34 +378,39 @@ class ApplicationRealmMonitor(object):
                     if e.error != 'crossbar.error.no_such_object':
                         # anything but "no_such_object" is unexpected (and fatal)
                         raise
-                    self.log.info(
+                    is_running_completely = False
+                    self.log.warn(
                         '{func} No route for realm "{realm_name}" currently running for web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}: starting backend route ..',
-                        func=hltype(self.check_and_apply),
+                        func=hltype(self._apply_webcluster_backends),
                         wc_node_oid=hlid(wc_node_oid),
                         wc_worker_id=hlid(wc_worker_id),
                         realm_name=hlval(realm_name))
                 else:
-                    self.log.info(
+                    self.log.debug(
                         '{func} Ok, route for realm "{realm_name}" already running on web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}',
-                        func=hltype(self.check_and_apply),
+                        func=hltype(self._apply_webcluster_backends),
                         wc_node_oid=hlid(wc_node_oid),
                         wc_worker_id=hlid(wc_worker_id),
                         realm_name=hlval(realm_name))
 
-                if not routes or len(routes) != len(workergroup_placements):
-                    new_routes = yield self._start_proxy_routes(
-                        txn,
+                if (not routes or len(routes) != len(workergroup_placements)):
+                    new_routes, _is_running_completely = yield self._apply_webcluster_routes(
                         workergroup_placements,
                         wc_node_oid,
                         wc_worker_id,
                         arealm,
-                        placement_nodes_keys,
+                        placement_nodes,
                     )
                     routes.extend(new_routes)
+                    if is_running_completely:
+                        is_running_completely = _is_running_completely
+
+        return is_running_completely
 
     @inlineCallbacks
-    def _start_proxy_routes(self, txn, workergroup_placements, wc_node_oid, wc_worker_id, arealm,
-                            placement_nodes_keys):
+    def _apply_webcluster_routes(self, workergroup_placements, wc_node_oid, wc_worker_id, arealm,
+                                 placement_nodes_keys):
+        is_running_completely = True
         realm_name = arealm.name
         try:
             routes = yield self._manager._session.call(
@@ -424,32 +424,33 @@ class ApplicationRealmMonitor(object):
             if e.error != 'crossbar.error.no_such_object':
                 # anything but "no_such_object" is unexpected (and fatal)
                 raise
+            is_running_completely = False
             self.log.info(
                 '{func} No routes for realm "{realm_name}" currently running for web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}: starting backend routes ..',
-                func=hltype(self._start_proxy_routes),
+                func=hltype(self._apply_webcluster_routes),
                 wc_node_oid=hlid(wc_node_oid),
                 wc_worker_id=hlid(wc_worker_id),
                 realm_name=hlval(realm_name))
             routes = []
 
         # FIXME: proxy routes for all realms X roles
-        for placement_oid in workergroup_placements:
-            placement = self._manager.schema.router_workergroup_placements[txn, placement_oid, ]
+        for placement in workergroup_placements:
 
             # can placement.node_oid *not* be in this map?
-            node_authid = placement_nodes_keys[placement.node_oid][1]
+            node_authid = placement_nodes_keys[placement.node_oid].authid
             connection_id = 'cnc_{}_{}'.format(node_authid, placement.worker_name)
 
             # config = {'anonymous': connection_id}
             config = {}
             from_key = (arealm.oid, uuid.UUID(bytes=b'\x00' * 16))
             to_key = (uuid.UUID(int=(int(arealm.oid) + 1)), uuid.UUID(bytes=b'\x00' * 16))
-            for _, role_oid in self._manager.schema.arealm_role_associations.select(txn,
-                                                                                    from_key=from_key,
-                                                                                    to_key=to_key,
-                                                                                    return_values=False):
-                role = self._manager.schema.roles[txn, role_oid]
-                config[role.name] = connection_id
+            with self._manager.db.begin() as txn:
+                for _, role_oid in self._manager.schema.arealm_role_associations.select(txn,
+                                                                                        from_key=from_key,
+                                                                                        to_key=to_key,
+                                                                                        return_values=False):
+                    role = self._manager.schema.roles[txn, role_oid]
+                    config[role.name] = connection_id
 
             # existing = any(route['config'].get(role.name, None) == connection_id for route in routes)
 
@@ -461,38 +462,32 @@ class ApplicationRealmMonitor(object):
             else:
                 self.log.info(
                     '{func} Proxy backend route started:\n{route}',
-                    func=hltype(self.check_and_apply),
+                    func=hltype(self._apply_webcluster_routes),
                     route=route,
                 )
                 routes.append(route)
-        returnValue(routes)
+        returnValue((routes, is_running_completely))
 
     @inlineCallbacks
-    def _apply_placements(self, txn: zlmdb.Transaction, arealm: cfxdb.mrealm.ApplicationRealm,
-                          workergroup: cfxdb.mrealm.RouterWorkerGroup, workergroup_placements: List[uuid.UUID],
-                          placement_nodes_keys: Dict[uuid.UUID, Tuple[str, str]], xx_fixme: Dict[uuid.UUID,
-                                                                                                 Tuple[str, str]]):
+    def _apply_routercluster_placements(self, arealm: cfxdb.mrealm.ApplicationRealm,
+                                        workergroup: cfxdb.mrealm.RouterWorkerGroup,
+                                        workergroup_placements: List[RouterWorkerGroupClusterPlacement],
+                                        placement_nodes: Dict[uuid.UUID, Node]):
         """
         Apply worker placements for workergroup of routercluster.
 
-        :param txn: Open database transaction within to run.
         :param arealm: Application realm to process placements for.
         :param workergroup: Router worker group to process placements for.
-        :param workergroup_placements: List of placement object IDs.
-        :param placement_nodes_keys: Map of node object IDs to pair of node public key and authid.
-        :param xx_fixme: Map of node object IDs to pair of node public key and authid.
+        :param workergroup_placements: List of placements.
+        :param placement_nodes: Map of node object IDs to pair of node public key and authid.
         """
-        # keep track of placements that are new or modified
-        modified_placements = {}
-
         # this flag will remain true as long as we could process all placements successfully
         is_running_completely = True
 
         # I) iterate over all placements sequentially
-        for placement_oid in workergroup_placements:
-            placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
-            self.log.info('{func} applying router cluster worker group placement:\n{placement}',
-                          func=hltype(self.check_and_apply),
+        for placement in workergroup_placements:
+            self.log.info('{func} Applying router cluster worker group placement:\n{placement}',
+                          func=hltype(self._apply_routercluster_placements),
                           placement=pformat(placement.marshal()))
 
             # place the worker on this node and (router) worker
@@ -505,15 +500,12 @@ class ApplicationRealmMonitor(object):
 
             # the node must be found and must be currently online for us to manage it
             if node and node.status == 'online':
+                node_authid = placement_nodes[node_oid].authid
 
-                # FIXME: this is None!
-                node_authid = node.node_authid
-                node_authid = placement_nodes_keys[node_oid][1]
-
-                self.log.info('{func} Ok, router cluster node "{node_authid}" ({node_oid}) is running!',
-                              func=hltype(self.check_and_apply),
-                              node_authid=hlid(node_authid),
-                              node_oid=hlid(node_oid))
+                self.log.debug('{func} Ok, router cluster node "{node_authid}" ({node_oid}) is running!',
+                               func=hltype(self._apply_routercluster_placements),
+                               node_authid=hlid(node_authid),
+                               node_oid=hlid(node_oid))
 
                 # II.1) get worker run-time information (obtained by calling into the live node)
                 worker = None
@@ -524,19 +516,20 @@ class ApplicationRealmMonitor(object):
                     if e.error != 'crossbar.error.no_such_worker':
                         # anything but "no_such_worker" is unexpected (and fatal)
                         raise
-                    self.log.info(
+                    self.log.warn(
                         '{func} No router cluster worker {worker_name} currently running on node {node_oid}: starting worker ..',
-                        func=hltype(self.check_and_apply),
+                        func=hltype(self._apply_routercluster_placements),
                         node_oid=hlid(node_oid),
                         worker_name=hlid(worker_name))
                 except:
                     self.log.failure()
                     raise
                 else:
-                    self.log.info('{func} Ok, router cluster worker {worker_name} already running on node {node_oid}!',
-                                  func=hltype(self.check_and_apply),
-                                  node_oid=hlid(node_oid),
-                                  worker_name=hlid(worker_name))
+                    self.log.debug(
+                        '{func} Ok, router cluster worker {worker_name} already running on node {node_oid}!',
+                        func=hltype(self._apply_routercluster_placements),
+                        node_oid=hlid(node_oid),
+                        worker_name=hlid(worker_name))
 
                 # II.2) if there isn't a worker running (with worker ID as we expect) already, start a new router worker
                 if not worker:
@@ -555,7 +548,7 @@ class ApplicationRealmMonitor(object):
                                                                    str(node_oid), worker_name)
                         self.log.info(
                             '{func} Router cluster worker {worker_name} started on node {node_oid} [{worker_started}]',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._apply_routercluster_placements),
                             node_oid=hlid(node_oid),
                             worker_name=hlid(worker['id']),
                             worker_started=worker_started)
@@ -580,13 +573,13 @@ class ApplicationRealmMonitor(object):
                             raise
                         self.log.info(
                             '{func} No Transport {transport_id} currently running for Web cluster worker {worker_name}: starting transport ..',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._apply_routercluster_placements),
                             worker_name=hlid(worker_name),
                             transport_id=hlid(transport_id))
                     else:
-                        self.log.info(
+                        self.log.debug(
                             '{func} Ok, transport {transport_id} already running on Web cluster worker {worker_name}',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._apply_routercluster_placements),
                             worker_name=hlid(worker_name),
                             transport_id=hlid(transport_id))
 
@@ -613,15 +606,14 @@ class ApplicationRealmMonitor(object):
                             }
                         else:
                             principals = {}
-                            # for pubkey, authid in placement_nodes_keys.values():
-                            all_pubkeys = [pubkey for pubkey, authid in xx_fixme.values()]
-                            for pubkey, authid in xx_fixme.values():
+                            all_pubkeys = [node.pubkey for node in placement_nodes.values()]
+                            for node in placement_nodes.values():
                                 principal = {
                                     'realm': arealm.name,
                                     'role': 'rlink',
                                     'authorized_keys': all_pubkeys,
                                 }
-                                principals[authid] = principal
+                                principals[node.authid] = principal
 
                             transport_config = {
                                 'id': transport_id,
@@ -655,7 +647,7 @@ class ApplicationRealmMonitor(object):
                                 transport_id)
                             self.log.info(
                                 '{func} Transport {transport_id} started on router cluster worker {worker_name} [{transport_started}]',
-                                func=hltype(self.check_and_apply),
+                                func=hltype(self._apply_routercluster_placements),
                                 worker_name=hlid(worker_name),
                                 transport_id=hlid(transport_id),
                                 transport_started=transport_started)
@@ -663,13 +655,21 @@ class ApplicationRealmMonitor(object):
                             self.log.failure()
                             is_running_completely = False
                         else:
+                            # when a new transport was started with an auto-assigned portrange, grab the
+                            # actual TCP listening port that was selected on the target node
                             tcp_listening_port = transport_started['config']['endpoint']['port']
 
-                            placement_obj = self._manager.schema.router_workergroup_placements[txn, placement_oid]
-                            placement_obj.changed = time_ns()
-                            placement_obj.status = WorkerGroupStatus.RUNNING
-                            placement_obj.tcp_listening_port = tcp_listening_port
-                            modified_placements[placement_oid] = placement_obj
+                            with self._manager.db.begin(write=True) as txn:
+                                placement = self._manager.schema.router_workergroup_placements[txn, placement.oid]
+                                placement.changed = time_ns()
+                                placement.status = WorkerGroupStatus.RUNNING
+                                placement.tcp_listening_port = tcp_listening_port
+                                self._manager.schema.router_workergroup_placements[txn, placement.oid] = placement
+
+                            self.log.info('{func} Ok, placement {placement_oid} updated:\n{placement}',
+                                          func=hltype(self._apply_routercluster_placements),
+                                          placement_oid=hlid(placement.oid),
+                                          placement=placement)
 
                     # IV.1) get arealm run-time information (obtained by calling into the live node)
 
@@ -686,22 +686,43 @@ class ApplicationRealmMonitor(object):
                             raise
                         self.log.info(
                             '{func} No application realm {runtime_realm_id} currently running for router cluster worker {worker_name}: starting application realm ..',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._apply_routercluster_placements),
                             worker_name=hlid(worker_name),
                             runtime_realm_id=hlid(runtime_realm_id))
                     else:
-                        self.log.info(
+                        self.log.debug(
                             '{func} Ok, application realm {runtime_realm_id} already running on router cluster worker {worker_name}',
-                            func=hltype(self.check_and_apply),
+                            func=hltype(self._apply_routercluster_placements),
                             worker_name=hlid(worker_name),
                             runtime_realm_id=hlid(runtime_realm_id))
 
                     # IV.2) if there isn't an arealm started (with realm ID as we expect) already,
                     # start a new arealm
                     if not running_arealm:
-                        # FIXME: required default roles: anonymous, rlink
                         realm_config = {
-                            "name": arealm.name,
+                            "name":
+                            arealm.name,
+
+                            # built-in (reserved) roles
+                            "roles": [{
+                                "name":
+                                "rlink",
+                                "permissions": [{
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": True,
+                                        "register": True,
+                                        "publish": True,
+                                        "subscribe": True
+                                    },
+                                    "disclose": {
+                                        "caller": True,
+                                        "publisher": True
+                                    },
+                                    "cache": True
+                                }]
+                            }]
                         }
                         try:
                             # start the application realm on the remote node worker
@@ -713,98 +734,135 @@ class ApplicationRealmMonitor(object):
                                 runtime_realm_id)
                             self.log.info(
                                 '{func} Application realm {runtime_realm_id} started on router cluster worker {worker_name} [{realm_started}]',
-                                func=hltype(self.check_and_apply),
+                                func=hltype(self._apply_routercluster_placements),
                                 worker_name=hlid(worker_name),
                                 runtime_realm_id=hlid(running_arealm['id']),
                                 realm_started=realm_started)
                         except:
                             self.log.failure()
                             is_running_completely = False
+                        else:
+                            # start all built-in (reserved) roles on the remote node worker
+                            i = 1
+                            for role in realm_config['roles']:
+                                runtime_role_id = 'rle_{}_builtin_{}'.format(str(arealm.oid)[:8], i)
+                                role_started = yield self._manager._session.call(
+                                    'crossbarfabriccenter.remote.router.start_router_realm_role', str(node_oid),
+                                    worker_name, runtime_realm_id, runtime_role_id, role)
+                                running_role = yield self._manager._session.call(
+                                    'crossbarfabriccenter.remote.router.get_router_realm_role', str(node_oid),
+                                    worker_name, runtime_realm_id, runtime_role_id)
+                                self.log.info(
+                                    '{func} Application realm role {runtime_role_id} started on router cluster worker {worker_name} [{role_started}]',
+                                    func=hltype(self._apply_routercluster_placements),
+                                    worker_name=hlid(worker_name),
+                                    runtime_role_id=hlid(running_role['id']),
+                                    role_started=role_started)
+                                i += 1
 
                     if running_arealm:
                         # start all roles defined in the realm configuration on the remote node worker
                         from_key = (arealm.oid, uuid.UUID(bytes=b'\x00' * 16))
                         to_key = (uuid.UUID(int=(int(arealm.oid) + 1)), uuid.UUID(bytes=b'\x00' * 16))
-                        for _, role_oid in self._manager.schema.arealm_role_associations.select(txn,
-                                                                                                from_key=from_key,
-                                                                                                to_key=to_key,
-                                                                                                return_values=False):
-                            role = self._manager.schema.roles[txn, role_oid]
-                            runtime_role_id = 'rle_{}'.format(str(role.oid)[:8])
-                            try:
-                                running_role = yield self._manager._session.call(
-                                    'crossbarfabriccenter.remote.router.get_router_realm_role', str(node_oid),
-                                    worker_name, runtime_realm_id, runtime_role_id)
-                            except ApplicationError as e:
-                                if e.error != 'crossbar.error.no_such_object':
-                                    # anything but "no_such_object" is unexpected (and fatal)
-                                    raise
-                                self.log.info(
-                                    '{func} No role {runtime_role_id} currently running for router cluster worker {worker_name}: starting role ..',
-                                    func=hltype(self.check_and_apply),
-                                    worker_name=hlid(worker_name),
-                                    runtime_role_id=hlid(runtime_role_id))
 
-                                permissions = []
-                                from_key2 = (role.oid, '')
-                                to_key2 = (uuid.UUID(int=(int(role.oid) + 1)), '')
-                                for permission_oid in self._manager.schema.idx_permissions_by_uri.select(
-                                        txn, from_key=from_key2, to_key=to_key2, return_keys=False):
-                                    permission = self._manager.schema.permissions[txn, permission_oid]
-                                    permissions.append({
-                                        'uri':
-                                        permission.uri,
-                                        'match':
-                                        Permission.MATCH_TYPES_TOSTR[permission.match] if permission.match else None,
-                                        'allow': {
-                                            'call': permission.allow_call or False,
-                                            'register': permission.allow_register or False,
-                                            'publish': permission.allow_publish or False,
-                                            'subscribe': permission.allow_subscribe or False
-                                        },
-                                        'disclose': {
-                                            'caller': permission.disclose_caller or False,
-                                            'publisher': permission.disclose_publisher or False
-                                        },
-                                        'cache':
-                                        permission.cache or False
-                                    })
+                        with self._manager.db.begin() as txn:
+                            for _, role_oid in self._manager.schema.arealm_role_associations.select(
+                                    txn, from_key=from_key, to_key=to_key, return_values=False):
+                                role = self._manager.schema.roles[txn, role_oid]
 
-                                runtime_role_config = {'name': role.name, 'permissions': permissions}
+                                # make sure role name is not reserved
+                                assert role.name not in [
+                                    'rlink'
+                                ], 'use of reserved role name "rlink" in role {}'.format(role_oid)
 
-                                role_started = yield self._manager._session.call(
-                                    'crossbarfabriccenter.remote.router.start_router_realm_role', str(node_oid),
-                                    worker_name, runtime_realm_id, runtime_role_id, runtime_role_config)
+                                runtime_role_id = 'rle_{}'.format(str(role.oid)[:8])
+                                try:
+                                    running_role = yield self._manager._session.call(
+                                        'crossbarfabriccenter.remote.router.get_router_realm_role', str(node_oid),
+                                        worker_name, runtime_realm_id, runtime_role_id)
+                                except ApplicationError as e:
+                                    if e.error != 'crossbar.error.no_such_object':
+                                        # anything but "no_such_object" is unexpected (and fatal)
+                                        raise
+                                    self.log.info(
+                                        '{func} No role {runtime_role_id} currently running for router cluster worker {worker_name}: starting role ..',
+                                        func=hltype(self._apply_routercluster_placements),
+                                        worker_name=hlid(worker_name),
+                                        runtime_role_id=hlid(runtime_role_id))
 
-                                self.log.info(
-                                    '{func} Application realm role {runtime_role_id} started on router cluster worker {worker_name} [{role_started}]',
-                                    func=hltype(self.check_and_apply),
-                                    worker_name=hlid(worker_name),
-                                    runtime_role_id=hlid(runtime_role_id),
-                                    role_started=role_started)
-                            else:
-                                self.log.info(
-                                    '{func} Ok, role {runtime_role_id} already running for router cluster worker {worker_name} [{running_role}].',
-                                    func=hltype(self.check_and_apply),
-                                    worker_name=hlid(worker_name),
-                                    runtime_role_id=hlid(runtime_role_id),
-                                    running_role=running_role)
+                                    permissions = []
+                                    from_key2 = (role.oid, '')
+                                    to_key2 = (uuid.UUID(int=(int(role.oid) + 1)), '')
+                                    for permission_oid in self._manager.schema.idx_permissions_by_uri.select(
+                                            txn, from_key=from_key2, to_key=to_key2, return_keys=False):
+                                        permission = self._manager.schema.permissions[txn, permission_oid]
+                                        permissions.append({
+                                            'uri':
+                                            permission.uri,
+                                            'match':
+                                            Permission.MATCH_TYPES_TOSTR[permission.match]
+                                            if permission.match else None,
+                                            'allow': {
+                                                'call': permission.allow_call or False,
+                                                'register': permission.allow_register or False,
+                                                'publish': permission.allow_publish or False,
+                                                'subscribe': permission.allow_subscribe or False
+                                            },
+                                            'disclose': {
+                                                'caller': permission.disclose_caller or False,
+                                                'publisher': permission.disclose_publisher or False
+                                            },
+                                            'cache':
+                                            permission.cache or False
+                                        })
+
+                                    runtime_role_config = {'name': role.name, 'permissions': permissions}
+
+                                    role_started = yield self._manager._session.call(
+                                        'crossbarfabriccenter.remote.router.start_router_realm_role', str(node_oid),
+                                        worker_name, runtime_realm_id, runtime_role_id, runtime_role_config)
+
+                                    self.log.info(
+                                        '{func} Application realm role {runtime_role_id} started on router cluster worker {worker_name} [{role_started}]',
+                                        func=hltype(self._apply_routercluster_placements),
+                                        worker_name=hlid(worker_name),
+                                        runtime_role_id=hlid(runtime_role_id),
+                                        role_started=role_started)
+                                else:
+                                    self.log.debug(
+                                        '{func} Ok, role {runtime_role_id} already running for router cluster worker {worker_name} [{running_role}].',
+                                        func=hltype(self._apply_routercluster_placements),
+                                        worker_name=hlid(worker_name),
+                                        runtime_role_id=hlid(runtime_role_id),
+                                        running_role=running_role)
 
                     # IV.3) if we have a running application realm by now, start router-to-router links
                     # between this worker, and every other worker in this router worker group
                     if running_arealm:
-                        for other_placement_oid in workergroup_placements:
-                            other_placement = self._manager.schema.router_workergroup_placements[txn,
-                                                                                                 other_placement_oid]
+                        for other_placement in workergroup_placements:
                             other_node_oid = placement.node_oid
                             other_worker_name = other_placement.worker_name
+                            assert other_node_oid
+                            assert other_worker_name
+
+                            with self._manager.gdb.begin() as txn2:
+                                other_node = self._manager.gschema.nodes[txn2, other_node_oid]
+
+                            self.log.info(
+                                '{func} Rlink other node worker is on node {other_node_oid}, worker {other_worker_name}, cluster_ip {cluster_ip}:\n{other_node}',
+                                other_node_oid=hlid(other_node_oid),
+                                other_worker_name=hlid(other_worker_name),
+                                cluster_ip=hlval(other_node.cluster_ip) if other_node else None,
+                                other_node=pformat(other_node.marshal()) if other_node else None,
+                                func=hltype(self._apply_routercluster_placements))
+                            assert other_node
 
                             # don't create rlinks back to a router worker itself (only all _other_
                             # router workers in the same router worker group)
                             if other_node_oid != node_oid or other_worker_name != worker_name:
-                                self.log.info(
+                                self.log.debug(
                                     '{func} Verifying rlink from {node_oid} / {worker_name} to {other_node_oid} / {other_worker_name} ..',
-                                    func=hltype(self.check_and_apply),
+                                    func=hltype(self._apply_routercluster_placements),
                                     node_oid=hlid(node_oid),
                                     worker_name=hlid(worker_name),
                                     other_node_oid=hlid(other_node_oid),
@@ -812,9 +870,9 @@ class ApplicationRealmMonitor(object):
 
                                 # get run-time information for the node (as maintained here in our master view of the external world)
                                 # instance of crossbar.master.mrealm.controller.Node
-                                other_node = self._manager._session.nodes.get(str(other_node_oid), None)
+                                other_node_status = self._manager._session.nodes.get(str(other_node_oid), None)
 
-                                if other_node and other_node.status == 'online':
+                                if other_node_status and other_node_status.status == 'online':
 
                                     # get worker run-time information (obtained by calling into the live node)
                                     worker = None
@@ -830,9 +888,9 @@ class ApplicationRealmMonitor(object):
                                         self.log.failure()
                                         raise
                                     else:
-                                        self.log.info(
+                                        self.log.debug(
                                             '{func} Ok, rlink target router worker {worker_name} is running on node {node_oid}!',
-                                            func=hltype(self.check_and_apply),
+                                            func=hltype(self._check_and_apply),
                                             node_oid=hlid(other_node_oid),
                                             worker_name=hlid(other_worker_name))
 
@@ -854,84 +912,79 @@ class ApplicationRealmMonitor(object):
                                             raise
                                         self.log.warn(
                                             '{func} No rlink {runtime_rlink_id} currently running for router cluster worker {worker_name}: starting rlink ..',
-                                            func=hltype(self.check_and_apply),
+                                            func=hltype(self._apply_routercluster_placements),
                                             worker_name=hlid(worker_name),
                                             runtime_rlink_id=hlid(runtime_rlink_id))
                                     else:
-                                        self.log.info(
+                                        self.log.debug(
                                             '{func} Ok, rlink {runtime_rlink_id} already running on router cluster worker {worker_name}',
-                                            func=hltype(self.check_and_apply),
+                                            func=hltype(self._apply_routercluster_placements),
                                             worker_name=hlid(worker_name),
                                             runtime_rlink_id=hlid(runtime_rlink_id))
 
                                     if not running_rlink:
-                                        self.log.warn('FIXME: call start_router_realm_link!')
-
-                                        if not other_placement.tcp_listening_port:
-                                            self.log.warn('{func} No listening port in placement!',
-                                                          func=hltype(self.check_and_apply))
+                                        if not other_placement.tcp_listening_port or not other_node.cluster_ip:
+                                            self.log.warn(
+                                                '{func} Missing rlink target cluster listening port or IP in placement (cluster_ip={cluster_ip}, tcp_listening_port={tcp_listening_port})',
+                                                cluster_ip=hlval(other_node.cluster_ip),
+                                                tcp_listening_port=hlval(other_placement.tcp_listening_port),
+                                                func=hltype(self._check_and_apply))
+                                            is_running_completely = False
                                         else:
                                             rlink_config = {
                                                 'realm': realm_name,
                                                 'authid': node_authid,
                                                 'transport': {
-                                                    'type': 'rawsocket',
+                                                    'type':
+                                                    'rawsocket',
                                                     'endpoint': {
                                                         'type': 'tcp',
-                                                        'host': '127.0.0.1',
+                                                        'host': other_node.cluster_ip,
                                                         'port': other_placement.tcp_listening_port
                                                     },
-                                                    'serializer': 'cbor',
-                                                    'url': 'rs://localhost',
+                                                    'serializer':
+                                                    'cbor',
+                                                    'url':
+                                                    'rs://{}:{}'.format(other_node.cluster_ip,
+                                                                        other_placement.tcp_listening_port),
                                                 },
                                                 'forward_local_invocations': True,
                                                 'forward_remote_invocations': False,
                                                 'forward_local_events': True,
                                                 'forward_remote_events': False,
                                             }
-                                            try:
-                                                rlink_started = yield self._manager._session.call(
-                                                    'crossbarfabriccenter.remote.router.start_router_realm_link',
-                                                    str(other_node_oid), other_worker_name, runtime_realm_id,
-                                                    runtime_rlink_id, rlink_config)
-                                                print(pformat(rlink_started))
+                                            rlink_started = yield self._manager._session.call(
+                                                'crossbarfabriccenter.remote.router.start_router_realm_link',
+                                                str(other_node_oid), other_worker_name, runtime_realm_id,
+                                                runtime_rlink_id, rlink_config)
 
-                                                running_rlink = yield self._manager._session.call(
-                                                    'crossbarfabriccenter.remote.router.get_router_realm_link',
-                                                    str(other_node_oid), other_worker_name, runtime_realm_id,
-                                                    runtime_rlink_id)
-                                                print(pformat(running_rlink))
-                                            except ApplicationError as e:
-                                                if e.error not in [
-                                                        'crossbar.error.no_such_object', 'wamp.error.no_such_procedure'
-                                                ]:
-                                                    # anything but "no_such_object" is unexpected (and fatal)
-                                                    raise
+                                            running_rlink = yield self._manager._session.call(
+                                                'crossbarfabriccenter.remote.router.get_router_realm_link',
+                                                str(other_node_oid), other_worker_name, runtime_realm_id,
+                                                runtime_rlink_id)
+
+                                            self.log.info(
+                                                '{func} Rlink {runtime_rlink_id} started on router cluster worker {worker_name}:\n{rlink_started}\n{running_rlink}',
+                                                func=hltype(self._apply_routercluster_placements),
+                                                rlink_started=pformat(rlink_started),
+                                                running_rlink=pformat(running_rlink),
+                                                worker_name=hlid(worker_name),
+                                                runtime_rlink_id=hlid(runtime_rlink_id))
 
             else:
                 if node:
                     self.log.warn('{func} Router cluster node {node_oid} not running [status={status}]',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._apply_routercluster_placements),
                                   node_oid=hlid(node_oid),
                                   status=hl(node.status if node else 'offline'))
                 else:
                     self.log.warn('{func} Router cluster node {node_oid} from placement not found! [nodes={nodes}]',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._apply_routercluster_placements),
                                   node_oid=node_oid,
                                   nodes=list(self._manager._session.nodes.keys()))
 
                 # if we are missing a node we expect, we didn't run completely successfully
                 is_running_completely = False
-
-        # if we did indeed process a new/modified placement, store this changed information
-        if modified_placements:
-            with self._manager.db.begin(write=True) as txn:
-                for placement_oid, placement in modified_placements.items():
-                    self._manager.schema.router_workergroup_placements[txn, placement_oid] = placement
-                    self.log.info('{func} Ok, placement {placement_oid} updated:\n{placement}',
-                                  func=hltype(self.check_and_apply),
-                                  placement_oid=hlid(placement_oid),
-                                  placement=placement)
 
         # if we processed everything (we expected) successfully, then return True
         returnValue(is_running_completely)
@@ -954,23 +1007,24 @@ class ApplicationRealmManager(object):
     # publication options for management API events
     _PUBOPTS = PublishOptions(acknowledge=True)
 
-    def __init__(self, session, globaldb, globalschema, db, schema, reactor=None):
+    def __init__(self,
+                 session,
+                 globaldb: zlmdb.Database,
+                 globalschema: cfxdb.globalschema.GlobalSchema,
+                 db: zlmdb.Database,
+                 schema: cfxdb.mrealmschema.MrealmSchema,
+                 reactor=None):
         """
 
         :param session: Backend of user created management realms.
-        :type session: :class:`crossbar.master.mrealm.controller.MrealmController`
 
         :param globaldb: Global database handle.
-        :type globaldb: :class:`zlmdb.Database`
 
         :param globalschema: Global database schema.
-        :type globalschema: :class:`cfxdb.globalschema.GlobalSchema`
 
         :param db: Management realm database handle.
-        :type db: :class:`zlmdb.Database`
 
         :param schema: Management realm database schema.
-        :type schema: :class:`cfxdb.mrealmschema.MrealmSchema`
         """
         self._session = session
 
@@ -1007,30 +1061,40 @@ class ApplicationRealmManager(object):
 
         # application realm monitors, containing a map, for every application realm in state STARTING or RUNNING
         # with objects of class ApplicationRealmMonitor
-        self._monitors = {}
+        self._monitors: Dict[uuid.UUID, ApplicationRealmMonitor] = {}
 
     @inlineCallbacks
     def start(self, prefix):
         assert self._started is None, 'cannot start arealm manager - already running!'
+        assert self._prefix is None
 
-        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
+        self._started = time_ns()
+        # crossbarfabriccenter.mrealm.arealm
+        self._prefix = prefix[:-1] if prefix.endswith('.') else prefix
+
+        regs = yield self._session.register(self,
+                                            prefix='{}.'.format(self._prefix),
+                                            options=RegisterOptions(details_arg='details'))
         procs = [reg.procedure for reg in regs]
-        self.log.info('Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n',
-                      api=hl('Application realm manager API', color='green', bold=True),
-                      func=hltype(self.start),
-                      procs=hl(pformat(procs), color='white', bold=True))
+        self.log.info(
+            'Mrealm controller {api} registered management procedures prefix "{prefix}" [{func}]:\n\n{procs}\n',
+            api=hl('Application realm manager API', color='green', bold=True),
+            func=hltype(self.start),
+            prefix=hlval(self._prefix),
+            procs=hl(pformat(procs), color='white', bold=True))
 
         # start all application realm monitors ..
         cnt_started = 0
         cnt_skipped = 0
+        dl = []
         with self.db.begin() as txn:
             arealm_oids = self.schema.arealms.select(txn, return_values=False)
             for arealm_oid in arealm_oids:
                 arealm = self.schema.arealms[txn, arealm_oid]
                 if arealm.status in [ApplicationRealm.STATUS_STARTING, ApplicationRealm.STATUS_RUNNING]:
-                    monitor = ApplicationRealmMonitor(self, arealm_oid)
-                    monitor.start()
                     assert arealm_oid not in self._monitors
+                    monitor = ApplicationRealmMonitor(self, arealm_oid)
+                    dl.append(monitor.start())
                     self._monitors[arealm_oid] = monitor
                     cnt_started += 1
                     self.log.info(
@@ -1055,16 +1119,29 @@ class ApplicationRealmManager(object):
             cnt_skipped=hlval(cnt_skipped),
             func=hltype(self.start))
 
-        self._started = time_ns()
         self.log.info('Application realm manager ready for management realm {mrealm_oid}! [{func}]',
                       mrealm_oid=hlid(self._mrealm_oid),
                       func=hltype(self.start))
 
+        # return txaio.gather(dl)
+
     @inlineCallbacks
     def stop(self):
         assert self._started > 0, 'cannot stop arealm manager - currently not running!'
-        yield sleep(0)
+
+        # stop all application realm monitors ..
+        dl = []
+        for arealm_oid, arealm_monitor in self._monitors.items():
+            dl.append(arealm_monitor.stop())
+            del self._monitors[arealm_oid]
         self._started = None
+        self.log.info(
+            'Ok, application realm manager for management realm {mrealm_oid} stopped ({cnt_stopped} monitors stopped) [{func}]',
+            mrealm_oid=hlid(self._mrealm_oid),
+            cnt_stopped=len(dl),
+            func=hltype(self.start))
+
+        # return txaio.gather(dl)
 
     @wamp.register(None, check_types=True)
     def list_arealms(self, return_names: Optional[bool] = None, details: Optional[CallDetails] = None) -> List[str]:
@@ -1407,7 +1484,7 @@ class ApplicationRealmManager(object):
         assert arealm_oid not in self._monitors
         monitor = ApplicationRealmMonitor(self, arealm_oid_)
         monitor.start()
-        self._monitors[arealm_oid] = monitor
+        self._monitors[arealm_oid_] = monitor
 
         arealm_starting = {
             'oid': str(arealm.oid),

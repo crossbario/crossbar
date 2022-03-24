@@ -9,7 +9,7 @@ import uuid
 import iso8601
 import humanize
 import pprint
-import binascii
+from typing import Optional, Dict, List, Tuple, Any
 from pprint import pformat
 
 import six
@@ -21,7 +21,7 @@ import nacl.signing
 import nacl.encoding
 
 from twisted.internet import defer
-from twisted.internet.defer import inlineCallbacks, returnValue, DeferredList
+from twisted.internet.defer import inlineCallbacks, returnValue, DeferredList, Deferred
 from twisted.internet.task import LoopingCall
 from twisted.web import client
 
@@ -69,7 +69,7 @@ class Node(object):
                  heartbeat_counter=None,
                  heartbeat_time=None,
                  heartbeat_workers={},
-                 status=u'online',
+                 status='online',
                  node_authid=None):
         self.node_id = node_id
         self.node_authid = node_authid
@@ -86,16 +86,16 @@ class Node(object):
 
     def marshal(self):
         return {
-            u'id': self.node_id,
-            u'authid': self.node_authid,
-            u'status': self.status,
-            u'last_active': self.last_active,
-            u'last_activity': self.last_activity,
+            'id': self.node_id,
+            'authid': self.node_authid,
+            'status': self.status,
+            'last_active': self.last_active,
+            'last_activity': self.last_activity,
 
             # these data items are received from managed nodes
-            u'workers': self.heartbeat_workers,
-            u'counter': self.heartbeat_counter,
-            u'time': self.heartbeat_time,
+            'workers': self.heartbeat_workers,
+            'counter': self.heartbeat_counter,
+            'time': self.heartbeat_time,
         }
 
 
@@ -110,12 +110,12 @@ class Trace(object):
 
     def marshal(self):
         return {
-            u'trace_id': self.trace_id,
-            u'traced_workers': self.traced_workers,
-            u'trace_options': self.trace_options,
-            u'eligible_reader_roles': self.eligible_reader_roles,
-            u'exclude_reader_roles': self.exclude_reader_roles,
-            u'status': self.status,
+            'trace_id': self.trace_id,
+            'traced_workers': self.traced_workers,
+            'trace_options': self.trace_options,
+            'eligible_reader_roles': self.eligible_reader_roles,
+            'exclude_reader_roles': self.exclude_reader_roles,
+            'status': self.status,
         }
 
 
@@ -158,8 +158,12 @@ class MrealmController(ApplicationSession):
         self._sessions = None
         self._traces = None
 
-        self._tick_looper = None
-        self._check_nodes_looper = None
+        # background loop run periodically to health check and send heartbeats for this controller
+        self._tick_loop = None
+
+        # background loop run periodically to check & apply mrealm-level resources
+        self._check_and_apply_loop = None
+        self._check_and_apply_in_progress = False
 
         # Release (public) key
         self._release_pubkey_hex = _read_release_key()['hex']
@@ -185,7 +189,7 @@ class MrealmController(ApplicationSession):
 
         self.gdb = zlmdb.Database(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True)
         self.gdb.__enter__()
-        self.gschema = GlobalSchema.attach(self.gdb)
+        self.gschema: GlobalSchema = GlobalSchema.attach(self.gdb)
 
         self.log.info('global database initialized [dbfile={dbfile}, maxsize={maxsize}]',
                       dbfile=hlval(dbfile),
@@ -301,16 +305,16 @@ class MrealmController(ApplicationSession):
 
     def onLeave(self, details):
         # first, stop background "check nodes" task
-        if self._check_nodes_looper:
-            if self._check_nodes_looper.running:
-                self._check_nodes_looper.stop()
-            self._check_nodes_looper = None
+        if self._check_and_apply_loop:
+            if self._check_and_apply_loop.running:
+                self._check_and_apply_loop.stop()
+            self._check_and_apply_loop = None
 
         # next, stop own heartbeat task
-        if self._tick_looper:
-            if self._tick_looper.running:
-                self._tick_looper.stop()
-            self._tick_looper = None
+        if self._tick_loop:
+            if self._tick_loop.running:
+                self._tick_loop.stop()
+            self._tick_loop = None
 
         return ApplicationSession.onLeave(self, details)
 
@@ -331,32 +335,30 @@ class MrealmController(ApplicationSession):
         self._traces = {}
 
         # subscribe to node lifecycle events
-        if True:
-            yield self.subscribe(self._on_node_ready, 'crossbarfabriccenter.node..on_ready',
-                                 SubscribeOptions(match='wildcard', details=True))
+        yield self.subscribe(self._on_node_ready, 'crossbarfabriccenter.node..on_ready',
+                             SubscribeOptions(match='wildcard', details=True))
 
-            # we subscribe to CF node heartbeat events, to track when we have last heard of a specific
-            # node, and also to react (after some time) should be neither receive an "on_shutdown" nor
-            # an "on_leave" event, so we can purge the node from our active list.
-            yield self.subscribe(self._on_node_heartbeat, 'crossbarfabriccenter.node.on_heartbeat',
-                                 SubscribeOptions(details=True))
-            yield self.subscribe(self._on_worker_heartbeat, 'crossbarfabriccenter.node.on_worker_heartbeat',
-                                 SubscribeOptions(details=True))
+        # we subscribe to CF node heartbeat events, to track when we have last heard of a specific
+        # node, and also to react (after some time) should be neither receive an "on_shutdown" nor
+        # an "on_leave" event, so we can purge the node from our active list.
+        yield self.subscribe(self._on_node_heartbeat, 'crossbarfabriccenter.node.on_heartbeat',
+                             SubscribeOptions(details=True))
+        yield self.subscribe(self._on_worker_heartbeat, 'crossbarfabriccenter.node.on_worker_heartbeat',
+                             SubscribeOptions(details=True))
 
-            # when a CF node is gracefully shut down, we will receive this event. when the CF node
-            # is killed, see "session lifecycle events" below.
-            yield self.subscribe(self._on_node_shutdown, 'crossbarfabriccenter.node..on_shutdown',
-                                 SubscribeOptions(match='wildcard', details=True))
+        # when a CF node is gracefully shut down, we will receive this event. when the CF node
+        # is killed, see "session lifecycle events" below.
+        yield self.subscribe(self._on_node_shutdown, 'crossbarfabriccenter.node..on_shutdown',
+                             SubscribeOptions(match='wildcard', details=True))
 
         # subscribe to session lifecycle events.
-        if True:
-            yield self.subscribe(self._on_session_startup, 'wamp.session.on_join', SubscribeOptions(details=True))
+        yield self.subscribe(self._on_session_startup, 'wamp.session.on_join', SubscribeOptions(details=True))
 
-            # eg when a CF node is hard-killed, the management session will simply get lost, which
-            # is detected by CFC router, and a WAMP session leave meta event is published. however,
-            # no "on_shutdown" event is published! the CF node has been killed and had no chance to
-            # send out any management events. hence we must react to this event.
-            yield self.subscribe(self._on_session_shutdown, 'wamp.session.on_leave', SubscribeOptions(details=True))
+        # eg when a CF node is hard-killed, the management session will simply get lost, which
+        # is detected by CFC router, and a WAMP session leave meta event is published. however,
+        # no "on_shutdown" event is published! the CF node has been killed and had no chance to
+        # send out any management events. hence we must react to this event.
+        yield self.subscribe(self._on_session_shutdown, 'wamp.session.on_leave', SubscribeOptions(details=True))
 
         # produce CFCs own heartbeat on the management realm
         self._tick = 1
@@ -374,92 +376,11 @@ class MrealmController(ApplicationSession):
                     mrealm=self._realm)
             self._tick += 1
 
-        self._tick_looper = LoopingCall(on_tick)
-        self._tick_looper.start(5)
+        self._tick_loop = LoopingCall(on_tick)
+        self._tick_loop.start(5)
 
-        @inlineCallbacks
-        def on_check_nodes():
-            if self.is_attached():
-                for node_id in self._nodes:
-                    try:
-                        node_status = yield self.call('crossbarfabriccenter.remote.node.get_status', node_id)
-                    except Exception as e:
-                        if isinstance(e, ApplicationError) and e.error == 'wamp.error.no_such_procedure':
-                            if self._nodes[node_id].status == 'offline':
-                                # this is "expected" - we already new that the node is offline, and hence the call failing
-                                # because of "no_such_procedure" is exactly what will happen
-                                self.log.info(
-                                    '{action} [status={status}] {func}',
-                                    action=hl('Warning, managed node "{}" still not connected or operational'.format(
-                                        node_id),
-                                              color='red',
-                                              bold=False),
-                                    status=hlval(self._nodes[node_id].status),
-                                    func=hltype(on_check_nodes))
-                            else:
-                                if self._nodes[node_id].status == 'online':
-                                    self._nodes_shutdown[node_id] = time_ns()
-
-                                    # mark node as offline in run-time map
-                                    self._nodes[node_id].status = 'offline'
-
-                                    # publish management event
-                                    yield self._publish_on_node_shutdown_yield(self._nodes[node_id])
-
-                                    self.log.info(
-                                        '{action} [oid={node_oid}, session={session_id}, status={status}] {func}',
-                                        action=hl('Warning: managed node "{}" became offline'.format(node_id),
-                                                  color='red',
-                                                  bold=True),
-                                        node_oid=hlid(node_id),
-                                        session_id=hlid(None),
-                                        status=hlval(self._nodes[node_id].status),
-                                        func=hltype(on_check_nodes))
-
-                                else:
-                                    self.log.warn(
-                                        '{func}: unexpected run-time node status {status} for node {node_id}',
-                                        node_id=hlid(node_id),
-                                        func=hltype(on_check_nodes),
-                                        status=hlval(self._nodes[node_id].status))
-                                self._nodes[node_id].status = 'offline'
-                        else:
-                            self._nodes[node_id].status = 'offline'
-                            self.log.warn('{action} [status={status}] {func}',
-                                          action=hl('Warning: check on managed node "{}" failed: {}'.format(
-                                              node_id, e),
-                                                    color='red',
-                                                    bold=True),
-                                          status=hlval(self._nodes[node_id].status),
-                                          func=hltype(on_check_nodes))
-                    else:
-                        self._nodes[node_id].heartbeat_workers = node_status['workers_by_type']
-                        self._nodes[node_id].last_activity = Node.LAST_ACTIVITY_CHECK
-                        self._nodes[node_id].last_active = time_ns()
-                        if self._nodes[node_id].status == 'online':
-                            self.log.info('{action} [status={status}] {func}',
-                                          action=hl('Ok, managed node "{}" is still healthy'.format(node_id),
-                                                    color='green',
-                                                    bold=False),
-                                          status=hlval(self._nodes[node_id].status),
-                                          func=hltype(on_check_nodes))
-                        else:
-                            self.log.info('{action} [status={status} -> "{new_status}"] {func}',
-                                          action=hl('Ok, managed node "{}" became healthy (again)'.format(node_id),
-                                                    color='yellow',
-                                                    bold=True),
-                                          status=hlval(self._nodes[node_id].status),
-                                          new_status=hlval('online'),
-                                          func=hltype(on_check_nodes))
-                            self._nodes[node_id].status = 'online'
-
-                            # publish "on_node_ready" management event
-                            yield self._publish_on_node_ready_yield(self._nodes[node_id])
-
-        self._check_nodes_looper = LoopingCall(on_check_nodes)
-
-        # FIXME: node heartbeat rate is currently hardcoded at once every 10s
-        self._check_nodes_looper.start(10)
+        self._check_and_apply_loop = LoopingCall(self.check_and_apply)
+        self._check_and_apply_loop.start(10)
 
         # CFC public API
         #
@@ -507,6 +428,119 @@ class MrealmController(ApplicationSession):
 
         # initialize tracing API
         yield self._init_trace_api()
+
+    @inlineCallbacks
+    def check_and_apply(self):
+        if self._check_and_apply_in_progress:
+            self.log.info('{func} {action} for mrealm {mrealm} skipped! check & apply already in progress.',
+                          action=hl('check & apply run skipped', color='red', bold=True),
+                          func=hltype(self.check_and_apply),
+                          mrealm=hlid(self._mrealm_oid))
+            return
+        else:
+            self.log.info('{func} {action} for mrealm {mrealm} ..',
+                          action=hl('check & apply run started', color='green', bold=True),
+                          func=hltype(self.check_and_apply),
+                          mrealm=hlid(self._mrealm_oid))
+            self._check_and_apply_in_progress = True
+
+        if not self.is_attached():
+            return
+
+        is_running_completely = True
+        cnt_nodes_online = 0
+        cnt_nodes_offline = 0
+        for node_id in self._nodes:
+            try:
+                node_status = yield self.call('crossbarfabriccenter.remote.node.get_status', node_id)
+            except Exception as e:
+                cnt_nodes_offline += 1
+                is_running_completely = False
+
+                if isinstance(e, ApplicationError) and e.error == 'wamp.error.no_such_procedure':
+                    if self._nodes[node_id].status == 'offline':
+                        # this is "expected" - we already knew that the node is offline, and hence the call is failing
+                        # because of "no_such_procedure" is exactly what will happen as the node is offline
+                        self.log.warn(
+                            '{action} [status={status}] {func}',
+                            action=hl('Warning, managed node "{}" still not connected or operational'.format(node_id),
+                                      color='red',
+                                      bold=False),
+                            status=hlval(self._nodes[node_id].status),
+                            func=hltype(self.check_and_apply))
+                    else:
+                        if self._nodes[node_id].status == 'online':
+                            self._nodes_shutdown[node_id] = time_ns()
+
+                            # mark node as offline in run-time map
+                            self._nodes[node_id].status = 'offline'
+
+                            # publish management event
+                            yield self._publish_on_node_shutdown_yield(self._nodes[node_id])
+
+                            self.log.info('{action} [oid={node_oid}, session={session_id}, status={status}] {func}',
+                                          action=hl('Warning: managed node "{}" became offline'.format(node_id),
+                                                    color='red',
+                                                    bold=True),
+                                          node_oid=hlid(node_id),
+                                          session_id=hlid(None),
+                                          status=hlval(self._nodes[node_id].status),
+                                          func=hltype(self.check_and_apply))
+
+                        else:
+                            self.log.warn('{func}: unexpected run-time node status {status} for node {node_id}',
+                                          node_id=hlid(node_id),
+                                          func=hltype(self.check_and_apply),
+                                          status=hlval(self._nodes[node_id].status))
+                        self._nodes[node_id].status = 'offline'
+                else:
+                    self._nodes[node_id].status = 'offline'
+                    self.log.warn('{action} [status={status}] {func}',
+                                  action=hl('Warning: check on managed node "{}" failed: {}'.format(node_id, e),
+                                            color='red',
+                                            bold=True),
+                                  status=hlval(self._nodes[node_id].status),
+                                  func=hltype(self.check_and_apply))
+            else:
+                cnt_nodes_online += 1
+                self._nodes[node_id].heartbeat_workers = node_status['workers_by_type']
+                self._nodes[node_id].last_activity = Node.LAST_ACTIVITY_CHECK
+                self._nodes[node_id].last_active = time_ns()
+                if self._nodes[node_id].status == 'online':
+                    self.log.info('{action} [status={status}] {func}',
+                                  action=hl('Ok, managed node "{}" is still healthy'.format(node_id),
+                                            color='green',
+                                            bold=False),
+                                  status=hlval(self._nodes[node_id].status),
+                                  func=hltype(self.check_and_apply))
+                else:
+                    self.log.info('{action} [status={status} -> "{new_status}"] {func}',
+                                  action=hl('Ok, managed node "{}" became healthy (again)'.format(node_id),
+                                            color='yellow',
+                                            bold=True),
+                                  status=hlval(self._nodes[node_id].status),
+                                  new_status=hlval('online'),
+                                  func=hltype(self.check_and_apply))
+                    self._nodes[node_id].status = 'online'
+
+                    # publish "on_node_ready" management event
+                    yield self._publish_on_node_ready_yield(self._nodes[node_id])
+
+        if is_running_completely:
+            color = 'green'
+            action = 'check & apply run completed successfully'
+        else:
+            color = 'red'
+            action = 'check & apply run finished with problems left'
+
+        self._check_and_apply_in_progress = False
+        self.log.info(
+            '{func} {action} for mrealm {mrealm}: {cnt_nodes_online} nodes online, {cnt_nodes_offline} nodes offline.',
+            action=hl(action, color=color, bold=True),
+            func=hltype(self.check_and_apply),
+            mrealm=hlid(self._mrealm_oid),
+            cnt_nodes_online=hlval(cnt_nodes_online),
+            cnt_nodes_offline=hlval(cnt_nodes_offline))
 
     async def _publish_on_node_ready(self, node):
         options = PublishOptions(acknowledge=True)
@@ -584,7 +618,7 @@ class MrealmController(ApplicationSession):
             authrole=self.config.controller._authrole,
         )
 
-    async def _on_node_ready(self, ready_info=None, details=None):
+    async def _on_node_ready(self, ready_info=None, details: Optional[CallDetails] = None):
         node_id = ready_info.get('node_id', None) if ready_info else None
         self.log.info('Node "{node_id}" is ready: {ready_info} {details}',
                       node_id=node_id,
@@ -605,7 +639,7 @@ class MrealmController(ApplicationSession):
 
         self.log.debug('{func}: completed!', func=hltype(self._on_node_ready))
 
-    async def _on_worker_heartbeat(self, node_authid, worker_id, heartbeat, details=None):
+    async def _on_worker_heartbeat(self, node_authid, worker_id, heartbeat, details: Optional[CallDetails] = None):
         """
         Receive heartbeats from workers run on CF nodes managed by this CFC instances. By default,
          CF node workers will send one hearbeat every 10 seconds.
@@ -638,8 +672,8 @@ class MrealmController(ApplicationSession):
             worker_id=hlid(worker_id),
             heartbeat_seq=hlid(heartbeat_seq),
             heartbeat_time=hlid(heartbeat_time),
-            publisher=hlid(details.publisher),
-            authid=hlid(details.publisher_authid))
+            publisher=hlid(details.publisher) if details else None,
+            authid=hlid(details.publisher_authid) if details else None)
 
         self.log.debug('Raw worker heartbeat: \n{heartbeat}', heartbeat=pprint.pformat(heartbeat))
 
@@ -682,7 +716,7 @@ class MrealmController(ApplicationSession):
 
         self.log.debug('{func}: completed!', func=hltype(self._on_worker_heartbeat))
 
-    async def _on_node_heartbeat(self, node_authid, heartbeat, details=None):
+    async def _on_node_heartbeat(self, node_authid, heartbeat, details: Optional[CallDetails] = None):
         """
         Receive heartbeats from CF nodes managed by this CFC instances. By default,
          CF nodes will send one hearbeat every 10 seconds.
@@ -729,8 +763,8 @@ class MrealmController(ApplicationSession):
             heartbeat_workers=heartbeat_workers,
             heartbeat_seq=hlid(heartbeat_seq),
             heartbeat_time=hlid(heartbeat_time),
-            publisher=hlid(details.publisher),
-            authid=hlid(details.publisher_authid))
+            publisher=hlid(details.publisher) if details else None,
+            authid=hlid(details.publisher_authid) if details else None)
 
         self.log.debug('Raw node heartbeat:\n{heartbeat}', heartbeat=pprint.pformat(heartbeat))
 
@@ -762,7 +796,7 @@ class MrealmController(ApplicationSession):
                                         color='green',
                                         bold=True),
                               node_oid=hlid(node_oid),
-                              session_id=hlid(details.publisher),
+                              session_id=hlid(details.publisher) if details else None,
                               status=hlval(self._nodes[node_oid].status),
                               func=hltype(self._on_node_heartbeat))
         else:
@@ -773,14 +807,14 @@ class MrealmController(ApplicationSession):
             self._nodes[node_oid].last_active = time_ns()
 
             if self._nodes[node_oid].status == 'online':
-                self.log.info('{action} [oid={node_oid}, session={session_id}, status={status}] {func}',
-                              action=hl('Ok, managed node "{}" is still alive'.format(node_authid),
-                                        color='green',
-                                        bold=False),
-                              node_oid=hlid(node_oid),
-                              session_id=hlid(details.publisher),
-                              status=hlval(self._nodes[node_oid].status),
-                              func=hltype(self._on_node_heartbeat))
+                self.log.debug('{action} [oid={node_oid}, session={session_id}, status={status}] {func}',
+                               action=hl('Ok, managed node "{}" is still alive'.format(node_authid),
+                                         color='green',
+                                         bold=False),
+                               node_oid=hlid(node_oid),
+                               session_id=hlid(details.publisher) if details else None,
+                               status=hlval(self._nodes[node_oid].status),
+                               func=hltype(self._on_node_heartbeat))
             else:
                 self.log.info('{action} [oid={node_oid}, session={session_id}, status={status}] {func}',
                               action=hl('Ok, managed node "{}" became alive (again) [status={} -> online]'.format(
@@ -788,7 +822,7 @@ class MrealmController(ApplicationSession):
                                         color='yellow',
                                         bold=True),
                               node_oid=hlid(node_oid),
-                              session_id=hlid(details.publisher),
+                              session_id=hlid(details.publisher) if details else None,
                               status=hlval(self._nodes[node_oid].status),
                               func=hltype(self._on_node_heartbeat))
                 self._nodes[node_oid].status = 'online'
@@ -796,7 +830,7 @@ class MrealmController(ApplicationSession):
         # heartbeat['authid'] = details.publisher_authid
         heartbeat['authid'] = node_authid
         heartbeat['node_id'] = node_oid
-        heartbeat['session'] = details.publisher
+        heartbeat['session'] = details.publisher if details else None
 
         mrealm_id = node.mrealm_oid
         mnode_log = MNodeLog.parse(mrealm_id, uuid.UUID(node_oid), heartbeat)
@@ -804,15 +838,13 @@ class MrealmController(ApplicationSession):
 
         # this is the pubkey under which an aggregate usage record (see below) will be stored
         if node.pubkey == heartbeat_pubkey:
-            pubkey = binascii.a2b_hex(node.pubkey)
-
             with self.db.begin(write=True) as txn:
                 self.schema.mnode_logs[txn, (mnode_log.timestamp, mnode_log.node_id)] = mnode_log
 
             self.log.debug('{msg} [timestamp={timestamp}, node_id={node_id}]',
-                           msg=hl(
-                               'New node HEARTBEAT persisted in database -> checking for pubkey="{}"'.format(pubkey),
-                               bold=True),
+                           msg=hl('New node HEARTBEAT persisted in database -> checking for pubkey="{}"'.format(
+                               node.pubkey),
+                                  bold=True),
                            timestamp=hlid(mnode_log.timestamp),
                            node_id=hlid(mnode_log.node_id))
 
@@ -841,7 +873,7 @@ class MrealmController(ApplicationSession):
 
         self.log.debug('{func}: completed!', func=hltype(self._on_node_heartbeat))
 
-    async def _on_node_shutdown(self, shutdown_info, details=None):
+    async def _on_node_shutdown(self, shutdown_info, details: Optional[CallDetails] = None):
         node_authid = shutdown_info.get('node_id', None)
         self.log.info('node "{node_authid}" has shut down: {shutdown_info} {details}',
                       node_authid=node_authid,
@@ -875,7 +907,7 @@ class MrealmController(ApplicationSession):
 
         self.log.debug('{func}: completed!', func=hltype(self._on_node_shutdown))
 
-    async def _on_session_startup(self, session, details=None):
+    async def _on_session_startup(self, session, details: Optional[CallDetails] = None):
         if session.get('authrole') == 'node':
             session_id = session.get('session')
             node_authid = session.get('authid')
@@ -909,7 +941,7 @@ class MrealmController(ApplicationSession):
 
         self.log.debug('{func}: completed!', func=hltype(self._on_session_startup))
 
-    async def _on_session_shutdown(self, session_id, details=None):
+    async def _on_session_shutdown(self, session_id, details: Optional[CallDetails] = None):
         node_authid = self._sessions.get(session_id)
 
         # we are only interested in session closes from management uplinks
@@ -966,13 +998,12 @@ class MrealmController(ApplicationSession):
     def _check_worker_id(self, node_id, worker_id, status='online'):
         self._check_node_id(node_id, status)
 
-    @wamp.register(None)
-    def get_status(self, details=None):
+    @wamp.register(None, check_types=True)
+    def get_status(self, details: Optional[CallDetails] = None) -> dict:
         """
         Get management realm status.
 
         :returns: Status information object.
-        :rtype: dict
         """
         now = utcnow()
         uptime_secs = (iso8601.parse_date(now) - iso8601.parse_date(self._started)).total_seconds()
@@ -987,21 +1018,19 @@ class MrealmController(ApplicationSession):
         }
         return res
 
-    @wamp.register(None)
-    def get_nodes(self, status=None, return_names=None, details=None):
+    @wamp.register(None, check_types=True)
+    def get_nodes(self,
+                  status: Optional[str] = None,
+                  return_names: Optional[bool] = None,
+                  details: Optional[CallDetails] = None) -> List[str]:
         """
         Returns list of nodes.
 
-        :param return_names: Return node names (authid) instead of  object IDs
-        :type return_names: bool
+        :param status: Filter nodes for this status (``"online"``, ``"offline"``).
+        :param return_names: Return node names (``authid``) instead of  object IDs.
 
-        :returns: List of node IDs.
-        :rtype: list
+        :returns: List of node IDs or node names.
         """
-        assert status is None or type(status) == str
-        assert return_names is None or type(return_names) == bool
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(status={status}, details.caller_authid={caller_authid})',
                       status=hlval(status),
                       func=hltype(self.get_nodes),
@@ -1038,21 +1067,16 @@ class MrealmController(ApplicationSession):
 
         return res_
 
-    @wamp.register(None)
-    def get_node(self, node_oid, details=None):
+    @wamp.register(None, check_types=True)
+    def get_node(self, node_oid: str, details: Optional[CallDetails] = None) -> dict:
         """
         Return information about node. The procedure will raise an `crossbar.error.no_such_object` error
         when no node with the given authid can be found.
 
         :param node_oid: The object ID of the node to get information for, eg `"5616c7cc-31b5-4021-8cd9-b7769d3f0dd3"`.
-        :type node_oid: str
 
         :returns: Node information object.
-        :rtype: dict
         """
-        assert type(node_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         try:
             _node_oid = uuid.UUID(node_oid)
         except Exception as e:
@@ -1080,21 +1104,16 @@ class MrealmController(ApplicationSession):
 
         return node_obj
 
-    @wamp.register(None)
-    def get_node_by_authid(self, node_authid, details=None):
+    @wamp.register(None, check_types=True)
+    def get_node_by_authid(self, node_authid: str, details: Optional[CallDetails] = None) -> dict:
         """
         Return node information by node (auth)id. The procedure will raise an `crossbar.error.no_such_object` error
         when no node with the given authid can be found.
 
         :param node_authid: The WAMP authid the node is authenticated under.
-        :type node_authid: str
 
         :returns: Node information object.
-        :rtype: dict
         """
-        assert type(node_authid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(node_authid="{node_authid}")',
                       node_authid=hlid(node_authid),
                       func=hltype(self.get_node_by_authid))
@@ -1111,7 +1130,7 @@ class MrealmController(ApplicationSession):
     @inlineCallbacks
     def _init_trace_api(self):
         @inlineCallbacks
-        def on_trace_data(node_id, worker_id, trace_id, period, trace_data, details=None):
+        def on_trace_data(node_id, worker_id, trace_id, period, trace_data, details: Optional[CallDetails] = None):
             self.log.debug(
                 'Trace "{trace_id}" on node "{node_id}" / worker "{worker_id}":\n\nperiod = {period}\n\ntrace_data = {trace_data}\n\n',
                 node_id=node_id,
@@ -1143,16 +1162,19 @@ class MrealmController(ApplicationSession):
         self.log.debug('central tracing API initialized')
 
     @inlineCallbacks
-    @wamp.register(None)
-    def get_trace_data(self, trace_id, limit=None, details=None):
+    @wamp.register(None, check_types=True)
+    def get_trace_data(self,
+                       trace_id: str,
+                       limit: Optional[int] = None,
+                       details: Optional[CallDetails] = None) -> Deferred:
         self.log.info('get_trace_data(trace_id="{trace_id}", limit="{limit}")', trace_id=trace_id, limit=limit)
 
         trace = self._traces.get(trace_id, None)
         if trace:
-            if trace.eligible_reader_roles:
+            if trace.eligible_reader_roles and details:
                 if details.caller_authrole not in trace.eligible_reader_roles:
                     raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
-            if trace.exclude_reader_roles:
+            if trace.exclude_reader_roles and details:
                 if details.caller_authrole in trace.exclude_reader_roles:
                     raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
         else:
@@ -1173,15 +1195,15 @@ class MrealmController(ApplicationSession):
                 dl.append(defer.fail('node not online'))
 
         trace_data_results = yield DeferredList(dl)
-        result = {}
+        result: Dict[str, Any] = {}
         for (node_id, worker_id), (success, data) in six.moves.zip(trace.traced_workers, trace_data_results):
             if node_id not in result:
                 result[node_id] = {}
             result[node_id][worker_id] = {'success': success, 'data': data}
         returnValue(result)
 
-    @wamp.register(None)
-    def get_trace(self, trace_id, details=None):
+    @wamp.register(None, check_types=True)
+    def get_trace(self, trace_id: str, details: Optional[CallDetails] = None) -> Optional[dict]:
         """
         Get detail information about a previously created trace. When the trace
         doesn't exist, `None` is returned.
@@ -1190,51 +1212,49 @@ class MrealmController(ApplicationSession):
         read-access (at least), otherwise `None` is returned (silently).
 
         :param trace_id: The ID of the trace to retrieve information for.
-        :type trace_id: str
 
         :returns: A trace information object.
-        :rtype: dict
         """
         trace = self._traces.get(trace_id, None)
         if trace:
-            if trace.eligible_reader_roles:
+            if trace.eligible_reader_roles and details:
                 if details.caller_authrole not in trace.eligible_reader_roles:
                     self.log.debug(
                         'get_trace({trace_id}) -> trace found, but not authorized (role "{caller_authrole}" is not eligible)!',
                         trace_id=trace_id,
-                        caller_authrole=details.caller_authrole)
-                    return
-            if trace.exclude_reader_roles:
+                        caller_authrole=details.caller_authrole if details else None)
+                    return None
+            if trace.exclude_reader_roles and details:
                 if details.caller_authrole in trace.exclude_reader_roles:
                     self.log.debug(
                         'get_trace({trace_id}) -> trace found, but not authorized (role "{caller_authrole}" is excluded)!',
                         trace_id=trace_id,
-                        caller_authrole=details.caller_authrole)
-                    return
+                        caller_authrole=details.caller_authrole if details else None)
+                    return None
             return trace.marshal()
         else:
             self.log.debug('get_trace({trace_id}) -> no such trace', trace_id=trace_id)
+            return None
 
-    @wamp.register(None)
-    def get_traces(self, details=None):
+    @wamp.register(None, check_types=True)
+    def get_traces(self, details: Optional[CallDetails] = None) -> List[str]:
         """
         Get IDs of trace defined.
 
         Note: Only IDs of traces to which the caller has read-access (at least) are returned.
 
         :returns: List of trace IDs.
-        :rtype: list
         """
         trace_ids = []
         for trace in self._traces.values():
-            if trace.eligible_reader_roles:
+            if trace.eligible_reader_roles and details:
                 if details.caller_authrole not in trace.eligible_reader_roles:
                     self.log.info(
                         'get_traces() -> trace "{trace_id}" found, but not authorized (role "{caller_authrole}" is not eligible)!',
                         trace_id=trace.trace_id,
                         caller_authrole=details.caller_authrole)
                     continue
-            if trace.exclude_reader_roles:
+            if trace.exclude_reader_roles and details:
                 if details.caller_authrole in trace.exclude_reader_roles:
                     self.log.info(
                         'get_traces() -> trace "{trace_id}" found, but not authorized (role "{caller_authrole}" is excluded)!',
@@ -1244,37 +1264,31 @@ class MrealmController(ApplicationSession):
             trace_ids.append(trace.trace_id)
         return sorted(trace_ids)
 
-    @wamp.register(None)
+    @wamp.register(None, check_types=True)
     def create_trace(self,
-                     trace_id,
-                     traced_workers,
-                     trace_options=None,
-                     eligible_reader_roles=None,
-                     exclude_reader_roles=None,
-                     details=None):
+                     trace_id: str,
+                     traced_workers: List[Tuple[str, str]],
+                     trace_options: Optional[Dict] = None,
+                     eligible_reader_roles: Optional[List[str]] = None,
+                     exclude_reader_roles: Optional[List[str]] = None,
+                     details: Optional[CallDetails] = None) -> dict:
         """
         Create a new trace.
 
         :param trace_id: The ID of the trace to create (must be unique within the management realm).
-        :type trace_id: str
 
         :param traced_workers: A list of pairs `(node_id, worker_id)` with node and (router) worker IDs
             on which the trace is to be run.
-        :type traced_workers: list
 
         :param trace_options: Tracing options for the trace.
-        :type trace_options: dict or None
 
         :param eligible_reader_roles: If given, allow read access to the trace only for callers
             authenticated under a WAMP authrole FROM this list - otherwise allow any role (=public)!
-        :type eligible_reader_roles: list or None
 
         :param exclude_reader_roles: If given, allow read access to the trace only for callers
             authenticated under a WAMP authrole NOT FROM this list - otherwise allow any role (=public)!
-        :type exclude_reader_roles: list or None
 
         :returns: Trace started information.
-        :rtype: dict
         """
         if trace_id in self._traces:
             raise Exception('trace with ID "{}" already exists (status "{}")'.format(
@@ -1284,7 +1298,7 @@ class MrealmController(ApplicationSession):
         trace = Trace(trace_id, traced_workers, trace_options, eligible_reader_roles, exclude_reader_roles, status)
         self._traces[trace_id] = trace
 
-        trace_created = {
+        trace_created: Dict[str, Any] = {
             # FIXME
         }
 
@@ -1299,8 +1313,8 @@ class MrealmController(ApplicationSession):
         return trace_created
 
     @inlineCallbacks
-    @wamp.register(None)
-    def start_trace(self, trace_id, details=None):
+    @wamp.register(None, check_types=True)
+    def start_trace(self, trace_id: str, details: Optional[CallDetails] = None) -> Deferred:
         """
         Start a previously created trace.
 
@@ -1392,15 +1406,14 @@ class MrealmController(ApplicationSession):
         returnValue(trace_started)
 
     @inlineCallbacks
-    @wamp.register(None)
-    def stop_trace(self, trace_id, details=None):
+    @wamp.register(None, check_types=True)
+    def stop_trace(self, trace_id: str, details: Optional[CallDetails] = None) -> Deferred:
         """
         Stop a running trace.
 
         :param trace_id: The ID of the trace to stop.
-        :type trace_id: str
 
-        :returns: dict: Trace stopped information.
+        :returns: Trace stopped information.
         """
         trace = self._traces.get(trace_id, None)
         if not trace:
@@ -1471,16 +1484,13 @@ class MrealmController(ApplicationSession):
 
         returnValue(trace_stopped)
 
-    @wamp.register(None)
-    def delete_trace(self, trace_id, details=None):
+    @wamp.register(None, check_types=True)
+    def delete_trace(self, trace_id: str, details: Optional[CallDetails] = None) -> dict:
         """
         Delete a previously created (and currently stopped) trace.
 
         :param trace_id: The ID of the trace to delete.
-        :type trace_id: str
-
         :returns: Trace deletion information.
-        :rtype: dict
         """
         trace = self._traces.get(trace_id, None)
         if not trace:
@@ -1489,7 +1499,7 @@ class MrealmController(ApplicationSession):
         if trace.status not in ['stopped', 'stopping_failed']:
             raise Exception('cannot delete trace with ID "{}" currently in status "{}"'.format(trace_id, trace.status))
 
-        trace_deleted = {
+        trace_deleted: Dict[str, Any] = {
             # FIXME
         }
 

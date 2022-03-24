@@ -390,7 +390,9 @@ def cmd_export(ctx):
 @click.argument('dbpath')
 @click.option('--filename')
 @click.option('--include-indexes/--no-include-indexes', default=False, type=bool, help='export index tables')
-@click.option('--include-schemata', type=str)
+@click.option('--include-schemata',
+              type=str,
+              help='list of schemata to export (meta, globalschema, mrealmschema, xbr, xbrmm, xbrnetwork)')
 @click.option('--exclude-tables', type=str)
 @click.option('--use-json/--no-use-json', default=False, type=bool)
 @click.option('--use-binary-hex-encoding/--no-use-binary-hex-encoding', default=False, type=bool)

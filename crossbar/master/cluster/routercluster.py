@@ -10,6 +10,7 @@ from typing import Optional, List
 from pprint import pformat
 
 import numpy as np
+from sortedcontainers import SortedDict
 
 from autobahn import wamp
 from autobahn.wamp.exception import ApplicationError
@@ -46,37 +47,48 @@ class RouterClusterMonitor(object):
 
     @property
     def is_started(self):
+        """
+
+        :return:
+        """
         return self._loop is not None and self._loop.running
 
     def start(self):
+        """
+
+        :return:
+        """
         assert self._loop is None
 
-        self._loop = LoopingCall(self.check_and_apply)
+        self._loop = LoopingCall(self._check_and_apply)
         self._loop.start(self._interval)
 
     def stop(self):
+        """
+
+        :return:
+        """
         assert self._loop is not None
+
         self._loop.stop()
         self._loop = None
         self._check_and_apply_in_progress = False
 
     @inlineCallbacks
-    def check_and_apply(self):
-        """
-
-        :return:
-        """
+    def _check_and_apply(self):
         if self._check_and_apply_in_progress:
-            self.log.info(
+            # we prohibit running the iteration multiple times concurrently. this might
+            # happen when the iteration takes longer than the interval the monitor is set to
+            self.log.warn(
                 '{func} {action} for routercluster {routercluster} skipped! check & apply already in progress.',
                 action=hl('check & apply run skipped', color='red', bold=True),
-                func=hltype(self.check_and_apply),
+                func=hltype(self._check_and_apply),
                 routercluster=hlid(self._routercluster_oid))
             return
         else:
             self.log.info('{func} {action} for routercluster {routercluster} ..',
                           action=hl('check & apply run started', color='green', bold=True),
-                          func=hltype(self.check_and_apply),
+                          func=hltype(self._check_and_apply),
                           routercluster=hlid(self._routercluster_oid))
             self._check_and_apply_in_progress = True
 
@@ -103,15 +115,14 @@ class RouterClusterMonitor(object):
 
                 if node and node.status == 'online':
                     self.log.info('{func} Ok, router cluster node {node_oid} is running!',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._check_and_apply),
                                   node_oid=hlid(node_oid))
 
                     # FIXME: check all workers we expect for data planes associated with this router cluster are running
-                    is_running_completely = False
 
                 else:
                     self.log.warn('{func} Router cluster node {node_oid} not running [status={status}]',
-                                  func=hltype(self.check_and_apply),
+                                  func=hltype(self._check_and_apply),
                                   node_oid=hlid(node_oid),
                                   status=hl(node.status if node else 'offline'))
                     is_running_completely = False
@@ -144,7 +155,7 @@ class RouterClusterMonitor(object):
         self._check_and_apply_in_progress = False
         self.log.info('{func} {action} for routercluster {routercluster}!',
                       action=hl(action, color=color, bold=True),
-                      func=hltype(self.check_and_apply),
+                      func=hltype(self._check_and_apply),
                       routercluster=hlid(self._routercluster_oid))
 
 
@@ -154,6 +165,10 @@ class RouterClusterManager(object):
     endpoints on many (frontend) workers over many nodes using applying
     a shared, common transport definition, such as regarding the Web services
     configured on URL paths of the Web transport.
+
+    - routercluster
+      - routercluster nodes
+      - routercluster workergroup
     """
     log = make_logger()
 
@@ -202,11 +217,11 @@ class RouterClusterManager(object):
         self.db = db
         self.schema = schema
 
-        # will be set in session.register
-        self._prefix = None
-
         # the management realm OID this routercluster manager operates for
         self._mrealm_oid = session._mrealm_oid
+
+        # URI prefix for WAMP procedures/topics, filled when started
+        self._prefix = None
 
         # filled when started
         self._started = None
@@ -215,50 +230,56 @@ class RouterClusterManager(object):
         # with objects of class RouterClusterMonitor
         self._monitors = {}
 
-        self._index_mod = 0
-
     @inlineCallbacks
     def start(self, prefix):
         """
-        Start the Router-cluster manager.
+        Start this router cluster manager, including all monitors of router clusters defined.
 
         :return:
         """
         assert self._started is None, 'cannot start router cluster manager - already running!'
+        assert self._prefix is None
 
-        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
+        self._started = time_ns()
+
+        # crossbarfabriccenter.mrealm.routercluster
+        self._prefix = prefix[:-1] if prefix.endswith('.') else prefix
+
+        # register management procedures
+        regs = yield self._session.register(self,
+                                            prefix='{}.'.format(self._prefix),
+                                            options=RegisterOptions(details_arg='details'))
         procs = [reg.procedure for reg in regs]
-        self.log.info('Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n',
-                      api=hl('Router cluster manager API', color='green', bold=True),
-                      func=hltype(self.start),
-                      procs=hl(pformat(procs), color='white', bold=True))
+        self.log.info(
+            'Router cluster manager registered {api} management procedures using prefix "{prefix}" [{func}]:\n\n{procs}\n',
+            api=hl('Router cluster manager API', color='green', bold=True),
+            func=hltype(self.start),
+            prefix=hlval(self._prefix),
+            procs=hl(pformat(procs), color='white', bold=True))
 
-        # start all router cluster monitors ..
+        # start all router cluster monitors
         cnt_started = 0
         cnt_skipped = 0
+        dl = []
         with self.db.begin() as txn:
             routercluster_oids = self.schema.routerclusters.select(txn, return_values=False)
             for routercluster_oid in routercluster_oids:
                 routercluster = self.schema.routerclusters[txn, routercluster_oid]
                 if routercluster.status in [cluster.STATUS_STARTING, cluster.STATUS_RUNNING]:
-                    monitor = RouterClusterMonitor(self, routercluster_oid)
-                    monitor.start()
                     assert routercluster_oid not in self._monitors
+                    monitor = RouterClusterMonitor(self, routercluster_oid)
+                    dl.append(monitor.start())
                     self._monitors[routercluster_oid] = monitor
                     cnt_started += 1
                     self.log.info(
-                        '{func}(prefix="{prefix}"): {action} for router cluster {routercluster_oid} in {status})',
-                        action=hl('cluster monitor started', color='green', bold=True),
-                        prefix=hlval(prefix),
+                        'Router cluster monitor started for router cluster {routercluster_oid} in status {status} [{func}]',
                         func=hltype(self.start),
                         routercluster_oid=hlid(routercluster_oid),
                         status=hlval(routercluster.status))
                 else:
                     cnt_skipped += 1
                     self.log.info(
-                        '{func}(prefix="{prefix}"): {action} for router cluster {routercluster_oid} in status {status}',
-                        action=hl('cluster monitor skipped', color='green', bold=True),
-                        prefix=hlval(prefix),
+                        'Router cluster monitor skipped for router cluster {routercluster_oid} in status {status} [{func}]',
                         func=hltype(self.start),
                         routercluster_oid=hlid(routercluster_oid),
                         status=hlval(routercluster.status))
@@ -268,21 +289,33 @@ class RouterClusterManager(object):
             cnt_skipped=hlval(cnt_skipped),
             func=hltype(self.start))
 
-        self._started = time_ns()
-        self.log.info('Router cluster manager ready for management realm {mrealm_oid}! [{func}]',
+        self.log.info('Router cluster manager for management realm {mrealm_oid} ready [{func}]',
                       mrealm_oid=hlid(self._mrealm_oid),
                       func=hltype(self.start))
 
-    @inlineCallbacks
+        # return txaio.gather(dl)
+
     def stop(self):
         """
-        Stop the (currently running) Router-cluster manager.
+        Stop the currently running router cluster manager. This will stop all monitors for router clusters.
 
         :return:
         """
         assert self._started > 0, 'cannot stop router cluster manager - currently not running!'
-        yield sleep(0)
+
+        # stop all router cluster monitors ..
+        dl = []
+        for routercluster_oid, routercluster_monitor in self._monitors.items():
+            dl.append(routercluster_monitor.stop())
+            del self._monitors[routercluster_oid]
         self._started = None
+        self.log.info(
+            'Ok, router cluster manager for management realm {mrealm_oid} stopped ({cnt_stopped} monitors stopped) [{func}]',
+            mrealm_oid=hlid(self._mrealm_oid),
+            cnt_stopped=len(dl),
+            func=hltype(self.start))
+
+        # return txaio.gather(dl)
 
     @wamp.register(None, check_types=True)
     def list_routerclusters(self,
@@ -311,9 +344,6 @@ class RouterClusterManager(object):
                     "cluster1"
                 ]
         """
-        assert return_names is None or type(return_names) == bool
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(details={details})', func=hltype(self.list_routerclusters), details=details)
 
         with self.db.begin() as txn:
@@ -352,9 +382,6 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        assert type(routercluster_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(routercluster_oid={routercluster_oid}, details={details})',
                       func=hltype(self.get_routercluster),
                       routercluster_oid=hlid(routercluster_oid),
@@ -386,9 +413,6 @@ class RouterClusterManager(object):
 
         :return: Router cluster definition.
         """
-        assert type(routercluster_name) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(routercluster_name="{routercluster_name}", details={details})',
                       func=hltype(self.get_routercluster_by_name),
                       routercluster_name=hlid(routercluster_name),
@@ -443,9 +467,6 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        assert type(routercluster) == dict
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(routercluster="{routercluster}", details={details})',
                       func=hltype(self.create_routercluster),
                       routercluster=routercluster,
@@ -526,8 +547,6 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}.delete_routercluster(routercluster_oid={routercluster_oid}, details={details})',
                       func=hltype(self.delete_routercluster),
                       routercluster_oid=hlid(routercluster_oid),
@@ -588,8 +607,6 @@ class RouterClusterManager(object):
                     }
                 }
         """
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(routercluster_oid="{routercluster_oid}", details={details})',
                       func=hltype(self.start_routercluster),
                       routercluster_oid=hlid(routercluster_oid),
@@ -671,8 +688,6 @@ class RouterClusterManager(object):
                     }
                 }
         """
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(routercluster_oid={routercluster_oid}, details={details})',
                       routercluster_oid=hlid(routercluster_oid),
                       func=hltype(self.stop_routercluster),
@@ -727,9 +742,6 @@ class RouterClusterManager(object):
 
         :return: Current status and statistics for given router cluster.
         """
-        assert type(routercluster_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(routercluster_oid={routercluster_oid}, details={details})',
                       func=hltype(self.stat_routercluster),
                       routercluster_oid=hlid(routercluster_oid),
@@ -772,11 +784,6 @@ class RouterClusterManager(object):
                     "node4"
                 ]
         """
-        assert type(routercluster_oid) == str
-        assert return_names is None or type(return_names) == bool
-        assert filter_by_status is None or type(filter_by_status) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info(
             '{func}(routercluster_oid={routercluster_oid}, return_names={return_names}, filter_by_status={filter_by_status}, details={details})',
             func=hltype(self.list_routercluster_nodes),
@@ -848,8 +855,6 @@ class RouterClusterManager(object):
                     "softlimit": null
                 }
         """
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info(
             '{func}(routercluster_oid={routercluster_oid}, node_oid={node_oid}, config={config}, details={details})',
             func=hltype(self.list_routercluster_nodes),
@@ -908,10 +913,6 @@ class RouterClusterManager(object):
                     "softlimit": null
                 }
         """
-        assert type(routercluster_oid) == str
-        assert type(node_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         try:
             node_oid_ = uuid.UUID(node_oid)
         except Exception as e:
@@ -979,10 +980,6 @@ class RouterClusterManager(object):
                     "softlimit": null
                 }
         """
-        assert type(routercluster_oid) == str
-        assert type(node_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         try:
             node_oid_ = uuid.UUID(node_oid)
         except Exception as e:
@@ -1050,11 +1047,6 @@ class RouterClusterManager(object):
                     "mygroup1"
                 ]
         """
-        assert type(routercluster_oid) == str
-        assert return_names is None or type(return_names) == bool
-        assert filter_by_status is None or type(filter_by_status) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(routercluster_oid={routercluster_oid}, details={details})',
                       routercluster_oid=hlid(routercluster_oid),
                       func=hltype(self.list_routercluster_workergroups),
@@ -1120,10 +1112,6 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        assert type(routercluster_oid) == str
-        assert type(workergroup) == dict
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info('{func}(routercluster_oid={routercluster_oid}, workergroup={workergroup}, details={details})',
                       routercluster_oid=hlid(routercluster_oid),
                       workergroup=pformat(workergroup),
@@ -1136,40 +1124,76 @@ class RouterClusterManager(object):
             raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
 
         with self.db.begin(write=True) as txn:
+            # get routercluster on which to create a new workergroup
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if not routercluster:
                 raise ApplicationError('crossbar.error.no_such_object',
                                        'no object with oid {} found'.format(routercluster_oid_))
 
-            nodes = []
+            # create new workergroup object
+            workergroup_obj = RouterWorkerGroup.parse(workergroup)
+            workergroup_obj.oid = uuid.uuid4()
+            workergroup_obj.cluster_oid = routercluster_oid_
+            workergroup_obj.status = WorkerGroupStatus.STOPPED
+            workergroup_obj.changed = time_ns()
+
+            # if no explicit workergroup name was given, auto-assign a name
+            if not workergroup_obj.name:
+                workergroup_obj.name = 'cwg_{}'.format(str(workergroup_obj.oid)[:8])
+
+            # store workergroup in database
+            self.schema.router_workergroups[txn, workergroup_obj.oid] = workergroup_obj
+            self.log.info('New router worker group object stored in database:\n{workergroup}',
+                          workergroup=pformat(workergroup_obj.marshal()))
+
+            # collect all node OIDs currently associated with the router cluster
+            # into a dict sorted by the current number of placements
+            nodes = SortedDict()
             for _, node_oid in self.schema.routercluster_node_memberships.select(
                     txn,
                     from_key=(routercluster_oid_, uuid.UUID(bytes=b'\0' * 16)),
                     to_key=(uuid.UUID(int=(int(routercluster_oid_) + 1)), uuid.UUID(bytes=b'\0' * 16)),
                     return_values=False):
-                nodes.append(node_oid)
 
-            workergroup_obj = RouterWorkerGroup.parse(workergroup)
-            workergroup_obj.oid = uuid.uuid4()
-            if not workergroup_obj.name:
-                workergroup_obj.name = 'cwg_{}'.format(str(workergroup_obj.oid)[:8])
-            workergroup_obj.cluster_oid = routercluster_oid_
-            workergroup_obj.status = WorkerGroupStatus.STOPPED
-            workergroup_obj.changed = time_ns()
+                # count current number of placements associated with given node
+                cnt = 0
+                for _ in self.schema.idx_workergroup_by_placement.select(
+                        txn,
+                        from_key=(workergroup_obj.cluster_oid, node_oid, uuid.UUID(bytes=b'\0' * 16)),
+                        to_key=(workergroup_obj.cluster_oid, uuid.UUID(int=(int(node_oid) + 1)),
+                                uuid.UUID(bytes=b'\0' * 16)),
+                        return_keys=False):
+                    cnt += 1
 
-            self.schema.router_workergroups[txn, workergroup_obj.oid] = workergroup_obj
-            self.log.info('New router worker group object stored in database:\n{workergroup}',
-                          workergroup=pformat(workergroup_obj.marshal()))
+                # the dict is sorted ascending by cnt, that is nodes.peekitem(0)
+                # will be a node with the smallest current number of placements
+                nodes[node_oid] = cnt
 
+            # create and store workergroup worker placements on nodes for the new workergroup
             for i in range(workergroup_obj.scale):
+                # new placement on a node with smallest number of current placements
+                placement_node_oid, placement_node_cnt = nodes.peekitem(0)
+
+                self.log.info(
+                    'Router worker placement selected node {placement_node_oid} with current worker count {placement_node_cnt}',
+                    placement_node_oid=hlid(placement_node_oid),
+                    placement_node_cnt=hlval(placement_node_cnt))
+
                 placement = RouterWorkerGroupClusterPlacement()
                 placement.oid = uuid.uuid4()
                 placement.worker_group_oid = workergroup_obj.oid
                 placement.cluster_oid = routercluster_oid_
-                placement.node_oid = self._place_worker(placement.cluster_oid, placement.worker_group_oid, nodes, i)
+                placement.node_oid = placement_node_oid
                 placement.worker_name = '{}_{}'.format(workergroup_obj.name, i + 1)
+                placement.status = WorkerGroupStatus.STOPPED
+                placement.changed = time_ns()
+                placement.tcp_listening_port = 0
 
                 self.schema.router_workergroup_placements[txn, placement.oid] = placement
+
+                # keep track of new placement in our sorted dict
+                nodes[placement_node_oid] += 1
+
                 self.log.info('New router worker group placement object stored in database:\n{placement}',
                               placement=pformat(placement.marshal()))
 
@@ -1208,10 +1232,6 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        assert type(routercluster_oid) == str
-        assert type(workergroup_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info(
             '{func}(routercluster_oid={routercluster_oid}, workergroup_oid={workergroup_oid}, details={details})',
             routercluster_oid=hlid(routercluster_oid),
@@ -1298,10 +1318,6 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        assert type(routercluster_oid) == str
-        assert type(workergroup_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info(
             '{func}(routercluster_oid={routercluster_oid}, workergroup_oid={workergroup_oid}, details={details})',
             routercluster_oid=hlid(routercluster_oid),
@@ -1348,10 +1364,6 @@ class RouterClusterManager(object):
 
         :return: The router cluster worker group.
         """
-        assert type(routercluster_name) == str
-        assert type(workergroup_name) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info(
             '{func}(routercluster_name="{routercluster_name}", workergroup_name="{workergroup_name}", details={details})',
             routercluster_name=hlval(routercluster_name),
@@ -1390,10 +1402,6 @@ class RouterClusterManager(object):
 
         :return: Current status and statistics information for the router worker group.
         """
-        assert type(routercluster_oid) == str
-        assert type(workergroup_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
         self.log.info(
             '{func}(routercluster_oid={routercluster_oid}, workergroup_oid={workergroup_oid}, details={details})',
             func=hltype(self.stat_routercluster_workergroup),
@@ -1402,25 +1410,3 @@ class RouterClusterManager(object):
             details=details)
 
         raise NotImplementedError()
-
-    def _place_worker(self, routercluster_oid: uuid.UUID, workergroup_oid: uuid.UUID, nodes: List[uuid.UUID], i: int):
-        """
-        Place a new worker in a router worker group running on a router cluster, specifically place
-        the node on a node from the given list.
-
-        :param routercluster_oid:
-        :param workergroup_oid:
-        :param nodes:
-        :param i:
-
-        :return:
-        """
-        assert isinstance(routercluster_oid, uuid.UUID)
-        assert isinstance(workergroup_oid, uuid.UUID)
-        assert type(nodes) == list and all(isinstance(oid, uuid.UUID) for oid in nodes)
-        assert len(nodes) > 0
-
-        # FIXME: smarter placement of workers
-        # return random.choice(nodes)
-        self._index_mod += 1
-        return nodes[self._index_mod % len(nodes)]
