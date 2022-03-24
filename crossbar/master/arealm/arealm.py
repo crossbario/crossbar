@@ -1485,7 +1485,7 @@ class ApplicationRealmManager(object):
         assert arealm_oid not in self._monitors
         monitor = ApplicationRealmMonitor(self, arealm_oid_)
         monitor.start()
-        self._monitors[arealm_oid] = monitor
+        self._monitors[arealm_oid_] = monitor
 
         arealm_starting = {
             'oid': str(arealm.oid),
