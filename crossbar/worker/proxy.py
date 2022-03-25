@@ -1384,6 +1384,10 @@ class ProxyController(TransportController):
         assert self.has_role(realm_name, role_name)
 
         routes = self._routes[realm_name]
+        # Since we have all the routes for the requested realm, we
+        # need to filter the routes which are for the requested role.
+        # Fix for https://github.com/crossbario/crossbar/issues/1971
+        routes = {route_id: route for route_id, route in routes.items() if role_name in route.config}
         self._roundrobin_idx = (self._roundrobin_idx + 1) % len(routes)
         route = list(routes.values())[self._roundrobin_idx]
 
