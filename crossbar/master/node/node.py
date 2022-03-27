@@ -37,7 +37,7 @@ from cfxdb.globalschema import GlobalSchema
 
 __all__ = ('FabricServiceNodeManager', 'FabricCenterNode')
 
-_CFC_GLOBAL_REALM = u'crossbar.'
+_CFC_GLOBAL_REALM = 'crossbar.'
 
 
 class License(object):
@@ -133,7 +133,7 @@ class FabricServiceNodeManager(ApplicationSession):
         #
         ready = self.config.extra['ready']
         cbdir = self.config.extra['cbdir']
-        config = self.config.extra.get(u'database', {})
+        config = self.config.extra.get('database', {})
 
         # create database and attach tables to database slots
         #
@@ -244,20 +244,20 @@ class FabricServiceNodeManager(ApplicationSession):
         # start the management realm and roles on the configured router worker
         if realm_name not in self._router_realms:
             realm_config = {
-                u'name': realm_name,
-                u'options': {
-                    u'enable_meta_api': True,
+                'name': realm_name,
+                'options': {
+                    'enable_meta_api': True,
 
                     # FIXME: enabling this will break stopping and restarting an mrealm, as the
                     # procedures registered eg by the RouterServiceAgent session will stick around!
-                    u'bridge_meta_api': False,
+                    'bridge_meta_api': False,
                 }
             }
             realm_id = realm_name
-            await self.call(u'crossbar.worker.{}.start_router_realm'.format(router_id), realm_id, realm_config)
+            await self.call('crossbar.worker.{}.start_router_realm'.format(router_id), realm_id, realm_config)
 
-            for role_id in [u'owner-role', u'backend-role', u'node-role', u'public-role']:
-                await self.call(u'crossbar.worker.{}.start_router_realm_role'.format(router_id), realm_id, role_id,
+            for role_id in ['owner-role', 'backend-role', 'node-role', 'public-role']:
+                await self.call('crossbar.worker.{}.start_router_realm_role'.format(router_id), realm_id, role_id,
                                 BUILTIN_ROLES[role_id])
 
             self._router_realms[realm_name] = True
@@ -276,7 +276,7 @@ class FabricServiceNodeManager(ApplicationSession):
                 # "restart": "restart-on-failed"
                 "restart": "restart-always"
             }
-            await self.call(u'crossbar.start_worker', container_id, u'container', container_options)
+            await self.call('crossbar.start_worker', container_id, 'container', container_options)
 
             self._container_workers[container_id] = {}
         else:
@@ -289,38 +289,38 @@ class FabricServiceNodeManager(ApplicationSession):
         component_id = realm_name
         if component_id not in self._container_workers[container_id]:
             mrealm_backend_extra = {
-                u'mrealm': str(mrealm.oid),
-                u'database': {
+                'mrealm': str(mrealm.oid),
+                'database': {
                     # the mrealm database path contains the mrealm UUID
-                    u'dbfile': os.path.join(self.config.extra['cbdir'], u'.db-mrealm-{}'.format(mrealm.oid)),
+                    'dbfile': os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm.oid)),
 
                     # hard-code max mrealm database size to 2GB
                     # https://github.com/crossbario/crossbar/issues/235
-                    u'maxsize': 2**30 * 2,
+                    'maxsize': 2**30 * 2,
                 },
-                u'controller-database': {
+                'controller-database': {
                     # forward controller database parameters, so that the mrealm backend can _also_ open
                     # the controller database (read-only)
-                    u'dbfile': self._db.dbpath,
-                    u'maxsize': self._db.maxsize,
+                    'dbfile': self._db.dbpath,
+                    'maxsize': self._db.maxsize,
                 },
             }
             component_config = {
-                u'type': u'class',
-                u'classname': u'crossbar.master.mrealm.MrealmController',
-                u'realm': realm_name,
-                u'transport': {
+                'type': 'class',
+                'classname': 'crossbar.master.mrealm.MrealmController',
+                'realm': realm_name,
+                'transport': {
                     # we connect back to the master router over UDS/RawSocket/CBOR
-                    u'type': u'rawsocket',
-                    u'endpoint': {
-                        u'type': u'unix',
-                        u'path': u'sock1'
+                    'type': 'rawsocket',
+                    'endpoint': {
+                        'type': 'unix',
+                        'path': 'sock1'
                     },
-                    u'serializer': u'cbor',
+                    'serializer': 'cbor',
                 },
-                u'extra': mrealm_backend_extra
+                'extra': mrealm_backend_extra
             }
-            await self.call(u'crossbar.worker.{}.start_component'.format(container_id), component_id, component_config)
+            await self.call('crossbar.worker.{}.start_component'.format(container_id), component_id, component_config)
 
             self._container_workers[container_id][component_id] = True
         else:
@@ -344,26 +344,25 @@ class FabricServiceNodeManager(ApplicationSession):
         mrealm = ManagementRealm.parse(mrealm_obj)
 
         realm_name = mrealm.name
-        router_id = u'cfrouter1'
-        container_id = u'cfcontainer1'
+        router_id = 'cfrouter1'
+        container_id = 'cfcontainer1'
 
         if realm_name in self._router_realms:
             self.log.info('Deactivate realm ({}) - start'.format(realm_name))
 
             # stop the management component
             if True:
-                await self.call(u'crossbar.worker.{}.stop_component'.format(container_id), realm_name)
+                await self.call('crossbar.worker.{}.stop_component'.format(container_id), realm_name)
                 del self._container_workers[container_id][realm_name]
 
             # stop the router roles
             if True:
-                for role_id in [u'owner-role', u'backend-role', u'node-role', u'public-role']:
-                    await self.call(u'crossbar.worker.{}.stop_router_realm_role'.format(router_id), realm_name,
-                                    role_id)
+                for role_id in ['owner-role', 'backend-role', 'node-role', 'public-role']:
+                    await self.call('crossbar.worker.{}.stop_router_realm_role'.format(router_id), realm_name, role_id)
 
             #  stop the realm
             if True:
-                await self.call(u'crossbar.worker.{}.stop_router_realm'.format(router_id), realm_name)
+                await self.call('crossbar.worker.{}.stop_router_realm'.format(router_id), realm_name)
                 del self._router_realms[realm_name]
 
             self.log.info('Management realm "{realm_name}" deactivated (complete)', realm_name=realm_name)
@@ -566,7 +565,7 @@ class FabricCenterNode(node.FabricNode):
                                                         personality=self.personality,
                                                         node=self)
         router = self._router_factory.get(self._realm)
-        self._router_session_factory.add(self._bridge_session, router, authrole=u'trusted')
+        self._router_session_factory.add(self._bridge_session, router, authrole='trusted')
         yield extra['ready']
 
     def _add_extra_controller_components(self, controller_options):
