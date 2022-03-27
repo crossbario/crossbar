@@ -992,6 +992,7 @@ class Dealer(object):
                                             caller_authid=caller_authid,
                                             caller_authrole=caller_authrole,
                                             procedure=procedure,
+                                            transaction_hash=call.transaction_hash,
                                             enc_algo=call.enc_algo,
                                             enc_key=call.enc_key,
                                             enc_serializer=call.enc_serializer,
@@ -1007,6 +1008,7 @@ class Dealer(object):
                                             caller_authid=caller_authid,
                                             caller_authrole=caller_authrole,
                                             procedure=procedure,
+                                            transaction_hash=call.transaction_hash,
                                             forward_for=forward_for)
 
         invocation.correlation_id = call.correlation_id

@@ -156,19 +156,23 @@ def create_realm_store(personality, factory, config):
     return store
 
 
-_TITLE = "Crossbar"
+_TITLE = "Crossbar.io"
 
+# sudo apt install figlet && figlet -f smslant "Crossbar FX"
 _BANNER = r"""
     :::::::::::::::::
-          :::::          _____                      __
-    :::::   :   :::::   / ___/____ ___   ___  ___  / /  ___ _ ____
-    :::::::   :::::::  / /__ / __// _ \ (_-< (_-< / _ \/ _ `// __/
-    :::::   :   :::::  \___//_/   \___//___//___//_.__/\_,_//_/
+          :::::          _____                 __              _
+    :::::   :   :::::   / ___/______  ___ ___ / /  ___ _____  (_)__
+    :::::::   :::::::  / /__/ __/ _ \(_-<(_-</ _ \/ _ `/ __/ / / _ \
+    :::::   :   :::::  \___/_/  \___/___/___/_.__/\_,_/_/ (_)_/\___/
           :::::
-    :::::::::::::::::   {title} v{version}
+    :::::::::::::::::   {title} v{version} [{build}]
 
-    Copyright (c) 2013-{year} Crossbar.io Technologies GmbH, licensed under AGPL 3.0.
+    Copyright (c) 2013-{year} Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 """
+
+_DESC = """Crossbar.io is a decentralized data plane for XBR/WAMP based application
+service and data routing, built on Crossbar.io OSS."""
 
 
 class Personality(object):
@@ -185,9 +189,12 @@ class Personality(object):
 
     TITLE = _TITLE
 
-    DESC = crossbar.__doc__
+    DESC = _DESC
 
-    BANNER = _BANNER.format(title=_TITLE, version=crossbar.__version__, year=time.strftime('%Y'))
+    BANNER = _BANNER.format(title=_TITLE,
+                            version=crossbar.__version__,
+                            build=crossbar.__build__,
+                            year=time.strftime('%Y'))
 
     LEGAL = ('crossbar', 'LEGAL')
     LICENSE = ('crossbar', 'LICENSE')

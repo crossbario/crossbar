@@ -1,7 +1,7 @@
 ###############################################################################
 #
 # Crossbar.io Shell
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -39,7 +39,7 @@ from crossbar.shell import (client, config, userkey, __version__)
 if 'CROSSBAR_FABRIC_URL' in os.environ:
     _DEFAULT_CFC_URL = os.environ['CROSSBAR_FABRIC_URL']
 else:
-    _DEFAULT_CFC_URL = u'wss://master.xbr.network/ws'
+    _DEFAULT_CFC_URL = 'wss://master.xbr.network/ws'
 
 
 class WebSocketURL(click.ParamType):
@@ -162,25 +162,25 @@ class Application(object):
         cbf_dir = os.path.expanduser(dotdir)
         if not os.path.isdir(cbf_dir):
             os.mkdir(cbf_dir)
-            click.echo(u'Created new local user directory: {}'.format(style_ok(cbf_dir)))
+            click.echo('Created new local user directory: {}'.format(style_ok(cbf_dir)))
 
         config_path = os.path.join(cbf_dir, 'config.ini')
         if not os.path.isfile(config_path):
             with open(config_path, 'w') as f:
                 url = _prompt_for_url(yes_to_all)
                 f.write(_DEFAULT_CONFIG.format(url=url))
-                click.echo(u'Created new local user configuration: {}'.format(style_ok(config_path)))
+                click.echo('Created new local user configuration: {}'.format(style_ok(config_path)))
 
         config_obj = config.UserConfig(config_path)
 
         profile_obj = config_obj.profiles.get(profile, None)
         if not profile_obj:
             raise click.ClickException('no such profile: "{}"'.format(profile))
-        else:
-            click.echo('Active user profile: {}'.format(style_ok(profile)))
+        # else:
+        #     click.echo('Active user profile: {}'.format(style_ok(profile)))
 
-        privkey_path = os.path.join(cbf_dir, profile_obj.privkey or u'{}.priv'.format(profile))  # noqa: W503
-        pubkey_path = os.path.join(cbf_dir, profile_obj.pubkey or u'default.pub')  # noqa: W503
+        privkey_path = os.path.join(cbf_dir, profile_obj.privkey or '{}.priv'.format(profile))  # noqa: W503
+        pubkey_path = os.path.join(cbf_dir, profile_obj.pubkey or 'default.pub')  # noqa: W503
         key_obj = userkey.UserKey(privkey_path, pubkey_path, yes_to_all=yes_to_all)
 
         return key_obj, profile_obj
@@ -228,7 +228,7 @@ class Application(object):
         click.echo()
 
     def format_selected(self):
-        return u'{} -> {}.\n'.format(self.current_resource_type, self.current_resource)
+        return '{} -> {}.\n'.format(self.current_resource_type, self.current_resource)
 
     def print_selected(self):
         click.echo(self.format_selected())
@@ -237,8 +237,8 @@ class Application(object):
         return self.current_resource_type, self.current_resource
 
     def __str__(self):
-        return u'Application(current_resource_type={}, current_resource={})'.format(
-            self.current_resource_type, self.current_resource)
+        return 'Application(current_resource_type={}, current_resource={})'.format(self.current_resource_type,
+                                                                                   self.current_resource)
 
     async def run_command(self, cmd):
         try:
@@ -272,7 +272,7 @@ class Application(object):
 
         elif self._output_format == Application.OUTPUT_FORMAT_PLAIN:
 
-            console_str = u'{}'.format(result)
+            console_str = '{}'.format(result)
 
         else:
             # should not arrive here
@@ -289,16 +289,16 @@ class Application(object):
                 pass
             elif self._output_verbosity == Application.OUTPUT_VERBOSITY_NORMAL:
                 if result.duration:
-                    click.echo(style_finished_line(u'Finished command in {} ms: {}'.format(result.duration, cmd_str)))
+                    click.echo(style_finished_line('Finished command in {} ms: {}'.format(result.duration, cmd_str)))
                 else:
-                    click.echo(style_finished_line(u'Finished command successfully: {}'.format(cmd_str)))
+                    click.echo(style_finished_line('Finished command successfully: {}'.format(cmd_str)))
             elif self._output_verbosity == Application.OUTPUT_VERBOSITY_EXTENDED:
                 if result.duration:
                     click.echo(
-                        style_finished_line(u'Finished command in {} ms on {}: {}'.format(
+                        style_finished_line('Finished command in {} ms on {}: {}'.format(
                             result.duration, localnow(), cmd_str)))
                 else:
-                    click.echo(style_finished_line(u'Finished successfully on {}: {}'.format(localnow(), cmd_str)))
+                    click.echo(style_finished_line('Finished successfully on {}: {}'.format(localnow(), cmd_str)))
             else:
                 # should not arrive here
                 raise Exception('internal error')
@@ -330,7 +330,7 @@ class Application(object):
 
         yes_to_all = cfg.yes_to_all if hasattr(cfg, 'yes_to_all') else False
 
-        # if cmd not in [u'auth', u'shell']:
+        # if cmd not in ['auth', 'shell']:
         #    raise click.ClickException('"{}" command can only be run in shell'.format(cmd))
 
         if self._output_verbosity == Application.OUTPUT_VERBOSITY_VERBOSE:
@@ -339,11 +339,11 @@ class Application(object):
         # load user profile and key for given profile name
         key, profile = self.load_profile(profile=cfg.profile, yes_to_all=yes_to_all)
 
-        if ctx.command.name == u'init':
+        if ctx.command.name == 'init':
             return
 
         # set the Fabric URL to connect to from the profile or default
-        url = profile.url or u'wss://fabric.crossbario.com'
+        url = profile.url or 'wss://fabric.crossbario.com'
 
         # users always authenticate with the user_id from the key, which
         # filled from the email the user provided
@@ -351,7 +351,7 @@ class Application(object):
 
         # the realm can be set from command line, env var, the profile
         # or can be None, which means the user will be joined to the global
-        # Crossbar.io FX users realm (u'com.crossbario.fabric')
+        # Crossbar.io users realm ('com.crossbario.fabric')
         realm = cfg.realm or profile.realm or None
 
         # the authrole can be set from command line, env var, the profile
@@ -360,19 +360,19 @@ class Application(object):
         authrole = cfg.role or profile.role or None
 
         # this will be fired when the ShellClient below actually has joined
-        # the respective realm on Crossbar.io FX (either the global users
+        # the respective realm on Crossbar.io (either the global users
         # realm, or a management realm the user has a role on)
         done = txaio.create_future()
 
         extra = {
             # these are forward on the actual client connection
-            u'authid': authid,
-            u'authrole': authrole,
+            'authid': authid,
+            'authrole': authrole,
 
             # these are native Python object and only used client-side
-            u'key': key.key,
-            u'done': done,
-            u'command': command
+            'key': key.key,
+            'done': done,
+            'command': command
         }
 
         cert_options = None
@@ -382,14 +382,14 @@ class Application(object):
             cert_options = _create_tls_client_context(tls_config, '.crossbar', self.log)
 
         # for the "auth" command, forward additional command line options
-        if ctx.command.name == u'auth':
+        if ctx.command.name == 'auth':
             # user provides authentication code to verify
-            extra[u'activation_code'] = cfg.code
+            extra['activation_code'] = cfg.code
 
             # user requests sending of a new authentication code (while an old one is still pending)
-            extra[u'request_new_activation_code'] = cfg.new_code
+            extra['request_new_activation_code'] = cfg.new_code
 
-        # this is the WAMP ApplicationSession that connects the CLI to Crossbar.io FX
+        # this is the WAMP ApplicationSession that connects the CLI to Crossbar.io
         self.session = client.ShellClient(ComponentConfig(realm, extra))
 
         runner = ApplicationRunner(url, realm, ssl=cert_options)
@@ -419,7 +419,7 @@ class Application(object):
 
             session_details, result = res
 
-            if cmd == u'auth':
+            if cmd == 'auth':
 
                 self._print_welcome(url, session_details)
 
@@ -468,11 +468,11 @@ class Application(object):
 
                 exit_code = None
 
-                if err.error.startswith(u'fabric.auth-failed.'):
-                    error = err.error.split(u'.')[2]
+                if err.error.startswith('fabric.auth-failed.'):
+                    error = err.error.split('.')[2]
                     message = err.args[0]
 
-                    if error == u'new-user-auth-code-sent':
+                    if error == 'new-user-auth-code-sent':
 
                         click.echo('\nThanks for registering! {}'.format(message))
                         click.echo(
@@ -480,7 +480,7 @@ class Application(object):
                                 'Please check your inbox and run "crossbar shell auth --code <THE CODE YOU GOT BY EMAIL>.\n'
                             ))
 
-                    elif error == u'registered-user-auth-code-sent':
+                    elif error == 'registered-user-auth-code-sent':
 
                         click.echo('\nWelcome back! {}'.format(message))
                         click.echo(
@@ -488,7 +488,7 @@ class Application(object):
                                 'Please check your inbox and run "crossbar shell auth --code <THE CODE YOU GOT BY EMAIL>.\n'
                             ))
 
-                    elif error == u'pending-activation':
+                    elif error == 'pending-activation':
 
                         click.echo()
                         click.echo(style_ok(message))
@@ -497,21 +497,21 @@ class Application(object):
                         click.echo('Tip: you can request sending a new code with "crossbar shell auth --new-code"')
                         click.echo()
 
-                    elif error == u'no-pending-activation':
+                    elif error == 'no-pending-activation':
 
                         exit_code = 1
                         click.echo()
                         click.echo(style_error('{} [{}]'.format(message, err.error)))
                         click.echo()
 
-                    elif error == u'email-failure':
+                    elif error == 'email-failure':
 
                         exit_code = 1
                         click.echo()
                         click.echo(style_error('{} [{}]'.format(message, err.error)))
                         click.echo()
 
-                    elif error == u'invalid-activation-code':
+                    elif error == 'invalid-activation-code':
 
                         exit_code = 1
                         click.echo()
@@ -524,12 +524,12 @@ class Application(object):
                         click.echo(style_error('{}'.format(error)))
                         click.echo(style_error(message))
 
-                elif err.error.startswith(u'crossbar.error.'):
+                elif err.error.startswith('crossbar.error.'):
 
-                    error = err.error.split(u'.')[2]
+                    error = err.error.split('.')[2]
                     message = err.args[0]
 
-                    if error == u'invalid_configuration':
+                    if error == 'invalid_configuration':
 
                         click.echo()
                         click.echo(style_error('{} [{}]'.format(message, err.error)))

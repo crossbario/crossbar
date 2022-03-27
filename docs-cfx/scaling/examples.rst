@@ -1,15 +1,15 @@
 Examples
 ========
 
-The following describes some common setups using Crossbar.io FX and
+The following describes some common setups using Crossbar.io and
 Web/Router Clusters for High-availability (HA), scale-up (utilizing multiple
 CPU core on a single host) and scale-out (utilizing multiple hosts).
 
 .. note::
 
-    The examples here will work with all Crossbar.io FX binary flavors, that is
+    The examples here will work with all Crossbar.io binary flavors, that is
     Docker (CPython and PyPy), snap and EXE (single-file executable). However,
-    The Docker/PyPy image of Crossbar.io FX is recommended for production, and
+    The Docker/PyPy image of Crossbar.io is recommended for production, and
     should be used for any performance tests and benchmarking.
 
 .. contents:: :local:
@@ -22,7 +22,7 @@ Prerequisites
 CrossbarFX CLI
 ..............
 
-Download and install the Crossbar.io FX single-file executable, which embeds
+Download and install the Crossbar.io single-file executable, which embeds
 a command line inferface (CLI) to the master node:
 
 .. code-block:: console
@@ -80,7 +80,7 @@ and
 * the default management realm (automatically created)
 * the three managed nodes auto-paired to the default management realm
 
-The following describes how to start these 4 nodes using the Crossbar.io FX Docker image
+The following describes how to start these 4 nodes using the Crossbar.io Docker image
 all on the local machine, eg a developer notebook. Since all nodes are run on one host,
 and to keep things simple, the nodes will listen on different ports:
 
@@ -110,7 +110,7 @@ file with this contents (eg in an otherwise empty directory):
 
                 # both of these are required for auto-discovery & pairing of nodes
                 - CROSSBAR_FABRIC_URL=ws://master:9000/ws
-                - CROSSBARFX_WATCH_TO_PAIR=/nodes
+                - CROSSBAR_WATCH_TO_PAIR=/nodes
             volumes:
                 # superuser public key
                 - "${HOME}/.crossbarfx/default.pub:/default.pub:ro"
@@ -126,7 +126,7 @@ file with this contents (eg in an otherwise empty directory):
                 - --cbdir=/master
 
         # repeat this block for node2, node3, .. (adjusting container_name,
-        # CROSSBARFX_NODE_ID and host volume path)
+        # CROSSBAR_NODE_ID and host volume path)
         node1:
             container_name: node1
             image: crossbario/crossbarfx:pypy-slim-amd64
@@ -137,7 +137,7 @@ file with this contents (eg in an otherwise empty directory):
             environment:
                 # auto-pairing configuration
                 - CROSSBAR_FABRIC_URL=ws://master:9000/ws
-                - CROSSBARFX_NODE_ID=node1
+                - CROSSBAR_NODE_ID=node1
             volumes:
                 # node directory (of this node only!) is mapped from host:
                 - "${PWD}/.test/nodes/node1:/node:rw"
@@ -153,7 +153,7 @@ To **start** a Docker container with a **master node**:
     docker-compose up master
 
 You should see log output of the master node booting the first time. The master node should pick up the
-public key of the default profile from your Crossbar.io FX shell (CLI) dotdir:
+public key of the default profile from your Crossbar.io shell (CLI) dotdir:
 
 .. code-block:: console
 
@@ -172,7 +172,7 @@ management realm:
 .. code-block:: console
 
     master    | 2020-07-30T19:38:25+0000 [Container      17] Watch-to-pair enabled
-    master    | 2020-07-30T19:38:25+0000 [Container      17] Configuration "auto_default_mrealm.watch_to_pair" set to "/nodes" from environment variable "$CROSSBARFX_WATCH_TO_PAIR"
+    master    | 2020-07-30T19:38:25+0000 [Container      17] Configuration "auto_default_mrealm.watch_to_pair" set to "/nodes" from environment variable "$CROSSBAR_WATCH_TO_PAIR"
 
 The last log line should read similar to
 
@@ -192,9 +192,9 @@ Next, **pre-create node keys for 3 managed nodes** (which we'll start in the nex
 .. code-block:: console
 
     sudo mkdir -p ./.test/nodes
-    sudo CROSSBARFX_NODE_ID=node1 crossbarfx edge keys --cbdir=./.test/nodes/node1
-    sudo CROSSBARFX_NODE_ID=node2 crossbarfx edge keys --cbdir=./.test/nodes/node2
-    sudo CROSSBARFX_NODE_ID=node3 crossbarfx edge keys --cbdir=./.test/nodes/node3
+    sudo CROSSBAR_NODE_ID=node1 crossbarfx edge keys --cbdir=./.test/nodes/node1
+    sudo CROSSBAR_NODE_ID=node2 crossbarfx edge keys --cbdir=./.test/nodes/node2
+    sudo CROSSBAR_NODE_ID=node3 crossbarfx edge keys --cbdir=./.test/nodes/node3
 
 Now, to **start** a Docker container with **managed nodes 1, 2 and 3**:
 

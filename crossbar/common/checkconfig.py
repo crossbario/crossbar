@@ -1313,6 +1313,7 @@ def check_websocket_options(options):
                 'auto_ping_interval',
                 'auto_ping_timeout',
                 'auto_ping_size',
+                'auto_ping_restart_on_any_traffic',
                 'enable_flash_policy',
                 'flash_policy',
                 'compression',
@@ -1344,6 +1345,7 @@ def check_websocket_options(options):
             'auto_ping_interval': (False, [int]),
             'auto_ping_timeout': (False, [int]),
             'auto_ping_size': (False, [int]),
+            'auto_ping_restart_on_any_traffic': (False, [bool]),
             'enable_flash_policy': (False, [bool]),
             'flash_policy': (False, []),  # FIXME not in docs
             'compression': (False, [Mapping]),
@@ -1356,8 +1358,8 @@ def check_websocket_options(options):
 
     if 'auto_ping_size' in options:
         aps = int(options['auto_ping_size'])
-        if aps < 4 or aps > 125:
-            raise InvalidConfigException("WebSocket option 'auto_ping_size' must be between 4 and 125")
+        if aps < 12 or aps > 125:
+            raise InvalidConfigException("WebSocket option 'auto_ping_size' must be between 12 and 125")
 
     millisecond_intervals = [
         'open_handshake_timeout',

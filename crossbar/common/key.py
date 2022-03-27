@@ -54,7 +54,7 @@ def _parse_key_file(key_path, private=True):
     if os.path.exists(key_path) and not os.path.isfile(key_path):
         raise Exception("Key file '{}' exists, but isn't a file".format(key_path))
 
-    allowed_tags = ['public-key-ed25519', 'machine-id', 'node-authid', 'created-at', 'creator']
+    allowed_tags = ['public-key-ed25519', 'machine-id', 'node-authid', 'node-cluster-ip', 'created-at', 'creator']
     if private:
         allowed_tags.append('private-key-ed25519')
 
@@ -157,7 +157,7 @@ def _write_node_key(filepath, tags, msg):
 
 def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
-    was_new = True
+    was_new = None
     privkey_path = os.path.join(cbdir, privfile)
     pubkey_path = os.path.join(cbdir, pubfile)
 
@@ -166,7 +166,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         # node private key seems to exist already .. check!
 
         priv_tags = _parse_key_file(privkey_path, private=True)
-        # node-authid is optional!
+        # node-authid and node-cluster-ip are optional!
         for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519', 'private-key-ed25519']:
             if tag not in priv_tags:
                 raise Exception("Corrupt node private key file {} - {} tag not found".format(privkey_path, tag))
@@ -182,7 +182,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
         if os.path.exists(pubkey_path):
             pub_tags = _parse_key_file(pubkey_path, private=False)
-            # node-authid is optional!
+            # node-authid and node-cluster-ip are optional!
             for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519']:
                 if tag not in pub_tags:
                     raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))
@@ -201,6 +201,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
                 ('created-at', priv_tags['created-at']),
                 ('machine-id', priv_tags['machine-id']),
                 ('node-authid', priv_tags.get('node-authid', None)),
+                ('node-cluster-ip', priv_tags.get('node-cluster-ip', None)),
                 ('public-key-ed25519', pubkey_hex),
             ])
             msg = 'Crossbar.io node public key\n\n'
@@ -220,8 +221,20 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
         if 'CROSSBAR_NODE_ID' in os.environ and os.environ['CROSSBAR_NODE_ID'].strip() != '':
             node_authid = os.environ['CROSSBAR_NODE_ID']
+            log.info('using node_authid from environment variable CROSSBAR_NODE_ID: "{node_authid}"',
+                     node_authid=node_authid)
         else:
             node_authid = socket.gethostname()
+            log.info('using node_authid from hostname: "{node_authid}"', node_authid=node_authid)
+
+        if 'CROSSBAR_NODE_CLUSTER_IP' in os.environ and os.environ['CROSSBAR_NODE_CLUSTER_IP'].strip() != '':
+            node_cluster_ip = os.environ['CROSSBAR_NODE_CLUSTER_IP']
+            log.info('using node_cluster_ip from environment variable CROSSBAR_NODE_CLUSTER_IP: "{node_cluster_ip}"',
+                     node_cluster_ip=node_cluster_ip)
+        else:
+            node_cluster_ip = '127.0.0.1'
+            log.info('using node_cluster_ip for localhost (builtin): "{node_cluster_ip}"',
+                     node_cluster_ip=node_cluster_ip)
 
         # first, write the public file
         tags = OrderedDict([
@@ -229,6 +242,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
             ('created-at', utcnow()),
             ('machine-id', _machine_id()),
             ('node-authid', node_authid),
+            ('node-cluster-ip', node_cluster_ip),
             ('public-key-ed25519', pubkey_hex),
         ])
         msg = 'Crossbar.io node public key\n\n'
@@ -239,7 +253,11 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         msg = 'Crossbar.io node private key - KEEP THIS SAFE!\n\n'
         _write_node_key(privkey_path, tags, msg)
 
-        log.info('New node key pair generated! Public key is {pubkey}', pubkey=hlid('0x' + pubkey_hex))
+        log.info('New node key pair generated! public-key-ed25519={pubkey}, node-authid={node_authid}',
+                 pubkey=hlid('0x' + pubkey_hex),
+                 node_authid=node_authid)
+
+        was_new = True
 
     # fix file permissions on node public/private key files
     # note: we use decimals instead of octals as octal literals have changed between Py2/3

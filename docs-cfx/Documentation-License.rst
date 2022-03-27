@@ -1,9 +1,9 @@
 :orphan:
 
-Crossbar.io FX Documentation License
+Crossbar.io Documentation License
 ====================================
 
-Copyright for the Crossbar.io FX Documentation (C) Crossbar.io Technologies GmbH.
+Copyright for the Crossbar.io Documentation (C) Crossbar.io Technologies GmbH.
 Licensed under the `Creative Commons CC BY-NC-ND 4.0 license <https://creativecommons.org/licenses/by-nc-nd/4.0/>`__.
 
 "Crossbar.io", "WAMP" and "XBR" are trademarks of Crossbar.io Technologies GmbH.

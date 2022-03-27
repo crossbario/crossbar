@@ -1,7 +1,7 @@
 ###############################################################################
 #
-# Crossbar.io FX Master
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Crossbar.io Master
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -85,19 +85,19 @@ class Authenticator(ApplicationSession):
 
     GLOBAL_USER_REALM = u'com.crossbario.fabric'
     """
-    Global users realm on Crossbar.io FX.
+    Global users realm on Crossbar.io.
     """
 
     GLOBAL_USER_REALM_USER_ROLE = u'user'
     """
-    The WAMP authrole regular users get on the Crossbar.io FX domain (global) users
-    realm. A role different from this only makes sense for Crossbar.io FX admins.
+    The WAMP authrole regular users get on the Crossbar.io domain (global) users
+    realm. A role different from this only makes sense for Crossbar.io admins.
     """
 
     MREALM_USER_ROLES = [u'guest', u'developer', u'operator', u'admin', u'owner']
     """
     All permissible roles a user can take on a management realm. This is a fixed
-    set hardwired into Crossbar.io FX!
+    set hardwired into Crossbar.io!
     """
 
     MREALM_CREATOR_DEFAULT_ROLES = [u'owner']
@@ -195,7 +195,7 @@ class Authenticator(ApplicationSession):
             session=details.session,
             authid=details.authid,
             authrole=hlid(details.authrole),
-            msg=hl('Crossbar.io FX main authenticator starting ..', bold=True, color='green'),
+            msg=hl('Crossbar.io main authenticator starting ..', bold=True, color='green'),
             dbpath=hlid(dbpath),
             maxsize=hlid(maxsize))
 
@@ -261,8 +261,8 @@ class Authenticator(ApplicationSession):
 
     async def _authenticate(self, realm, authid, details):
         """
-        Main authenticator for Crossbar.io FX. This authenticates both users and user nodes
-        to Crossbar.io FX by authenticating against information stored in controller database.
+        Main authenticator for Crossbar.io. This authenticates both users and user nodes
+        to Crossbar.io by authenticating against information stored in controller database.
         """
         self.log.debug('authenticate({realm}, {authid}, {details})', realm=realm, authid=authid, details=details)
 
@@ -319,7 +319,7 @@ class Authenticator(ApplicationSession):
             #
             if authrole == Authenticator.MREALM_NODE_ROLE:
                 if realm is not None:
-                    msg = u'invalid requested realm "{}" for node - nodes MUST NOT request a realm (the realm is auto-assigned based on Crossbar.io FX configuration)'.format(
+                    msg = u'invalid requested realm "{}" for node - nodes MUST NOT request a realm (the realm is auto-assigned based on Crossbar.io configuration)'.format(
                         realm)
                     raise ApplicationError(Authenticator.ERROR_AUTH_INVALID_PARAMETERS,
                                            Authenticator.ERROR_AUTH_INVALID_PARAMETERS_MSG.format(msg))
@@ -343,11 +343,11 @@ class Authenticator(ApplicationSession):
 
     def _auth_node(self, pubkey):
         """
-        Authenticate a Crossbar.io FX node.
+        Authenticate a Crossbar.io node.
 
         A user node is purely authenticated based on the node's public key, MUST request
         the authrole="node", and MUST NOT request a specific realm (the management realm
-        of a node is automatically assigned by Crossbar.io FX).
+        of a node is automatically assigned by Crossbar.io).
         """
         self.log.debug('authenticating node with pubkey={pubkey}', pubkey=pubkey)
 
@@ -365,7 +365,7 @@ class Authenticator(ApplicationSession):
             # for nodes, realm + authid MUST be configured, and authextra MAY be configured
             # note that a authenticating node MUST NOT override the configured values for
             # realm, authid, etc  - this is critical. Eg the management realm a node is
-            # assigned to must only be chanced under the control of the Crossbar.io FX
+            # assigned to must only be chanced under the control of the Crossbar.io
             # backend, since the owner of a management realm pays for the usage the nodes
             # assigned to do produce. And since a node MUST have the realm set (or the whole
             # record is deleted, and the public key "no longer known"), nodes are always
@@ -417,7 +417,7 @@ class Authenticator(ApplicationSession):
                          activation_code=None,
                          request_new_activation_code=False):
         """
-        Authenticate a Crossbar.io FX user.
+        Authenticate a Crossbar.io user.
 
         For a user that is not yet registered, or a user key not yet associated
         with a user, this will raise an ApplicationError signaling the state
@@ -724,13 +724,13 @@ class Authenticator(ApplicationSession):
                 raise Exception('internal error: unprocessed activation status {}'.format(activation.status))
 
     def _send_user_login_mail(self, receiver, activation_code):
-        subject = u'Crossbar.io FX: your LOGIN code'
+        subject = u'Crossbar.io: your LOGIN code'
         text = u'We have received a login request for your account. Please use this activation code: {}'.format(
             activation_code)
         return self._messenger.send_message(receiver, subject, text)
 
     def _send_user_registration_mail(self, receiver, activation_code):
-        subject = u'Crossbar.io FX: your REGISTRATION code'
+        subject = u'Crossbar.io: your REGISTRATION code'
         text = u'We have received a registration request for your account. Please use this activation code: {}'.format(
             activation_code)
         return self._messenger.send_message(receiver, subject, text)

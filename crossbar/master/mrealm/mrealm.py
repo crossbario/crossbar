@@ -1,7 +1,7 @@
 ###############################################################################
 #
-# Crossbar.io FX Master
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Crossbar.io Master
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -56,7 +56,7 @@ def _check_realm_name(name):
     """
     Check a realm name.
 
-    Valid (management) realm names in Crossbar.io FX should be
+    Valid (management) realm names in Crossbar.io should be
     a strict subset of what is allowed in Crossbar.io (Community).
 
     Hence, the following code needs to be in line with the code in

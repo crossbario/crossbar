@@ -13,8 +13,8 @@ _initialize_mrealms
 ## Environment
 
 ```
-export CROSSBARFX_METERING_URL="https://metering.crossbario.com/submit"
-export CROSSBARFX_DISABLE_CE=1
+export CROSSBAR_METERING_URL="https://metering.crossbario.com/submit"
+export CROSSBAR_DISABLE_CE=1
 ```
 
 ## CE
@@ -24,7 +24,7 @@ export CROSSBARFX_DISABLE_CE=1
     "id": "change_engine",
     "type": "container",
     "options": {
-        "disabled": "CROSSBARFX_DISABLE_CE",
+        "disabled": "CROSSBAR_DISABLE_CE",
         "pythonpath": [".."],
         "expose_shared": true,
         "expose_controller": true
@@ -50,11 +50,11 @@ export CROSSBARFX_DISABLE_CE=1
 ```
 
 ```
-export CROSSBARFX_DISABLE_CE=1
+export CROSSBAR_DISABLE_CE=1
 ```
 
 ```
-2019-06-23T05:44:39+0200 [Controller    466] Skip start of worker Container change_engine (disabled from envvar CROSSBARFX_DISABLE_CE)
+2019-06-23T05:44:39+0200 [Controller    466] Skip start of worker Container change_engine (disabled from envvar CROSSBAR_DISABLE_CE)
 ```
 
 ## Databases
@@ -396,7 +396,7 @@ export PATH=${HOME}/cpy392/bin:${PATH}
 
 ### Installing from Wheels
 
-Run [this script](https://github.com/crossbario/crossbarfx/blob/master/docs/_static/crossbarfx-install-from-wheels.sh) to install Crossbar.io FX from wheels (x86-64):
+Run [this script](https://github.com/crossbario/crossbarfx/blob/master/docs/_static/crossbarfx-install-from-wheels.sh) to install Crossbar.io from wheels (x86-64):
 
 ```
 cd ~
@@ -536,7 +536,7 @@ Usage: crossbarfx <command>
    Twisted          : 18.7.0-EPollReactor
    LMDB             : 0.94/lmdb-0.9.22
    Python           : 3.7.0/CPython
- Crossbar.io FX     : 18.9.1
+ Crossbar.io     : 18.9.1
  Frozen executable  : yes
  Operating system   : Linux-4.4.0-134-generic-x86_64-with-debian-stretch-sid
  Host machine       : x86_64

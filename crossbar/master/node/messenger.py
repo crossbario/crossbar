@@ -1,7 +1,7 @@
 ###############################################################################
 #
-# Crossbar.io FX Master
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Crossbar.io Master
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -26,8 +26,8 @@ class Messenger(object):
         self._mailgun_from = os.environ.get('MAILGUN_FROM', "Crossbar.io <no-reply@mailing.crossbar.io>")
 
     def send_user_login_mail(self, receiver, activation_code):
-        subject = u'Crossbar.io FX: your LOGIN code'
-        text = u'''Hello from Crossbar.io FX!
+        subject = u'Crossbar.io: your LOGIN code'
+        text = u'''Hello from Crossbar.io!
 
         We have received a login request for your account.
 
@@ -38,17 +38,17 @@ class Messenger(object):
         return self.send_message(receiver, subject, text)
 
     def send_user_registration_mail(self, receiver, activation_code):
-        subject = u'Crossbar.io FX: your REGISTRATION code'
-        text = u'''Hello from Crossbar.io FX!
+        subject = u'Crossbar.io: your REGISTRATION code'
+        text = u'''Hello from Crossbar.io!
 
         We have received a registration request for this email address.
 
         Please use this activation code:
             {}
-        e.g. to authenticate using the Crossbar.io FX shell do
+        e.g. to authenticate using the Crossbar.io shell do
             cbsh auth --code {}
 
-        If you did not request a registration, then just ignore this email. No Crossbar.io FX account will be created for your email address!
+        If you did not request a registration, then just ignore this email. No Crossbar.io account will be created for your email address!
         '''.format(activation_code, activation_code)
         return self.send_message(receiver, subject, text)
 

@@ -1,7 +1,7 @@
 Management Realm Controller API
 ===============================
 
-Crossbar.io FX enables system architectures with multiple nodes, both in cloud and edge locations. This is done by
+Crossbar.io enables system architectures with multiple nodes, both in cloud and edge locations. This is done by
 expanding from the single node, unmanaged mode that Crossbar.io OSS runs in to many nodes all managed, orchestrated
 and controlled from a single pane of glass and center of control, the master node.
 
@@ -32,10 +32,10 @@ Router clusters are responsible for:
 
 .. figure:: /_static/cfx-clustering-elements.svg
     :align: center
-    :alt: Crossbar.io FX Clustering Elements
+    :alt: Crossbar.io Clustering Elements
     :figclass: align-center
 
-    Crossbar.io FX Clustering Elements (:download:`Crossbar.io FX Clustering Elements </_static/cfx-clustering-elements.pdf>`)
+    Crossbar.io Clustering Elements (:download:`Crossbar.io Clustering Elements </_static/cfx-clustering-elements.pdf>`)
 
 Each management realm ``<MANAGEMENT-REALM-NAME>`` on the master node exposes the following
 **Management Realm Controller API** to management clients.
