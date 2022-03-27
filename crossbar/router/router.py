@@ -342,6 +342,10 @@ class Router(object):
 
         :returns: bool - `True` if a role under the given URI exists on this router.
         """
+        self.log.info('{func}: uri="{uri}", exists={exists}',
+                      func=hltype(self.has_role),
+                      uri=hlval(uri),
+                      exists=(uri in self._roles))
         return uri in self._roles
 
     def add_role(self, role):

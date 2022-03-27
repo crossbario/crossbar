@@ -911,7 +911,7 @@ def check_listening_endpoint_tcp(endpoint):
     :type endpoint: dict
     """
     for k in endpoint:
-        if k not in ['type', 'version', 'port', 'portrange', 'shared', 'interface', 'backlog', 'tls']:
+        if k not in ['type', 'version', 'port', 'portrange', 'shared', 'interface', 'backlog', 'tls', 'user_timeout']:
             raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint".format(k))
 
     if 'portrange' in endpoint:
@@ -962,6 +962,15 @@ def check_listening_endpoint_tcp(endpoint):
 
     if 'backlog' in endpoint:
         check_endpoint_backlog(endpoint['backlog'])
+
+    if 'user_timeout' in endpoint:
+        user_timeout = endpoint['user_timeout']
+        if not isinstance(user_timeout, int):
+            raise InvalidConfigException(
+                "'user_timeout' attribute in endpoint must be integer ({} encountered)".format(type(user_timeout)))
+        if user_timeout < 0 or user_timeout > 65535:
+            raise InvalidConfigException(
+                "invalid value {} for 'user_timeout' attribute in endpoint".format(user_timeout))
 
 
 def check_listening_endpoint_unix(endpoint):
@@ -1304,6 +1313,7 @@ def check_websocket_options(options):
                 'auto_ping_interval',
                 'auto_ping_timeout',
                 'auto_ping_size',
+                'auto_ping_restart_on_any_traffic',
                 'enable_flash_policy',
                 'flash_policy',
                 'compression',
@@ -1335,6 +1345,7 @@ def check_websocket_options(options):
             'auto_ping_interval': (False, [int]),
             'auto_ping_timeout': (False, [int]),
             'auto_ping_size': (False, [int]),
+            'auto_ping_restart_on_any_traffic': (False, [bool]),
             'enable_flash_policy': (False, [bool]),
             'flash_policy': (False, []),  # FIXME not in docs
             'compression': (False, [Mapping]),
@@ -1347,8 +1358,8 @@ def check_websocket_options(options):
 
     if 'auto_ping_size' in options:
         aps = int(options['auto_ping_size'])
-        if aps < 4 or aps > 125:
-            raise InvalidConfigException("WebSocket option 'auto_ping_size' must be between 4 and 125")
+        if aps < 12 or aps > 125:
+            raise InvalidConfigException("WebSocket option 'auto_ping_size' must be between 12 and 125")
 
     millisecond_intervals = [
         'open_handshake_timeout',

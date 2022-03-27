@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-"""Crossbar.io FX is a decentralized data plane for XBR/WAMP based application
+"""Crossbar.io is a decentralized data plane for XBR/WAMP based application
 service and data routing, built on Crossbar.io OSS."""
 
 import os

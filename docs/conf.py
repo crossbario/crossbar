@@ -110,7 +110,7 @@ else:
 
         # add custom CSS on top of Sphinx RTD standard CSS
         def setup(app):
-            app.add_stylesheet('css/custom.css')
+            app.add_css_file('css/custom.css')
     else:
         html_theme = 'default'
 

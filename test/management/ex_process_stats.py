@@ -8,7 +8,7 @@ from crossbar.shell import client
 async def main(session):
     """
     This example demonstrates how to retrieve OS process statistics for
-    Crossbar.io FX node controller and worker processes.
+    Crossbar.io node controller and worker processes.
     """
     nodes = await session.call(
         u'crossbarfabriccenter.mrealm.get_nodes', status=u'online')

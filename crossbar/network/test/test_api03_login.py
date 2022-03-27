@@ -1,5 +1,5 @@
 # coding=utf8
-# XBR Network - Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# XBR Network - Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 
 import os
 import sys

@@ -29,7 +29,7 @@ from zope.interface import implementer
 import txtorcon
 
 from crossbar._util import get_free_tcp_port, first_free_tcp_port
-from crossbar.common.twisted.sharedport import SharedPort, SharedTLSPort
+from crossbar.common.twisted.sharedport import CustomTCPPort, CustomTCPTLSPort
 
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
@@ -491,7 +491,15 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
             # random free port
             config['port'] = get_free_tcp_port(host=config.get('interface', ''))
 
-    if config['type'] == 'tcp' and config.get('shared', False):
+    # the TCP socket sharing option
+    #
+    shared = config.get('shared', False)
+
+    # the TCP socket user timeout option
+    #
+    user_timeout = config.get('user_timeout', None)
+
+    if config['type'] == 'tcp' and (shared or user_timeout is not None):
 
         # the TCP protocol version (v4 or v6)
         #
@@ -509,10 +517,6 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
         #
         backlog = int(config.get('backlog', 50))
 
-        # the TCP socket sharing option
-        #
-        shared = config.get('shared', False)
-
         # create a listening port
         #
         if 'tls' in config:
@@ -521,7 +525,14 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
                 context = _create_tls_server_context(config['tls'], cbdir, log)
 
                 if version == 4:
-                    listening_port = SharedTLSPort(port, factory, context, backlog, interface, reactor, shared=shared)
+                    listening_port = CustomTCPTLSPort(port,
+                                                      factory,
+                                                      context,
+                                                      backlog,
+                                                      interface,
+                                                      reactor,
+                                                      shared=shared,
+                                                      user_timeout=user_timeout)
                 elif version == 6:
                     raise Exception("TLS on IPv6 not implemented")
                 else:
@@ -529,7 +540,13 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
             else:
                 raise Exception("TLS transport requested, but TLS packages not available:\n{}".format(_LACKS_TLS_MSG))
         else:
-            listening_port = SharedPort(port, factory, backlog, interface, reactor, shared=shared)
+            listening_port = CustomTCPPort(port,
+                                           factory,
+                                           backlog,
+                                           interface,
+                                           reactor,
+                                           shared=shared,
+                                           user_timeout=user_timeout)
 
         try:
             listening_port.startListening()

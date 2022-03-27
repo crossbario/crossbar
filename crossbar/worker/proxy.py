@@ -10,6 +10,7 @@ import binascii
 from pprint import pformat
 
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
+from twisted.internet.error import DNSLookupError
 
 from txaio import make_logger, as_future, time_ns
 
@@ -376,7 +377,7 @@ class ProxyFrontendSession(object):
         Now we do any authentication necessary with them and connect
         to our backend.
         """
-        self.log.info('{func}(msg={msg})', func=hltype(self._process_Hello), msg=msg)
+        self.log.debug('{func}(msg={msg})', func=hltype(self._process_Hello), msg=msg)
         self._pending_session_id = util.id()
         self._goodbye_sent = False
 
@@ -414,6 +415,7 @@ class ProxyFrontendSession(object):
                                      authextra=msg.authextra,
                                      session_roles=msg.roles,
                                      pending_session=self._pending_session_id)
+
         auth_config = self._transport_config.get('auth', None)
 
         # if authentication is _not_ configured, allow anyone to join as "anonymous"!
@@ -700,9 +702,9 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
 
     :param cbdir: The node directory.
     """
-    log.info('{func}() connecting with config=\n{config}',
-             func=hltype(make_backend_connection),
-             config=pformat(backend_config))
+    log.debug('{func}() connecting with config=\n{config}',
+              func=hltype(make_backend_connection),
+              config=pformat(backend_config))
 
     from twisted.internet import reactor
 
@@ -740,6 +742,11 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
 
     # client-factory
     factory = _create_transport_factory(reactor, backend, create_session)
+    # Reduce noise from logs, otherwise for each connect/disconnect to the backend
+    # we get an entry in the router logs like
+    # Starting factory <autobahn.twisted.rawsocket.WampRawSocketClientFactory object at 0x7f38954ed9c0>
+    # Stopping factory <autobahn.twisted.rawsocket.WampRawSocketClientFactory object at 0x7f38954ed9c0>
+    factory.noisy = False
     endpoint = _create_transport_endpoint(reactor, backend_config['transport']['endpoint'])
     transport_d = endpoint.connect(factory)
 
@@ -973,6 +980,12 @@ class ProxyRoute(object):
         topic = '{}.on_proxy_route_started'.format(self._controller._uri_prefix)
         yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
 
+        self.log.info('{func} proxy route {route_id} started for realm "{realm}":\n{config}',
+                      func=hltype(self.start),
+                      route_id=hlid(self._route_id),
+                      realm=hlval(self._realm_name),
+                      config=pformat(self._config))
+
     @inlineCallbacks
     def stop(self):
         """
@@ -989,6 +1002,11 @@ class ProxyRoute(object):
 
         topic = '{}.on_proxy_route_stopped'.format(self._controller._uri_prefix)
         yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
+
+        self.log.info('{func} proxy route {route_id} stopped for realm "{realm}"',
+                      func=hltype(self.stop),
+                      route_id=hlid(self._route_id),
+                      realm=hlval(self._realm_name))
 
 
 class ProxyConnection(object):
@@ -1199,12 +1217,16 @@ class ProxyController(TransportController):
             # the route config is a map with role name as key
             result = any(authrole in route.config for route in realm_routes.values())
         else:
+            realm_routes = None
             result = False
-        self.log.debug('{func}(realm="{realm}", authrole="{authrole}") -> {result}',
-                       func=hltype(ProxyController.has_role),
-                       realm=hlid(realm),
-                       authrole=hlid(authrole),
-                       result=hlval(result))
+        self.log.debug(
+            '{func}(realm="{realm}", authrole="{authrole}") -> {result} [routes={routes}, realm_routes={realm_routes}]',
+            func=hltype(ProxyController.has_role),
+            realm=hlid(realm),
+            authrole=hlid(authrole),
+            result=hlval(result),
+            realm_routes=hlval([route.config for route in realm_routes.values()] if realm_routes else []),
+            routes=sorted(self._routes.keys()))
         return result
 
     @inlineCallbacks
@@ -1300,18 +1322,23 @@ class ProxyController(TransportController):
             realm=hlid(realm),
             authrole=hlid(authrole))
 
-        backend_proto = yield make_backend_connection(backend_config, frontend, self._cbdir)
+        try:
+            backend_proto = yield make_backend_connection(backend_config, frontend, self._cbdir)
+        except DNSLookupError as e:
+            self.log.warn('{func} proxy worker could not connect to router backend: DNS resolution failed ({error})',
+                          func=hltype(self.map_backend),
+                          error=str(e))
+            raise e
 
         if frontend:
             self._backends_by_frontend[frontend] = backend_proto
 
         self.log.info(
-            '{func}: ok, proxy backend session {session_id} opened mapping frontend session to realm "{realm}", authrole "{authrole}"',
+            '{func}: ok, proxy backend connection opened mapping frontend session to realm "{realm}", authrole "{authrole}"',
             func=hltype(self.map_backend),
             backend_config=pformat(backend_config),
             realm=hlid(realm),
-            authrole=hlid(authrole),
-            session_id=hlid(backend_proto._session_id))
+            authrole=hlid(authrole))
 
         returnValue(backend_proto)
 
@@ -1329,7 +1356,7 @@ class ProxyController(TransportController):
                 # session and delete it
                 backend.leave()
                 del self._backends_by_frontend[frontend]
-                self.log.info(
+                self.log.debug(
                     '{func}: ok, unmapped frontend session {frontend_session_id} from backend session {backend_session_id}',
                     func=hltype(self.unmap_backend),
                     frontend_session_id=hlid(frontend._session_id),
@@ -1610,7 +1637,7 @@ class ProxyController(TransportController):
         :return: Run-time information about the stopped route.
         """
         self.log.info('{func}(realm_name={realm_name}, caller_authid="{caller_authid}")',
-                      func=hltype(self.stop_proxy_route),
+                      func=hltype(self.stop_proxy_realm_route),
                       realm_name=realm_name,
                       caller_authid=hlval(details.caller_authid))
         if realm_name not in self._routes:
@@ -1623,6 +1650,11 @@ class ProxyController(TransportController):
         route = self._routes[realm_name][route_id]
         yield route.stop()
         del self._routes[realm_name][route_id]
+
+        # If all routes are stopped, clear the realm from routes map
+        # Relevant discussion: https://github.com/crossbario/crossbar/pull/1968
+        if len(self._routes[realm_name]) == 0:
+            del self._routes[realm_name]
 
         returnValue(route.marshal())
 

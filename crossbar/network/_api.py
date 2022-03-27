@@ -2,7 +2,7 @@
 
 ##############################################################################
 #
-#                        Crossbar.io FX
+#                        Crossbar.io
 #     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ##############################################################################
@@ -1573,7 +1573,7 @@ class Network(ApplicationSession):
             for the respective market. The difference is, the procedure is more general, in that
             it can return (basic) market information for any market, and in that the procedure is
             implemented in the `planet.xbr.network` backend rather than the XBR market maker running
-            on the Crossbar.io FX edge node of the operator of the respective market.
+            on the Crossbar.io edge node of the operator of the respective market.
 
         :param market_oid: OID of the XBR Data Market to retrieve information for.
 

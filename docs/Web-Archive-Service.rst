@@ -166,7 +166,7 @@ against a list of user configured, known good fingerprints:
         },
         "hashes": [
             "5ef1326e6f0f54e4552b5b5288d4dd2c96ad2e4164cd9e49886fe083fa5d8854"
-        ]        
+        ]
     }
 
 Above will
@@ -245,7 +245,8 @@ Check out this ``complete example <https://github.com/crossbario/crossbar-exampl
                                     "close_handshake_timeout": 1000,
                                     "auto_ping_interval": 10000,
                                     "auto_ping_timeout": 5000,
-                                    "auto_ping_size": 4,
+                                    "auto_ping_size": 12,
+                                    "auto_ping_restart_on_any_traffic": true,
                                     "compression": {
                                         "deflate": {
                                             "request_no_context_takeover": false,

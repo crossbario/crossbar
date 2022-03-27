@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -856,7 +856,7 @@ def _create_cfx_node_fixture(personality, node):
                 if "Skipping any local node configuration (on_start_apply_config is off)" in self.data or \
                    "MrealmController initialized" in self.data or \
                    "Domain controller ready" in self.data or \
-                   "Connected to Crossbar.io FX Master" in self.data:
+                   "Connected to Crossbar.io Master" in self.data:
                     print("Detected crossbar node is up!")
                     self.done.callback(None)
 

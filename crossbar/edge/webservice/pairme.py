@@ -1,6 +1,6 @@
 ##############################################################################
 #
-#                        Crossbar.io FX
+#                        Crossbar.io
 #     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ##############################################################################
@@ -119,7 +119,7 @@ class PairMeResource(Resource):
 
 class RouterWebServicePairMe(RouterWebService):
     """
-    Crossbar.io FX "pair-me" home page.
+    Crossbar.io "pair-me" home page.
 
     IMPORTANT: this web service is only indented to run inside edge & core nodes!
     """

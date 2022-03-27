@@ -1,7 +1,7 @@
 ###############################################################################
 #
-# Crossbar.io FX Master
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Crossbar.io Master
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -14,8 +14,9 @@ import threading
 import pprint
 from datetime import datetime
 from collections import OrderedDict
+from pathlib import Path
 
-import cbor
+import cbor2
 import nacl
 import numpy as np
 
@@ -312,7 +313,9 @@ class DomainController(ApplicationSession):
                 self._watch_to_pair = checkconfig.maybe_from_env('auto_default_mrealm.watch_to_pair',
                                                                  self._watch_to_pair,
                                                                  hide_value=False)
-                if self._watch_to_pair and os.path.isdir(self._watch_to_pair):
+                if self._watch_to_pair:
+                    self._watch_to_pair = Path(self._watch_to_pair)
+                if self._watch_to_pair and self._watch_to_pair.is_dir():
                     node_dir_pat = self._auto_default_mrealm.get('watch_to_pair_pattern', None)
                     if node_dir_pat:
                         node_dir_pat = re.compile(node_dir_pat)
@@ -351,7 +354,8 @@ class DomainController(ApplicationSession):
                                                 node_key_tags = _parse_key_file(node_key_file)
                                                 node_key_hex = node_key_tags['public-key-ed25519']
                                                 node_id = node_key_tags.get('node-authid', None)
-                                                pubkeys.append((r, node_key_hex, node_id))
+                                                cluster_ip = node_key_tags.get('node-cluster-ip', None)
+                                                pubkeys.append((r, node_key_hex, node_id, cluster_ip))
 
                             self.log.debug(
                                 '{klass}::watch_and_pair: found {cnt} directories (matching), with {cntk} node keys scanned ..',
@@ -363,10 +367,10 @@ class DomainController(ApplicationSession):
                                 # determine actually new pubkeys
                                 new_pubkeys = []
                                 with self.db.begin() as txn:
-                                    for cbdir, pubkey, node_id in pubkeys:
+                                    for cbdir, pubkey, node_id, cluster_ip in pubkeys:
                                         node_oid = self.schema.idx_nodes_by_pubkey[txn, pubkey]
                                         if not node_oid:
-                                            new_pubkeys.append((cbdir, pubkey, node_id))
+                                            new_pubkeys.append((cbdir, pubkey, node_id, cluster_ip))
                                         else:
                                             node = self.schema.nodes[txn, node_oid]
                                             self.log.debug(
@@ -385,10 +389,11 @@ class DomainController(ApplicationSession):
                                     klass=self.__class__.__name__)
 
                                 # store all new pubkeys
-                                for cbdir, pubkey, node_id in new_pubkeys:
+                                for cbdir, pubkey, node_id, cluster_ip in new_pubkeys:
                                     node = Node()
                                     node.oid = uuid.uuid4()
                                     node.pubkey = pubkey
+                                    node.cluster_ip = cluster_ip
 
                                     # auto-pair newly discovered node to the default management realm, and owned by superuser
                                     node.owner_oid = self._superuser_oid
@@ -399,6 +404,7 @@ class DomainController(ApplicationSession):
                                         node.authid = 'node-{}'.format(str(node.oid)[:8])
                                     node.authextra = {
                                         'node_oid': str(node.oid),
+                                        'cluster_ip': cluster_ip,
                                         'mrealm_oid': str(node.mrealm_oid),
                                     }
 
@@ -425,11 +431,12 @@ class DomainController(ApplicationSession):
                                                 ('management-realm', 'default'),
                                                 ('management-realm-oid', str(node.mrealm_oid)),
                                                 ('node-oid', str(node.oid)),
+                                                ('node-cluster-ip', node.cluster_ip),
                                                 ('node-authid', str(node.authid)),
                                                 ('activation-code', activation_code),
                                                 ('public-key-ed25519', pubkey),
                                             ])
-                                            file_msg = 'Crossbar.io FX node activation\n\n'
+                                            file_msg = 'Crossbar.io node activation\n\n'
                                             try:
                                                 _write_node_key(activation_file, file_tags, file_msg)
                                             except OSError as e:
@@ -477,8 +484,11 @@ class DomainController(ApplicationSession):
                     self._watch_and_pair_count = 0
                     self._watch_and_pair_lc.start(10)
                 else:
-                    self.log.warn('skipping to watch "{watch_to_pair}" for node auto-pairing - not a directory!',
-                                  watch_to_pair=self._watch_to_pair)
+                    if self._watch_to_pair:
+                        self.log.warn('skipping to watch "{watch_to_pair}" for node auto-pairing - not a directory!',
+                                      watch_to_pair=self._watch_to_pair.absolute())
+                    else:
+                        self.log.warn('skipping to watch for node auto-pairing - no directory configured!')
 
         # initialize management backends
         #
@@ -1063,7 +1073,7 @@ class DomainController(ApplicationSession):
             verify_key = self._node_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)
 
             # serialize metering data
-            raw_data = cbor.dumps(rec.marshal())
+            raw_data = cbor2.dumps(rec.marshal())
 
             # sign metering data with master node (private) key
             signed_msg = self._node_key.sign(raw_data)

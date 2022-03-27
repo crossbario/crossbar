@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
+  "version": 2,
+  "controller": {
+    "options": {
+      "shutdown": ["shutdown_on_shutdown_requested"],
+      "enable_parallel_worker_start": true
+    }
+  }
+}
