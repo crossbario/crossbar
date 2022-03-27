@@ -138,6 +138,10 @@ class WampTransport(object):
             'peer': peer2str(self.transport.getPeer()),
         }
 
+    @property
+    def peer(self):
+        return self._transport_info[u'peer']
+
     def send(self, msg):
         self.on_message(msg)
 
