@@ -62,7 +62,19 @@ class CookieStore(object):
         if 'cookie' in headers:
             try:
                 cookie = http_cookies.SimpleCookie()
-                cookie.load(str(headers['cookie']))
+                header_cookie = str(headers['cookie'])
+                cookie.load(header_cookie)
+
+                if self._cookie_id_field not in cookie and self._cookie_id_field in header_cookie:
+                    # Sometimes Python can't parse cookie. So let's parse it manually.
+                    header_cookies_as_array = header_cookie.split(";")
+                    if len(header_cookies_as_array) != 0:
+                        header_cookie_id_indexes = []
+                        for cookie_raw in header_cookies_as_array:
+                            if (self._cookie_id_field + "=") in cookie_raw:
+                                header_cookie_id_indexes.append(header_cookies_as_array.index(cookie_raw))
+                        if len(header_cookie_id_indexes) > 0:
+                            cookie.load(header_cookies_as_array[header_cookie_id_indexes[0]])
             except http_cookies.CookieError:
                 pass
             else:
