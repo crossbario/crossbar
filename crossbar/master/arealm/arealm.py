@@ -230,8 +230,8 @@ class ApplicationRealmMonitor(object):
             # on each webcluster worker, setup backend connections and routes to all router workers of
             # the router worker group of this application realm
             for wc_node_oid, wc_worker_id in wc_workers:
-                success = yield self._apply_webcluster_backends(wc_node_oid, wc_worker_id, workergroup_placements,
-                                                                placement_nodes, arealm)
+                success = yield self._apply_webcluster_connections(wc_node_oid, wc_worker_id, workergroup_placements,
+                                                                   placement_nodes, arealm)
                 if not success:
                     is_running_completely = False
         else:
@@ -272,7 +272,8 @@ class ApplicationRealmMonitor(object):
                       arealm_oid=hlid(self._arealm_oid))
 
     @inlineCallbacks
-    def _apply_webcluster_backends(self, wc_node_oid, wc_worker_id, workergroup_placements, placement_nodes, arealm):
+    def _apply_webcluster_connections(self, wc_node_oid, wc_worker_id, workergroup_placements, placement_nodes,
+                                      arealm):
         """
         For given webcluster worker ``(wc_node_oid, wc_worker_id)``, setup backend connections and routes
         to all router workers ``workergroup_placements`` of the router worker group of the given
@@ -286,7 +287,7 @@ class ApplicationRealmMonitor(object):
         #   - routes
         for placement in workergroup_placements:
             self.log.debug('{func} applying router cluster worker group placement:\n{placement}',
-                           func=hltype(self._apply_webcluster_backends),
+                           func=hltype(self._apply_webcluster_connections),
                            placement=pformat(placement.marshal()))
 
             # the router worker this placement targets
@@ -313,14 +314,14 @@ class ApplicationRealmMonitor(object):
                 connection = None
                 self.log.warn(
                     '{func} No connection {connection_id} currently running for web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}: starting backend connection ..',
-                    func=hltype(self._apply_webcluster_backends),
+                    func=hltype(self._apply_webcluster_connections),
                     wc_node_oid=hlid(wc_node_oid),
                     wc_worker_id=hlid(wc_worker_id),
                     connection_id=hlid(connection_id))
             else:
                 self.log.debug(
                     '{func} Ok, connection {connection_id} already running on web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}',
-                    func=hltype(self._apply_webcluster_backends),
+                    func=hltype(self._apply_webcluster_connections),
                     wc_node_oid=hlid(wc_node_oid),
                     wc_worker_id=hlid(wc_worker_id),
                     connection_id=hlid(connection_id))
@@ -357,7 +358,7 @@ class ApplicationRealmMonitor(object):
                     connection_id, config)
 
                 self.log.info('{func} Proxy backend connection started:\n{connection}',
-                              func=hltype(self._apply_webcluster_backends),
+                              func=hltype(self._apply_webcluster_connections),
                               connection=connection)
 
             # if by now we do have a connection on the proxy worker, setup all routes (for the arealm)
@@ -381,14 +382,14 @@ class ApplicationRealmMonitor(object):
                     is_running_completely = False
                     self.log.warn(
                         '{func} No route for realm "{realm_name}" currently running for web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}: starting backend route ..',
-                        func=hltype(self._apply_webcluster_backends),
+                        func=hltype(self._apply_webcluster_connections),
                         wc_node_oid=hlid(wc_node_oid),
                         wc_worker_id=hlid(wc_worker_id),
                         realm_name=hlval(realm_name))
                 else:
                     self.log.debug(
                         '{func} Ok, route for realm "{realm_name}" already running on web cluster (proxy) worker {wc_worker_id} on node {wc_node_oid}',
-                        func=hltype(self._apply_webcluster_backends),
+                        func=hltype(self._apply_webcluster_connections),
                         wc_node_oid=hlid(wc_node_oid),
                         wc_worker_id=hlid(wc_worker_id),
                         realm_name=hlval(realm_name))
@@ -916,7 +917,7 @@ class ApplicationRealmMonitor(object):
                                             worker_name=hlid(worker_name),
                                             runtime_rlink_id=hlid(runtime_rlink_id))
                                     else:
-                                        self.log.debug(
+                                        self.log.info(
                                             '{func} Ok, rlink {runtime_rlink_id} already running on router cluster worker {worker_name}',
                                             func=hltype(self._apply_routercluster_placements),
                                             worker_name=hlid(worker_name),

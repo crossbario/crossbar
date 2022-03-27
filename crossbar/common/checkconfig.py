@@ -2072,12 +2072,13 @@ def check_listening_transport_mqtt(personality, transport, with_endpoint=True):
 
     # Check MQTT options...
     options = transport.get('options', {})
-    check_dict_args({
-        'realm': (True, [str]),
-        'role': (False, [str]),
-        'payload_mapping': (False, [Mapping]),
-        'auth': (False, [Mapping]),
-    }, options, "invalid MQTT options")
+    check_dict_args(
+        {
+            'realm': (True, [str]),
+            'role': (False, [str]),
+            'payload_mapping': (False, [Mapping]),
+            'auth': (False, [Mapping]),
+        }, options, "invalid MQTT options")
 
     check_realm_name(options['realm'])
 

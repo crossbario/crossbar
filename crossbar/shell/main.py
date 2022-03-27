@@ -373,11 +373,12 @@ def cmd_show_domain_license(ctx):
 
 @cmd_show.command(name='database', help='open and show embedded database details')
 @click.argument('dbpath')
+@click.option('--include-slots/--no-include-slots', default=False, type=bool, help='show database slots')
 @click.pass_context
-def cmd_show_database(ctx, dbpath):
+def cmd_show_database(ctx, dbpath, include_slots):
     exporter = Exporter(dbpath)
-    exporter.print_slots()
-    exporter.print_stats()
+    exporter.print_config()
+    exporter.print_stats(include_slots=include_slots)
 
 
 @cli.group(name='export', help='export resources')

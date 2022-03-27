@@ -1091,27 +1091,6 @@ class WebClusterManager(object):
         return webcluster_stopping
 
     @wamp.register(None, check_types=True)
-    def stat_webcluster(self, webcluster_oid: str, details: Optional[CallDetails] = None) -> dict:
-        """
-        *NOT YET IMPLEMENTED*
-
-        Get current status and statistics for given webcluster.
-
-        :param webcluster_oid: The web cluster to return status and statistics for.
-
-        :return: Current status and statistics for given webcluster.
-        """
-        assert type(webcluster_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
-        self.log.info('{func}(webcluster_oid={webcluster_oid}, details={details})',
-                      func=hltype(self.stat_webcluster),
-                      webcluster_oid=hlid(webcluster_oid),
-                      details=details)
-
-        raise NotImplementedError()
-
-    @wamp.register(None, check_types=True)
     def list_webcluster_nodes(self,
                               webcluster_oid: str,
                               return_names: Optional[bool] = None,
@@ -1775,31 +1754,3 @@ class WebClusterManager(object):
             assert webservice
 
         return webservice.marshal()
-
-    @wamp.register(None, check_types=True)
-    def stat_webcluster_service(self,
-                                webcluster_oid: str,
-                                webservice_oid: str,
-                                details: Optional[CallDetails] = None) -> dict:
-        """
-        *NOT YET IMPLEMENTED*
-
-        Return current status and statistics for the given web service.
-
-        :param webcluster_oid: The web cluster running the web service to return status and statistics for.
-        :param webservice_oid: The web service to return status and statistics for.
-
-        :return: Current status and statistics information for the web service.
-        """
-        assert type(webcluster_oid) == str
-        assert type(webservice_oid) == str
-        assert details is None or isinstance(details, CallDetails)
-
-        self.log.info(
-            '{klass}.stat_webcluster_service(webcluster_oid={webcluster_oid}, webservice_oid={webservice_oid}, details={details})',
-            webcluster_oid=hlid(webcluster_oid),
-            webservice_oid=hlid(webservice_oid),
-            func=hltype(self.stat_webcluster_service),
-            details=details)
-
-        raise NotImplementedError()
