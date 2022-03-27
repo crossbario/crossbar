@@ -1,7 +1,7 @@
 ###############################################################################
 #
 # Crossbar.io Shell
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -203,13 +203,13 @@ class UserKey(object):
                 (u'user-id', user_id),
                 (u'public-key-ed25519', pubkey_hex),
             ])
-            msg = u'Crossbar.io FX user public key\n\n'
+            msg = u'Crossbar.io user public key\n\n'
             _write_node_key(pubkey_path, tags, msg)
             os.chmod(pubkey_path, 420)
 
             # now, add the private key and write the private file
             tags[u'private-key-ed25519'] = privkey_hex
-            msg = u'Crossbar.io FX user private key - KEEP THIS SAFE!\n\n'
+            msg = u'Crossbar.io user private key - KEEP THIS SAFE!\n\n'
             _write_node_key(privkey_path, tags, msg)
             os.chmod(privkey_path, 384)
 

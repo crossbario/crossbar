@@ -5,6 +5,15 @@
 #
 #####################################################################################
 
+# IMPORTANT:
+#
+# 1. You must use pip 22.0.3 or later
+#       pls https://github.com/crossbario/crossbar/pull/1943#issuecomment-1037569885
+#
+# 2. No, we can't add that pip version requirement here
+#       see https://stackoverflow.com/a/60159094/884770
+#
+
 import os
 
 from setuptools import setup, find_packages
@@ -24,10 +33,13 @@ extras_require = {
     'dev': []
 }
 
-# reqs = 'requirements-min.txt'
+reqs = 'requirements-min.txt'
 # reqs = 'requirements-pinned.txt'
 # reqs = 'requirements.txt'
-reqs = 'requirements-latest.txt'
+# reqs = 'requirements-latest.txt'
+
+# https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
+dependency_links = []
 
 with open(reqs) as f:
     for line in f.read().splitlines():
@@ -42,12 +54,12 @@ with open(reqs) as f:
                 extras_require[parts[1]].append(parts[0])
             else:
                 name = parts[0]
-                # Starting pip 18.1 adding packages from other repositores
-                # can be done with install_require parameter.
-                # https://stackoverflow.com/a/54216163
+                # do NOT (!) touch this!
+                # https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
                 if name.startswith('git+'):
+                    dependency_links.append(name)
                     pkgname = name.split('=')[1]
-                    install_requires.append(f"{pkgname} @ {name}")
+                    install_requires.append(pkgname)
                 else:
                     install_requires.append(name)
 
@@ -75,6 +87,10 @@ setup(
     platforms=('Any'),
     license="European Union Public Licence 1.2 (EUPL 1.2)",
     install_requires=install_requires,
+
+    # https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
+    dependency_links=dependency_links,
+
     extras_require=extras_require,
     entry_points={
         # CLI entry function
@@ -99,6 +115,7 @@ setup(
                  "Programming Language :: Python :: 3.7",
                  "Programming Language :: Python :: 3.8",
                  "Programming Language :: Python :: 3.9",
+                 "Programming Language :: Python :: 3.10",
                  "Programming Language :: Python :: Implementation :: CPython",
                  "Programming Language :: Python :: Implementation :: PyPy",
                  "Topic :: Internet",

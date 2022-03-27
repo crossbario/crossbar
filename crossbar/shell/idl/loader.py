@@ -1,7 +1,7 @@
 ###############################################################################
 #
 # Crossbar.io Shell
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -11,7 +11,7 @@ import argparse
 import hashlib
 import pprint
 
-from typing import Dict, Any  # noqa
+from typing import Dict, Any, Optional, BinaryIO  # noqa
 
 from crossbar.shell.util import hl
 from crossbar.shell.reflection import Schema
@@ -441,10 +441,10 @@ if __name__ == '__main__':
         schema['meta']['file_name'] = os.path.basename(options.infile)
         schema['meta']['file_path'] = infile_path
 
-    with open(options.outfile, 'wb') as f:
+    with open(options.outfile, 'wb') as fo:  # type: BinaryIO
         outdata = json.dumps(schema, ensure_ascii=False, sort_keys=False, indent=4,
                              separators=(', ', ': ')).encode('utf8')
-        f.write(outdata)
+        fo.write(outdata)
 
     cnt_bytes = len(outdata)
     cnt_defs = len(schema['types'].keys())

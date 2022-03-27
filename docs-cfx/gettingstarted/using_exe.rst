@@ -77,7 +77,7 @@ Here is a log of above:
        Twisted          : 18.9.0-EPollReactor
        LMDB             : 0.94/lmdb-0.9.22
        Python           : 3.7.1/CPython
-     Crossbar.io FX     : 19.1.1
+     Crossbar.io     : 19.1.1
        txaio-etcd       : -
        XBR              : 18.12.2
        zLMDB            : 19.1.1

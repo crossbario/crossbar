@@ -49,7 +49,7 @@ This should look like:
        Twisted          : 18.9.0-EPollReactor
        LMDB             : 0.94/lmdb-0.9.22
        Python           : 3.7.2/CPython
-     Crossbar.io FX     : 19.2.2
+     Crossbar.io     : 19.2.2
        NumPy            : 1.15.4
        zLMDB            : 19.2.2
        XBR              : 19.2.2

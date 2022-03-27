@@ -1,6 +1,6 @@
 ##############################################################################
 #
-#                        Crossbar.io FX
+#                        Crossbar.io
 #     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ##############################################################################
@@ -27,7 +27,7 @@ __all__ = ('NodeManagementSession', 'NodeManagementBridgeSession')
 class NodeManagementSession(ApplicationSession):
     """
     This session is used for the uplink connection to
-    Crossbar.io FX Master.
+    Crossbar.io Master.
     """
 
     log = make_logger()
@@ -78,7 +78,7 @@ class NodeManagementSession(ApplicationSession):
         }
 
         # now request to join. the authrole==node is mandatory. the actual realm
-        # we're joined to is decided by Crossbar.io FX Master, and hence we
+        # we're joined to is decided by Crossbar.io Master, and hence we
         # must not provide that. Same holds for authid (also auto-assigned).
         # the authid assigned will (also) be used as the node_id
         self.join(realm=None, authrole=u'node', authmethods=[u'cryptosign'], authextra=extra)

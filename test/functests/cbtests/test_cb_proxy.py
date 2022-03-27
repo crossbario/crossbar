@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -181,7 +181,8 @@ def test_proxy(request, virtualenv, reactor, session_temp):
                                     "close_handshake_timeout": 1000,
                                     "auto_ping_interval": 10000,
                                     "auto_ping_timeout": 5000,
-                                    "auto_ping_size": 4,
+                                    "auto_ping_size": 12,
+                                    "auto_ping_restart_on_any_traffic": True,
                                     "compression": {
                                         "deflate": {
                                             "request_no_context_takeover": False,
@@ -267,7 +268,8 @@ def test_proxy(request, virtualenv, reactor, session_temp):
                                     "close_handshake_timeout": 1000,
                                     "auto_ping_interval": 10000,
                                     "auto_ping_timeout": 5000,
-                                    "auto_ping_size": 4,
+                                    "auto_ping_size": 12,
+                                    "auto_ping_restart_on_any_traffic": True,
                                     "compression": {
                                         "deflate": {
                                             "request_no_context_takeover": False,

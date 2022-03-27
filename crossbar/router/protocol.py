@@ -137,6 +137,7 @@ def set_websocket_options(factory, options):
             autoPingInterval=autoPingInterval,
             autoPingTimeout=autoPingTimeout,
             autoPingSize=c.get("auto_ping_size", None),
+            autoPingRestartOnAnyTraffic=c.get("auto_ping_restart_on_any_traffic", None),
             serveFlashSocketPolicy=c.get("enable_flash_policy", None),
             flashSocketPolicy=c.get("flash_policy", None),
             allowedOrigins=c.get("allowed_origins", ["*"]),
@@ -161,6 +162,7 @@ def set_websocket_options(factory, options):
             autoPingInterval=autoPingInterval,
             autoPingTimeout=autoPingTimeout,
             autoPingSize=c.get("auto_ping_size", None),
+            autoPingRestartOnAnyTraffic=c.get("auto_ping_restart_on_any_traffic", None),
             perMessageCompressionOffers=None,
             perMessageCompressionAccept=None,
         )

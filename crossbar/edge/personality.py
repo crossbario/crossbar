@@ -1,11 +1,10 @@
 ##############################################################################
 #
-#                        Crossbar.io FX
+#                        Crossbar.io
 #     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ##############################################################################
 
-import time
 from typing import Dict
 from collections.abc import Mapping, Sequence
 from pprint import pformat
@@ -19,7 +18,6 @@ from crossbar.common import checkconfig
 from crossbar.node.node import NodeOptions
 from crossbar.node.worker import RouterWorkerProcess
 
-import crossbar
 from crossbar.edge.node.node import FabricNode
 from crossbar.edge.worker.realmstore import CfxDbRealmStore
 from crossbar.edge.worker.router import ExtRouterController
@@ -149,7 +147,7 @@ def check_database(personality, database):
 def check_controller_fabric(personality, fabric):
     """
     Check controller Fabric configuration override (which essentially is only
-    for debugging purposes or for people running Crossbar.io FX Service on-premise)
+    for debugging purposes or for people running Crossbar.io Service on-premise)
 
     :param fabric: The Fabric configuration to check.
     :type fabric: dict
@@ -349,43 +347,12 @@ _native_workers.update({
     }
 })
 
-_TITLE = "Crossbar.io FX"
-
-# sudo apt install figlet && figlet -f smslant "Crossbar FX"
-_BANNER = r"""
-    :::::::::::::::::
-          :::::          _____                 __              _____  __
-    :::::   :   :::::   / ___/______  ___ ___ / /  ___ _____  / __/ |/_/
-    :::::::   :::::::  / /__/ __/ _ \(_-<(_-</ _ \/ _ `/ __/ / _/_>  <
-    :::::   :   :::::  \___/_/  \___/___/___/_.__/\_,_/_/   /_/ /_/|_|
-          :::::
-    :::::::::::::::::   {title} v{version} [{build}]
-
-    Copyright (c) 2013-{year} Crossbar.io Technologies GmbH. All rights reserved.
-"""
-
-_DESC = """Crossbar.io FX is a decentralized data plane for XBR/WAMP based application
-service and data routing, built on Crossbar.io OSS."""
-
 
 class Personality(CrossbarPersonality):
 
     log = txaio.make_logger()
 
     NAME = 'edge'
-
-    TITLE = _TITLE
-
-    DESC = _DESC
-
-    BANNER = _BANNER.format(title=_TITLE,
-                            version=crossbar.__version__,
-                            build=crossbar.__build__,
-                            year=time.strftime('%Y'))
-
-    LEGAL = ('crossbar', 'LEGAL')
-    LICENSE = ('crossbar', 'LICENSE')
-    LICENSES_OSS = ('crossbar', 'LICENSES-OSS')
 
     TEMPLATE_DIRS = [('crossbar', 'edge/webservice/templates')] + CrossbarPersonality.TEMPLATE_DIRS
 

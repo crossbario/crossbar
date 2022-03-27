@@ -44,8 +44,8 @@
                             "value": {
                                 "XBR_DEBUG_TOKEN_ADDR": "0xcfeb869f69431e42cdb54a4f4f105c19c080a601",
                                 "XBR_DEBUG_NETWORK_ADDR": "0x254dffcd3277c0b1660f6d42efbb754edababc2b",
-                                "CROSSBARFX_URL": "wss://continental2.crossbario.com/ws",
-                                "CROSSBARFX_REALM": "realm1"
+                                "CROSSBAR_URL": "wss://continental2.crossbario.com/ws",
+                                "CROSSBAR_REALM": "realm1"
                             }
                         }
                     }

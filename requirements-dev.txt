@@ -11,8 +11,11 @@ nbsphinx
 sphinx-autodoc-typehints
 # jinja2>=2.10.1
 # jinja2-highlight>=0.6.1
+humanize
 
-#pip==19.3.1
+# https://github.com/crossbario/crossbar/pull/1943#issuecomment-1037569885
+pip>=22.0.3
+
 tox
 # detox # detox is unmaintained and incompatible with tox > 3.6
 mock

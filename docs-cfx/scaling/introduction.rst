@@ -6,7 +6,7 @@ Managed Multi-node Architecture
 
 Crossbar.io has a single-node, multi-process (worker) architecture.
 
-Crossbar.io FX adds management and automation for multi-node cluster of nodes and allows
+Crossbar.io adds management and automation for multi-node cluster of nodes and allows
 to scale up and out WAMP routing workloads and provides auto-managing of all resources
 in a whole cluster from a single point of management.
 
@@ -20,7 +20,7 @@ in a whole cluster from a single point of management.
 Web and Router Clusters
 -----------------------
 
-Crossbar.io FX enables scale-up and scale-out system architectures and high-availability deployments.
+Crossbar.io enables scale-up and scale-out system architectures and high-availability deployments.
 
 This is done by expanding from the single node, unmanaged mode that Crossbar.io OSS runs in
 to many nodes all managed, orchestrated and controlled from a single pane of glass and center of
@@ -34,10 +34,10 @@ under management, and uses worker processes in two categories:
 
 .. figure:: /_static/cfx-clustering-elements.svg
     :align: center
-    :alt: Crossbar.io FX Clustering Elements
+    :alt: Crossbar.io Clustering Elements
     :figclass: align-center
 
-    Crossbar.io FX Clustering Elements (:download:`Crossbar.io FX Clustering Elements </_static/cfx-clustering-elements.pdf>`)
+    Crossbar.io Clustering Elements (:download:`Crossbar.io Clustering Elements </_static/cfx-clustering-elements.pdf>`)
 
 Web cluster are responsible for:
 
