@@ -355,7 +355,9 @@ class Application(object):
             click.echo('Crossbar.io Shell: {}'.format(style_ok('v{}'.format(__version__))))
 
         # load user profile and key for given profile name
-        key, profile = self.load_profile(dotdir=cfg.dotdir, profile=cfg.profile, yes_to_all=yes_to_all,
+        key, profile = self.load_profile(dotdir=cfg.dotdir,
+                                         profile=cfg.profile,
+                                         yes_to_all=yes_to_all,
                                          verbose=(ctx.command.name == 'init'))
 
         if ctx.command.name == 'init':
