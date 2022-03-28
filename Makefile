@@ -5,11 +5,9 @@ all:
 	@echo ""
 	@echo "   clean            Cleanup"
 	@echo "   test             Run unit tests"
-	@echo "   flake8           Run flake tests"
 	@echo "   install          Local install"
 	@echo "   publish          Clean build and publish to PyPI"
 	@echo "   docs             Build and test docs"
-	@echo "   prepareUbuntu    Prepare running tests on Ubuntu"
 	@echo ""
 
 clean:
@@ -33,48 +31,30 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
-run_ganache:
-	docker-compose up --force-recreate ganache
+# install for development, using pinned dependencies, and including dev-only dependencies
+install:
+	-pip uninstall -y crossbar
+	pip install --no-cache --upgrade -r requirements-dev.txt
+	pip install -e .
+	@python -c "import crossbar; print('*** crossbar-{} ***'.format(crossbar.__version__))"
 
-fix_ganache_permissions:
-	sudo chown -R 1000:1000 ./test/ganache
+# upload to our internal deployment system
+upload: clean
+	python setup.py bdist_wheel
+	aws s3 cp dist/*.whl s3://fabric-deploy/
 
-clean_ganache:
-	-rm -rf ./test/ganache/.data
-	mkdir -p ./test/ganache/.data
+# publish to PyPI
+publish: clean
+	python setup.py sdist bdist_wheel
+	twine upload dist/*
 
-logs_service:
-	sudo journalctl -f -u github-actions-crossbar.service
-
-# Targets for Sphinx-based documentation
-#
-
-#docs:
-#	sphinx-build -b html docs docs/_build
-
-# spellcheck the docs
-#docs_spelling:
-#	sphinx-build -b spelling -d docs/_build/doctrees docs docs/_build/spelling
-
-docs:
-	cd docs && sphinx-build -b html . _build
-
-docs_check:
-	cd docs && sphinx-build -nWT -b dummy . _build
-
-docs_spelling:
-	cd docs && sphinx-build -nWT -b spelling -d ./_build/doctrees . ./_build/spelling
-
-docs_run: docs
-	twistd --nodaemon web --path=docs/_build --listen=tcp:8090
-
-docs_clean:
-	-rm -rf ./docs/_build
-
-# find . -type f -exec sed -i 's/Crossbar.io/Crossbar.io/g' {} \;
-fix_fx_strings:
-	find . -type f -exec sed -i 's/Copyright (c) Crossbar.io Technologies GmbH. All rights reserved./Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2./g' {} \;
-
+# auto-format code - WARNING: this my change files, in-place!
+autoformat:
+	yapf -ri --style=yapf.ini \
+		--exclude="crossbar/shell/reflection/*" \
+		--exclude="crossbar/master/database/*" \
+		--exclude="crossbar/worker/test/examples/syntaxerror.py" \
+		crossbar
 
 # freeze our dependencies
 freeze:
@@ -104,114 +84,32 @@ freeze:
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
 
-# install for development, using pinned dependencies, and including dev-only dependencies
-install:
-	-pip uninstall -y crossbar
-	pip install --no-cache --upgrade -r requirements-dev.txt
-	pip install -e .
-	@python -c "import crossbar; print('*** crossbar-{} ***'.format(crossbar.__version__))"
+# test all syntax check target on the host via tox
+test_quick:
+	tox -e  sphinx,flake8,mypy,yapf .
 
-# install using pinned/hashed dependencies, as we do for packaging
-install_pinned:
-	-pip uninstall -y crossbar
-	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
-	pip install .
-	@python -c "import crossbar; print('*** crossbar-{} ***'.format(crossbar.__version__))"
-
-# upload to our internal deployment system
-upload: clean
-	python setup.py bdist_wheel
-	aws s3 cp dist/*.whl s3://fabric-deploy/
-
-# publish to PyPI
-publish: clean
-	python setup.py sdist bdist_wheel
-	twine upload dist/*
-
-test_trial: flake8
-	trial crossbar
-
-test_full:
-	crossbar \
-		--personality=standalone \
-		--debug-lifecycle \
-		--debug-programflow\
-		start \
-		--cbdir=./test/full/.crossbar
-
-test_manhole:
-	ssh -vvv -p 6022 oberstet@localhost
-
-gen_ssh_keys:
-#	ssh-keygen -t ed25519 -f test/full/.crossbar/ssh_host_ed25519_key
-	ssh-keygen -t rsa -b 4096 -f test/full/.crossbar/ssh_host_rsa_key
-
-test_coverage:
-	tox -e coverage .
-
+# test all targets on the host via tox
 test:
-	tox -e sphinx,flake8,py36-unpinned-trial,py36-cli,py36-examples,coverage .
+	tox -e  sphinx,flake8,mypy,yapf,bandit,py39-pinned-trial,py39-unpinned-trial,py39-abtrunk-trial,py39-cli,py39-examples,pytest,functests-cb,functests-cfc,py39-api-1,py39-cli-0,py39-cli-1,py39-cli-2,py39-cli-3 .
 
-test_bandit:
-	tox -e bandit .
+# test all broken (FIXME) targets
+test_fixme:
+	tox -e	py39-automate-1,py39-automate-2,py39-xbrnetwork-1 .
 
-test_cli:
-	./test/test_cli.sh
+docs:
+	cd docs && sphinx-build -b html . _build
 
-test_cli_tox:
-	tox -e py36-cli .
+docs_check:
+	cd docs && sphinx-build -nWT -b dummy . _build
 
-test_examples:
-	tox -e py36-examples .
+docs_spelling:
+	cd docs && sphinx-build -nWT -b spelling -d ./_build/doctrees . ./_build/spelling
 
-test_mqtt:
-#	trial crossbar.adapter.mqtt.test.test_wamp
-	trial crossbar.adapter.mqtt.test.test_wamp.MQTTAdapterTests.test_basic_publish
+docs_run: docs
+	twistd --nodaemon web --path=docs/_build --listen=tcp:8090
 
-test_router:
-	trial crossbar.router.test.test_broker
-	#trial crossbar.router.test.test_router
-
-test_testament:
-	trial crossbar.router.test.test_testament
-
-test_auth_ticket:
-	trial crossbar.router.test.test_authorize.TestDynamicAuth.test_authextra_ticket
-
-test_auth:
-	trial crossbar.router.test.test_authorize
-
-test_reactors:
-	clear
-	-crossbar version --loglevel=debug
-	-crossbar --reactor="select" version --loglevel=debug
-	-crossbar --reactor="poll" version --loglevel=debug
-	-crossbar --reactor="epoll" version --loglevel=debug
-	-crossbar --reactor="kqueue" version --loglevel=debug
-	-crossbar --reactor="iocp" version --loglevel=debug
-
-full_test: clean flake8
-	trial crossbar
-
-# This will run pep8, pyflakes and can skip lines that end with # noqa
-flake8:
-	flake8 --ignore=E117,E402,F405,E501,E722,E741,E731,N801,N802,N803,N805,N806 crossbar
-
-flake8_stats:
-	flake8 --statistics --max-line-length=119 -qq crossbar
-
-version:
-	PYTHONPATH=. python -m crossbar.controller.cli version
-
-
-# auto-format code - WARNING: this my change files, in-place!
-autoformat:
-	yapf -ri --style=yapf.ini \
-		--exclude="crossbar/shell/reflection/*" \
-		--exclude="crossbar/master/database/*" \
-		--exclude="crossbar/worker/test/examples/syntaxerror.py" \
-		crossbar
-
+docs_clean:
+	-rm -rf ./docs/_build
 
 # sudo apt install gource ffmpeg
 gource:
@@ -246,8 +144,3 @@ gource:
 	-threads 0 \
 	-bf 0 \
 	crossbar.mp4
-
-# Some prerequisites needed on ubuntu to run the tests.
-prepareUbuntu:
-	sudo apt install libsnappy-dev
-	sudo apt install python-tox

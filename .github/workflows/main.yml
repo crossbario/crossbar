@@ -145,9 +145,13 @@ jobs:
       run: |
         python ./test/test_imports.py
 
-    - name: Run unit tests (Twisted Trial)
+    - name: Run unit tests (trial)
       run: |
         python -m twisted.trial crossbar
+
+    - name: Run unit tests (pytest)
+      run: |
+        pytest -sv crossbar
 
     - name: Run integration tests (Autobahn|Python Client)
       run: |
@@ -162,7 +166,7 @@ jobs:
         ./test/test_setup.sh
         pytest -sv --no-install ./test/functests/cfctests
 
-    # FIXME
+    # FIXME:
 
     # - name: Run management API test client
     #   run: |
@@ -170,7 +174,7 @@ jobs:
 
     # - name: Run command line tests (Crossbar.io CLI) 0
     #   run: |
-    #     ./test/test_cli.sh
+    #     ./test/test_cli_0.sh
 
     # - name: Run command line tests (Crossbar.io CLI) 1
     #   run: |
