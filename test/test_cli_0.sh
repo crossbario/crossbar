@@ -1,7 +1,9 @@
 #!/bin/sh
 
-python -c "import os, pprint; print(os.getcwd()), pprint.pprint(os.listdir('.'))"
-SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+python -c "import os, pprint; print(os.getcwd()); pprint.pprint(os.listdir('.')); pprint.pprint(os.listdir('./test'))"
+
+# SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+SCRIPT_DIR=$(pwd)/test
 
 echo "Using SCRIPT_DIR=${SCRIPT_DIR}"
 echo "Using CROSSBAR_FABRIC_URL=${CROSSBAR_FABRIC_URL}"
