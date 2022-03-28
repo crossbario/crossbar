@@ -54,6 +54,8 @@ def _prepare(management_session, mrealm_id):
             break
 
 
+# @pytest.mark.skip('FIXME: RuntimeError: Timeout waiting for crossbar to start')
+
 @inlineCallbacks
 def test_remote_container(cfx_master, cfx_edge1):
     mrealm = 'mrealm1'
