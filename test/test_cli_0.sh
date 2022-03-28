@@ -1,5 +1,12 @@
 #!/bin/sh
 
+python -c "import os, pprint; print(os.getcwd()), pprint.pprint(os.listdir('.'))"
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+
+echo "Using SCRIPT_DIR=${SCRIPT_DIR}"
+echo "Using CROSSBAR_FABRIC_URL=${CROSSBAR_FABRIC_URL}"
+echo "Using CROSSBAR_FABRIC_SUPERUSER=${CROSSBAR_FABRIC_SUPERUSER}"
+
 #
 # test all crossbar CLI commands:
 #
