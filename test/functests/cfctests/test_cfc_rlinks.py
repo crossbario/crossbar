@@ -6,6 +6,7 @@
 
 # https://asciinema.org/a/cBUGKheFHbI6T4qRijjREYjUK
 
+import os
 import uuid
 from copy import deepcopy
 from pprint import pformat
@@ -19,9 +20,13 @@ from crossbar.common.key import _read_node_key
 # do not directly import fixtures, or session-scoped ones will get run twice.
 from ..helpers import *
 
-node1_pubkey = _read_node_key('./test/cf1/.crossbar/', private=False)['hex']
-node2_pubkey = _read_node_key('./test/cf2/.crossbar/', private=False)['hex']
-node3_pubkey = _read_node_key('./test/cf3/.crossbar/', private=False)['hex']
+node1_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../../test/cf1/.crossbar/')
+node2_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../../test/cf2/.crossbar/')
+node3_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../../test/cf3/.crossbar/')
+
+node1_pubkey = _read_node_key(node1_cbdir, private=False)['hex']
+node2_pubkey = _read_node_key(node2_cbdir, private=False)['hex']
+node3_pubkey = _read_node_key(node3_cbdir, private=False)['hex']
 
 
 @inlineCallbacks
