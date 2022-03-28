@@ -66,8 +66,9 @@ class Config(object):
     Command configuration object where we collect all the parameters,
     options etc for later processing.
     """
-    def __init__(self, app, profile, realm, role):
+    def __init__(self, app, dotdir, profile, realm, role):
         self.app = app
+        self.dotdir = dotdir
         self.profile = profile
         self.realm = realm
         self.role = role
@@ -75,10 +76,16 @@ class Config(object):
         self.resource = None
 
     def __str__(self):
-        return u'Config(resource_type={}, resource={})'.format(self.resource_type, self.resource)
+        return 'Config(resource_type={}, resource={})'.format(self.resource_type, self.resource)
 
 
 @click.group(help="Crossbar.io Command Line", invoke_without_command=True)
+@click.option(
+    '--dotdir',
+    envvar='CBF_DOTDIR',
+    default=None,
+    help="Set the dot directory (with config and profile) to be used",
+)
 @click.option(
     '--profile',
     envvar='CBF_PROFILE',
@@ -99,11 +106,11 @@ class Config(object):
 )
 @click.option('--debug', is_flag=True, help='Enable debug output')
 @click.pass_context
-def cli(ctx, profile, realm, role, debug):
+def cli(ctx, dotdir, profile, realm, role, debug):
     if debug:
         txaio.start_logging(level='info')
 
-    ctx.obj = Config(_app, profile, realm, role)
+    ctx.obj = Config(_app, dotdir, profile, realm, role)
 
     # Allowing a command group to specifiy a default subcommand can be done using
     # https://github.com/click-contrib/click-default-group
@@ -1413,7 +1420,7 @@ def cmd_select(ctx):
 @click.argument('resource')
 @click.pass_context
 def cmd_select_node(ctx, resource):
-    _app.current_resource_type = u'node'
+    _app.current_resource_type = 'node'
     _app.current_resource = resource
     _app.print_selected()
 
@@ -1422,7 +1429,7 @@ def cmd_select_node(ctx, resource):
 @click.argument('resource')
 @click.pass_context
 def cmd_select_worker(ctx, resource):
-    _app.current_resource_type = u'worker'
+    _app.current_resource_type = 'worker'
     _app.current_resource = resource
     _app.print_selected()
 
@@ -1431,7 +1438,7 @@ def cmd_select_worker(ctx, resource):
 @click.argument('resource')
 @click.pass_context
 def cmd_select_transport(ctx, resource):
-    _app.current_resource_type = u'transport'
+    _app.current_resource_type = 'transport'
     _app.current_resource = resource
     _app.print_selected()
 

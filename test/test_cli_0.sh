@@ -1,7 +1,5 @@
 #!/bin/sh
 
-python -c "import os, pprint; print(os.getcwd()); pprint.pprint(os.listdir('.')); pprint.pprint(os.listdir('./test'))"
-
 # SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 SCRIPT_DIR=$(pwd)/test
 
