@@ -90,8 +90,10 @@ jobs:
 
     env:
       CB_FULLTESTS: 1
+      CROSSBAR_FABRIC_URL: ws://localhost:9000/ws
+      CROSSBAR_FABRIC_SUPERUSER: ./.crossbar/default.pub
 
-    # Test on CPython 3.7 & 3.10 + PyPy 3.8
+    # Test on specific CPython & PyPy versions
     strategy:
       matrix:
         # https://github.com/actions/setup-python#specifying-a-pypy-version
