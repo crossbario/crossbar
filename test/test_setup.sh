@@ -13,7 +13,7 @@ crossbar master version
 # start CFC node
 echo "\n################################################################################################################################################################"
 echo "\n>>>>>>> Start the master node >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-crossbar_METERING_URL="" crossbar_DISABLE_CE=1 crossbar master start --cbdir ./test/cfc/.crossbar &
+crossbar_METERING_URL="" CROSSBAR_DISABLE_CE=1 crossbar master start --cbdir ./test/cfc/.crossbar &
 sleep 5
 echo "\n>>>>>>> Master node started >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 

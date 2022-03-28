@@ -63,7 +63,6 @@ crossbar_startup_timeout = 60
 default_requirements = [
     '-e git+https://github.com/crossbario/txaio.git#egg=txaio',
     '-e git+https://github.com/crossbario/autobahn-python.git#egg=autobahn[twisted]',
-    '-e git+https://github.com/crossbario/crossbar.git#egg=crossbar[dev]',
     '-e .'
 ]
 # don't forget to add "~/etc/etc/crossbar" if you're making local requirements

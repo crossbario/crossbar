@@ -153,6 +153,15 @@ jobs:
       run: |
         ./test/test_ab_examples.sh
 
+    - name: Run functional tests using direct node management APIs
+      run: |
+        pytest -sv --no-install ./test/functests/cbtests
+
+    - name: Run functional tests using master node management APIs
+      run: |
+        ./test/test_setup.sh
+        pytest -sv --no-install ./test/functests/cfctests
+
     # FIXME
 
     # - name: Run management API test client

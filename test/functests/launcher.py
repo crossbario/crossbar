@@ -1139,14 +1139,16 @@ class LoggingProcessProtocol(ProcessProtocol):
     def outReceived(self, data):
         if self._publish:
             self._publish(self._stdout_topic, data)
+        print(data.decode('utf8'))
 
     def errReceived(self, data):
         if self._publish:
             self._publish(self._stderr_topic, data)
+        print(data.decode('utf8'))
 
     def processEnded(self, reason):
         if isinstance(reason.value, ProcessTerminated):
-            self.exit_status = reason.value.status
+            self.exit_status = reason.value.exitCode
         elif isinstance(reason.value, ProcessDone):
             self.exit_status = 0
         else:
@@ -1228,21 +1230,21 @@ async def create_virtualenv(python, env_dir, env, requirements, logging=True, ju
 
     if requirements:
         print("Installing requirements in Python virtualenv '{}' ...".format(env_dir))
-        req_fname = os.path.join(env_dir, "requirements.txt")
+        req_fname = os.path.join(env_dir, "requirements-latest.txt")
         with open(req_fname, 'w') as reqfile:
             for line in requirements:
                 reqfile.write("{}\n".format(line))
 
         if not python.startswith('python3'):
             # upgrading pip, "because Debian" :/
-            ecode = await run_process(venv_py, ["-m", "pip", "install", "--upgrade", "pip<19"], env)
+            ecode = await run_process(venv_py, ["-m", "pip", "install", "--upgrade", "pip"], env)
             if ecode != 0:
                 raise RuntimeError("pip upgrade failed")
 
         ecode = await run_process(venv_py, ["-m", "pip", "install", "--upgrade", "-r", req_fname], env,
                                   publisher=publisher)
         if ecode != 0:
-            raise RuntimeError("pip install failed")
+            raise RuntimeError("pip install failed (req_fname={}): ecode={}".format(req_fname, ecode))
         print("Requirements for Python virtualenv installed.")
     else:
         log_pip = None
