@@ -154,33 +154,51 @@ class Application(object):
         self._output_style = 'fruity'
 
     @staticmethod
-    def load_profile(dotdir=None, profile=None, yes_to_all=False):
+    def load_profile(dotdir=None, profile=None, yes_to_all=False, verbose=False):
 
-        dotdir = dotdir or '~/.crossbar'
         profile = profile or 'default'
 
-        cbf_dir = os.path.expanduser(dotdir)
+        if not dotdir:
+            if 'CROSSBAR_FABRIC_SUPERUSER' in os.environ:
+                cbf_dir = os.path.abspath(os.path.dirname(os.environ['CROSSBAR_FABRIC_SUPERUSER']))
+                if verbose:
+                    click.echo('Using dotdir derived from CROSSBAR_FABRIC_SUPERUSER: {}'.format(style_ok(cbf_dir)))
+            else:
+                cbf_dir = os.path.abspath(os.path.expanduser('~/.crossbar'))
+                if verbose:
+                    click.echo('Using default dotdir: {}'.format(style_ok(cbf_dir)))
+        else:
+            cbf_dir = os.path.abspath(os.path.expanduser(dotdir))
+            if verbose:
+                click.echo('Using explicit dotdir: {}'.format(style_ok(cbf_dir)))
+
         if not os.path.isdir(cbf_dir):
             os.mkdir(cbf_dir)
-            click.echo('Created new local user directory: {}'.format(style_ok(cbf_dir)))
+            if verbose:
+                click.echo('Created new local user directory: {}'.format(style_ok(cbf_dir)))
 
         config_path = os.path.join(cbf_dir, 'config.ini')
         if not os.path.isfile(config_path):
             with open(config_path, 'w') as f:
                 url = _prompt_for_url(yes_to_all)
                 f.write(_DEFAULT_CONFIG.format(url=url))
-                click.echo('Created new local user configuration: {}'.format(style_ok(config_path)))
+                if verbose:
+                    click.echo('Created new local user configuration: {}'.format(style_ok(config_path)))
+        else:
+            if verbose:
+                click.echo('Using existing local user configuration: {}'.format(style_ok(config_path)))
 
         config_obj = config.UserConfig(config_path)
 
         profile_obj = config_obj.profiles.get(profile, None)
         if not profile_obj:
             raise click.ClickException('no such profile: "{}"'.format(profile))
-        # else:
-        #     click.echo('Active user profile: {}'.format(style_ok(profile)))
+        else:
+            if verbose:
+                click.echo('Active user profile: {}'.format(style_ok(profile)))
 
         privkey_path = os.path.join(cbf_dir, profile_obj.privkey or '{}.priv'.format(profile))  # noqa: W503
-        pubkey_path = os.path.join(cbf_dir, profile_obj.pubkey or 'default.pub')  # noqa: W503
+        pubkey_path = os.path.join(cbf_dir, profile_obj.pubkey or '{}.pub'.format(profile))  # noqa: W503
         key_obj = userkey.UserKey(privkey_path, pubkey_path, yes_to_all=yes_to_all)
 
         return key_obj, profile_obj
@@ -337,7 +355,10 @@ class Application(object):
             click.echo('Crossbar.io Shell: {}'.format(style_ok('v{}'.format(__version__))))
 
         # load user profile and key for given profile name
-        key, profile = self.load_profile(profile=cfg.profile, yes_to_all=yes_to_all)
+        key, profile = self.load_profile(dotdir=cfg.dotdir,
+                                         profile=cfg.profile,
+                                         yes_to_all=yes_to_all,
+                                         verbose=(ctx.command.name == 'init'))
 
         if ctx.command.name == 'init':
             return

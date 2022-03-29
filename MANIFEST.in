@@ -1,7 +1,6 @@
 include README.rst
 include crossbar/LEGAL
 include crossbar/LICENSE
-include crossbar/LICENSE-FOR-API
 include crossbar/LICENSES-OSS
 include requirements.txt
 include requirements-min.txt
@@ -17,4 +16,4 @@ recursive-include crossbar/edge/node/config *
 recursive-include crossbar/master/webservice/templates *
 recursive-include crossbar/master/node *.json
 recursive-include crossbar/network/node *.json
-recursive-include crossbar/tests *.json
+recursive-include crossbar/test *

@@ -3,6 +3,10 @@
 # CROSSBAR_FABRIC_URL=ws://localhost:9000/ws
 # CROSSBAR_FABRIC_SUPERUSER=${HOME}/.crossbar/default.pub
 
+# SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+SCRIPT_DIR=$(pwd)/test
+
+echo "Using SCRIPT_DIR=${SCRIPT_DIR}"
 echo "Using CROSSBAR_FABRIC_URL=${CROSSBAR_FABRIC_URL}"
 echo "Using CROSSBAR_FABRIC_SUPERUSER=${CROSSBAR_FABRIC_SUPERUSER}"
 
@@ -11,18 +15,18 @@ crossbar shell init --yes
 crossbar master version
 
 # start with scratched master database
-mkdir -p ./test/cfc/.crossbar
-mkdir -p ./test/cf1/.crossbar
-mkdir -p ./test/cf2/.crossbar
-mkdir -p ./test/cf3/.crossbar
-crossbar edge stop --cbdir ./test/cf1/.crossbar
-crossbar edge stop --cbdir ./test/cf2/.crossbar
-crossbar edge stop --cbdir ./test/cf3/.crossbar
-crossbar master stop --cbdir ./test/cfc/.crossbar
-rm -rf ./test/cfc/.crossbar/.db-*
+mkdir -p ${SCRIPT_DIR}/cfc/.crossbar
+mkdir -p ${SCRIPT_DIR}/cf1/.crossbar
+mkdir -p ${SCRIPT_DIR}/cf2/.crossbar
+mkdir -p ${SCRIPT_DIR}/cf3/.crossbar
+crossbar edge stop --cbdir ${SCRIPT_DIR}/cf1/.crossbar
+crossbar edge stop --cbdir ${SCRIPT_DIR}/cf2/.crossbar
+crossbar edge stop --cbdir ${SCRIPT_DIR}/cf3/.crossbar
+crossbar master stop --cbdir ${SCRIPT_DIR}/cfc/.crossbar
+rm -rf ${SCRIPT_DIR}/cfc/.crossbar/.db-*
 
 # start CFC node
-crossbar master start --cbdir ./test/cfc/.crossbar &
+crossbar master start --cbdir ${SCRIPT_DIR}/cfc/.crossbar &
 sleep 5
 
 # authenticate, create new management realm and pair the 3 CF nodes
@@ -36,18 +40,18 @@ crossbar shell list mrealms
 crossbar shell --realm mrealm1 list nodes
 crossbar shell --realm mrealm1 show status
 
-crossbar shell pair node ./test/cf1/.crossbar/key.pub mrealm1 node1
-crossbar shell pair node ./test/cf2/.crossbar/key.pub mrealm1 node2
-crossbar shell pair node ./test/cf3/.crossbar/key.pub mrealm1 node3
+crossbar shell pair node ${SCRIPT_DIR}/cf1/.crossbar/key.pub mrealm1 node1
+crossbar shell pair node ${SCRIPT_DIR}/cf2/.crossbar/key.pub mrealm1 node2
+crossbar shell pair node ${SCRIPT_DIR}/cf3/.crossbar/key.pub mrealm1 node3
 crossbar shell --realm mrealm1 list nodes
 crossbar shell --realm mrealm1 show node node1
 crossbar shell --realm mrealm1 show node node2
 crossbar shell --realm mrealm1 show node node3
 
 # start the 3 CF nodes
-crossbar edge start --cbdir ./test/cf1/.crossbar &
-crossbar edge start --cbdir ./test/cf2/.crossbar &
-crossbar edge start --cbdir ./test/cf3/.crossbar &
+crossbar edge start --cbdir ${SCRIPT_DIR}/cf1/.crossbar &
+crossbar edge start --cbdir ${SCRIPT_DIR}/cf2/.crossbar &
+crossbar edge start --cbdir ${SCRIPT_DIR}/cf3/.crossbar &
 sleep 2
 crossbar shell --realm mrealm1 list nodes
 crossbar shell --realm mrealm1 list nodes --online
@@ -120,11 +124,11 @@ sleep 1
 crossbar shell --realm mrealm1 list nodes --online
 crossbar shell --realm mrealm1 list nodes --offline
 
-crossbar edge stop --cbdir ./test/cf1/.crossbar
-crossbar edge stop --cbdir ./test/cf2/.crossbar
-crossbar edge stop --cbdir ./test/cf3/.crossbar
+crossbar edge stop --cbdir ${SCRIPT_DIR}/cf1/.crossbar
+crossbar edge stop --cbdir ${SCRIPT_DIR}/cf2/.crossbar
+crossbar edge stop --cbdir ${SCRIPT_DIR}/cf3/.crossbar
 
 crossbar shell --realm mrealm1 list nodes --online
 crossbar shell --realm mrealm1 list nodes --offline
 
-crossbar master stop --cbdir ./test/cfc/.crossbar
+crossbar master stop --cbdir ${SCRIPT_DIR}/cfc/.crossbar

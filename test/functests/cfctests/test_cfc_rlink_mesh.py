@@ -6,6 +6,7 @@
 
 # https://asciinema.org/a/cBUGKheFHbI6T4qRijjREYjUK
 
+import os
 import json
 
 from twisted.internet import reactor
@@ -27,10 +28,18 @@ from twisted.internet.defer import DeferredList, ensureDeferred
 # do not directly import fixtures, or session-scoped ones will get run twice.
 from ..helpers import *
 
-node1_pubkey = _read_node_key('./test/cf1/.crossbar/', private=False)['hex']
-node2_pubkey = _read_node_key('./test/cf2/.crossbar/', private=False)['hex']
-node3_pubkey = _read_node_key('./test/cf3/.crossbar/', private=False)['hex']
+if False:
+    node1_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../cf1/.crossbar/')
+    node2_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../cf2/.crossbar/')
+    node3_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../cf3/.crossbar/')
+else:
+    node1_cbdir = './test/cf1/.crossbar/'
+    node2_cbdir = './test/cf2/.crossbar/'
+    node3_cbdir = './test/cf3/.crossbar/'
 
+node1_pubkey = _read_node_key(node1_cbdir, private=False)['hex']
+node2_pubkey = _read_node_key(node2_cbdir, private=False)['hex']
+node3_pubkey = _read_node_key(node3_cbdir, private=False)['hex']
 
 node_rlink_ports = {
     "node1": 8090,

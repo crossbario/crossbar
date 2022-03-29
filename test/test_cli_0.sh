@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+SCRIPT_DIR=$(pwd)/test
+
+echo "Using SCRIPT_DIR=${SCRIPT_DIR}"
+echo "Using CROSSBAR_FABRIC_URL=${CROSSBAR_FABRIC_URL}"
+echo "Using CROSSBAR_FABRIC_SUPERUSER=${CROSSBAR_FABRIC_SUPERUSER}"
+
 #
 # test all crossbar CLI commands:
 #

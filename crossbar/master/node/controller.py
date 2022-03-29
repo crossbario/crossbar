@@ -82,7 +82,7 @@ class DomainManager(object):
         """
         assert isinstance(details, CallDetails)
 
-        self.log.info('{klass}.get_status(details={details})', klass=self.__class__.__name__, details=details)
+        self.log.debug('{klass}.get_status(details={details})', klass=self.__class__.__name__, details=details)
 
         now = utcnow()
         uptime_secs = (iso8601.parse_date(now) - iso8601.parse_date(self._session._started)).total_seconds()
@@ -112,7 +112,7 @@ class DomainManager(object):
         """
         assert isinstance(details, CallDetails)
 
-        self.log.info('{klass}.get_version(details={details})', klass=self.__class__.__name__, details=details)
+        self.log.debug('{klass}.get_version(details={details})', klass=self.__class__.__name__, details=details)
 
         # FIXME
         from twisted.internet import reactor
@@ -135,7 +135,7 @@ class DomainManager(object):
         """
         assert isinstance(details, CallDetails)
 
-        self.log.info('{klass}.get_license(details={details})', klass=self.__class__.__name__, details=details)
+        self.log.debug('{klass}.get_license(details={details})', klass=self.__class__.__name__, details=details)
 
         # FIXME: check blockchain for license information
         license = {
@@ -180,7 +180,7 @@ class DomainController(ApplicationSession):
 
         self._meterurl = checkconfig.maybe_from_env('metering.submit.url', self._meterurl)
 
-        self.log.info(
+        self.log.debug(
             'Initialized {klass} from ComponentConfig.extra [node_key="{node_key}", meter_url="{meter_url}"]',
             klass=self.__class__.__name__,
             meter_url=self._meterurl,
@@ -216,10 +216,10 @@ class DomainController(ApplicationSession):
         self.db.__enter__()
         self.schema = GlobalSchema.attach(self.db)
 
-        self.log.info('{klass} global database opened [dbpath={dbpath}, maxsize={maxsize}]',
-                      klass=self.__class__.__name__,
-                      dbpath=hlid(dbpath),
-                      maxsize=hlid(maxsize))
+        self.log.debug('{klass} global database opened [dbpath={dbpath}, maxsize={maxsize}]',
+                       klass=self.__class__.__name__,
+                       dbpath=hlid(dbpath),
+                       maxsize=hlid(maxsize))
 
     async def onJoin(self, details):
 
@@ -265,8 +265,8 @@ class DomainController(ApplicationSession):
             with self.db.begin(write=True) as txn:
                 self._default_mrealm_oid = self.schema.idx_mrealms_by_name[txn, mrealm_name]
                 if self._default_mrealm_oid:
-                    self.log.info('ok, default management realm already exists ({oid})',
-                                  oid=hlid(self._default_mrealm_oid))
+                    self.log.debug('ok, default management realm already exists ({oid})',
+                                   oid=hlid(self._default_mrealm_oid))
 
                     # This should not happen - but better verify that the owner of the default management realm
                     # is the current superuser.
@@ -565,7 +565,7 @@ class DomainController(ApplicationSession):
                 self.log.warn('Master heartbeat loop iteration {tick} finished: excessive run-time of {duration} ms!',
                               tick=self._tick,
                               duration=duration)
-            self.log.info(
+            self.log.debug(
                 'Master heartbeat loop iteration {tick} finished in {duration} ms (database {used} used, {free}% free)',
                 tick=self._tick,
                 free=round(free * 100., 2),
@@ -579,12 +579,12 @@ class DomainController(ApplicationSession):
         master_tick_period = 300
         c = LoopingCall(tick)
         c.start(master_tick_period)
-        self.log.info('Master heartbeat loop started .. [period={period} secs]', period=master_tick_period)
+        self.log.debug('Master heartbeat loop started .. [period={period} secs]', period=master_tick_period)
 
         # note status started
         #
         self._started = utcnow()
-        self.log.info('Domain controller ready (realm="{realm}")!', realm=hlid(self._realm))
+        self.log.debug('Domain controller ready (realm="{realm}")!', realm=hlid(self._realm))
 
     def _first_metering(self, mrealm_id):
         """
@@ -1022,7 +1022,7 @@ class DomainController(ApplicationSession):
                                            usage.marshal(),
                                            options=PublishOptions(acknowledge=True))
 
-                        self.log.info(
+                        self.log.debug(
                             'Usage metering: aggregated and stored period from {from_ts} to {until_ts} ({duration}) usage metering data for mrealm "{mrealm_id}"',
                             mrealm_id=mrealm_id,
                             duration=str(np.timedelta64(until_ts - from_ts, 's')),
@@ -1034,14 +1034,14 @@ class DomainController(ApplicationSession):
         else:
             self.log.debug('Usage metering: no new intervals to aggregate.')
 
-        self.log.info('Usage metering: finished aggregating [{cnt_new} intervals stored]', cnt_new=cnt_new)
+        self.log.debug('Usage metering: finished aggregating [{cnt_new} intervals stored]', cnt_new=cnt_new)
 
         return cnt_new
 
     @inlineCallbacks
     def _submit_metering(self, started, filter_status=[1], limit=None):
-        self.log.info('Usage metering: submitting metering records .. [started="{started}"]',
-                      started=np.datetime64(started, 'ns'))
+        self.log.debug('Usage metering: submitting metering records .. [started="{started}"]',
+                       started=np.datetime64(started, 'ns'))
 
         # collects keys in table "schema.usage" for metering records to be submitted
         keys = []
@@ -1065,9 +1065,9 @@ class DomainController(ApplicationSession):
             with self.db.begin() as txn:
                 rec = self.schema.usage[txn, key]
 
-            self.log.info('Usage metering: submitting metering record to "{url}"\n{rec}',
-                          rec=pprint.pformat(rec.marshal()),
-                          url=self._meterurl)
+            self.log.debug('Usage metering: submitting metering record to "{url}"\n{rec}',
+                           rec=pprint.pformat(rec.marshal()),
+                           url=self._meterurl)
 
             # the master node public key
             verify_key = self._node_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)
@@ -1135,13 +1135,13 @@ class DomainController(ApplicationSession):
             with self.db.begin(write=True) as txn:
                 self.schema.usage[txn, key] = rec
 
-            self.log.info(
+            self.log.debug(
                 'Usage metering: metering record for "{timestamp}" processed with new status {status} [metering_id="{metering_id}"].',
                 timestamp=rec.timestamp,
                 metering_id=metering_id,
                 status=rec.status)
 
-        self.log.info(
+        self.log.debug(
             'Usage metering: finished submitting metering records [tried={tried}, success={success}, failed={failed}]',
             tried=tried,
             success=success,

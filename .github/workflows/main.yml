@@ -26,10 +26,10 @@ jobs:
     #     sudo apt install libsnappy-dev
     #     sudo apt install libunwind-dev
 
-    - name: Set up Python 3.x
+    - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: '3.9'
         architecture: 'x64'
 
     - name: Install Python package dependencies
@@ -49,9 +49,29 @@ jobs:
     - name: Run Bandit
       run: tox -c tox.ini -e bandit
 
-    # FIXME
-    # - name: Run Coverage
-    #  run: tox -c tox.ini -e coverage
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
 
   docs:
     # runs-on: ubuntu-20.04 # means github.com
@@ -70,10 +90,10 @@ jobs:
     #     sudo apt install libsnappy-dev
     #     sudo apt install libunwind-dev
 
-    - name: Set up Python 3.x
+    - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: '3.9'
         architecture: 'x64'
 
     - name: Install Python package dependencies
@@ -84,14 +104,14 @@ jobs:
     - name: Run Sphinx
       run: tox -c tox.ini -e sphinx
 
-  test-amd64:
+  unit-test-amd64:
     # runs-on: ubuntu-20.04 # means github.com
     runs-on: [self-hosted, linux, X64] # means matterhorn
 
     env:
       CB_FULLTESTS: 1
 
-    # Test on CPython 3.7 & 3.10 + PyPy 3.8
+    # Test on specific CPython & PyPy versions
     strategy:
       matrix:
         # https://github.com/actions/setup-python#specifying-a-pypy-version
@@ -145,48 +165,57 @@ jobs:
       run: |
         python ./test/test_imports.py
 
-    - name: Run unit tests (Twisted Trial)
+    - name: Run unit tests (trial)
       run: |
         python -m twisted.trial crossbar
+
+    - name: Run unit tests (pytest)
+      run: |
+        pytest -sv crossbar
 
     - name: Run integration tests (Autobahn|Python Client)
       run: |
         ./test/test_ab_examples.sh
 
-    # FIXME
+    - name: Run command line tests (Crossbar.io CLI) 0
+      run: |
+        ./test/test_cli_0.sh
 
-    # - name: Run management API test client
-    #   run: |
-    #     ./test/management/run.sh
+  functional-test-amd64:
+    runs-on: [self-hosted, linux, X64] # means matterhorn
 
-    # - name: Run command line tests (Crossbar.io CLI) 0
-    #   run: |
-    #     ./test/test_cli.sh
+    strategy:
+      matrix:
+        python-version: ['3.9']
 
-    # - name: Run command line tests (Crossbar.io CLI) 1
-    #   run: |
-    #     ./test/test_cli_1.sh
+    continue-on-error: false
 
-    # - name: Run command line tests (Crossbar.io CLI) 2
-    #   run: |
-    #     ./test/test_cli_2.sh
+    steps:
+    - uses: actions/checkout@v2
 
-    # - name: Run command line tests (Crossbar.io CLI) 3
-    #   run: |
-    #     ./test/test_cli_3.sh
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
-    # - name: Run CLI-based cluster automation tests 1
-    #   run: |
-    #     cd ./test/test_automated && ./test_prepare_host.sh && ./test_setup1.sh && ./test_host1.sh 1
+    - name: Install Python package dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools
+        pip install -r requirements-dev.txt
 
-    # - name: Run CLI-based cluster automation tests 2
-    #   run: |
-    #     cd ./test/test_automated && ./test_prepare_host.sh && ./test_setup2.sh && ./test_host2.sh 1
+    - name: Install Crossbar.io package dependencies & Crossbar.io
+      run: |
+        pip install -U -r requirements-latest.txt
+        pip install .
 
-    # - name: Run XBR CLI tests
-    #   run: |
-    #     cd ./test/test_xbr_network && ./test_xbr_network.sh 1
+    - name: Display Crossbar.io version
+      run: |
+        python -c "import crossbar; print(crossbar.__version__)"
+        crossbar version
 
+    - name: Run functional tests using direct node management APIs
+      run: |
+        pytest -sv --no-install ./test/functests/cbtests
 
   # FIXME: https://github.com/crossbario/crossbar/issues/1842
   #
@@ -247,7 +276,3 @@ jobs:
   #   - name: Run integration tests (Autobahn|Python Client)
   #     run: |
   #       ./test/test_ab_examples.sh
-
-  #   - name: Run command line tests (Crossbar.io CLI)
-  #     run: |
-  #       ./test/test_cli.sh

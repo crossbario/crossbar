@@ -27,21 +27,22 @@ with open('README.rst') as f:
 with open('crossbar/_version.py') as f:
     exec(f.read())  # defines __version__
 
-# we read requirements from requirements*.txt files down below
 install_requires = []
-extras_require = {
-    'dev': []
-}
-
-reqs = 'requirements-min.txt'
-# reqs = 'requirements-pinned.txt'
-# reqs = 'requirements.txt'
-# reqs = 'requirements-latest.txt'
 
 # https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
 dependency_links = []
 
-with open(reqs) as f:
+if False:
+    extras_require = {}
+else:
+    extras_require = {
+        'dev': []
+    }
+    with open('requirements-dev.txt') as f:
+        for line in f.read().splitlines():
+            extras_require['dev'].append(line.strip())
+
+with open('requirements-latest.txt') as f:
     for line in f.read().splitlines():
         line = line.strip()
         if not line.startswith('#'):
@@ -58,14 +59,8 @@ with open(reqs) as f:
                 # https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
                 if name.startswith('git+'):
                     dependency_links.append(name)
-                    pkgname = name.split('=')[1]
-                    install_requires.append(pkgname)
                 else:
                     install_requires.append(name)
-
-with open('requirements-dev.txt') as f:
-    for line in f.read().splitlines():
-        extras_require['dev'].append(line.strip())
 
 # enforce use of CFFI for LMDB
 os.environ['LMDB_FORCE_CFFI'] = '1'
