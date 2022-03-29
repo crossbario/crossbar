@@ -105,7 +105,7 @@ jobs:
     - name: Run Sphinx
       run: tox -c tox.ini -e sphinx
 
-  test-amd64:
+  unit-test-amd64:
     # runs-on: ubuntu-20.04 # means github.com
     runs-on: [self-hosted, linux, X64] # means matterhorn
 
@@ -181,6 +181,42 @@ jobs:
     - name: Run command line tests (Crossbar.io CLI) 0
       run: |
         ./test/test_cli_0.sh
+
+    - name: Run functional tests using direct node management APIs
+      run: |
+        pytest -sv --no-install ./test/functests/cbtests
+
+  functional-test-amd64:
+    runs-on: [self-hosted, linux, X64] # means matterhorn
+
+    strategy:
+      matrix:
+        python-version: ['3.9']
+
+    continue-on-error: false
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Python package dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools
+        pip install -r requirements-dev.txt
+
+    - name: Install Crossbar.io package dependencies & Crossbar.io
+      run: |
+        pip install -U -r requirements-latest.txt
+        pip install .
+
+    - name: Display Crossbar.io version
+      run: |
+        python -c "import crossbar; print(crossbar.__version__)"
+        crossbar version
 
     - name: Run functional tests using direct node management APIs
       run: |
