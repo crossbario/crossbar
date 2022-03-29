@@ -50,7 +50,6 @@ jobs:
       run: tox -c tox.ini -e bandit
 
   analyze:
-    name: CodeQL analyze
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -181,10 +180,6 @@ jobs:
     - name: Run command line tests (Crossbar.io CLI) 0
       run: |
         ./test/test_cli_0.sh
-
-    - name: Run functional tests using direct node management APIs
-      run: |
-        pytest -sv --no-install ./test/functests/cbtests
 
   functional-test-amd64:
     runs-on: [self-hosted, linux, X64] # means matterhorn
