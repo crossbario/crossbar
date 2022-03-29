@@ -10,9 +10,16 @@ echo "Using SCRIPT_DIR=${SCRIPT_DIR}"
 echo "Using CROSSBAR_FABRIC_URL=${CROSSBAR_FABRIC_URL}"
 echo "Using CROSSBAR_FABRIC_SUPERUSER=${CROSSBAR_FABRIC_SUPERUSER}"
 
-# this will create ~/.crossbar/* if it doesn't yet exist
+# create superuser key
 crossbar shell init --yes
-crossbar master version
+
+# pre-create node keys
+mkdir -p ${SCRIPT_DIR}/cf1/.crossbar
+mkdir -p ${SCRIPT_DIR}/cf2/.crossbar
+mkdir -p ${SCRIPT_DIR}/cf3/.crossbar
+CROSSBAR_NODE_ID=core1 CROSSBAR_NODE_CLUSTER_IP=core1 crossbar edge keys --cbdir=${SCRIPT_DIR}/cf1/.crossbar
+CROSSBAR_NODE_ID=core2 CROSSBAR_NODE_CLUSTER_IP=core2 crossbar edge keys --cbdir=${SCRIPT_DIR}/cf2/.crossbar
+CROSSBAR_NODE_ID=core3 CROSSBAR_NODE_CLUSTER_IP=core3 crossbar edge keys --cbdir=${SCRIPT_DIR}/cf3/.crossbar
 
 # start CFC node
 echo "\n################################################################################################################################################################"

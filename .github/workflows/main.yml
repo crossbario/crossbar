@@ -92,6 +92,7 @@ jobs:
       CB_FULLTESTS: 1
       CROSSBAR_FABRIC_URL: ws://localhost:9000/ws
       CROSSBAR_FABRIC_SUPERUSER: ${{ github.workspace }}/.crossbar/default.pub
+      # CROSSBAR_FABRIC_SUPERUSER: ${{ env.GITHUB_WORKSPACE }}/.crossbar/default.pub
 
     # Test on specific CPython & PyPy versions
     strategy:
