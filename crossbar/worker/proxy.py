@@ -8,6 +8,7 @@
 import os
 import binascii
 from pprint import pformat
+from typing import Dict, Any
 
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 from twisted.internet.error import DNSLookupError
@@ -605,14 +606,9 @@ class ProxyBackendSession(Session):
     There is one of these for every client connection. (In the future,
     we could multiplex over a single backend connection -- for now,
     there's a backend connection per frontend client).
-
-    XXX serializer translation?
-
-    XXX before ^ just negotiate with the frontend to have the same
-    serializer as the backend.
     """
     def onOpen(self, transport):
-        # instance of Frontend
+        # instance of Frontend (frontend_session)
         self._frontend = transport._proxy_other_side
         self._on_connect = Deferred()
         self._on_ready = Deferred()
@@ -668,13 +664,12 @@ class ProxyBackendSession(Session):
             self._frontend._forward(msg)
 
 
-def make_backend_connection(backend_config, frontend_session, cbdir):
+def make_backend_connection(cbdir: str, backend_config: Dict[str, Any], frontend_session: ApplicationSession):
     """
-    Connects to a 'backend' session with the given config; returns a
-    transport that is definitely connected (e.g. you can send a Hello
-    right away).
+    Create a connection to a router backend, wiring up the given proxy frontend session
+    to forward WAMP in both directions between the frontend and backend sessions.
 
-    Backend connection configuration, for example:
+    Backend configuration example:
 
         .. code-block:: json
             {
@@ -695,12 +690,11 @@ def make_backend_connection(backend_config, frontend_session, cbdir):
                 }
             }
 
+    :param cbdir: The node directory.
+
     :param backend_config: Proxy backend connection
-    :type connection: :class:`ProxyConnection`
 
     :param frontend_session: The frontend proxy session for which to create a mapped backend connection.
-
-    :param cbdir: The node directory.
     """
     log.debug('{func}() connecting with config=\n{config}',
               func=hltype(make_backend_connection),
@@ -839,6 +833,7 @@ def make_authenticator_session(backend_config, cbdir, realm, extra=None, reactor
             from twisted.internet import reactor
 
         extra = {
+            # FIXME: the _private_ key? really?
             'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
         }
         comp = Component(
@@ -1230,19 +1225,20 @@ class ProxyController(TransportController):
         return result
 
     @inlineCallbacks
-    def get_service_session(self, realm, authrole):
+    def get_service_session(self, realm: str, authrole: str) -> ApplicationSession:
         """
-        Returns the service session on the given realm. The service session is used to access
-        the WAMP meta API for the realm and register authenticators.
+        Returns a service session on the given realm using the given role.
+        Service sessions are used for:
+
+        * access dynamic authenticators (see :method:`crossbar.router.auth.pending.PendingAuth._init_dynamic_authenticator`)
+        * access the WAMP meta API for the realm
+        * forward to/from WAMP for the HTTP bridge
 
         :param realm: WAMP realm (the WAMP name, _not_ the run-time object ID).
-        :type realm: str
 
         :param authrole: WAMP authentication role (the WAMP URI, _not_ the run-time object ID).
-        :type authrole: str
 
         :returns: The service session for the realm.
-        :rtype: :class:`ApplicationSession`
         """
         try:
             self.log.info('{klass}.get_service_session(realm="{realm}", authrole="{authrole}")',
@@ -1323,7 +1319,7 @@ class ProxyController(TransportController):
             authrole=hlid(authrole))
 
         try:
-            backend_proto = yield make_backend_connection(backend_config, frontend, self._cbdir)
+            backend_proto = yield make_backend_connection(self._cbdir, backend_config, frontend)
         except DNSLookupError as e:
             self.log.warn('{func} proxy worker could not connect to router backend: DNS resolution failed ({error})',
                           func=hltype(self.map_backend),

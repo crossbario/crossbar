@@ -13,7 +13,10 @@ from txaio import make_logger, as_future
 from crossbar.router.auth.pending import PendingAuth
 from crossbar._util import hlid, hltype, hlval
 
-__all__ = ('PendingAuthAnonymous', )
+__all__ = (
+    'PendingAuthAnonymous',
+    'PendingAuthAnonymousProxy',
+)
 
 
 class PendingAuthAnonymous(PendingAuth):

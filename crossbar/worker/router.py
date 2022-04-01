@@ -296,7 +296,7 @@ class RouterController(TransportController):
 
         # add a router/realm service session
         extra = {
-            # the RouterServiceAgent will fire this when it is ready
+            # the RouterServiceAgent will fire this in onJoin() when it is ready
             'onready': Deferred(),
 
             # if True, forward the WAMP meta API (implemented by RouterServiceAgent)
@@ -310,17 +310,29 @@ class RouterController(TransportController):
             # the WAMP meta API is exposed to additionally, when the bridge_meta_api option is set
             'management_session': self,
         }
+
+        # WAMP session configuration for service agent (WAMP meta API)
         cfg = ComponentConfig(realm_name, extra)
-        # each worker is run under its own dedicated WAMP auth role
-        # svc_authrole = 'crossbar.worker.{}'.format(self._worker_id)
+
         # wamp meta api only allowed for "trusted" sessions
         svc_authrole = 'trusted'
+
+        # each worker is run under its own dedicated WAMP auth role
+        # svc_authrole = 'crossbar.worker.{}'.format(self._worker_id)
         svc_authid = 'routerworker-{}-realm-{}-serviceagent'.format(self._worker_id, realm_id)
+
+        # create WAMP session for the service agent (WAMP meta API) and store on realm object
         rlm.session = RouterServiceAgent(cfg, rlm.router)
+
+        # add the service agent session directly on the router (under the respective authid/authrole)
         self._router_session_factory.add(rlm.session, rlm.router, authid=svc_authid, authrole=svc_authrole)
 
-        yield extra['onready']
+        # set the service agent (WAMP meta API) session on the realm container
         self.set_service_session(rlm.session, realm_name, authrole=svc_authrole)
+
+        # already fired at the end of RouterServiceAgent.onJoin
+        # yield extra['onready']
+
         self.log.info(
             'RouterServiceAgent started on realm="{realm_name}" with authrole="{authrole}", authid="{authid}"',
             realm_name=realm_name,
