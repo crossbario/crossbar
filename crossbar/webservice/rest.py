@@ -56,8 +56,10 @@ def _create_resource(resource_klass: Union[PublisherResource, CallerResource, We
             raise ApplicationError(
                 'crossbar.error.cannot_start',
                 'could not attach service session for HTTP bridge (role "{}" on realm "{}")'.format(authrole, realm))
-        else:
-            print('*' * 100, caller_session.session_id, caller_session.realm, caller_session.authrole)
+        assert caller_session.realm == realm, 'service session: requested realm "{}", but got "{}"'.format(
+            realm, caller_session.realm)
+        assert caller_session.authrole == authrole, 'service session: requested authrole "{}", but got "{}"'.format(
+            authrole, caller_session.authrole)
     else:
         assert False, 'logic error: unexpected worker type {} in RouterWebServiceRestCaller.create'.format(
             type(worker))

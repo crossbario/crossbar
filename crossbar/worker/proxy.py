@@ -808,7 +808,7 @@ class AuthenticatorSession(ApplicationSession):
         self.log.info('{func} connection closed', func=hltype(self.onDisconnect))
 
 
-def make_authenticator_session(backend_config, cbdir, realm, extra=None, reactor=None):
+def make_service_session(reactor, cbdir, backend_config, realm, authrole):
     # connect the remote session
     #
     # remote connection parameters to ApplicationRunner:
@@ -1180,10 +1180,8 @@ class ProxyController(TransportController):
         Check if a route to a realm with the given name is currently running.
 
         :param realm: Realm name (the WAMP name, _not_ the run-time object ID).
-        :type realm: str
 
         :returns: True if a route to the realm (for any role) exists.
-        :rtype: bool
         """
         result = realm in self._routes
         self.log.debug('{func}(realm="{realm}") -> {result}',
@@ -1197,13 +1195,10 @@ class ProxyController(TransportController):
         Check if a role with the given name is currently running in the given realm.
 
         :param realm: WAMP realm (the WAMP name, _not_ the run-time object ID).
-        :type realm: str
 
         :param authrole: WAMP authentication role (the WAMP URI, _not_ the run-time object ID).
-        :type authrole: str
 
         :returns: True if a route to the realm for the role exists.
-        :rtype: bool
         """
         authrole = authrole or 'trusted'
         if realm in self._routes:
@@ -1253,8 +1248,8 @@ class ProxyController(TransportController):
                         realm=realm)
                     # self._service_sessions[realm] = yield self.map_backend(None, realm, None, 'authenticator', None)
                     backend_config = self.get_backend_config(realm, authrole)
-                    self._service_sessions[realm] = yield make_authenticator_session(
-                        backend_config, self._cbdir, realm)
+                    self._service_sessions[realm] = yield make_service_session(self._reactor, self._cbdir,
+                                                                               backend_config, realm, authrole)
                 else:
                     # mark as non-existing!
                     self._service_sessions[realm] = None
