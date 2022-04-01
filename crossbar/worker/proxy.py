@@ -10,6 +10,7 @@ import binascii
 from pprint import pformat
 from typing import Dict, Any
 
+from twisted.internet.base import ReactorBase
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 from twisted.internet.error import DNSLookupError
 
@@ -25,7 +26,7 @@ from autobahn.wamp.auth import create_authenticator
 from autobahn.wamp.exception import ApplicationError, TransportLost, ProtocolError
 from autobahn.wamp.role import RoleDealerFeatures, RoleBrokerFeatures
 from autobahn.wamp.component import _create_transport
-from autobahn.wamp.interfaces import ITransportHandler
+from autobahn.wamp.interfaces import ITransportHandler, ISession
 from autobahn.twisted.wamp import Session, ApplicationSession
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 from autobahn.twisted.component import Component
@@ -664,7 +665,8 @@ class ProxyBackendSession(Session):
             self._frontend._forward(msg)
 
 
-def make_backend_connection(cbdir: str, backend_config: Dict[str, Any], frontend_session: ApplicationSession):
+def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Dict[str, Any],
+                            frontend_session: ApplicationSession) -> ISession:
     """
     Create a connection to a router backend, wiring up the given proxy frontend session
     to forward WAMP in both directions between the frontend and backend sessions.
@@ -690,17 +692,15 @@ def make_backend_connection(cbdir: str, backend_config: Dict[str, Any], frontend
                 }
             }
 
-    :param cbdir: The node directory.
-
-    :param backend_config: Proxy backend connection
-
-    :param frontend_session: The frontend proxy session for which to create a mapped backend connection.
+    :param reactor: Twisted reactor to use.
+    :param cbdir: This node's directory.
+    :param backend_config: Proxy backend connection.
+    :param frontend_session: The proxy frontend session for which to create a mapped backend connection.
+    :return: A proxy backend session joined on the realm, under the authrole, as the proxy frontend session.
     """
     log.debug('{func}() connecting with config=\n{config}',
               func=hltype(make_backend_connection),
               config=pformat(backend_config))
-
-    from twisted.internet import reactor
 
     connected_d = Deferred()
     backend = _create_transport(0, backend_config['transport'])
@@ -808,58 +808,71 @@ class AuthenticatorSession(ApplicationSession):
         self.log.info('{func} connection closed', func=hltype(self.onDisconnect))
 
 
-def make_service_session(reactor, cbdir, backend_config, realm, authrole):
-    # connect the remote session
-    #
-    # remote connection parameters to ApplicationRunner:
-    #
-    # url: The WebSocket URL of the WAMP router to connect to (e.g. ws://somehost.com:8090/somepath)
-    # realm: The WAMP realm to join the application session to.
-    # extra: Optional extra configuration to forward to the application component.
-    # serializers: List of :class:`autobahn.wamp.interfaces.ISerializer` (or None for default serializers).
-    # ssl: None or :class:`twisted.internet.ssl.CertificateOptions`
-    # proxy: Explicit proxy server to use; a dict with ``host`` and ``port`` keys
-    # headers: Additional headers to send (only applies to WAMP-over-WebSocket).
-    # max_retries: Maximum number of reconnection attempts. Unlimited if set to -1.
-    # initial_retry_delay: Initial delay for reconnection attempt in seconds (Default: 1.0s).
-    # max_retry_delay: Maximum delay for reconnection attempts in seconds (Default: 60s).
-    # retry_delay_growth: The growth factor applied to the retry delay between reconnection attempts (Default 1.5).
-    # retry_delay_jitter: A 0-argument callable that introduces nose into the delay. (Default random.random)
-    #
-    log = make_logger()
+def make_service_session2(reactor, cbdir, backend_config, realm, authrole):
+    extra = {
+        # FIXME: the _private_ key? really?
+        'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
+    }
+    comp = Component(
+        transports=[backend_config['transport']],
+        realm=realm,
+        extra=extra,
+        authentication={"cryptosign": {
+            "privkey": _read_node_key(cbdir, private=True)['hex'],
+        }},
+    )
+    ready = Deferred()
 
-    try:
-        if not reactor:
-            from twisted.internet import reactor
+    @comp.on_join
+    def joined(session, details):
+        ready.callback(session)
 
-        extra = {
-            # FIXME: the _private_ key? really?
-            'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
-        }
-        comp = Component(
-            transports=[backend_config['transport']],
-            realm=realm,
-            extra=extra,
-            authentication={"cryptosign": {
-                "privkey": _read_node_key(cbdir, private=True)['hex'],
-            }},
-        )
-        ready = Deferred()
+    @comp.on_disconnect
+    def disconnect(session, was_clean=False):
+        if not ready.called:
+            ready.errback(Exception("Disconnected unexpectedly"))
 
-        @comp.on_join
-        def joined(session, details):
-            ready.callback(session)
+    comp.start(reactor)
+    return ready
 
-        @comp.on_disconnect
-        def disconnect(session, was_clean=False):
-            if not ready.called:
-                ready.errback(Exception("Disconnected unexpectedly"))
 
-        comp.start(reactor)
-        return ready
-    except Exception:
-        log.failure()
-        raise
+def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[str, Any], realm: str,
+                         authrole: str) -> ISession:
+    """
+    Create a connection to a router backend, creating a new service session.
+
+    :param reactor: Twisted reactor to use.
+    :param cbdir: This node's directory.
+    :param backend_config: Proxy backend connection.
+    :param realm: The WAMP realm the service session is joined on.
+    :param authrole: The WAMP authrole the service session is joined as.
+    :return: A service session joined on the given realm, under the given authrole.
+    """
+    extra = {
+        # FIXME: the _private_ key? really?
+        'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
+    }
+    comp = Component(
+        transports=[backend_config['transport']],
+        realm=realm,
+        extra=extra,
+        authentication={"cryptosign": {
+            "privkey": _read_node_key(cbdir, private=True)['hex'],
+        }},
+    )
+    ready = Deferred()
+
+    @comp.on_join
+    def joined(session, details):
+        ready.callback(session)
+
+    @comp.on_disconnect
+    def disconnect(session, was_clean=False):
+        if not ready.called:
+            ready.errback(Exception("Disconnected unexpectedly"))
+
+    comp.start(reactor)
+    return ready
 
 
 STATE_CREATED = 1
@@ -1314,7 +1327,7 @@ class ProxyController(TransportController):
             authrole=hlid(authrole))
 
         try:
-            backend_proto = yield make_backend_connection(self._cbdir, backend_config, frontend)
+            backend_proto = yield make_backend_connection(self._reactor, self._cbdir, backend_config, frontend)
         except DNSLookupError as e:
             self.log.warn('{func} proxy worker could not connect to router backend: DNS resolution failed ({error})',
                           func=hltype(self.map_backend),

@@ -56,6 +56,10 @@ def _create_resource(resource_klass: Union[PublisherResource, CallerResource, We
             raise ApplicationError(
                 'crossbar.error.cannot_start',
                 'could not attach service session for HTTP bridge (role "{}" on realm "{}")'.format(authrole, realm))
+
+        # {'x_cb_node': 'intel-nuci7-61704', 'x_cb_worker': 'worker001', 'x_cb_peer': 'unix:None', 'x_cb_pid': 61714}
+        print('*' * 100, caller_session.authextra)
+
         assert caller_session.realm == realm, 'service session: requested realm "{}", but got "{}"'.format(
             realm, caller_session.realm)
         assert caller_session.authrole == authrole, 'service session: requested authrole "{}", but got "{}"'.format(
