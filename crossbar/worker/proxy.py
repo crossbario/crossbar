@@ -26,7 +26,7 @@ from autobahn.wamp.auth import create_authenticator
 from autobahn.wamp.exception import ApplicationError, TransportLost, ProtocolError
 from autobahn.wamp.role import RoleDealerFeatures, RoleBrokerFeatures
 from autobahn.wamp.component import _create_transport
-from autobahn.wamp.interfaces import ITransportHandler, ISession
+from autobahn.wamp.interfaces import ITransportHandler
 from autobahn.twisted.wamp import Session, ApplicationSession
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 from autobahn.twisted.component import Component
