@@ -40,9 +40,9 @@ def _create_resource(resource_klass: Union[PublisherResource, CallerResource, We
     # create a service session on the router/proxy controller: this will be used
     # to forward HTTP requests to WAMP
     if isinstance(worker, RouterController):
-        caller_session = ApplicationSession(ComponentConfig(realm=realm, extra=None))
+        session = ApplicationSession(ComponentConfig(realm=realm, extra=None))
         router = worker._router_session_factory._routerFactory._routers[realm]
-        worker._router_session_factory.add(caller_session, router, authrole=authrole)
+        worker._router_session_factory.add(session, router, authrole=authrole)
     elif isinstance(worker, ProxyController):
         if not worker.has_realm(realm):
             raise ApplicationError('crossbar.error.no_such_object',
@@ -51,25 +51,25 @@ def _create_resource(resource_klass: Union[PublisherResource, CallerResource, We
             raise ApplicationError(
                 'crossbar.error.no_such_object',
                 'no role "{}" on realm "{}" in configured routes of proxy worker'.format(authrole, realm))
-        caller_session = yield worker.get_service_session(realm, authrole)
-        if not caller_session or not caller_session.is_attached():
+        session = yield worker.get_service_session(realm, authrole)
+        if not session or not session.is_attached():
             raise ApplicationError(
                 'crossbar.error.cannot_start',
                 'could not attach service session for HTTP bridge (role "{}" on realm "{}")'.format(authrole, realm))
 
+        # session.authextra:
         # {'x_cb_node': 'intel-nuci7-61704', 'x_cb_worker': 'worker001', 'x_cb_peer': 'unix:None', 'x_cb_pid': 61714}
-        print('*' * 100, caller_session.authextra)
 
-        assert caller_session.realm == realm, 'service session: requested realm "{}", but got "{}"'.format(
-            realm, caller_session.realm)
-        assert caller_session.authrole == authrole, 'service session: requested authrole "{}", but got "{}"'.format(
-            authrole, caller_session.authrole)
+        assert session.realm == realm, 'service session: requested realm "{}", but got "{}"'.format(
+            realm, session.realm)
+        assert session.authrole == authrole, 'service session: requested authrole "{}", but got "{}"'.format(
+            authrole, session.authrole)
     else:
         assert False, 'logic error: unexpected worker type {} in RouterWebServiceRestCaller.create'.format(
             type(worker))
 
     # now create the caller Twisted Web resource
-    resource = resource_klass(config.get('options', {}), caller_session)
+    resource = resource_klass(config.get('options', {}), session)
 
     return resource
 

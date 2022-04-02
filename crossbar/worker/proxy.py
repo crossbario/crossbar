@@ -724,9 +724,9 @@ def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Di
     :return: A deferred that resolves with a proxy backend session that is joined on the realm,
         under the authrole, as the proxy frontend session.
     """
-    log.info('{func}() connecting with config=\n{config}',
-             func=hltype(make_backend_connection),
-             config=pformat(backend_config))
+    log.debug('{func}() connecting with config=\n{config}',
+              func=hltype(make_backend_connection),
+              config=pformat(backend_config))
 
     #
     # This is using the Autobahn WAMP "Component based API"
@@ -748,9 +748,16 @@ def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Di
     def create_session():
         session = ProxyBackendSession()
 
-        # we will do cryptosign authentication to any backend
+        authextra = {
+            'proxy_authid': frontend_session.authid,
+            'proxy_authrole': frontend_session.authrole,
+            'proxy_realm': frontend_session.realm,
+            'proxy_authextra': frontend_session.authextra,
+        }
+
+        # we will do cryptosign authentication to any backend node
         if 'auth' in backend_config and 'cryptosign-proxy' in backend_config['auth']:
-            session.add_authenticator(create_authenticator('cryptosign', privkey=key['hex']))
+            session.add_authenticator(create_authenticator('cryptosign', privkey=key['hex'], authextra=authextra))
 
         # we allow anonymous authentication to just unix-sockets
         # currently. I don't think it's a good idea to allow any
@@ -762,12 +769,6 @@ def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Di
 
             # IMPORTANT: this is security sensitive! see above
             if backend_config['transport']['endpoint']['type'] == 'unix':
-                authextra = {
-                    'proxy_authid': frontend_session.authid,
-                    'proxy_authrole': frontend_session.authrole,
-                    'proxy_realm': frontend_session.realm,
-                    'proxy_authextra': frontend_session.authextra,
-                }
                 session.add_authenticator(create_authenticator('anonymous', authextra=authextra))
             else:
                 raise RuntimeError(
@@ -854,36 +855,8 @@ class AuthenticatorSession(ApplicationSession):
         self.log.info('{func} connection closed', func=hltype(self.onDisconnect))
 
 
-def make_service_session2(reactor, cbdir, backend_config, realm, authrole):
-    extra = {
-        # FIXME: the _private_ key? really?
-        'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
-    }
-    comp = Component(
-        transports=[backend_config['transport']],
-        realm=realm,
-        extra=extra,
-        authentication={"cryptosign": {
-            "privkey": _read_node_key(cbdir, private=True)['hex'],
-        }},
-    )
-    ready = Deferred()
-
-    @comp.on_join
-    def joined(session, details):
-        ready.callback(session)
-
-    @comp.on_disconnect
-    def disconnect(session, was_clean=False):
-        if not ready.called:
-            ready.errback(Exception("Disconnected unexpectedly"))
-
-    comp.start(reactor)
-    return ready
-
-
 def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[str, Any], realm: str,
-                         authrole: str) -> ISession:
+                         authrole: str) -> Deferred:
     """
     Create a connection to a router backend, creating a new service session.
 
@@ -894,17 +867,19 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
     :param authrole: The WAMP authrole the service session is joined as.
     :return: A service session joined on the given realm, under the given authrole.
     """
-    # FIXME
+    # FIXME: get node authid from worker/node object
     proxy_authid = 'anonymous-{}'.format(util.generate_serial_number())
 
-    if False:
-        extra = {
-            # FIXME: the _private_ key? really?
-            'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
-        }
+    extra = None
+    authentication = None
+
+    # we will do cryptosign authentication to any backend node
+    if 'auth' in backend_config and 'cryptosign-proxy' in backend_config['auth']:
+        # FIXME: get node private key from worker/node object
+        node_privkey = _read_node_key(cbdir, private=True)['hex']
         authentication = {
             'cryptosign-proxy': {
-                'privkey': _read_node_key(cbdir, private=True)['hex'],
+                'privkey': node_privkey,
                 'authextra': {
                     'proxy_realm': realm,
                     'proxy_authid': proxy_authid,
@@ -912,17 +887,32 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
                 }
             }
         }
-    else:
-        extra = {}
-        authentication = {
-            'anonymous-proxy': {
-                'authextra': {
-                    'proxy_realm': realm,
-                    'proxy_authid': proxy_authid,
-                    'proxy_authrole': authrole
+
+    # we allow anonymous authentication to just unix-sockets
+    # currently. I don't think it's a good idea to allow any
+    # anonymous auth to "real" backends over TCP due to
+    # cross-protocol hijinks (and if a Web browser is running on
+    # that machine, any website can try to access the "real"
+    # backend)
+    if 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
+        # IMPORTANT: this is security sensitive! see above
+        if backend_config['transport']['endpoint']['type'] == 'unix':
+            authentication = {
+                'anonymous-proxy': {
+                    'authextra': {
+                        'proxy_realm': realm,
+                        'proxy_authid': proxy_authid,
+                        'proxy_authrole': authrole
+                    }
                 }
             }
-        }
+        else:
+            raise RuntimeError(
+                'anonymous-proxy authenticator only allowed on Unix domain socket based transports, not type "{}"'.
+                format(backend_config['transport']['endpoint']['type']))
+
+    assert authentication
+
     comp = Component(transports=[backend_config['transport']], realm=realm, extra=extra, authentication=authentication)
     ready = Deferred()
 
