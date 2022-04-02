@@ -427,6 +427,8 @@ class WebClusterManager(object):
         'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
         'cgi': checkconfig.check_web_path_service_cgi,
         'wsgi': checkconfig.check_web_path_service_wsgi,
+        'caller': checkconfig.check_web_path_service_caller,
+        'publisher': checkconfig.check_web_path_service_publisher,
     }
 
     def __init__(self, session, globaldb, globalschema, db, schema, reactor=None):

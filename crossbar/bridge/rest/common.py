@@ -12,8 +12,10 @@ import hmac
 import hashlib
 import base64
 import binascii
+from typing import Dict, Any
 
 from autobahn.wamp.exception import ApplicationError
+from autobahn.twisted.wamp import ApplicationSession
 
 from txaio import make_logger
 
@@ -90,19 +92,20 @@ class _CommonResource(Resource):
     isLeaf = True
     decode_as_json = True
 
-    def __init__(self, options, session):
+    def __init__(self, options: Dict[str, Any], session: ApplicationSession):
         """
-        Ctor.
 
         :param options: Options for path service from configuration.
-        :type options: dict
-        :param session: Instance of `ApplicationSession` to be used for forwarding events.
-        :type session: obj
+        :param session: WAMP session to be used for forwarding events / calls.
         """
         Resource.__init__(self)
         self._options = options
         self._session = session
+        self._debug = False
         self.log = make_logger()
+
+        if 'debug' in options and options['debug']:
+            self._debug = True
 
         self._key = None
         if 'key' in options:

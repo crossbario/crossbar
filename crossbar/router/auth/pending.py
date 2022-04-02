@@ -191,7 +191,12 @@ class PendingAuth:
             authrole=hlid(self._authenticator_role),
             func=hltype(self._init_dynamic_authenticator))
 
-        # authenticator session (where the authenticator procedure is registered and called)
+        # get a dynamic authenticator session (where the dynamic authenticator procedure is registered and called):
+        #
+        #   * lives on a realm/role explicitly given
+        #   * authenticates implicitly (the implementation in the router or proxy container is responsible
+        #      for setting up authentication of the dynamic authenticator session client transport)
+        #
         d_connected = self._realm_container.get_service_session(self._authenticator_realm, self._authenticator_role)
         d_ready = Deferred()
 

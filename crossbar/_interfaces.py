@@ -28,18 +28,38 @@ class IRealmContainer(abc.ABC):
     @abc.abstractmethod
     def has_realm(self, realm: str) -> bool:
         """
-        :returns: True if the given realm exists
+        Check if a route to a realm with the given name is currently running.
+
+        :param realm: Realm name (the WAMP name, _not_ the run-time object ID).
+
+        :returns: True if a route to the realm (for any role) exists.
         """
 
     @abc.abstractmethod
     def has_role(self, realm: str, role: str) -> bool:
         """
-        :returns: True if the given role exists inside the realm
+        Check if a role with the given name is currently running in the given realm.
+
+        :param realm: WAMP realm (the WAMP name, _not_ the run-time object ID).
+
+        :param authrole: WAMP authentication role (the WAMP URI, _not_ the run-time object ID).
+
+        :returns: True if a route to the realm for the role exists.
         """
 
     @abc.abstractmethod
     def get_service_session(self, realm: str, role: str) -> ISession:
         """
-        :returns: ApplicationSession suitable for use by dynamic
-            authenticators
+        Returns a service session on the given realm using the given role.
+        Service sessions are used for:
+
+        * access dynamic authenticators (see :method:`crossbar.router.auth.pending.PendingAuth._init_dynamic_authenticator`)
+        * access the WAMP meta API for the realm (see :method:`crossbar.worker.router.RouterController.start_router_realm`)
+        * forward to/from WAMP for the HTTP bridge (see :class:`crossbar.webservice.rest.RouterWebServiceRestPublisher`, :class:`crossbar.webservice.rest.RouterWebServiceRestCaller`, :class:`crossbar.webservice.rest.RouterWebServiceWebhook`)
+
+        :param realm: WAMP realm name.
+
+        :param role: WAMP authentication role name.
+
+        :returns: A service session joined on the given realm and role.
         """
