@@ -463,8 +463,6 @@ class RouterSession(BaseSession):
                 self._authprovider = authprovider
                 self._authextra = authextra or {}
 
-                print('#' * 100, custom)
-
                 self._authextra['x_cb_node'] = custom.get('x_cb_node', None)
                 self._authextra['x_cb_worker'] = custom.get('x_cb_worker', None)
                 self._authextra['x_cb_peer'] = custom.get('x_cb_peer', None)
