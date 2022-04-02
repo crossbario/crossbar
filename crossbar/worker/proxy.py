@@ -894,18 +894,36 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
     :param authrole: The WAMP authrole the service session is joined as.
     :return: A service session joined on the given realm, under the given authrole.
     """
-    extra = {
-        # FIXME: the _private_ key? really?
-        'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
-    }
-    comp = Component(
-        transports=[backend_config['transport']],
-        realm=realm,
-        extra=extra,
-        authentication={"cryptosign": {
-            "privkey": _read_node_key(cbdir, private=True)['hex'],
-        }},
-    )
+    # FIXME
+    proxy_authid = 'anonymous-{}'.format(util.generate_serial_number())
+
+    if False:
+        extra = {
+            # FIXME: the _private_ key? really?
+            'key': binascii.a2b_hex(_read_node_key(cbdir, private=True)['hex']),
+        }
+        authentication = {
+            'cryptosign-proxy': {
+                'privkey': _read_node_key(cbdir, private=True)['hex'],
+                'authextra': {
+                    'proxy_realm': realm,
+                    'proxy_authid': proxy_authid,
+                    'proxy_authrole': authrole
+                }
+            }
+        }
+    else:
+        extra = {}
+        authentication = {
+            'anonymous-proxy': {
+                'authextra': {
+                    'proxy_realm': realm,
+                    'proxy_authid': proxy_authid,
+                    'proxy_authrole': authrole
+                }
+            }
+        }
+    comp = Component(transports=[backend_config['transport']], realm=realm, extra=extra, authentication=authentication)
     ready = Deferred()
 
     @comp.on_join
