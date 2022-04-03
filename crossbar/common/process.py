@@ -11,7 +11,6 @@ import gc
 
 from datetime import datetime
 from pprint import pformat
-from typing import Optional
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
@@ -138,6 +137,14 @@ class NativeProcess(ApplicationSession):
         self._node_id = config.extra.node if config and config.extra else None
         self._worker_id = config.extra.worker if config and config.extra else None
         self._uri_prefix = 'crossbar.worker.{}'.format(self._worker_id)
+
+    @property
+    def node_id(self):
+        return self._node_id
+
+    @property
+    def worker_id(self):
+        return self._worker_id
 
     def onConnect(self, do_join=True):
         if not hasattr(self, 'cbdir'):

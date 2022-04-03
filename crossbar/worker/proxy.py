@@ -689,7 +689,7 @@ class ProxyBackendSession(Session):
             self._frontend._forward(msg)
 
 
-def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Dict[str, Any],
+def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController', backend_config: Dict[str, Any],
                             frontend_session: ApplicationSession) -> Deferred:
     """
     Create a connection to a router backend, wiring up the given proxy frontend session
@@ -727,6 +727,8 @@ def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Di
     log.debug('{func}() connecting with config=\n{config}',
               func=hltype(make_backend_connection),
               config=pformat(backend_config))
+
+    cbdir = controller.cbdir
 
     # fired when the component has connected, authenticated and joined a realm on the backend node
     ready = Deferred()
@@ -857,8 +859,8 @@ class AuthenticatorSession(ApplicationSession):
         self.log.info('{func} connection closed', func=hltype(self.onDisconnect))
 
 
-def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[str, Any], realm: str,
-                         authrole: str) -> Deferred:
+def make_service_session(reactor: ReactorBase, controller: 'ProxyController', backend_config: Dict[str, Any],
+                         realm: str, authrole: str) -> Deferred:
     """
     Create a connection to a router backend, creating a new service session.
 
@@ -869,11 +871,15 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
     :param authrole: The WAMP authrole the service session is joined as.
     :return: A service session joined on the given realm, under the given authrole.
     """
-    # FIXME: authid of the proxy node the service session runs on
+    cbdir = controller.cbdir
+
+    # authid of the proxy session forwarded to the backend: for service session that are
+    # not forwarding incoming session (like make_backend_session), but represent an
+    # independent session (exposed on the proxy), we synthesize an authid
     proxy_authid = 'proxy-{}'.format(util.generate_serial_number())
 
-    # FIXME: authid of the connecting service session is the backend node ID
-    backend_authid = 'core1'
+    # authid of the connecting backend (proxy service) session is this proxy node's ID
+    backend_authid = controller.node_id
 
     # if auth is configured and includes "cryptosign-proxy", always prefer
     # that and connect to the backend node authenticating with WAMP-cryptosign
@@ -1128,6 +1134,50 @@ class ProxyConnection(object):
 
     def __init__(self, controller: 'ProxyController', connection_id: str, config: Dict[str, Any]):
         """
+        Example connection configuration for a Unix domain socket based connection using
+        WAMP-anonymous proxy authentication:
+
+        .. code-block:: json
+
+            {
+                "transport": {
+                    "type": "rawsocket",
+                    "endpoint": {
+                        "type": "unix",
+                        "path": "router.sock"
+                    },
+                    "url": "ws://localhost",
+                    "serializer": "cbor"
+                },
+                "auth": {
+                    "anonymous-proxy": {
+                        "type": "static"
+                    }
+                }
+            }
+
+        Example connection configuration for a TCP based connection using
+        WAMP-cryptosign proxy authentication:
+
+        .. code-block:: json
+
+            {
+                "transport": {
+                    "type": "rawsocket",
+                    "endpoint": {
+                        "type": "tcp",
+                        "host": "core1",
+                        "port": 10023
+                    },
+                    "url": "ws://core1",
+                    "serializer": "cbor"
+                },
+                "auth": {
+                    "cryptosign-proxy": {
+                        "type": "static"
+                    }
+                }
+            }
 
         :param controller: The (proxy) worker controller session the proxy connection is created from.
         :param connection_id: The run-time connection ID within the proxy worker.
@@ -1391,7 +1441,7 @@ class ProxyController(TransportController):
 
                     # create and store a new service session connected to the backend router worker
                     self._service_sessions[realm][authrole] = yield make_service_session(
-                        self._reactor, self._cbdir, backend_config, realm, authrole)
+                        self._reactor, self, backend_config, realm, authrole)
                 else:
                     # mark as non-existing!
                     self._service_sessions[realm][authrole] = None
@@ -1470,7 +1520,7 @@ class ProxyController(TransportController):
             authrole=hlid(authrole))
 
         try:
-            backend_proto = yield make_backend_connection(self._reactor, self._cbdir, backend_config, frontend)
+            backend_proto = yield make_backend_connection(self._reactor, self, backend_config, frontend)
         except DNSLookupError as e:
             self.log.warn('{func} proxy worker could not connect to router backend: DNS resolution failed ({error})',
                           func=hltype(self.map_backend),
@@ -1880,16 +1930,19 @@ class ProxyController(TransportController):
     @wamp.register(None)
     def start_proxy_connection(self, connection_id, config, details=None):
         """
+        Start a new backend connection for the proxy.
+
+        Called from master node orchestration in :method:`crossbar.master.arealm.arealm.ApplicationRealmMonitor._apply_webcluster_connections`.
 
         :param connection_id:
         :param config:
         :param details:
         :return:
         """
-        self.log.info('{func}(connection_id={connection_id}, config={config}, caller_authid={caller_authid})',
+        self.log.info('{func}(connection_id={connection_id}, config=.., caller_authid={caller_authid}):\n{config}',
                       func=hltype(self.start_proxy_connection),
                       connection_id=connection_id,
-                      config='...',
+                      config=pformat(config),
                       caller_authid=hlval(details.caller_authid))
         if connection_id in self._connections:
             raise ApplicationError('crossbar.error.already_running',
