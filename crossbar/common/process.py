@@ -11,6 +11,7 @@ import gc
 
 from datetime import datetime
 from pprint import pformat
+from typing import Optional
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
@@ -41,7 +42,7 @@ from txaio import make_logger
 
 from twisted.cred import portal
 
-from crossbar._util import hl, hlval, hltype
+from crossbar._util import hl, hlval, hltype, hlid
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.common.processinfo import _HAS_PSUTIL
@@ -198,6 +199,13 @@ class NativeProcess(ApplicationSession):
                            realm=hl(self.realm),
                            func=hltype(self.onJoin),
                            procs=hl(pformat(procs), color='white', bold=True))
+
+        self.log.info('Native worker ready! (worker={worker}, node_id="{node_id}", worker_id="{worker_id}") [{func}]',
+                      node_id=hlid(self._node_id),
+                      worker_id=hlid(self._worker_id),
+                      cbdir=hlval(self.cbdir),
+                      worker=hlid(self.__class__.__name__),
+                      func=hltype(self.onJoin))
         returnValue(regs)
 
     @wamp.register(None)
