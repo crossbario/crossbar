@@ -728,11 +728,8 @@ def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Di
               func=hltype(make_backend_connection),
               config=pformat(backend_config))
 
-    #
-    # This is using the Autobahn WAMP "Component based API"
-    #
-    # will be fired when session is joined
-    connected_d = Deferred()
+    # fired when the component has connected, authenticated and joined a realm on the backend node
+    ready = Deferred()
 
     # connected node transport
     backend = _create_transport(0, backend_config['transport'])
@@ -740,14 +737,13 @@ def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Di
     # connecting node (this node) private key
     key = _read_node_key(cbdir, private=True)
 
-    # factory for proxy->router backend connections, uses authentication (to router backend worker):
-    #
-    #   * cryptosign-proxy (if configured)
-    #   * anonymous-proxy (if auth unconfigured or explicit)
-    #
+    # factory for proxy->router backend connections, uses authentication (to router backend worker)
     def create_session():
+
+        # this is our WAMP session to the backend
         session = ProxyBackendSession()
 
+        # forward WAMP session information of the incoming proxy session
         authextra = {
             'proxy_authid': frontend_session.authid,
             'proxy_authrole': frontend_session.authrole,
@@ -755,38 +751,43 @@ def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Di
             'proxy_authextra': frontend_session.authextra,
         }
 
-        # we will do cryptosign authentication to any backend node
+        # if auth is configured and includes "cryptosign-proxy", always prefer
+        # that and connect to the backend node authenticating with WAMP-cryptosign
+        # using the connecting proxy node's key
+        #
+        # authentication via WAMP-cryptosign SHOULD always be possible with the backend node
+        #
         if 'auth' in backend_config and 'cryptosign-proxy' in backend_config['auth']:
             session.add_authenticator(create_authenticator('cryptosign', privkey=key['hex'], authextra=authextra))
 
-        # we allow anonymous authentication to just unix-sockets
-        # currently. I don't think it's a good idea to allow any
-        # anonymous auth to "real" backends over TCP due to
-        # cross-protocol hijinks (and if a Web browser is running on
-        # that machine, any website can try to access the "real"
-        # backend)
-        if 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
-
-            # IMPORTANT: this is security sensitive! see above
+        # if auth is not configured, or is configured and includes "anonymous-proxy",
+        # try to connect to the backend node authenticating with WAMP-anonymous
+        #
+        # authentication via WAMP-anonymous MAY be possible with the backend node if enabled
+        #
+        elif 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
+            # IMPORTANT: this is security sensitive! we only allow anonymous proxy
+            # locally on a host, that is, when the transport type is Unix domain socket
             if backend_config['transport']['endpoint']['type'] == 'unix':
-                session.add_authenticator(create_authenticator('anonymous', authextra=authextra))
+                session.add_authenticator(create_authenticator('anonymous-proxy', authextra=authextra))
             else:
                 raise RuntimeError(
                     'anonymous-proxy authenticator only allowed on Unix domain socket based transports, not type "{}"'.
                     format(backend_config['transport']['endpoint']['type']))
 
-        def connected(session, transport):
-            connected_d.callback(session)
+        # no valid authentication method found
+        else:
+            raise RuntimeError('could not determine valid authentication method to connect to the backend node')
+
+        def connected(new_session, transport):
+            ready.callback(new_session)
 
         session.on('connect', connected)
         return session
 
-    # client-factory
+    # client transport factory to carry our session
     factory = _create_transport_factory(reactor, backend, create_session)
-    # Reduce noise from logs, otherwise for each connect/disconnect to the backend
-    # we get an entry in the router logs like
-    # Starting factory <autobahn.twisted.rawsocket.WampRawSocketClientFactory object at 0x7f38954ed9c0>
-    # Stopping factory <autobahn.twisted.rawsocket.WampRawSocketClientFactory object at 0x7f38954ed9c0>
+    # reduce noise from logs, otherwise for each connect/disconnect to the backend
     factory.noisy = False
     endpoint = _create_transport_endpoint(reactor, backend_config['transport']['endpoint'])
     transport_d = endpoint.connect(factory)
@@ -796,13 +797,14 @@ def make_backend_connection(reactor: ReactorBase, cbdir: str, backend_config: Di
         return proto
 
     def _error(f):
-        if not connected_d.called:
-            connected_d.errback(f)
+        # backend session disconnected without ever having joined before
+        if not ready.called:
+            ready.errback(f)
 
     transport_d.addErrback(_error)
     transport_d.addCallback(_connected)
 
-    return connected_d
+    return ready
 
 
 class AuthenticatorSession(ApplicationSession):
@@ -873,9 +875,6 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
     # FIXME: authid of the connecting service session is the backend node ID
     backend_authid = 'core1'
 
-    extra = None
-    authentication = None
-
     # if auth is configured and includes "cryptosign-proxy", always prefer
     # that and connect to the backend node authenticating with WAMP-cryptosign
     # using the connecting proxy node's key
@@ -899,13 +898,15 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
                 }
             }
         }
+
     # if auth is not configured, or is configured and includes "anonymous-proxy",
     # try to connect to the backend node authenticating with WAMP-anonymous
     #
     # authentication via WAMP-anonymous MAY be possible with the backend node if enabled
     #
     elif 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
-        # IMPORTANT: this is security sensitive! see above
+        # IMPORTANT: this is security sensitive! we only allow anonymous proxy
+        # locally on a host, that is, when the transport type is Unix domain socket
         if backend_config['transport']['endpoint']['type'] == 'unix':
             authentication = {
                 'anonymous-proxy': {
@@ -921,11 +922,13 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
             raise RuntimeError(
                 'anonymous-proxy authenticator only allowed on Unix domain socket based transports, not type "{}"'.
                 format(backend_config['transport']['endpoint']['type']))
+
+    # no valid authentication method found
     else:
         raise RuntimeError('could not determine valid authentication method to connect to the backend node')
 
     # use Component API and create a component for the service session
-    comp = Component(transports=[backend_config['transport']], realm=realm, extra=extra, authentication=authentication)
+    comp = Component(transports=[backend_config['transport']], realm=realm, authentication=authentication)
 
     # fired when the component has connected, authenticated and joined a realm on the backend node
     ready = Deferred()
@@ -937,7 +940,7 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
     @comp.on_disconnect
     def disconnect(session, was_clean=False):
         if not ready.called:
-            ready.errback(RuntimeError('service session disconnected without ever having joined before'))
+            ready.errback(RuntimeError('backend session disconnected without ever having joined before'))
 
     # start the component and return the component's ready deferred
     comp.start(reactor)
