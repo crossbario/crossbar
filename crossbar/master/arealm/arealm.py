@@ -348,7 +348,9 @@ class ApplicationRealmMonitor(object):
                         "serializer": "cbor"
                     },
                     "auth": {
-                        "anonymous-proxy": {
+                        # must use cryptosign-proxy, NOT anonymous-proxy, since we run
+                        # over TCP, not UDS, and to IP addresses on different hosts
+                        "cryptosign-proxy": {
                             "type": "static"
                         }
                     }
@@ -629,7 +631,7 @@ class ApplicationRealmMonitor(object):
                                 },
                                 'serializers': ['cbor'],
                                 'auth': {
-                                    'cryptosign': {
+                                    'cryptosign-proxy': {
                                         'type': 'static',
                                         'principals': principals
                                     },

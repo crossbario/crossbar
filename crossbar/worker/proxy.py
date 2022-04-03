@@ -867,19 +867,31 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
     :param authrole: The WAMP authrole the service session is joined as.
     :return: A service session joined on the given realm, under the given authrole.
     """
-    # FIXME: get node authid from worker/node object
-    proxy_authid = 'anonymous-{}'.format(util.generate_serial_number())
+    # FIXME: authid of the proxy node the service session runs on
+    proxy_authid = 'proxy-{}'.format(util.generate_serial_number())
+
+    # FIXME: authid of the connecting service session is the backend node ID
+    backend_authid = 'core1'
 
     extra = None
     authentication = None
 
-    # we will do cryptosign authentication to any backend node
+    # if auth is configured and includes "cryptosign-proxy", always prefer
+    # that and connect to the backend node authenticating with WAMP-cryptosign
+    # using the connecting proxy node's key
+    #
+    # authentication via WAMP-cryptosign SHOULD always be possible with the backend node
+    #
     if 'auth' in backend_config and 'cryptosign-proxy' in backend_config['auth']:
-        # FIXME: get node private key from worker/node object
+        # we will do cryptosign authentication to any backend node
+
+        # FIXME: get node private key from this proxy node
         node_privkey = _read_node_key(cbdir, private=True)['hex']
+
         authentication = {
             'cryptosign-proxy': {
                 'privkey': node_privkey,
+                'authid': backend_authid,
                 'authextra': {
                     'proxy_realm': realm,
                     'proxy_authid': proxy_authid,
@@ -887,18 +899,17 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
                 }
             }
         }
-
-    # we allow anonymous authentication to just unix-sockets
-    # currently. I don't think it's a good idea to allow any
-    # anonymous auth to "real" backends over TCP due to
-    # cross-protocol hijinks (and if a Web browser is running on
-    # that machine, any website can try to access the "real"
-    # backend)
-    if 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
+    # if auth is not configured, or is configured and includes "anonymous-proxy",
+    # try to connect to the backend node authenticating with WAMP-anonymous
+    #
+    # authentication via WAMP-anonymous MAY be possible with the backend node if enabled
+    #
+    elif 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
         # IMPORTANT: this is security sensitive! see above
         if backend_config['transport']['endpoint']['type'] == 'unix':
             authentication = {
                 'anonymous-proxy': {
+                    'authid': backend_authid,
                     'authextra': {
                         'proxy_realm': realm,
                         'proxy_authid': proxy_authid,
@@ -910,10 +921,13 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
             raise RuntimeError(
                 'anonymous-proxy authenticator only allowed on Unix domain socket based transports, not type "{}"'.
                 format(backend_config['transport']['endpoint']['type']))
+    else:
+        raise RuntimeError('could not determine valid authentication method to connect to the backend node')
 
-    assert authentication
-
+    # use Component API and create a component for the service session
     comp = Component(transports=[backend_config['transport']], realm=realm, extra=extra, authentication=authentication)
+
+    # fired when the component has connected, authenticated and joined a realm on the backend node
     ready = Deferred()
 
     @comp.on_join
@@ -923,8 +937,9 @@ def make_service_session(reactor: ReactorBase, cbdir: str, backend_config: Dict[
     @comp.on_disconnect
     def disconnect(session, was_clean=False):
         if not ready.called:
-            ready.errback(Exception("Disconnected unexpectedly"))
+            ready.errback(RuntimeError('service session disconnected without ever having joined before'))
 
+    # start the component and return the component's ready deferred
     comp.start(reactor)
     return ready
 

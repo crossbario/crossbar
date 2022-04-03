@@ -7,6 +7,7 @@
 
 import os
 import binascii
+from pprint import pformat
 
 import nacl
 from nacl.signing import VerifyKey
@@ -20,7 +21,7 @@ from twisted.internet.defer import Deferred
 
 import txaio
 
-from crossbar._util import hltype, hlid
+from crossbar._util import hltype, hlid, hlval
 from crossbar.router.auth.pending import PendingAuth
 
 __all__ = (
@@ -137,11 +138,19 @@ class PendingAuthCryptosign(PendingAuth):
                     return types.Deny(
                         message='cannot identify client: no authid requested and no extra.pubkey provided')
 
-            if self._authid in self._config.get('principals', {}):
+            principals = self._config.get('principals', {})
+            if self._authid in principals:
 
-                principal = self._config['principals'][self._authid]
+                principal = principals[self._authid]
 
                 if pubkey and (pubkey not in principal['authorized_keys']):
+                    self.log.warn(
+                        'extra.pubkey {pubkey} provided does not match any one of authorized_keys for the principal [func="{func}"]:\n{principals}',
+                        func=hltype(self.hello),
+                        realm=hlid(realm),
+                        authid=hlid(details.authid),
+                        pubkey=hlval(pubkey),
+                        principals=pformat(principals))
                     return types.Deny(
                         message='extra.pubkey provided does not match any one of authorized_keys for the principal')
 
@@ -155,7 +164,13 @@ class PendingAuthCryptosign(PendingAuth):
                 return types.Challenge(self._authmethod, extra)
 
             else:
-                return types.Deny(message='no principal with authid "{}" exists'.format(details.authid))
+                self.log.warn(
+                    'no principal with authid "{authid}" exists in principals for realm "{realm}" [func="{func}"]:\n{principals}',
+                    func=hltype(self.hello),
+                    realm=hlid(realm),
+                    authid=hlid(self._authid),
+                    principals=pformat(principals))
+                return types.Deny(message='no principal with authid "{}" exists'.format(self._authid))
 
         elif self._config['type'] == 'dynamic':
 
