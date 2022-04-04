@@ -302,12 +302,10 @@ class ProxyFrontendSession(object):
                 # node private key
                 key = _read_node_key(self._controller._cbdir, private=False)
 
-                # FIXME
-                authmethods = ['{}-proxy'.format(x) for x in backend_session._authenticators.keys()]
-                # authmethods = ['cryptosign-proxy']
-                self.log.debug('{func} Proxy backend session authenticating using authmethods {authmethods} ..',
-                               func=hltype(_backend_connected),
-                               authmethods=authmethods)
+                authmethods = list(backend_session._authenticators.keys())
+                self.log.info('{func} Proxy backend session authenticating using authmethods={authmethods} ',
+                              func=hltype(_backend_connected),
+                              authmethods=authmethods)
 
                 backend_session.join(
                     accept.realm,
@@ -454,15 +452,19 @@ class ProxyFrontendSession(object):
             else:
                 # if no cookie tracking, generate a random value for authid
                 authid = util.generate_serial_number()
+
+            # FIXME: really forward any requested authrole?
+            authrole = msg.authrole
+
             auth_config = {
                 'anonymous': {
                     'type': 'static',
-                    'authrole': 'anonymous',
+                    'authrole': authrole,
                     'authid': authid,
                 }
             }
             self.log.warn(
-                '{func} No authentication configured for proxy frontend: using default anonymous access policy for incoming proxy frontend session',
+                '{func} No authentication configured for proxy frontend: using builtin anonymous access policy for incoming proxy frontend session',
                 func=hltype(self._process_Hello))
 
         for authmethod in authmethods:
@@ -502,11 +504,11 @@ class ProxyFrontendSession(object):
                     message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                   message='Frontend connection accept failed ({})'.format(e)))
                 return
-            self.log.debug('{func} processed authmethod "{authmethod}" using {authklass}: {hello_result}',
-                           func=hltype(self._process_Hello),
-                           authmethod=authmethod,
-                           authklass=authklass,
-                           hello_result=hello_result)
+            self.log.info('{func} processed authmethod "{authmethod}" using {authklass}: {hello_result}',
+                          func=hltype(self._process_Hello),
+                          authmethod=authmethod,
+                          authklass=authklass,
+                          hello_result=hello_result)
 
             # if the frontend session is accepted right away (eg when doing "anonymous" authentication), process the
             # frontend accept ..
@@ -654,10 +656,11 @@ class ProxyBackendSession(Session):
         return super(ProxyBackendSession, self).onChallenge(challenge)
 
     def onWelcome(self, msg):
-        if msg.authmethod == "cryptosign-proxy":
-            msg.authmethod = "cryptosign"
-        elif msg.authmethod == "anonymous-proxy":
-            msg.authmethod = "anonymous"
+        # This is WRONG:
+        # if msg.authmethod == "cryptosign-proxy":
+        #     msg.authmethod = "cryptosign"
+        # elif msg.authmethod == "anonymous-proxy":
+        #     msg.authmethod = "anonymous"
         return super(ProxyBackendSession, self).onWelcome(msg)
 
     def onJoin(self, details):

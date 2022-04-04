@@ -275,7 +275,7 @@ class PendingAuthCryptosign(PendingAuth):
                     return types.Challenge(self._authmethod, extra)
 
                 def on_authenticate_error(err):
-                    self.log.debug(
+                    self.log.warn(
                         '{klass}.hello(realm="{realm}", details={details}) -> on_authenticate_error(err={err})',
                         klass=self.__class__.__name__,
                         realm=realm,
