@@ -348,7 +348,9 @@ class ApplicationRealmMonitor(object):
                         "serializer": "cbor"
                     },
                     "auth": {
-                        "anonymous-proxy": {
+                        # must use cryptosign-proxy, NOT anonymous-proxy, since we run
+                        # over TCP, not UDS, and to IP addresses on different hosts
+                        "cryptosign-proxy": {
                             "type": "static"
                         }
                     }
@@ -587,7 +589,10 @@ class ApplicationRealmMonitor(object):
                     # III.2) if there isn't a transport started (with transport ID as we expect) already,
                     # start a new transport
                     if not transport:
+
+                        # FIXME: allow to configure transport type TCP vs UDS
                         USE_UDS = False
+
                         if USE_UDS:
                             # https://serverfault.com/a/641387/117074
                             UNIX_PATH_MAX = 108
@@ -603,7 +608,16 @@ class ApplicationRealmMonitor(object):
                                     'type': 'unix',
                                     'path': transport_path
                                 },
-                                'options': {}
+                                'options': {
+                                    "max_message_size": 1048576
+                                },
+                                'serializers': ['cbor'],
+                                'auth': {
+                                    # use anonymous-proxy authentication for UDS based connections (on localhost only)
+                                    'anonymous-proxy': {
+                                        'type': 'static'
+                                    }
+                                }
                             }
                         else:
                             principals = {}
@@ -629,12 +643,10 @@ class ApplicationRealmMonitor(object):
                                 },
                                 'serializers': ['cbor'],
                                 'auth': {
-                                    'cryptosign': {
+                                    # use cryptosign-proxy authentication for TCP based connections
+                                    'cryptosign-proxy': {
                                         'type': 'static',
                                         'principals': principals
-                                    },
-                                    'anonymous-proxy': {
-                                        'type': 'static'
                                     }
                                 }
                             }

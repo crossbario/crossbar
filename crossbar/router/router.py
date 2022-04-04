@@ -153,11 +153,13 @@ class Router(object):
         self._attached += 1
 
         self.log.info(
-            'attached session {session} to realm "{realm}" (authid="{authid}", authrole="{authrole}") {func}',
+            'Router attached new session to realm "{realm}" (session={session}, authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}") {func}',
             func=hltype(self.attach),
             session=hlid(session._session_id) if session else '',
             authid=hlid(session._authid),
             authrole=hlid(session._authrole),
+            authmethod=hlval(session._authmethod),
+            authprovider=hlval(session._authprovider),
             realm=hlid(session._realm))
 
         return {'broker': self._broker._role_features, 'dealer': self._dealer._role_features}
@@ -224,11 +226,13 @@ class Router(object):
             detached_session_ids.append(session._session_id)
 
         self.log.info(
-            'detached session {session} from realm "{realm}" (authid="{authid}", authrole="{authrole}", detached {detached_session_ids} sessions total) {func}',
+            'Router detached session from realm "{realm}" (session={session}, detached_session_ids={detached_session_ids}, authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}") {func}',
             func=hltype(self.detach),
             session=hlid(session._session_id) if session else '',
             authid=hlid(session._authid),
             authrole=hlid(session._authrole),
+            authmethod=hlval(session._authmethod),
+            authprovider=hlval(session._authprovider),
             detached_session_ids=hlval(len(detached_session_ids)),
             realm=hlid(session._realm))
 
