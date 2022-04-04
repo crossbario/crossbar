@@ -40,6 +40,7 @@ class MessageForwarder(ApplicationSession):
         debug = self.config.extra.get("debug", False)
         method = self.config.extra.get("method", "POST")
         expectedCode = self.config.extra.get("expectedcode")
+        sort_keys = self.config.extra.get("sort_keys", True)
 
         @inlineCallbacks
         def on_event(url, *args, **kwargs):
@@ -50,7 +51,7 @@ class MessageForwarder(ApplicationSession):
                 "args": args,
                 "kwargs": kwargs
             },
-                              sort_keys=True,
+                              sort_keys=sort_keys,
                               separators=(',', ':'),
                               ensure_ascii=False)
 

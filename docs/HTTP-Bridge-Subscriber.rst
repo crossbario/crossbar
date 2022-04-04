@@ -92,6 +92,8 @@ The subscriber is configured through the ``extra`` dictionary:
 +---------------+------------------------------------------------------------------------------------------------------------------------+
 | method        | The HTTP method which the forwarding requests will be made with. (optional, "POST" by default)                         |
 +---------------+------------------------------------------------------------------------------------------------------------------------+
+| sort_keys     | Sort the dictionary output by key during JSON serialization (optional, true by default)                                |
++---------------+------------------------------------------------------------------------------------------------------------------------+
 | expectedcode  | The HTTP status code which is expected from the requests. If none is given, the status code is not checked. (optional) |
 +---------------+------------------------------------------------------------------------------------------------------------------------+
 | debug         | If true, then the response body will be printed to Crossbar's debug log. (optional, false by default)                  |
