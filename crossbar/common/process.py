@@ -41,7 +41,7 @@ from txaio import make_logger
 
 from twisted.cred import portal
 
-from crossbar._util import hl, hlval, hltype
+from crossbar._util import hl, hlval, hltype, hlid
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.common.processinfo import _HAS_PSUTIL
@@ -138,6 +138,14 @@ class NativeProcess(ApplicationSession):
         self._worker_id = config.extra.worker if config and config.extra else None
         self._uri_prefix = 'crossbar.worker.{}'.format(self._worker_id)
 
+    @property
+    def node_id(self):
+        return self._node_id
+
+    @property
+    def worker_id(self):
+        return self._worker_id
+
     def onConnect(self, do_join=True):
         if not hasattr(self, 'cbdir'):
             self.cbdir = self.config.extra.cbdir
@@ -198,6 +206,13 @@ class NativeProcess(ApplicationSession):
                            realm=hl(self.realm),
                            func=hltype(self.onJoin),
                            procs=hl(pformat(procs), color='white', bold=True))
+
+        self.log.info('Native worker ready! (worker={worker}, node_id="{node_id}", worker_id="{worker_id}") [{func}]',
+                      node_id=hlid(self._node_id),
+                      worker_id=hlid(self._worker_id),
+                      cbdir=hlval(self.cbdir),
+                      worker=hlid(self.__class__.__name__),
+                      func=hltype(self.onJoin))
         returnValue(regs)
 
     @wamp.register(None)

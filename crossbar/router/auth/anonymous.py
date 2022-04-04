@@ -131,7 +131,8 @@ class PendingAuthAnonymousProxy(PendingAuthAnonymous):
         # remember the realm the client requested to join (if any)
         self._realm = realm
         self._authid = details.authid
-        self._session_details['authmethod'] = 'anonymous'
+        self._authrole = details.authrole
+        self._session_details['authmethod'] = self.AUTHMETHOD
         self._session_details['authextra'] = details.authextra
         self._authprovider = 'static'
 
