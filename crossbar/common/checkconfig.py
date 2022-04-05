@@ -3538,7 +3538,7 @@ def convert_config_file(personality, configfile):
             else:
                 newconfig = os.path.abspath(configbase + '.json')
                 with open(newconfig, 'w') as outfile:
-                    json.dump(config, outfile, ensure_ascii=False, separators=(',', ': '), indent=3, sort_keys=True)
+                    json.dump(config, outfile, ensure_ascii=False, separators=(',', ': '), indent=3, sort_keys=False)
                     log.info("ok, JSON formatted configuration written to {cfg}", cfg=newconfig)
         elif configext == ".json":
             log.info("converting JSON formatted configuration {cfg} to YAML format ...", cfg=configfile)

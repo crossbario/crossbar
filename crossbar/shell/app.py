@@ -270,7 +270,11 @@ class Application(object):
         cmd_str = ' '.join(["crossbar", "shell"] + sys.argv[1:])
         if self._output_format in [Application.OUTPUT_FORMAT_JSON, Application.OUTPUT_FORMAT_JSON_COLORED]:
 
-            json_str = json.dumps(result.result, separators=(', ', ': '), sort_keys=True, indent=4, ensure_ascii=False)
+            json_str = json.dumps(result.result,
+                                  separators=(', ', ': '),
+                                  sort_keys=False,
+                                  indent=4,
+                                  ensure_ascii=False)
 
             if self._output_format == Application.OUTPUT_FORMAT_JSON_COLORED:
                 console_str = highlight(json_str, lexers.JsonLexer(),

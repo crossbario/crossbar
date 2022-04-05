@@ -73,10 +73,15 @@ class JsonResource(Resource):
         Resource.__init__(self)
         options = options or {}
 
+        # Sort keys of dicts in the serialized JSON
+        # Note: if dicts with keys of mixed types are used, this will fail with
+        #   TypeError: '<' not supported between instances of 'int' and 'str'
+        sort_keys = options.get('sort_keys', False)
+
         if options.get('prettify', False):
-            self._data = json.dumps(value, sort_keys=True, indent=3, ensure_ascii=False)
+            self._data = json.dumps(value, sort_keys=sort_keys, indent=3, ensure_ascii=False)
         else:
-            self._data = json.dumps(value, separators=(',', ':'), ensure_ascii=False)
+            self._data = json.dumps(value, sort_keys=sort_keys, separators=(',', ':'), ensure_ascii=False)
 
         # Twisted Web render_METHOD methods are expected to return a byte string
         self._data = self._data.encode('utf8')

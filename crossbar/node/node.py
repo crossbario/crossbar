@@ -450,9 +450,13 @@ class Node(object):
         self._boot_complete = Deferred()
 
         # startup the node personality ..
-        self.log.info('{func}::NODE_BOOT_BEGIN', func=hltype(self.personality.Node.boot))
+        self.log.info('{func}::NODE_BOOT_BEGIN[node_id="{node_id}"]',
+                      node_id=hlid(self._node_id),
+                      func=hltype(self.personality.Node.boot))
         res = yield self.personality.Node.boot(self)
-        self.log.info('{func}::NODE_BOOT_COMPLETE', func=hltype(self.personality.Node.boot))
+        self.log.info('{func}::NODE_BOOT_COMPLETE[node_id="{node_id}"]',
+                      func=hltype(self.personality.Node.boot),
+                      node_id=hlid(self._node_id))
 
         # notify observers of boot completition
         self._boot_complete.callback(res)
