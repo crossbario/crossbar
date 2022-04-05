@@ -50,7 +50,7 @@ class MessageForwarder(ApplicationSession):
                 "args": args,
                 "kwargs": kwargs
             },
-                              sort_keys=True,
+                              sort_keys=False,
                               separators=(',', ':'),
                               ensure_ascii=False)
 

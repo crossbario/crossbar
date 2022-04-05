@@ -84,7 +84,7 @@ def dump_json(obj, minified=True):
         return json.dumps(obj, separators=(',', ':'), ensure_ascii=False)
 
     else:
-        return json.dumps(obj, indent=4, separators=(',', ': '), sort_keys=True, ensure_ascii=False)
+        return json.dumps(obj, indent=4, separators=(',', ': '), sort_keys=False, ensure_ascii=False)
 
 
 def hl(text, bold=False, color='yellow'):
