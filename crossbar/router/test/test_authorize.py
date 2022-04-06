@@ -29,7 +29,7 @@ class MockRealmContainer(object):
         return realm == self._realm
 
     def has_role(self, realm, role):
-        return realm == self._realm and (role == 'trusted' or role in self._roles)
+        return realm == self._realm and role in self._roles
 
     def get_service_session(self, realm, role):
         assert realm == self._realm, 'realm must be "{}", but was "{}"'.format(self._realm, realm)
@@ -69,6 +69,8 @@ class TestDynamicAuth(unittest.TestCase):
         config = {
             "type": "dynamic",
             "authenticator": "foo.auth_a_doodle",
+            "authenticator-realm": "realm",
+            "authenticator-role": "myauth_role"
         }
         extra = {
             "foo": "bar",
@@ -78,7 +80,7 @@ class TestDynamicAuth(unittest.TestCase):
 
         pending_session_id = 1
         transport_info = {}
-        realm_container = MockRealmContainer("realm", ["some_role"], session)
+        realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
         auth = cryptosign.PendingAuthCryptosign(pending_session_id, transport_info, realm_container, config)
         val = yield auth.hello("realm", details)
@@ -120,6 +122,8 @@ class TestDynamicAuth(unittest.TestCase):
         config = {
             "type": "dynamic",
             "authenticator": "foo.auth_a_doodle",
+            "authenticator-realm": "realm",
+            "authenticator-role": "myauth_role"
         }
         extra = {
             "foo": "bar",
@@ -130,7 +134,7 @@ class TestDynamicAuth(unittest.TestCase):
 
         pending_session_id = 1
         transport_info = {}
-        realm_container = MockRealmContainer("realm", ["some_role"], session)
+        realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
         auth = wampcra.PendingAuthWampCra(pending_session_id, transport_info, realm_container, config)
         val = yield auth.hello("realm", details)
@@ -172,6 +176,8 @@ class TestDynamicAuth(unittest.TestCase):
         config = {
             "type": "dynamic",
             "authenticator": "foo.auth_a_doodle",
+            "authenticator-realm": "realm",
+            "authenticator-role": "myauth_role"
         }
         extra = {
             "foo": "bar",
@@ -182,7 +188,7 @@ class TestDynamicAuth(unittest.TestCase):
 
         pending_session_id = 1
         transport_info = {}
-        realm_container = MockRealmContainer("realm", ["some_role"], session)
+        realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
         auth = tls.PendingAuthTLS(pending_session_id, transport_info, realm_container, config)
         val = yield auth.hello("realm", details)
@@ -223,6 +229,8 @@ class TestDynamicAuth(unittest.TestCase):
         config = {
             "type": "dynamic",
             "authenticator": "foo.auth_a_doodle",
+            "authenticator-realm": "realm",
+            "authenticator-role": "myauth_role"
         }
         extra = {
             "foo": "bar",
@@ -233,7 +241,7 @@ class TestDynamicAuth(unittest.TestCase):
 
         pending_session_id = 1
         transport_info = {}
-        realm_container = MockRealmContainer("realm", ["some_role"], session)
+        realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
         auth = anonymous.PendingAuthAnonymous(pending_session_id, transport_info, realm_container, config)
         val = yield auth.hello("realm", details)
@@ -274,6 +282,8 @@ class TestDynamicAuth(unittest.TestCase):
         config = {
             "type": "dynamic",
             "authenticator": "foo.auth_a_doodle",
+            "authenticator-realm": "realm",
+            "authenticator-role": "myauth_role"
         }
         extra = {
             "foo": "bar",
@@ -284,7 +294,7 @@ class TestDynamicAuth(unittest.TestCase):
 
         pending_session_id = 1
         transport_info = {}
-        realm_container = MockRealmContainer("realm", ["some_role"], session)
+        realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
         auth = ticket.PendingAuthTicket(pending_session_id, transport_info, realm_container, config)
         val = yield auth.hello("realm", details)

@@ -556,8 +556,11 @@ class ProxyFrontendSession(object):
             elif isinstance(hello_result, types.Deny):
                 self.transport.send(message.Abort(hello_result.reason, message=hello_result.message))
 
-            # should not arrive here: internal (logic) error
             else:
+                # should not arrive here: internal (logic) error
+                self.log.warn('internal error: unexpected authenticator return type {rtype} [{func}]',
+                              rtype=hltype(hello_result),
+                              func=hltype(self._process_Hello))
                 self.transport.send(
                     message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                   message='internal error: unexpected authenticator return type {}'.format(
@@ -576,11 +579,11 @@ class ProxyFrontendSession(object):
                isinstance(self._pending_auth, PendingAuthWampCra) or \
                isinstance(self._pending_auth, PendingAuthCryptosign) or \
                isinstance(self._pending_auth, PendingAuthScram):
-                auth_result = self._pending_auth.authenticate(msg.signature)
-                self.log.debug('Processed pending authentication {pending_auth}: {authresult} [{func}]',
-                               func=hltype(self._process_Authenticate),
-                               pending_auth=self._pending_auth,
-                               authresult=auth_result)
+                auth_result = yield as_future(self._pending_auth.authenticate, msg.signature)
+                self.log.info('Processed pending authentication {pending_auth}: {authresult} [{func}]',
+                              func=hltype(self._process_Authenticate),
+                              pending_auth=self._pending_auth,
+                              authresult=auth_result)
                 if isinstance(auth_result, types.Accept):
                     try:
                         session = yield self._accept(auth_result)
@@ -614,6 +617,9 @@ class ProxyFrontendSession(object):
                     self.transport.send(message.Abort(auth_result.reason, message=auth_result.message))
                 else:
                     # should not arrive here: logic error
+                    self.log.warn('internal error: unexpected authenticator return type {rtype} [{func}]',
+                                  rtype=hltype(auth_result),
+                                  func=hltype(self._process_Authenticate))
                     self.transport.send(
                         message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                       message='internal error: unexpected authenticator return type {}'.format(
