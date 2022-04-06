@@ -169,7 +169,7 @@ class PendingAuth:
                            func=hltype(self._init_function_authenticator),
                            authrole=hlid(self._authenticator_role))
         else:
-            self._authenticator_role = self._authrole or 'trusted'
+            self._authenticator_role = self._authrole
             self.log.debug('{func} authenticator role "{authrole}" set from session',
                            func=hltype(self._init_function_authenticator),
                            authrole=hlid(self._authenticator_role))
@@ -185,7 +185,7 @@ class PendingAuth:
                 message="explicit role <{}> on realm <{}> configured for dynamic authenticator does not exist".format(
                     self._authenticator_role, self._authenticator_realm))
 
-        self.log.debug(
+        self.log.info(
             'initializing authenticator service session for realm "{realm}" with authrole "{authrole}" .. {func}',
             realm=hlid(self._authenticator_realm),
             authrole=hlid(self._authenticator_role),
@@ -201,7 +201,7 @@ class PendingAuth:
         d_ready = Deferred()
 
         def connect_success(session):
-            self.log.debug(
+            self.log.info(
                 'authenticator service session {session_id} attached to realm "{realm}" with authrole "{authrole}" {func}',
                 func=hltype(self._init_dynamic_authenticator),
                 session_id=hlid(session._session_id),
