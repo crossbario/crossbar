@@ -15,9 +15,11 @@ from collections.abc import Mapping, Sequence
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import NotFound, MethodNotAllowed
 
-# removed in werkzeug 2.1.0
-# from werkzeug.utils import escape
-from markupsafe import escape
+try:
+    # removed in werkzeug 2.1.0
+    from werkzeug.utils import escape
+except ImportError:
+    from markupsafe import escape
 
 from jinja2 import Environment, FileSystemLoader
 from jinja2.sandbox import SandboxedEnvironment
@@ -81,12 +83,14 @@ class WapResource(resource.Resource):
         #
         #   This is our default (anonymous) session for unauthenticated users
         #
-        router = worker._router_factory.get(self._realm_name)
         self._default_session = ApplicationSession(ComponentConfig(realm=self._realm_name, extra=None))
-        worker._router_session_factory.add(self._default_session, router, authrole=self._authrole)
 
-        # Setup Jinja2 to point to our templates folder or a package resource
-        #
+        # add forwarding session to router (or generally realm container, as this could be running on
+        # a router worker or on a proxy worker
+        router = worker._router_factory.get(self._realm_name)
+        self._worker._router_session_factory.add(self._default_session, router, authrole=self._authrole)
+
+        # setup Jinja2 to point to our templates folder or a package resource
         templates_config = config.get("templates")
 
         if type(templates_config) == str:
@@ -284,8 +288,6 @@ class WapResource(resource.Resource):
                 query_args[key] = value
             self.log.info('Parsed query parameters: {query_args}', query_args=query_args)
 
-        print('*' * 100, http_method, full_path, content_type, query_args, request, request.args)
-
         # parse client announced accept header
         client_accept = request.getAllHeaders().get(b'accept', None)
         if client_accept:
@@ -318,8 +320,9 @@ class WapResource(resource.Resource):
             (procedure, request.template), kwargs = self._map_adapter.match(full_path,
                                                                             method=http_method,
                                                                             query_args=query_args)
-            if kwargs and query_args:
-                kwargs.update(query_args)
+            if kwargs:
+                if query_args:
+                    kwargs.update(query_args)
             else:
                 kwargs = query_args
             self.log.info('WapResource on path "{full_path}" mapped to call of procedure "{procedure}"',
