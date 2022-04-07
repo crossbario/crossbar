@@ -16,7 +16,7 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import CallDetails, PublishOptions, RegisterOptions
 
 from crossbar.common import checkconfig
-from crossbar.webservice import archive
+from crossbar.webservice import archive, wap
 from crossbar._util import hl, hlid, hltype, hlval, get_free_tcp_port
 from cfxdb.mrealm import WebCluster, WebClusterNodeMembership, WebService
 from cfxdb.mrealm import cluster
@@ -414,21 +414,26 @@ class WebClusterManager(object):
     # publication options for management API events
     _PUBOPTS = PublishOptions(acknowledge=True)
 
-    # map of allowed web services
+    # map of allowed web services, see also crossbar.personality.Personality.WEB_SERVICE_CHECKERS
     _WEB_SERVICE_CHECKERS = {
+        # none
         'path': checkconfig.check_web_path_service_path,
-        'static': checkconfig.check_web_path_service_static,
-        'archive': archive.RouterWebServiceArchive.check,
-        'json': checkconfig.check_web_path_service_json,
-        'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
         'redirect': checkconfig.check_web_path_service_redirect,
+        # resource
         'reverseproxy': checkconfig.check_web_path_service_reverseproxy,
-        'websocket': checkconfig.check_web_path_service_websocket,
-        'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
+        'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
+        'json': checkconfig.check_web_path_service_json,
         'cgi': checkconfig.check_web_path_service_cgi,
         'wsgi': checkconfig.check_web_path_service_wsgi,
+        'static': checkconfig.check_web_path_service_static,
+        'websocket': checkconfig.check_web_path_service_websocket,
+        'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
+        # longpoll
         'caller': checkconfig.check_web_path_service_caller,
         'publisher': checkconfig.check_web_path_service_publisher,
+        # webhook
+        'archive': archive.RouterWebServiceArchive.check,
+        'wap': wap.RouterWebServiceWap.check,
     }
 
     def __init__(self, session, globaldb, globalschema, db, schema, reactor=None):

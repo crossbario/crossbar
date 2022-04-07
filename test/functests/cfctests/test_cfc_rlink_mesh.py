@@ -275,7 +275,7 @@ class RouterRealm(object):
 
 
 @pytest_twisted.ensureDeferred
-async def _test_remote_rlink(request, cfx_master, cfx_edge1, cfx_edge2, cfx_edge3):
+async def test_remote_rlink(request, cfx_master, cfx_edge1, cfx_edge2, cfx_edge3):
 
     mrealm = 'mrealm1'
     worker_id = 'rlink_worker'

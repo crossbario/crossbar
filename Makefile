@@ -99,6 +99,9 @@ test_fixme:
 test_cb_proxy:
 	pytest -sv --no-install test/functests/cbtests/test_cb_proxy.py
 
+test_wap:
+	trial crossbar.webservice.test
+
 docs:
 	cd docs && sphinx-build -b html . _build
 

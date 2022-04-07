@@ -594,7 +594,7 @@ class RouterSession(BaseSession):
 
             else:
                 msg = "{} message received while session is not yet joined".format(str(msg.__class__.__name__).upper())
-                self.log.warn('{func} {msg}', func=hltype(self.onMessage), msg=msg)
+                self.log.debug('{func} {msg}', func=hltype(self.onMessage), msg=msg)
                 # raise ProtocolError(msg)
 
         else:
