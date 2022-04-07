@@ -14,7 +14,10 @@ from collections.abc import Mapping, Sequence
 
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import NotFound, MethodNotAllowed
-from werkzeug.utils import escape
+
+# removed in werkzeug 2.1.0
+# from werkzeug.utils import escape
+from markupsafe import escape
 
 from jinja2 import Environment, FileSystemLoader
 from jinja2.sandbox import SandboxedEnvironment
@@ -129,18 +132,22 @@ class WapResource(resource.Resource):
             # The sandboxed environment. It works like the regular environment but tells the compiler to
             # generate sandboxed code.
             # https://jinja.palletsprojects.com/en/2.11.x/sandbox/#jinja2.sandbox.SandboxedEnvironment
-            env = SandboxedEnvironment(loader=FileSystemLoader(templates_dir), autoescape=True)
+            self._jinja_env = SandboxedEnvironment(loader=FileSystemLoader(templates_dir), autoescape=True)
         else:
-            env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
+            self._jinja_env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
+
+        self._map_adapter = self._create_map_adapter(self._jinja_env, config, 'localhost', path)
 
         self.log.info(
-            'WapResource created (realm="{realm}", authrole="{authrole}", templates_dir="{templates_dir}", templates_source="{templates_source}", jinja2_env={jinja2_env})',
+            'WapResource created (realm="{realm}", authrole="{authrole}", templates_dir="{templates_dir}", templates_source="{templates_source}", jinja_env={jinja_env})',
             realm=hlid(self._realm_name),
             authrole=hlid(self._authrole),
             templates_dir=hlid(templates_dir),
             templates_source=hlid(templates_source),
-            jinja2_env=hltype(env.__class__))
+            jinja_env=hltype(self._jinja_env.__class__))
 
+    @staticmethod
+    def _create_map_adapter(jinja_env, config, server_name, path):
         # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.Map
         map = Map()
 
@@ -164,18 +171,13 @@ class WapResource(resource.Resource):
             route_methods = [route_method]
 
             # note the WAMP procedure to call and the Jinja2 template to render as HTTP response
-            route_endpoint = (route['call'], env.get_template(route['render']))
+            route_endpoint = (route['call'], jinja_env.get_template(route['render']))
             route_rule = Rule(route_url, methods=route_methods, endpoint=route_endpoint)
             map.add(route_rule)
-            self.log.info(
-                'WapResource route added (url={route_url}, methods={route_methods}, endpoint={route_endpoint})',
-                route_url=hlid(route_url),
-                route_methods=hlid(route_methods),
-                route_endpoint=route_endpoint)
 
-        # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter
-        # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter.match
-        self._map_adapter = map.bind('/')
+        # https://werkzeug.palletsprojects.com/en/2.1.x/routing/#werkzeug.routing.Map.bind
+        map_adapter = map.bind(server_name, '/')
+        return map_adapter
 
     def _after_call_success(self, result, request, client_return_json):
         """
@@ -282,6 +284,8 @@ class WapResource(resource.Resource):
                 query_args[key] = value
             self.log.info('Parsed query parameters: {query_args}', query_args=query_args)
 
+        print('*' * 100, http_method, full_path, content_type, query_args, request, request.args)
+
         # parse client announced accept header
         client_accept = request.getAllHeaders().get(b'accept', None)
         if client_accept:
@@ -310,7 +314,7 @@ class WapResource(resource.Resource):
 
         try:
             # werkzeug.routing.MapAdapter
-            # http://werkzeug.pocoo.org/docs/dev/routing/#werkzeug.routing.MapAdapter.match
+            # https://werkzeug.palletsprojects.com/en/2.1.x/routing/#werkzeug.routing.MapAdapter.match
             (procedure, request.template), kwargs = self._map_adapter.match(full_path,
                                                                             method=http_method,
                                                                             query_args=query_args)
@@ -318,16 +322,18 @@ class WapResource(resource.Resource):
                 kwargs.update(query_args)
             else:
                 kwargs = query_args
-            self.log.info('WapResource on path "{full_path}" mapped to procedure "{procedure}"',
+            self.log.info('WapResource on path "{full_path}" mapped to call of procedure "{procedure}"',
                           full_path=full_path,
-                          procedure=procedure)
+                          procedure=procedure,
+                          kwargs=kwargs)
 
             # FIXME: how do we allow calling WAMP procedures with positional args?
             if procedure:
-                self.log.info('calling procedure "{procedure}" with kwargs={kwargs} and body_data_len={body_data_len}',
-                              procedure=procedure,
-                              kwargs=kwargs,
-                              body_data_len=len(body_data) if body_data else 0)
+                self.log.info(
+                    'WapResource calling procedure "{procedure}" with kwargs={kwargs} and body_data_len={body_data_len}',
+                    procedure=procedure,
+                    kwargs=kwargs,
+                    body_data_len=len(body_data) if body_data else 0)
 
                 # we need a session to call
                 if not session:
