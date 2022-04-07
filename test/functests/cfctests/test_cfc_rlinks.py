@@ -35,7 +35,7 @@ node3_pubkey = _read_node_key(node3_cbdir, private=False)['hex']
 
 
 @inlineCallbacks
-def _test_remote_rlink(cfx_master, cfx_edge1, cfx_edge2, cfx_edge3):
+def test_remote_rlink(cfx_master, cfx_edge1, cfx_edge2, cfx_edge3):
 
     mrealm = 'mrealm1'
 
