@@ -21,6 +21,8 @@ from crossbar.webservice.base import RouterWebService
 from crossbar.worker.proxy import ProxyController
 from crossbar.worker.router import RouterController
 
+__all__ = ('RouterWebServiceRestPublisher', 'RouterWebServiceRestCaller', 'RouterWebServiceWebhook')
+
 
 @inlineCallbacks
 def _create_resource(resource_klass: Union[PublisherResource, CallerResource, WebhookResource], worker,

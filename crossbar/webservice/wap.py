@@ -11,7 +11,7 @@ import pkg_resources
 from pprint import pformat
 
 from collections.abc import Mapping, Sequence
-from typing import Dict, Any
+from typing import Dict, Any, Union
 
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import NotFound, MethodNotAllowed
@@ -61,7 +61,7 @@ class WapResource(resource.Resource):
 
     isLeaf = True
 
-    def __init__(self, worker, config, path):
+    def __init__(self, worker: Union[RouterController, ProxyController], config: Dict[str, Any], path: str):
         """
 
         :param worker: The router worker controller within this Web service is started.
@@ -374,7 +374,7 @@ class WapResource(resource.Resource):
                     kwargs.update(query_args)
             else:
                 kwargs = query_args
-            self.log.info('WapResource on path "{full_path}" mapped to call of procedure "{procedure}"',
+            self.log.info('WapResource request on path "{full_path}" mapped to call of procedure "{procedure}"',
                           full_path=full_path,
                           procedure=procedure,
                           kwargs=kwargs)
