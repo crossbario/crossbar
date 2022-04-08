@@ -18,6 +18,9 @@ import pyqrcode
 from nacl import signing
 from nacl import encoding
 
+from eth_keys import KeyAPI
+from eth_keys.backends import NativeECCBackend
+
 import txaio
 from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
@@ -46,17 +49,23 @@ def _read_release_key():
     return release_pubkey
 
 
-def _parse_key_file(key_path, private=True):
+def _parse_key_file(key_path: str, private: bool = True) -> OrderedDict:
     """
-    Internal helper. This parses a node.pub or node.priv file and
-    returns a dict mapping tags -> values.
+    Internal helper. This parses a ``key.pub`` or ``key.priv`` file and
+    returns a dict mapping from tags to values.
+
+    :param key_path: Path to key file.
+    :param private: Flag indicating whether to parse the file as a private key file.
+    :returns: Tags parsed from key file (ordered as appearing in the file).
     """
     if os.path.exists(key_path) and not os.path.isfile(key_path):
         raise Exception("Key file '{}' exists, but isn't a file".format(key_path))
 
-    allowed_tags = ['public-key-ed25519', 'machine-id', 'node-authid', 'node-cluster-ip', 'created-at', 'creator']
+    allowed_tags = [
+        'public-key-ed25519', 'public-adr-eth', 'machine-id', 'node-authid', 'node-cluster-ip', 'created-at', 'creator'
+    ]
     if private:
-        allowed_tags.append('private-key-ed25519')
+        allowed_tags.extend(['private-key-ed25519', 'private-key-eth'])
 
     tags = OrderedDict()
     with open(key_path, 'r') as key_file:
@@ -89,8 +98,10 @@ def _read_node_key(cbdir, privkey_path='key.priv', pubkey_path='key.pub', privat
 
     if private:
         node_key_hex = node_key_tags['private-key-ed25519']
+        # eth_privkey_seed_hex = node_key_tags['private-key-eth']
     else:
         node_key_hex = node_key_tags['public-key-ed25519']
+        # eth_pubadr = node_key_tags['public-adr-eth']
 
     qr = pyqrcode.create(node_key_hex, error='L', mode='binary')
     mode = 'text'
@@ -157,7 +168,6 @@ def _write_node_key(filepath, tags, msg):
 
 def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
-    was_new = None
     privkey_path = os.path.join(cbdir, privfile)
     pubkey_path = os.path.join(cbdir, pubfile)
 
@@ -219,6 +229,11 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         pubkey = privkey.verify_key
         pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
+        eth_privkey_seed = os.urandom(32)
+        eth_privkey_seed_hex = binascii.b2a_hex(eth_privkey_seed).decode()
+        eth_privkey = KeyAPI(NativeECCBackend).PrivateKey(eth_privkey_seed)
+        eth_pubadr = eth_privkey.public_key.to_checksum_address()
+
         if 'CROSSBAR_NODE_ID' in os.environ and os.environ['CROSSBAR_NODE_ID'].strip() != '':
             node_authid = os.environ['CROSSBAR_NODE_ID']
             log.info('using node_authid from environment variable CROSSBAR_NODE_ID: "{node_authid}"',
@@ -244,18 +259,22 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
             ('node-authid', node_authid),
             ('node-cluster-ip', node_cluster_ip),
             ('public-key-ed25519', pubkey_hex),
+            ('public-adr-eth', eth_pubadr),
         ])
         msg = 'Crossbar.io node public key\n\n'
         _write_node_key(pubkey_path, tags, msg)
 
         # now, add the private key and write the private file
         tags['private-key-ed25519'] = privkey_hex
+        tags['private-key-eth'] = eth_privkey_seed_hex
         msg = 'Crossbar.io node private key - KEEP THIS SAFE!\n\n'
         _write_node_key(privkey_path, tags, msg)
 
-        log.info('New node key pair generated! public-key-ed25519={pubkey}, node-authid={node_authid}',
-                 pubkey=hlid('0x' + pubkey_hex),
-                 node_authid=node_authid)
+        log.info(
+            'New node key pair generated! public-key-ed25519={pubkey}, node-authid={node_authid}, public-adr-eth={eth_pubadr}',
+            pubkey=hlid('0x' + pubkey_hex),
+            node_authid=node_authid,
+            eth_pubadr=hlid(eth_pubadr))
 
         was_new = True
 
