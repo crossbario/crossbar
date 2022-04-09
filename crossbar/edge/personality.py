@@ -57,8 +57,8 @@ def check_blockchain(personality, blockchain):
     #     "gateway": {
     #         "type": "infura",
     #         "network": "ropsten",
-    #         "key": "00000000000000000000000000000000",
-    #         "secret": "00000000000000000000000000000000"
+    #         "key": "${INFURA_PROJECT_ID}",
+    #         "secret": "${INFURA_PROJECT_SECRET}"
     #     },
     #     "from_block": 6350652,
     #     "chain_id": 3

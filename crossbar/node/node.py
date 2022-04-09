@@ -43,14 +43,14 @@ class Node(object):
 
     ROUTER_SERVICE = RouterServiceAgent
 
+    CONFIG_SOURCE_EMPTY = 0
     CONFIG_SOURCE_DEFAULT = 1
-    CONFIG_SOURCE_EMPTY = 2
-    CONFIG_SOURCE_LOCALFILE = 3
+    CONFIG_SOURCE_LOCALFILE = 2
     CONFIG_SOURCE_XBRNETWORK = 4
     CONFIG_SOURCE_TO_STR = {
+        0: 'empty',
         1: 'default',
-        2: 'empty',
-        3: 'localfile',
+        2: 'localfile',
         4: 'xbrnetwork',
     }
 
@@ -95,8 +95,11 @@ class Node(object):
         # the node controller realm
         self._realm = 'crossbar'
 
-        # config of this node.
+        # config of this node
         self._config = None
+
+        # source(s) of the config of this node
+        self._config_source = 0
 
         # node private key :class:`autobahn.wamp.cryptosign.SigningKey`
         self._node_key = None
