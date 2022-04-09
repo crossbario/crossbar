@@ -222,7 +222,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
             if pub_tags.get('public-adr-eth', None) != eth_pubadr:
                 raise Exception(
                     ("Inconsistent node public key file {} - public-adr-eth doesn't"
-                     " correspond to private-key-eth in private key file").format(pubkey_path, privkey_path))
+                     " correspond to private-key-eth in private key file {}").format(pubkey_path, privkey_path))
         else:
             log.info(
                 "Node public key file {pub_path} not found - re-creating from node private key file {priv_path}",
