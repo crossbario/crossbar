@@ -171,12 +171,17 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
     privkey_path = os.path.join(cbdir, privfile)
     pubkey_path = os.path.join(cbdir, pubfile)
 
+    # node private key seems to exist already: read and check!
     if os.path.exists(privkey_path):
 
-        # node private key seems to exist already .. check!
-
+        # read all tags, including private tags
         priv_tags = _parse_key_file(privkey_path, private=True)
-        # node-authid and node-cluster-ip are optional!
+
+        # check mandatory tags - the following tags are optional:
+        #   - node-authid
+        #   - node-cluster-ip
+        #   - public-adr-eth
+        #   - private-key-eth
         for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519', 'private-key-ed25519']:
             if tag not in priv_tags:
                 raise Exception("Corrupt node private key file {} - {} tag not found".format(privkey_path, tag))
@@ -186,9 +191,21 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         pubkey = privkey.verify_key
         pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
+        # check that the public key in the key file matches the private key therein
         if priv_tags['public-key-ed25519'] != pubkey_hex:
             raise Exception(("Inconsistent node private key file {} - public-key-ed25519 doesn't"
-                             " correspond to private-key-ed25519").format(pubkey_path))
+                             " correspond to private-key-ed25519").format(privkey_path))
+
+        eth_pubadr = None
+        eth_privkey_seed_hex = priv_tags.get('private-key-eth', None)
+        if eth_privkey_seed_hex:
+            eth_privkey_seed = binascii.a2b_hex(eth_privkey_seed_hex)
+            eth_privkey = KeyAPI(NativeECCBackend).PrivateKey(eth_privkey_seed)
+            eth_pubadr = eth_privkey.public_key.to_checksum_address()
+            if 'public-adr-eth' in priv_tags:
+                if priv_tags['public-adr-eth'] != eth_pubadr:
+                    raise Exception(("Inconsistent node private key file {} - public-adr-eth doesn't"
+                                     " correspond to private-key-eth").format(privkey_path))
 
         if os.path.exists(pubkey_path):
             pub_tags = _parse_key_file(pubkey_path, private=False)
@@ -198,8 +215,14 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
                     raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))
 
             if pub_tags['public-key-ed25519'] != pubkey_hex:
-                raise Exception(("Inconsistent node public key file {} - public-key-ed25519 doesn't"
-                                 " correspond to private-key-ed25519").format(pubkey_path))
+                raise Exception(
+                    ("Inconsistent node public key file {} - public-key-ed25519 doesn't"
+                     " correspond to private-key-ed25519 in private key file {}").format(pubkey_path, privkey_path))
+
+            if pub_tags.get('public-adr-eth', None) != eth_pubadr:
+                raise Exception(
+                    ("Inconsistent node public key file {} - public-adr-eth doesn't"
+                     " correspond to private-key-eth in private key file").format(pubkey_path, privkey_path))
         else:
             log.info(
                 "Node public key file {pub_path} not found - re-creating from node private key file {priv_path}",
@@ -213,6 +236,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
                 ('node-authid', priv_tags.get('node-authid', None)),
                 ('node-cluster-ip', priv_tags.get('node-cluster-ip', None)),
                 ('public-key-ed25519', pubkey_hex),
+                ('public-adr-eth', eth_pubadr),
             ])
             msg = 'Crossbar.io node public key\n\n'
             _write_node_key(pubkey_path, pub_tags, msg)
@@ -222,13 +246,15 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         was_new = False
 
     else:
-        # node private key does not yet exist: generate one
+        # node private key does not yet exist: generate a new one
 
+        # Node key (Ed25519)
         privkey = signing.SigningKey.generate()
         privkey_hex = privkey.encode(encoder=encoding.HexEncoder).decode('ascii')
         pubkey = privkey.verify_key
         pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
+        # Node Ethereum key
         eth_privkey_seed = os.urandom(32)
         eth_privkey_seed_hex = binascii.b2a_hex(eth_privkey_seed).decode()
         eth_privkey = KeyAPI(NativeECCBackend).PrivateKey(eth_privkey_seed)
