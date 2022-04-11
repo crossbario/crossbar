@@ -43,16 +43,16 @@ class ShellClient(ApplicationSession):
             # not yet implemented. a public key the router should provide
             # a trustchain for it's public key. the trustroot can eg be
             # hard-coded in the client, or come from a command line option.
-            'trustroot': self.config.extra.get('trustroot', None),
+            #'trustroot': self.config.extra.get('trustroot', None),
 
             # not yet implemented. for authenticating the router, this
             # challenge will need to be signed by the router and send back
             # in AUTHENTICATE for client to verify. A string with a hex
             # encoded 32 bytes random value.
-            'challenge': self.config.extra.get('challenge', None),
+            #'challenge': self.config.extra.get('challenge', None),
 
             # use TLS channel binding
-            'channel_binding': self.config.extra.get('channel_binding', None),
+            #'channel_binding': self.config.extra.get('channel_binding', None),
         }
 
         # used for user login/registration activation code
@@ -71,7 +71,13 @@ class ShellClient(ApplicationSession):
         self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         # sign and send back the challenge with our private key.
-        return self._key.sign_challenge(self, challenge)
+        try:
+            sig = self._key.sign_challenge(self, challenge)
+        except Exception as e:
+            self.log.failure()
+            sig = None
+
+        return sig
 
     async def onJoin(self, details):  # noqa: N802
         self.log.info('{klass}.onJoin(details={details})', klass=self.__class__.__name__, details=details)
@@ -167,12 +173,10 @@ class ManagementClientSession(ApplicationSession):
         return self._key.sign_challenge(self, challenge)
 
     def onJoin(self, details):
-        # print(hl('ManagementClientSession.onJoin:\n{}'.format(details), color='blue', bold=False))
         if 'ready' in self.config.extra:
             self.config.extra['ready'].callback((self, details))
 
     def onLeave(self, reason):
-        # print(hl('ManagementClientSession.onLeave:\n{}'.format(reason), color='blue', bold=False))
         self.disconnect()
 
 
@@ -183,7 +187,6 @@ def create_management_session(url='wss://master.xbr.network/ws',
     txaio.start_logging(level='info')
 
     privkey_file = os.path.join(os.path.expanduser('~/.crossbar'), privkey_file)
-    # print('usering keyfile from', privkey_file)
 
     # for authenticating the management client, we need a Ed25519 public/private key pair
     # here, we are reusing the user key - so this needs to exist before
