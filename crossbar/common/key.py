@@ -33,6 +33,39 @@ from crossbar._util import hlid
 log = txaio.make_logger()
 
 
+def _machine_id():
+    """
+    for informational purposes, try to get a machine unique id thing
+    """
+    if platform.isLinux():
+        try:
+            # why this? see: http://0pointer.de/blog/projects/ids.html
+            with open('/var/lib/dbus/machine-id', 'r') as f:
+                return f.read().strip()
+        except:
+            # Non-dbus using Linux, get a hostname
+            return socket.gethostname()
+
+    elif platform.isMacOSX():
+        # Get the serial number of the platform
+        import plistlib
+        plist_data = subprocess.check_output(["ioreg", "-rd1", "-c", "IOPlatformExpertDevice", "-a"])
+        return plistlib.loads(plist_data)[0]["IOPlatformSerialNumber"]
+    else:
+        # Something else, just get a hostname
+        return socket.gethostname()
+
+
+def _creator():
+    """
+    for informational purposes, try to identify the creator (user@hostname)
+    """
+    try:
+        return '{}@{}'.format(getpass.getuser(), socket.gethostname())
+    except:
+        return None
+
+
 def _read_release_key():
     release_pubkey_file = 'crossbar-{}.pub'.format('-'.join(crossbar.__version__.split('.')[0:2]))
     release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'common/keys'), release_pubkey_file)
@@ -49,7 +82,7 @@ def _read_release_key():
     return release_pubkey
 
 
-def _parse_key_file(key_path: str, private: bool = True) -> OrderedDict:
+def _parse_node_key(key_path: str, private: bool = True) -> OrderedDict:
     """
     Internal helper. This parses a ``key.pub`` or ``key.priv`` file and
     returns a dict mapping from tags to values.
@@ -94,7 +127,7 @@ def _read_node_key(cbdir, privkey_path='key.priv', pubkey_path='key.pub', privat
     if not os.path.exists(node_key_path):
         raise Exception('no node key file found at {}'.format(node_key_path))
 
-    node_key_tags = _parse_key_file(node_key_path)
+    node_key_tags = _parse_node_key(node_key_path)
 
     if private:
         node_key_hex = node_key_tags['private-key-ed25519']
@@ -120,43 +153,9 @@ def _read_node_key(cbdir, privkey_path='key.priv', pubkey_path='key.pub', privat
     return node_key
 
 
-def _machine_id():
-    """
-    for informational purposes, try to get a machine unique id thing
-    """
-    if platform.isLinux():
-        try:
-            # why this? see: http://0pointer.de/blog/projects/ids.html
-            with open('/var/lib/dbus/machine-id', 'r') as f:
-                return f.read().strip()
-        except:
-            # Non-dbus using Linux, get a hostname
-            return socket.gethostname()
-
-    elif platform.isMacOSX():
-        # Get the serial number of the platform
-        import plistlib
-        plist_data = subprocess.check_output(["ioreg", "-rd1", "-c", "IOPlatformExpertDevice", "-a"])
-        return plistlib.loads(plist_data)[0]["IOPlatformSerialNumber"]
-    else:
-        # Something else, just get a hostname
-        return socket.gethostname()
-
-
-def _creator():
-    """
-    for informational purposes, try to identify the creator (user@hostname)
-    """
-    try:
-        return '{}@{}'.format(getpass.getuser(), socket.gethostname())
-    except:
-        return None
-
-
 def _write_node_key(filepath, tags, msg):
     """
-    Internal helper.
-    Write the given tags to the given file
+    Internal helper, write the given tags to the given file.
     """
     with open(filepath, 'w') as f:
         f.write(msg)
@@ -166,7 +165,7 @@ def _write_node_key(filepath, tags, msg):
             f.write('{}: {}\n'.format(tag, value))
 
 
-def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
+def _maybe_generate_node_key(cbdir, privfile='key.priv', pubfile='key.pub'):
 
     privkey_path = os.path.join(cbdir, privfile)
     pubkey_path = os.path.join(cbdir, pubfile)
@@ -175,7 +174,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
     if os.path.exists(privkey_path):
 
         # read all tags, including private tags
-        priv_tags = _parse_key_file(privkey_path, private=True)
+        priv_tags = _parse_node_key(privkey_path, private=True)
 
         # check mandatory tags - the following tags are optional:
         #   - node-authid
@@ -208,7 +207,7 @@ def _maybe_generate_key(cbdir, privfile='key.priv', pubfile='key.pub'):
                                      " correspond to private-key-eth").format(privkey_path))
 
         if os.path.exists(pubkey_path):
-            pub_tags = _parse_key_file(pubkey_path, private=False)
+            pub_tags = _parse_node_key(pubkey_path, private=False)
             # node-authid and node-cluster-ip are optional!
             for tag in ['creator', 'created-at', 'machine-id', 'public-key-ed25519']:
                 if tag not in pub_tags:

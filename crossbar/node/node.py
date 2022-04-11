@@ -23,7 +23,7 @@ from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceAgent
 from crossbar.worker.types import RouterRealm
 from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT
-from crossbar.common.key import _maybe_generate_key
+from crossbar.common.key import _maybe_generate_node_key
 from crossbar.node.controller import NodeController
 
 
@@ -166,7 +166,7 @@ class Node(object):
 
         IMPORTANT: this function is run _before_ start of Twisted reactor!
         """
-        was_new, self._node_key = _maybe_generate_key(cbdir)
+        was_new, self._node_key = _maybe_generate_node_key(cbdir)
         return was_new
 
     def load_config(self, configfile=None, default=None):

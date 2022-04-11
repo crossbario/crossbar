@@ -7,6 +7,7 @@
 
 import re
 import os
+import binascii
 import socket
 from collections import OrderedDict
 
@@ -15,6 +16,9 @@ import click
 
 from nacl.signing import SigningKey
 from nacl.encoding import HexEncoder
+
+from eth_keys import KeyAPI
+from eth_keys.backends import NativeECCBackend
 
 import txaio
 txaio.use_twisted()  # noqa
@@ -25,9 +29,9 @@ from autobahn.wamp import cryptosign
 from crossbar.shell.util import style_ok, style_error
 
 if 'USER' in os.environ:
-    _DEFAULT_EMAIL_ADDRESS = u'{}@{}'.format(os.environ['USER'], socket.getfqdn())
+    _DEFAULT_EMAIL_ADDRESS = '{}@{}'.format(os.environ['USER'], socket.getfqdn())
 else:
-    _DEFAULT_EMAIL_ADDRESS = u'unknown'
+    _DEFAULT_EMAIL_ADDRESS = 'unknown'
 
 
 class EmailAddress(click.ParamType):
@@ -66,29 +70,28 @@ def _creator(yes_to_all=False):
         try:
             user = getpass.getuser()
         except BaseException:
-            user = u'unknown'
+            user = 'unknown'
 
         try:
             hostname = socket.gethostname()
         except BaseException:
-            hostname = u'unknown'
+            hostname = 'unknown'
 
-        return u'{}@{}'.format(user, hostname)
+        return '{}@{}'.format(user, hostname)
 
 
-def _write_node_key(filepath, tags, msg):
+def _write_user_key(filepath, tags, msg):
     """
-    Internal helper.
-    Write the given tags to the given file
+    Internal helper, write the given tags to the given file-
     """
     with open(filepath, 'w') as f:
         f.write(msg)
         for (tag, value) in tags.items():
             if value:
-                f.write(u'{}: {}\n'.format(tag, value))
+                f.write('{}: {}\n'.format(tag, value))
 
 
-def _parse_keyfile(key_path, private=True):
+def _parse_user_key_file(key_path: str, private: bool = True) -> OrderedDict:
     """
     Internal helper. This parses a node.pub or node.priv file and
     returns a dict mapping tags -> values.
@@ -96,9 +99,9 @@ def _parse_keyfile(key_path, private=True):
     if os.path.exists(key_path) and not os.path.isfile(key_path):
         raise Exception("Key file '{}' exists, but isn't a file".format(key_path))
 
-    allowed_tags = [u'public-key-ed25519', u'user-id', u'created-at', u'creator']
+    allowed_tags = ['public-key-ed25519', 'public-adr-eth', 'user-id', 'created-at', 'creator']
     if private:
-        allowed_tags.append(u'private-key-ed25519')
+        allowed_tags.extend(['private-key-ed25519', 'private-key-eth'])
 
     tags = OrderedDict()  # type: ignore
     with open(key_path, 'r') as key_file:
@@ -135,8 +138,8 @@ class UserKey(object):
         self._load_and_maybe_generate(self._privkey_path, self._pubkey_path, yes_to_all)
 
     def __str__(self):
-        return u'UserKey(privkey="{}", pubkey="{}" [{}])'.format(self._privkey_path, self._pubkey_path,
-                                                                 self._pubkey_hex)
+        return 'UserKey(privkey="{}", pubkey="{}" [{}])'.format(self._privkey_path, self._pubkey_path,
+                                                                self._pubkey_hex)
 
     def _load_and_maybe_generate(self, privkey_path, pubkey_path, yes_to_all=False):
 
@@ -144,42 +147,62 @@ class UserKey(object):
 
             # node private key seems to exist already .. check!
 
-            priv_tags = _parse_keyfile(privkey_path, private=True)
-            for tag in [u'creator', u'created-at', u'user-id', u'public-key-ed25519', u'private-key-ed25519']:
+            priv_tags = _parse_user_key_file(privkey_path, private=True)
+            for tag in ['creator', 'created-at', 'user-id', 'public-key-ed25519', 'private-key-ed25519']:
                 if tag not in priv_tags:
                     raise Exception("Corrupt user private key file {} - {} tag not found".format(privkey_path, tag))
 
-            creator = priv_tags[u'creator']
-            created_at = priv_tags[u'created-at']
-            user_id = priv_tags[u'user-id']
-            privkey_hex = priv_tags[u'private-key-ed25519']
+            creator = priv_tags['creator']
+            created_at = priv_tags['created-at']
+            user_id = priv_tags['user-id']
+
+            privkey_hex = priv_tags['private-key-ed25519']
             privkey = SigningKey(privkey_hex, encoder=HexEncoder)
             pubkey = privkey.verify_key
             pubkey_hex = pubkey.encode(encoder=HexEncoder).decode('ascii')
 
-            if priv_tags[u'public-key-ed25519'] != pubkey_hex:
+            if priv_tags['public-key-ed25519'] != pubkey_hex:
                 raise Exception(("Inconsistent user private key file {} - public-key-ed25519 doesn't"
                                  " correspond to private-key-ed25519").format(pubkey_path))
 
+            eth_pubadr = None
+            eth_privkey = None
+            eth_privkey_seed_hex = priv_tags.get('private-key-eth', None)
+            if eth_privkey_seed_hex:
+                eth_privkey_seed = binascii.a2b_hex(eth_privkey_seed_hex)
+                eth_privkey = KeyAPI(NativeECCBackend).PrivateKey(eth_privkey_seed)
+                eth_pubadr = eth_privkey.public_key.to_checksum_address()
+                if 'public-adr-eth' in priv_tags:
+                    if priv_tags['public-adr-eth'] != eth_pubadr:
+                        raise Exception(("Inconsistent node private key file {} - public-adr-eth doesn't"
+                                         " correspond to private-key-eth").format(privkey_path))
+
             if os.path.exists(pubkey_path):
-                pub_tags = _parse_keyfile(pubkey_path, private=False)
-                for tag in [u'creator', u'created-at', u'user-id', u'public-key-ed25519']:
+                pub_tags = _parse_user_key_file(pubkey_path, private=False)
+                for tag in ['creator', 'created-at', 'user-id', 'public-key-ed25519']:
                     if tag not in pub_tags:
                         raise Exception("Corrupt user public key file {} - {} tag not found".format(pubkey_path, tag))
 
-                if pub_tags[u'public-key-ed25519'] != pubkey_hex:
+                if pub_tags['public-key-ed25519'] != pubkey_hex:
                     raise Exception(("Inconsistent user public key file {} - public-key-ed25519 doesn't"
                                      " correspond to private-key-ed25519").format(pubkey_path))
+
+                if pub_tags.get('public-adr-eth', None) != eth_pubadr:
+                    raise Exception(
+                        ("Inconsistent user public key file {} - public-adr-eth doesn't"
+                         " correspond to private-key-eth in private key file {}").format(pubkey_path, privkey_path))
+
             else:
                 # public key is missing! recreate it
                 pub_tags = OrderedDict([
-                    (u'creator', priv_tags[u'creator']),
-                    (u'created-at', priv_tags[u'created-at']),
-                    (u'user-id', priv_tags[u'user-id']),
-                    (u'public-key-ed25519', pubkey_hex),
+                    ('creator', priv_tags['creator']),
+                    ('created-at', priv_tags['created-at']),
+                    ('user-id', priv_tags['user-id']),
+                    ('public-key-ed25519', pubkey_hex),
+                    ('public-adr-eth', eth_pubadr),
                 ])
-                msg = u'Crossbar.io user public key\n\n'
-                _write_node_key(pubkey_path, pub_tags, msg)
+                msg = 'Crossbar.io user public key\n\n'
+                _write_user_key(pubkey_path, pub_tags, msg)
 
                 click.echo('Re-created user public key from private key: {}'.format(style_ok(pubkey_path)))
 
@@ -191,26 +214,34 @@ class UserKey(object):
             creator = _creator(yes_to_all)
             created_at = utcnow()
             user_id = _user_id(yes_to_all)
+
             privkey = SigningKey.generate()
             privkey_hex = privkey.encode(encoder=HexEncoder).decode('ascii')
             pubkey = privkey.verify_key
             pubkey_hex = pubkey.encode(encoder=HexEncoder).decode('ascii')
 
+            eth_privkey_seed = os.urandom(32)
+            eth_privkey_seed_hex = binascii.b2a_hex(eth_privkey_seed).decode()
+            eth_privkey = KeyAPI(NativeECCBackend).PrivateKey(eth_privkey_seed)
+            eth_pubadr = eth_privkey.public_key.to_checksum_address()
+
             # first, write the public file
             tags = OrderedDict([
-                (u'creator', creator),
-                (u'created-at', created_at),
-                (u'user-id', user_id),
-                (u'public-key-ed25519', pubkey_hex),
+                ('creator', creator),
+                ('created-at', created_at),
+                ('user-id', user_id),
+                ('public-key-ed25519', pubkey_hex),
+                ('public-adr-eth', eth_pubadr),
             ])
-            msg = u'Crossbar.io user public key\n\n'
-            _write_node_key(pubkey_path, tags, msg)
+            msg = 'Crossbar.io user public key\n\n'
+            _write_user_key(pubkey_path, tags, msg)
             os.chmod(pubkey_path, 420)
 
             # now, add the private key and write the private file
-            tags[u'private-key-ed25519'] = privkey_hex
-            msg = u'Crossbar.io user private key - KEEP THIS SAFE!\n\n'
-            _write_node_key(privkey_path, tags, msg)
+            tags['private-key-ed25519'] = privkey_hex
+            tags['private-key-eth'] = eth_privkey_seed_hex
+            msg = 'Crossbar.io user private key - KEEP THIS SAFE!\n\n'
+            _write_user_key(privkey_path, tags, msg)
             os.chmod(privkey_path, 384)
 
             click.echo('New user public key generated: {}'.format(style_ok(pubkey_path)))
@@ -230,10 +261,15 @@ class UserKey(object):
         # load keys into object
         self._creator = creator
         self._created_at = created_at
-        self.user_id = user_id
+
         self._privkey = privkey
         self._privkey_hex = privkey_hex
         self._pubkey = pubkey
         self._pubkey_hex = pubkey_hex
 
+        self._eth_pubadr = eth_pubadr
+        self._eth_privkey_seed_hex = eth_privkey_seed_hex
+        self._eth_privkey = eth_privkey
+
+        self.user_id = user_id
         self.key = cryptosign.SigningKey(privkey)

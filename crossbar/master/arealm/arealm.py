@@ -1326,11 +1326,6 @@ class ApplicationRealmManager(object):
         # object ID of new application realm
         obj.oid = uuid.uuid4()
 
-        # unless and until the application realm is started, no router worker
-        # group or web cluster is assigned
-        obj.workergroup_oid = None
-        obj.webcluster_oid = None
-
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
@@ -1340,6 +1335,17 @@ class ApplicationRealmManager(object):
             obj.owner_oid = caller_oid
         else:
             raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+
+        # unless and until the application realm is started, no router worker
+        # group or web cluster is assigned
+        obj.workergroup_oid = None
+        obj.webcluster_oid = None
+
+        # if this arealm is federated, it is associated with a specific XBR datamarket
+        if obj.datamarket_oid:
+            # FIXME: check for datamarket_oid ..
+            self.log.info('new application realm is associated datamarket_oid {datamarket_oid}',
+                          datamarket_oid=hlid(obj.datamarket_oid))
 
         # set initial status of application realm
         obj.status = ApplicationRealm.STATUS_STOPPED

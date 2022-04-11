@@ -38,7 +38,7 @@ from txaio import time_ns
 from crossbar._util import hlid, hl, hlval
 from crossbar.node.main import _get_versions
 from crossbar.common import checkconfig
-from crossbar.common.key import _read_node_key, _read_release_key, _write_node_key, _parse_key_file
+from crossbar.common.key import _read_node_key, _read_release_key, _write_node_key, _parse_node_key
 
 from cfxdb.globalschema import GlobalSchema
 from cfxdb.mrealmschema import MrealmSchema
@@ -351,7 +351,7 @@ class DomainController(ApplicationSession):
                                         if file == 'key.pub':
                                             node_key_file = os.path.join(r, file)
                                             if os.path.isfile(node_key_file):
-                                                node_key_tags = _parse_key_file(node_key_file)
+                                                node_key_tags = _parse_node_key(node_key_file)
                                                 node_key_hex = node_key_tags['public-key-ed25519']
                                                 node_id = node_key_tags.get('node-authid', None)
                                                 cluster_ip = node_key_tags.get('node-cluster-ip', None)
