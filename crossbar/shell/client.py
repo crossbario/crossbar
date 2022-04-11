@@ -43,16 +43,16 @@ class ShellClient(ApplicationSession):
             # not yet implemented. a public key the router should provide
             # a trustchain for it's public key. the trustroot can eg be
             # hard-coded in the client, or come from a command line option.
-            #'trustroot': self.config.extra.get('trustroot', None),
+            'trustroot': self.config.extra.get('trustroot', None),
 
             # not yet implemented. for authenticating the router, this
             # challenge will need to be signed by the router and send back
             # in AUTHENTICATE for client to verify. A string with a hex
             # encoded 32 bytes random value.
-            #'challenge': self.config.extra.get('challenge', None),
+            'challenge': self.config.extra.get('challenge', None),
 
             # use TLS channel binding
-            #'channel_binding': self.config.extra.get('channel_binding', None),
+            'channel_binding': self.config.extra.get('channel_binding', None),
         }
 
         # used for user login/registration activation code
@@ -75,9 +75,9 @@ class ShellClient(ApplicationSession):
             sig = self._key.sign_challenge(self, challenge)
         except Exception as e:
             self.log.failure()
-            sig = None
-
-        return sig
+            self.leave(ApplicationError.AUTHENTICATION_FAILED, str(e))
+        else:
+            return sig
 
     async def onJoin(self, details):  # noqa: N802
         self.log.info('{klass}.onJoin(details={details})', klass=self.__class__.__name__, details=details)
