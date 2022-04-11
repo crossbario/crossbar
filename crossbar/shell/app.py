@@ -389,6 +389,8 @@ class Application(object):
         # realm, or a management realm the user has a role on)
         done = txaio.create_future()
 
+        url_is_secure, _, _, _, _, _ = parse_url(url)
+
         extra = {
             # these are forward on the actual client connection
             'authid': authid,
@@ -397,7 +399,10 @@ class Application(object):
             # these are native Python object and only used client-side
             'key': key.key,
             'done': done,
-            'command': command
+            'command': command,
+
+            # WAMP-cryptosign authentication: TLS channel binding
+            'channel_binding': 'tls-unique' if url_is_secure else None,
         }
 
         cert_options = None

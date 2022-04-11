@@ -13,6 +13,7 @@ import binascii
 import txaio
 from autobahn.wamp import cryptosign
 from autobahn.wamp.exception import ApplicationError
+from autobahn.websocket.util import parse_url
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 __all__ = ('ShellClient', 'ManagementClientSession', 'run', 'create_management_session')
@@ -42,16 +43,16 @@ class ShellClient(ApplicationSession):
             # not yet implemented. a public key the router should provide
             # a trustchain for it's public key. the trustroot can eg be
             # hard-coded in the client, or come from a command line option.
-            'trustroot': None,
+            'trustroot': self.config.extra.get('trustroot', None),
 
             # not yet implemented. for authenticating the router, this
             # challenge will need to be signed by the router and send back
             # in AUTHENTICATE for client to verify. A string with a hex
             # encoded 32 bytes random value.
-            'challenge': None,
+            'challenge': self.config.extra.get('challenge', None),
 
             # use TLS channel binding
-            'channel_binding': 'tls-unique',
+            'channel_binding': self.config.extra.get('channel_binding', None),
         }
 
         # used for user login/registration activation code
@@ -145,21 +146,21 @@ class ShellClient(ApplicationSession):
 
 class ManagementClientSession(ApplicationSession):
     def onConnect(self):
-        self._key = self.config.extra[u'key']
+        self._key = self.config.extra['key']
         extra = {
-            u'pubkey': self._key.public_key(),
-            u'trustroot': None,
-            u'challenge': None,
-            u'channel_binding': u'tls-unique',
+            'pubkey': self._key.public_key(),
+            'trustroot': self.config.extra.get('trustroot', None),
+            'challenge': self.config.extra.get('challenge', None),
+            'channel_binding': self.config.extra.get('channel_binding', None),
         }
-        for k in [u'activation_code', u'request_new_activation_code']:
+        for k in ['activation_code', 'request_new_activation_code']:
             if k in self.config.extra and self.config.extra[k]:
                 extra[k] = self.config.extra[k]
 
         self.join(self.config.realm,
-                  authmethods=[u'cryptosign'],
-                  authid=self.config.extra.get(u'authid', None),
-                  authrole=self.config.extra.get(u'authrole', None),
+                  authmethods=['cryptosign'],
+                  authid=self.config.extra.get('authid', None),
+                  authrole=self.config.extra.get('authrole', None),
                   authextra=extra)
 
     def onChallenge(self, challenge):
@@ -206,19 +207,24 @@ def create_management_session(url='wss://master.xbr.network/ws',
     if user_id is None:
         raise Exception('no user ID found in keyfile!')
 
+    url_is_secure, _, _, _, _, _ = parse_url(url)
+
     key = cryptosign.SigningKey.from_key_bytes(binascii.a2b_hex(privkey_hex))
     extra = {
-        u'key': key,
-        u'authid': user_id,
-        u'ready': Deferred(),
-        u'return_code': None,
-        u'command': CmdListManagementRealms()
+        'key': key,
+        'authid': user_id,
+        'ready': Deferred(),
+        'return_code': None,
+        'command': CmdListManagementRealms(),
+
+        # WAMP-cryptosign TLS channel binding
+        'channel_binding': 'tls-unique' if url_is_secure else None,
     }
 
     runner = ApplicationRunner(url=url, realm=realm, extra=extra)
     runner.run(ManagementClientSession, start_reactor=False)
 
-    return extra[u'ready']
+    return extra['ready']
 
 
 def run(main=None, parser=None):

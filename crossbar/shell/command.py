@@ -748,7 +748,7 @@ class CmdRemoveArealmRole(CmdRemove):
         try:
             role_oid = uuid.UUID(self.role)
         except:
-            role = await session.call('crossbarfabriccenter.mrealm.arealm.get_role_by_name', self.arealm)
+            role = await session.call('crossbarfabriccenter.mrealm.arealm.get_role_by_name', self.role)
             role_oid = role['oid']
         else:
             role_oid = str(role_oid)
