@@ -1394,7 +1394,7 @@ class ApplicationRealmManager(object):
         with self.db.begin(write=True) as txn:
             arealm = self.schema.arealms[txn, oid]
             if arealm:
-                if arealm.status != 'STOPPED':
+                if arealm.status != ApplicationRealm.STATUS_STOPPED:
                     raise ApplicationError(
                         'crossbar.error.not_stopped',
                         'application realm with oid {} found, but currently in status "{}"'.format(oid, arealm.status))
@@ -2509,6 +2509,11 @@ class ApplicationRealmManager(object):
                 raise ApplicationError('crossbar.error.no_such_object',
                                        'no application realm with oid {} found'.format(association.arealm_oid))
 
+            role = self.schema.roles[txn, association.role_oid]
+            if not role:
+                raise ApplicationError('crossbar.error.no_such_object',
+                                       'no role with oid {} found'.format(association.role_oid))
+
             self.schema.arealm_role_associations[txn, (association.arealm_oid, association.role_oid)] = association
 
         res_obj = association.marshal()
@@ -2532,6 +2537,12 @@ class ApplicationRealmManager(object):
         assert type(role_oid) == str
         assert details is None or isinstance(details, CallDetails)
 
+        self.log.info('{func}(arealm_oid={arealm_oid}, role_oid={role_oid}, details={details})',
+                      arealm_oid=hlid(arealm_oid),
+                      role_oid=hlid(role_oid),
+                      func=hltype(self.remove_arealm_role),
+                      details=details)
+
         try:
             arealm_oid_ = uuid.UUID(arealm_oid)
         except Exception:
@@ -2542,24 +2553,23 @@ class ApplicationRealmManager(object):
         except Exception:
             raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(role_oid))
 
-        self.log.info('{func}(arealm_oid={arealm_oid}, role_oid={role_oid}, details={details})',
-                      arealm_oid=hlid(arealm_oid_),
-                      role_oid=hlid(role_oid_),
-                      func=hltype(self.remove_arealm_role),
-                      details=details)
-
         with self.db.begin(write=True) as txn:
             arealm = self.schema.arealms[txn, arealm_oid_]
             if not arealm:
                 raise ApplicationError('crossbar.error.no_such_object',
-                                       'no arealm with oid {} found'.format(arealm_oid))
+                                       'no arealm with oid {} found'.format(arealm_oid_))
 
             role = self.schema.roles[txn, role_oid_]
             if not role:
                 raise ApplicationError('crossbar.error.no_such_object', 'no role with oid {} found'.format(role_oid_))
 
-            arealm_role_association = self.schema.arealm_role_associations[txn, (arealm_oid, role_oid_)]
-            del self.schema.arealm_role_associations[txn, (arealm_oid, role_oid_)]
+            arealm_role_association = self.schema.arealm_role_associations[txn, (arealm_oid_, role_oid_)]
+            if not arealm_role_association:
+                raise ApplicationError(
+                    'crossbar.error.no_such_object',
+                    'no role association for (arealm_oid={}, role_oid={}) found'.format(arealm_oid_, role_oid_))
+
+            del self.schema.arealm_role_associations[txn, (arealm_oid_, role_oid_)]
 
         res_obj = arealm_role_association.marshal()
         self.log.info('role removed from arealm:\n{res_obj}', membership=res_obj)
