@@ -14,7 +14,7 @@ Resources
 -  Read more on the `Project Homepage <https://crossbar.io>`__
 -  Jump into the `Getting Started <https://crossbar.io/docs/Getting-Started/>`__
 -  Read the reference `Documentation <https://crossbar.io/docs/>`__
--  Join the `User forum <https://forum.crossbar.io/>`__
+-  Join the `User forum <https://crossbar.discourse.group/>`__
 -  Ask a question on `StackOverflow <https://stackoverflow.com/questions/ask?tags=crossbar,wamp>`__
 -  Read our `Legal Notes <https://github.com/crossbario/crossbar/blob/master/legal/README.md>`__
 
