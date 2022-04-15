@@ -9,8 +9,10 @@ import os
 import traceback
 import crossbar
 import binascii
+from pprint import pformat
 
 from twisted import internet
+from twisted.protocols.tls import TLSMemoryBIOProtocol
 
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
@@ -304,6 +306,15 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # Crossbar.io tracking ID (for cookie tracking)
                 'cbtid': self._cbtid
             }
+            if isinstance(self.transport, TLSMemoryBIOProtocol):
+                # get the TLS channel ID of the underlying TLS connection. Could be None.
+                tls_channel_id = self.get_channel_id('tls-unique')
+                if tls_channel_id:
+                    self._transport_info['channel_id'] = binascii.b2a_hex(tls_channel_id).decode()
+
+            # FIXME: add channel_id to self._transport_info
+            self.log.warn('FIXME: set transport info on {session}:\n{transport_info}',
+                          session=self, transport_info=pformat(self._transport_info))
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
             # and setting HTTP headers `headers`
@@ -547,6 +558,9 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         # WAMP meta event "wamp.session.on_join"
         #
         self._transport_info = {'type': 'rawsocket', 'protocol': None, 'peer': self.peer}
+
+        # FIXME: add channel_id to self._transport_info
+        self.log.warn('FIXME: add channel_id to self._transport_info')
 
     def _on_handshake_complete(self):
         self._transport_info['protocol'] = 'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)

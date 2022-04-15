@@ -5,15 +5,18 @@
 #
 #####################################################################################
 
+from binascii import b2a_hex
 import json
 
 from autobahn import util
 from autobahn.wamp import auth
 from autobahn.wamp import types
+from autobahn.xbr._util import hltype
 
 from crossbar.router.auth.pending import PendingAuth
 
 import txaio
+from txaio import make_logger
 
 __all__ = ('PendingAuthWampCra', )
 
@@ -24,6 +27,8 @@ class PendingAuthWampCra(PendingAuth):
     """
 
     AUTHMETHOD = 'wampcra'
+
+    log = make_logger()
 
     def __init__(self, pending_session_id, transport_info, realm_container, config):
         super(PendingAuthWampCra, self).__init__(
@@ -58,6 +63,7 @@ class PendingAuthWampCra(PendingAuth):
 
         secret = user['secret'].encode('utf8')
         signature = auth.compute_wcs(secret, challenge.encode('utf8')).decode('ascii')
+        print('3'*100, secret)
 
         # extra data to send to client in CHALLENGE
         extra = {'challenge': challenge}
@@ -171,4 +177,8 @@ class PendingAuthWampCra(PendingAuth):
             return self._accept()
         else:
             # signature was invalid: deny the client
-            return types.Deny(message="WAMP-CRA signature is invalid")
+            self.log.warn('{func}: WAMP-CRA client signature is invalid (expected {expected} but got {signature})',
+                          func=hltype(self.authenticate),
+                          expected=self._signature,
+                          signature=signature)
+            return types.Deny(message='WAMP-CRA client signature is invalid')

@@ -52,6 +52,9 @@ class PendingAuth:
             'authextra': None
         }
 
+        from pprint import pformat
+        print('p'*100, pending_session_id, pformat(transport_info))
+
         # The router factory we are working for
         self._realm_container = realm_container
 

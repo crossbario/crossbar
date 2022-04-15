@@ -252,7 +252,7 @@ def _create_tls_server_context(config, cbdir, log):
 
 def _create_tls_client_context(config, cbdir, log):
     """
-    Create a CertificateOptions object for use with TLS listening endpoints.
+    Create a CertificateOptions object for use with TLS connecting endpoints.
     """
     # server hostname: The expected name of the remote host.
     hostname = config['hostname']
@@ -605,6 +605,8 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
             if _HAS_TLS:
                 # TLS client context
                 context = _create_tls_client_context(config['tls'], cbdir, log)
+
+                print('8'*100, context)
 
                 if version == 4:
                     endpoint = SSL4ClientEndpoint(

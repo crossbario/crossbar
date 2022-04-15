@@ -7,6 +7,7 @@
 
 import os
 import binascii
+from typing import Optional, Union
 
 import txaio
 
@@ -29,6 +30,8 @@ from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 from crossbar.router.router import Router, RouterFactory
 from crossbar.router import NotAttached
 from crossbar._util import hl, hlid, hltype
+from crossbar.router.protocol import WampWebSocketServerProtocol, WampRawSocketServerProtocol
+from crossbar.node.native import NativeWorkerClientProtocol
 
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
@@ -348,15 +351,14 @@ class RouterSession(BaseSession):
 
     log = make_logger()
 
-    def __init__(self, router_factory):
+    def __init__(self, router_factory: RouterFactory):
         """
 
         :param router_factory: The router factory this session is created from. This is different from
             the :class:`crossbar.router.session.RouterSessionFactory` stored in ``self.factory``.
-        :type router_factory: Instance of :class:`crossbar.router.router.RouterFactory`.
         """
         super(RouterSession, self).__init__()
-        self._transport = None
+        self._transport: Optional[Union[WampWebSocketServerProtocol, WampRawSocketServerProtocol, NativeWorkerClientProtocol]] = None
 
         # self._router_factory._node_id
         # self._router_factory._worker
@@ -373,16 +375,20 @@ class RouterSession(BaseSession):
         self._session_details = None
         self._service_session = None
 
-    def onOpen(self, transport):
+    def onOpen(self, transport: Union[WampWebSocketServerProtocol, WampRawSocketServerProtocol, NativeWorkerClientProtocol]):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onOpen`
         """
         # this is a WAMP transport instance
+        assert isinstance(transport, (WampWebSocketServerProtocol, WampRawSocketServerProtocol, NativeWorkerClientProtocol)), 'unexpected router transport type {}'.format(type(transport))
         self._transport = transport
 
         # WampLongPollResourceSession instance has no attribute '_transport_info'
         if not hasattr(self._transport, '_transport_info') or self._transport._transport_info is None:
             self._transport._transport_info = {}
+
+        from pprint import pformat
+        print('4'*100, self._transport, pformat(self._transport._transport_info))
 
         # transport configuration
         if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
@@ -395,23 +401,24 @@ class RouterSession(BaseSession):
         client_cert = None
         # eg LongPoll transports lack underlying Twisted stream transport, since LongPoll is
         # implemented at the Twisted Web layer. But we should nevertheless be able to
-        # extract the HTTP client cert! <= FIXME
+        # extract the HTTP client cert!
         if hasattr(self._transport, 'transport'):
             client_cert = extract_peer_certificate(self._transport.transport)
         if client_cert:
             self._transport._transport_info['client_cert'] = client_cert
-            self.log.debug("Client connecting with TLS certificate {client_cert}", client_cert=client_cert)
+            self.log.info("Client connecting with TLS certificate {client_cert}", client_cert=client_cert)
 
+        # FIXME: this is wrong!
         # forward the transport channel ID (if any) on transport details
-        channel_id = None
-        if hasattr(self._transport, 'get_channel_id'):
-            # channel ID isn't implemented for LongPolL!
-            channel_id = self._transport.get_channel_id()
-        if channel_id:
-            self._transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
+        # channel_id = None
+        # if hasattr(self._transport, 'get_channel_id'):
+        #     # channel ID isn't implemented for LongPolL!
+        #     channel_id = self._transport.get_channel_id()
+        # if channel_id:
+        #     self._transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
 
-        self.log.debug("Client session connected - transport: {transport_info}",
-                       transport_info=self._transport._transport_info)
+        self.log.info("Client session connected - transport: {transport_info}",
+                      transport_info=self._transport._transport_info)
 
         # basic session information
         self._pending_session_id = None
@@ -890,6 +897,8 @@ class RouterSession(BaseSession):
                                 self._router_factory._worker,
                                 auth_config[authmethod],
                             )
+                            from pprint import pformat
+                            print('"'*100, self._pending_auth, pformat(self._transport._transport_info))
                             return self._pending_auth.hello(realm, details)
 
                         # WAMP-Cookie authentication

@@ -8,6 +8,7 @@
 import os
 import binascii
 from pprint import pformat
+from typing import Optional, Dict, Any
 
 import nacl
 from nacl.signing import VerifyKey
@@ -48,10 +49,13 @@ class PendingAuthCryptosign(PendingAuth):
         )
         self._verify_key = None
 
+        # tls_channel_id = self._session_details['transport'].get('channel_id', None)
+
         # https://tools.ietf.org/html/rfc5056
         # https://tools.ietf.org/html/rfc5929
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
         channel_id_hex = transport_info.get('channel_id', None)
+        print('X'*100, pformat(transport_info), pformat(self._session_details['transport']), channel_id_hex)
         if channel_id_hex:
             self._channel_id = binascii.a2b_hex(channel_id_hex)
         else:
@@ -68,35 +72,45 @@ class PendingAuthCryptosign(PendingAuth):
                 for pubkey in principal['authorized_keys']:
                     self._pubkey_to_authid[pubkey] = authid
 
-    def _compute_challenge(self, channel_binding):
+    def _compute_challenge(self, requested_channel_binding: Optional[str]) -> Dict[str, Any]:
+        tls_channel_id = self._session_details['transport'].get('channel_id', None)
+        if tls_channel_id:
+            tls_channel_id = binascii.a2b_hex(tls_channel_id)
+
         self._challenge = os.urandom(32)
 
-        if self._channel_id and channel_binding:
-            self._expected_signed_message = util.xor(self._challenge, self._channel_id)
+        if tls_channel_id and requested_channel_binding:
+            self._expected_signed_message = util.xor(self._challenge, tls_channel_id)
         else:
             self._expected_signed_message = self._challenge
 
         extra = {
-            'challenge': binascii.b2a_hex(self._challenge).decode('ascii'),
-            'channel_binding': channel_binding,
+            'challenge': binascii.b2a_hex(self._challenge).decode(),
+            'channel_binding': requested_channel_binding,
         }
+        self.log.info(
+            '{func}::_compute_challenge(channel_binding={channel_binding})[channel_id={channel_id}] -> extra=\n{extra}',
+            func=hltype(self.hello),
+            channel_id=hlid('0x' + binascii.b2a_hex(self._channel_id).decode()) if self._channel_id else None,
+            channel_binding=hlval('"' + requested_channel_binding + '"') if requested_channel_binding is not None else None,
+            extra=pformat(extra))
         return extra
 
     def hello(self, realm: str, details: types.HelloDetails):
-        self.log.debug('{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}")',
-                       func=hltype(self.hello),
-                       realm=hlid(realm),
-                       authid=hlid(details.authid),
-                       authrole=hlid(details.authrole))
+        self.log.info('{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}")',
+                      func=hltype(self.hello),
+                      realm=hlid(realm),
+                      authid=hlid(details.authid),
+                      authrole=hlid(details.authrole))
 
         # the channel binding requested by the client authenticating
-        channel_binding = details.authextra.get('channel_binding', None) if details.authextra else None
-        if channel_binding is not None and channel_binding not in ['tls-unique']:
-            return types.Deny(message='invalid channel binding type "{}" requested'.format(channel_binding))
+        requested_channel_binding = details.authextra.get('channel_binding', None) if details.authextra else None
+        if requested_channel_binding is not None and requested_channel_binding not in ['tls-unique']:
+            return types.Deny(message='invalid channel binding type "{}" requested'.format(requested_channel_binding))
         else:
-            self.log.debug(
+            self.log.info(
                 "WAMP-cryptosign CHANNEL BINDING requested: channel_binding={channel_binding}, channel_id={channel_id}",
-                channel_binding=channel_binding,
+                channel_binding=requested_channel_binding,
                 channel_id=self._channel_id)
 
         # remember the realm the client requested to join (if any)
@@ -160,7 +174,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 self._verify_key = VerifyKey(pubkey, encoder=nacl.encoding.HexEncoder)
 
-                extra = self._compute_challenge(channel_binding)
+                extra = self._compute_challenge(requested_channel_binding)
                 return types.Challenge(self._authmethod, extra)
 
             else:
@@ -215,7 +229,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                     self._verify_key = VerifyKey(principal['pubkey'], encoder=nacl.encoding.HexEncoder)
 
-                    extra = self._compute_challenge(channel_binding)
+                    extra = self._compute_challenge(requested_channel_binding)
                     d.callback(types.Challenge(self._authmethod, extra))
 
                 def on_authenticate_error(err):
@@ -271,7 +285,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                     self._verify_key = VerifyKey(principal['pubkey'], encoder=nacl.encoding.HexEncoder)
 
-                    extra = self._compute_challenge(channel_binding)
+                    extra = self._compute_challenge(requested_channel_binding)
                     return types.Challenge(self._authmethod, extra)
 
                 def on_authenticate_error(err):
@@ -327,7 +341,9 @@ class PendingAuthCryptosign(PendingAuth):
 
             # .. and check that the message signed by the client is really what we expect
             if message != self._expected_signed_message:
-                return types.Deny(message='message signed is bogus')
+                return types.Deny(message='message signed is bogus [got 0x{}, expected 0x{}]'.format(
+                    binascii.b2a_hex(message).decode(),
+                    binascii.b2a_hex(self._expected_signed_message).decode()))
 
             # signature was valid _and_ the message that was signed is equal to
             # what we expected => accept the client
