@@ -606,7 +606,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
                 # TLS client context
                 context = _create_tls_client_context(config['tls'], cbdir, log)
 
-                print('8'*100, context)
+                print('8' * 100, context)
 
                 if version == 4:
                     endpoint = SSL4ClientEndpoint(

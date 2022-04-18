@@ -55,7 +55,6 @@ class PendingAuthCryptosign(PendingAuth):
         # https://tools.ietf.org/html/rfc5929
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
         channel_id_hex = transport_info.get('channel_id', None)
-        print('X'*100, pformat(transport_info), pformat(self._session_details['transport']), channel_id_hex)
         if channel_id_hex:
             self._channel_id = binascii.a2b_hex(channel_id_hex)
         else:
@@ -92,7 +91,8 @@ class PendingAuthCryptosign(PendingAuth):
             '{func}::_compute_challenge(channel_binding={channel_binding})[channel_id={channel_id}] -> extra=\n{extra}',
             func=hltype(self.hello),
             channel_id=hlid('0x' + binascii.b2a_hex(self._channel_id).decode()) if self._channel_id else None,
-            channel_binding=hlval('"' + requested_channel_binding + '"') if requested_channel_binding is not None else None,
+            channel_binding=hlval('"' + requested_channel_binding +
+                                  '"') if requested_channel_binding is not None else None,
             extra=pformat(extra))
         return extra
 

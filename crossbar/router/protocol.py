@@ -314,7 +314,8 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
             # FIXME: add channel_id to self._transport_info
             self.log.warn('FIXME: set transport info on {session}:\n{transport_info}',
-                          session=self, transport_info=pformat(self._transport_info))
+                          session=self,
+                          transport_info=pformat(self._transport_info))
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
             # and setting HTTP headers `headers`

@@ -5,7 +5,6 @@
 #
 #####################################################################################
 
-from binascii import b2a_hex
 import json
 
 from autobahn import util
@@ -63,7 +62,6 @@ class PendingAuthWampCra(PendingAuth):
 
         secret = user['secret'].encode('utf8')
         signature = auth.compute_wcs(secret, challenge.encode('utf8')).decode('ascii')
-        print('3'*100, secret)
 
         # extra data to send to client in CHALLENGE
         extra = {'challenge': challenge}
