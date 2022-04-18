@@ -37,6 +37,8 @@ from crossbar.node.native import NativeWorkerClientProtocol
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
+from mock.mock import MagicMock
+
 try:
     from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
 except ImportError:
@@ -378,14 +380,14 @@ class RouterSession(BaseSession):
         self._service_session = None
 
     def onOpen(self, transport: Union[WampWebSocketServerProtocol, WampRawSocketServerProtocol,
-                                      NativeWorkerClientProtocol]):
+                                      NativeWorkerClientProtocol, MagicMock]):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onOpen`
         """
         # this is a WAMP transport instance
         assert isinstance(transport,
                           (WampWebSocketServerProtocol, WampRawSocketServerProtocol,
-                           NativeWorkerClientProtocol)), 'unexpected router transport type {}'.format(type(transport))
+                           NativeWorkerClientProtocol, MagicMock)), 'unexpected router transport type {}'.format(type(transport))
         self._transport = transport
 
         # WampLongPollResourceSession instance has no attribute '_transport_info'
