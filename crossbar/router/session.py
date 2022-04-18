@@ -386,8 +386,8 @@ class RouterSession(BaseSession):
         """
         # this is a WAMP transport instance
         assert isinstance(transport,
-                          (WampWebSocketServerProtocol, WampRawSocketServerProtocol,
-                           NativeWorkerClientProtocol, MagicMock)), 'unexpected router transport type {}'.format(type(transport))
+                          (WampWebSocketServerProtocol, WampRawSocketServerProtocol, NativeWorkerClientProtocol,
+                           MagicMock)), 'unexpected router transport type {}'.format(type(transport))
         self._transport = transport
 
         # WampLongPollResourceSession instance has no attribute '_transport_info'
