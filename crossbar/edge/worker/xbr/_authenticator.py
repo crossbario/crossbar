@@ -14,8 +14,8 @@ import numpy as np
 
 from autobahn.wamp import register, CallDetails
 from autobahn.xbr import recover_eip712_market_member_login, is_cs_pubkey, is_signature, \
-    is_address, without_0x
-from autobahn.util import generate_serial_number
+    is_address
+from autobahn.util import generate_serial_number, without_0x
 from autobahn.wamp.exception import ApplicationError
 
 import cfxdb

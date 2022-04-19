@@ -10,7 +10,7 @@ import json
 from autobahn import util
 from autobahn.wamp import auth
 from autobahn.wamp import types
-from autobahn.xbr._util import hltype
+from autobahn.util import hltype
 
 from crossbar.router.auth.pending import PendingAuth
 
