@@ -6,6 +6,7 @@
 #####################################################################################
 
 import os
+from pprint import pformat
 from typing import Optional, Union, Dict, List
 
 import werkzeug
@@ -37,12 +38,14 @@ from crossbar.node.native import NativeWorkerClientProtocol
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
+
 try:
     from mock.mock import MagicMock
 except ImportError:
     # just define a "No-Op" class as we only use it for type checks
     class MagicMock:
         pass
+
 
 try:
     from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
@@ -426,8 +429,8 @@ class RouterSession(BaseSession):
         # if channel_id:
         #     self._transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
 
-        self.log.info("Client session connected - transport: {transport_info}",
-                      transport_info=self._transport._transport_info)
+        self.log.info("Client session connected, - transport_info=\n{transport_info}",
+                      transport_info=pformat(self._transport._transport_info))
 
         # basic session information
         self._pending_session_id = None
