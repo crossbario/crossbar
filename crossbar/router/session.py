@@ -42,7 +42,7 @@ try:
     from mock.mock import MagicMock
 except ImportError:
     # just define a "No-Op" class as we only use it for type checks
-    class MagicMock:
+    class MagicMock:  # type: ignore
         pass
 
 
@@ -793,7 +793,7 @@ class RouterSession(BaseSession):
                         self._transport.factory._cookiestore.setAuth(self._transport._cbtid, None, None, None, None,
                                                                      None)
                         self.log.info(
-                            '{meth}: cookiestore.setAuth(cbtid={cbtid}, authid={authid}, authrole={authrole}, authmethod={authmethod}, authextra={authextra}, realm={realm})',
+                            '{meth}: cookiestore.setAuth[1](cbtid={cbtid}, authid={authid}, authrole={authrole}, authmethod={authmethod}, authextra={authextra}, realm={realm})',
                             meth=hltype(self.onHello),
                             cbtid=hlid(self._transport._cbtid),
                             authid=None,
@@ -1019,7 +1019,7 @@ class RouterSession(BaseSession):
                 self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole,
                                                              details.authmethod, details.authextra, self._realm)
                 self.log.warn(
-                    '{meth}: cookiestore.setAuth(cbtid={cbtid}, authid={authid}, authrole={authrole}, authmethod={authmethod}, authextra={authextra}, realm={realm})',
+                    '{meth}: cookiestore.setAuth[2](cbtid={cbtid}, authid={authid}, authrole={authrole}, authmethod={authmethod}, authextra={authextra}, realm={realm})',
                     meth=hltype(self.onJoin),
                     cbtid=hlid(self._transport._cbtid),
                     authid=hlid(details.authid),
