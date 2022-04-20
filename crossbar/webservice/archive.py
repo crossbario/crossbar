@@ -132,7 +132,8 @@ class ZipArchiveResource(resource.Resource):
             self._default_file = self._default_file.encode('utf-8')
 
         self.log.info('ZipArchiveResource initialized with {zlen} files from ZIP archive:\n{filelist}',
-                      zlen=len(self._zipfiles), filelist=pformat(sorted(self._zipfiles.keys())))
+                      zlen=len(self._zipfiles),
+                      filelist=pformat(sorted(self._zipfiles.keys())))
 
     def getChild(self, path, request, retry=True):
         self.log.debug(
@@ -205,9 +206,13 @@ class ZipArchiveResource(resource.Resource):
             else:
                 res = resource.NoResource()
 
-        self.log.info('ZipArchiveResource processed HTTP/GET for request_path="{request_path}", search_path="{search_path}": found={found}, cached={cached}, default={default}',
-                      request_path=hlval(request_path), search_path=hlval(search_path),
-                      found=hlval(found), cached=hlval(cached), default=hlval(default))
+        self.log.info(
+            'ZipArchiveResource processed HTTP/GET for request_path="{request_path}", search_path="{search_path}": found={found}, cached={cached}, default={default}',
+            request_path=hlval(request_path),
+            search_path=hlval(search_path),
+            found=hlval(found),
+            cached=hlval(cached),
+            default=hlval(default))
 
         return res
 

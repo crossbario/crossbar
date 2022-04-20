@@ -38,7 +38,6 @@ from crossbar.node.native import NativeWorkerClientProtocol
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
-
 try:
     from mock.mock import MagicMock
 except ImportError:

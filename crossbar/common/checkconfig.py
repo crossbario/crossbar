@@ -636,12 +636,13 @@ def check_transport_auth_anonymous(config):
             format(config['type']))
 
     if config['type'] == 'static':
-        check_dict_args({
-            'type': (True, [str]),
-            'realm': (False, [str]),
-            'role': (False, [str]),
-            'authid': (False, [str]),
-        }, config, "WAMP-Anonymous configuration")
+        check_dict_args(
+            {
+                'type': (True, [str]),
+                'realm': (False, [str]),
+                'role': (False, [str]),
+                'authid': (False, [str]),
+            }, config, "WAMP-Anonymous configuration")
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
@@ -2632,7 +2633,9 @@ def check_router_component(personality, component, ignore=[]):
                 'classname': (True, [str]),
                 # any user extra configuration to forward
                 'extra': (False, None),
-            }, component, "invalid component configuration")
+            },
+            component,
+            "invalid component configuration")
 
     elif ctype == 'function':
         check_dict_args(
@@ -2646,7 +2649,9 @@ def check_router_component(personality, component, ignore=[]):
                 'callbacks': (False, [dict]),
                 # any user extra configuration to forward
                 'extra': (False, None),
-            }, component, "invalid component configuration")
+            },
+            component,
+            "invalid component configuration")
         if 'callbacks' in component:
             valid_callbacks = ['join', 'leave', 'connect', 'disconnect']
             for name in component['callbacks'].keys():
@@ -2726,7 +2731,9 @@ def check_container_component(personality, component, ignore=[]):
                 'classname': (True, [str]),
                 # any user extra configuration to forward
                 'extra': (False, None),
-            }, component, "invalid component configuration")
+            },
+            component,
+            "invalid component configuration")
 
     elif ctype == 'function':
         check_dict_args(
@@ -2743,7 +2750,9 @@ def check_container_component(personality, component, ignore=[]):
                 'callbacks': (False, [dict]),
                 # any user extra configuration to forward
                 'extra': (False, None),
-            }, component, "invalid component configuration")
+            },
+            component,
+            "invalid component configuration")
         if 'callbacks' in component:
             valid_callbacks = ['join', 'leave', 'connect', 'disconnect']
             for name in component['callbacks'].keys():
