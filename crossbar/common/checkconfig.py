@@ -638,6 +638,7 @@ def check_transport_auth_anonymous(config):
     if config['type'] == 'static':
         check_dict_args({
             'type': (True, [str]),
+            'realm': (False, [str]),
             'role': (False, [str]),
             'authid': (False, [str]),
         }, config, "WAMP-Anonymous configuration")
@@ -2623,10 +2624,13 @@ def check_router_component(personality, component, ignore=[]):
             {
                 'id': (False, [str]),
                 'type': (True, [str]),
+                # we MUST have a realm to embed the session in the right router realm
                 'realm': (True, [str]),
+                # we MAY be given an explicit role to embed the session under (since this is trusted setup anyways)
                 'role': (False, [str]),
                 'references': (False, [Sequence]),
                 'classname': (True, [str]),
+                # any user extra configuration to forward
                 'extra': (False, None),
             }, component, "invalid component configuration")
 
@@ -2635,9 +2639,13 @@ def check_router_component(personality, component, ignore=[]):
             {
                 'id': (False, [str]),
                 'type': (True, [str]),
+                # we MUST have a realm to embed the session in the right router realm
                 'realm': (True, [str]),
+                # we MAY be given an explicit role to embed the session under (since this is trusted setup anyways)
                 'role': (False, [str]),
                 'callbacks': (False, [dict]),
+                # any user extra configuration to forward
+                'extra': (False, None),
             }, component, "invalid component configuration")
         if 'callbacks' in component:
             valid_callbacks = ['join', 'leave', 'connect', 'disconnect']
@@ -2709,9 +2717,14 @@ def check_container_component(personality, component, ignore=[]):
             {
                 'id': (False, [str]),
                 'type': (True, [str]),
+                # we MUST be given a realm for the container to know where to join
                 'realm': (True, [str]),
+                # the role is assigned via WAMP-authentication!
+                # 'role': (False, [str]),
+                # the transport to the local (or remote) router worker
                 'transport': (True, [Mapping]),
                 'classname': (True, [str]),
+                # any user extra configuration to forward
                 'extra': (False, None),
             }, component, "invalid component configuration")
 
@@ -2720,11 +2733,16 @@ def check_container_component(personality, component, ignore=[]):
             {
                 'id': (False, [str]),
                 'type': (True, [str]),
+                # we MUST be given a realm for the container to know where to join
                 'realm': (True, [str]),
+                # the role is assigned via WAMP-authentication!
+                # 'role': (False, [str]),
+                # the transport to the local (or remote) router worker
                 'transport': (True, [Mapping]),
                 'auth': (True, [Mapping]),
-                'role': (False, [str]),
                 'callbacks': (False, [dict]),
+                # any user extra configuration to forward
+                'extra': (False, None),
             }, component, "invalid component configuration")
         if 'callbacks' in component:
             valid_callbacks = ['join', 'leave', 'connect', 'disconnect']
