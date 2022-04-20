@@ -12,8 +12,6 @@ import sys
 
 import psutil
 
-import setuptools
-
 from crossbar._util import hl
 from crossbar._version import __version__, __build__
 
