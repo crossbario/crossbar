@@ -13,6 +13,7 @@ import binascii
 import txaio
 from autobahn.wamp import cryptosign
 from autobahn.wamp.exception import ApplicationError
+from autobahn.websocket.util import parse_url
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 __all__ = ('ShellClient', 'ManagementClientSession', 'run', 'create_management_session')
@@ -42,16 +43,16 @@ class ShellClient(ApplicationSession):
             # not yet implemented. a public key the router should provide
             # a trustchain for it's public key. the trustroot can eg be
             # hard-coded in the client, or come from a command line option.
-            'trustroot': None,
+            'trustroot': self.config.extra.get('trustroot', None),
 
             # not yet implemented. for authenticating the router, this
             # challenge will need to be signed by the router and send back
             # in AUTHENTICATE for client to verify. A string with a hex
             # encoded 32 bytes random value.
-            'challenge': None,
+            'challenge': self.config.extra.get('challenge', None),
 
             # use TLS channel binding
-            'channel_binding': 'tls-unique',
+            'channel_binding': self.config.extra.get('channel_binding', None),
         }
 
         # used for user login/registration activation code
@@ -70,7 +71,13 @@ class ShellClient(ApplicationSession):
         self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         # sign and send back the challenge with our private key.
-        return self._key.sign_challenge(self, challenge)
+        try:
+            sig = self._key.sign_challenge(self, challenge)
+        except Exception as e:
+            self.log.failure()
+            self.leave(ApplicationError.AUTHENTICATION_FAILED, str(e))
+        else:
+            return sig
 
     async def onJoin(self, details):  # noqa: N802
         self.log.info('{klass}.onJoin(details={details})', klass=self.__class__.__name__, details=details)
@@ -145,33 +152,31 @@ class ShellClient(ApplicationSession):
 
 class ManagementClientSession(ApplicationSession):
     def onConnect(self):
-        self._key = self.config.extra[u'key']
+        self._key = self.config.extra['key']
         extra = {
-            u'pubkey': self._key.public_key(),
-            u'trustroot': None,
-            u'challenge': None,
-            u'channel_binding': u'tls-unique',
+            'pubkey': self._key.public_key(),
+            'trustroot': self.config.extra.get('trustroot', None),
+            'challenge': self.config.extra.get('challenge', None),
+            'channel_binding': self.config.extra.get('channel_binding', None),
         }
-        for k in [u'activation_code', u'request_new_activation_code']:
+        for k in ['activation_code', 'request_new_activation_code']:
             if k in self.config.extra and self.config.extra[k]:
                 extra[k] = self.config.extra[k]
 
         self.join(self.config.realm,
-                  authmethods=[u'cryptosign'],
-                  authid=self.config.extra.get(u'authid', None),
-                  authrole=self.config.extra.get(u'authrole', None),
+                  authmethods=['cryptosign'],
+                  authid=self.config.extra.get('authid', None),
+                  authrole=self.config.extra.get('authrole', None),
                   authextra=extra)
 
     def onChallenge(self, challenge):
         return self._key.sign_challenge(self, challenge)
 
     def onJoin(self, details):
-        # print(hl('ManagementClientSession.onJoin:\n{}'.format(details), color='blue', bold=False))
         if 'ready' in self.config.extra:
             self.config.extra['ready'].callback((self, details))
 
     def onLeave(self, reason):
-        # print(hl('ManagementClientSession.onLeave:\n{}'.format(reason), color='blue', bold=False))
         self.disconnect()
 
 
@@ -182,7 +187,6 @@ def create_management_session(url='wss://master.xbr.network/ws',
     txaio.start_logging(level='info')
 
     privkey_file = os.path.join(os.path.expanduser('~/.crossbar'), privkey_file)
-    # print('usering keyfile from', privkey_file)
 
     # for authenticating the management client, we need a Ed25519 public/private key pair
     # here, we are reusing the user key - so this needs to exist before
@@ -206,19 +210,24 @@ def create_management_session(url='wss://master.xbr.network/ws',
     if user_id is None:
         raise Exception('no user ID found in keyfile!')
 
+    url_is_secure, _, _, _, _, _ = parse_url(url)
+
     key = cryptosign.SigningKey.from_key_bytes(binascii.a2b_hex(privkey_hex))
     extra = {
-        u'key': key,
-        u'authid': user_id,
-        u'ready': Deferred(),
-        u'return_code': None,
-        u'command': CmdListManagementRealms()
+        'key': key,
+        'authid': user_id,
+        'ready': Deferred(),
+        'return_code': None,
+        'command': CmdListManagementRealms(),
+
+        # WAMP-cryptosign TLS channel binding
+        'channel_binding': 'tls-unique' if url_is_secure else None,
     }
 
     runner = ApplicationRunner(url=url, realm=realm, extra=extra)
     runner.run(ManagementClientSession, start_reactor=False)
 
-    return extra[u'ready']
+    return extra['ready']
 
 
 def run(main=None, parser=None):

@@ -150,3 +150,6 @@ gource:
 	-threads 0 \
 	-bf 0 \
 	crossbar.mp4
+
+find_uris:
+	python find-uris.py

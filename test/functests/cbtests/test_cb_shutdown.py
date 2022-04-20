@@ -291,10 +291,10 @@ def test_restart_failed_component(reactor, request, virtualenv, session_temp):
         return _cleanup_crossbar(protocol)
     request.addfinalizer(cleanup)
 
-    timeout = sleep(15)
+    timeout = sleep(20)
     yield DeferredList([timeout, protocol._all_done], fireOnOneCallback=True, fireOnOneErrback=True)
 
     # in the "happy path", timeout gets called .. and we want to make
     # sure there's at least two "restart" messages in the logs
     restarts = re.findall("restarting", protocol.logs.getvalue().lower())
-    assert len(restarts) >= 2, "Expected at least two restarts"
+    assert len(restarts) >= 2, "Expected at least two restarts, but was {}".format(len(restarts))

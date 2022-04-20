@@ -1,7 +1,22 @@
 {
     "version": 2,
     "controller": {
-        "id": "center1"
+        "id": "center1",
+        "blockchain": {
+          "type": "ethereum",
+          "gateway": {
+            "type": "infura",
+            "network": "rinkeby",
+            "key": "${INFURA_PROJECT_ID}",
+            "secret": "${INFURA_PROJECT_SECRET}"
+          },
+          "from_block": 10475442,
+          "chain_id": 4
+        },
+        "ipfs": {
+          "gateway_url": "https://ipfs.infura.io:5001",
+          "cache_dir": ".ipfs"
+        }
     },
     "workers": [
         {
@@ -263,6 +278,21 @@
                             "write_pairing_file": true,
                             "management_url": "${CROSSBAR_FABRIC_URL}",
                             "include_activation_code": true
+                        },
+                        "blockchain": {
+                          "type": "ethereum",
+                          "gateway": {
+                            "type": "infura",
+                            "network": "rinkeby",
+                            "key": "${INFURA_PROJECT_ID}",
+                            "secret": "${INFURA_PROJECT_SECRET}"
+                          },
+                          "from_block": 10475442,
+                          "chain_id": 4
+                        },
+                        "ipfs": {
+                          "gateway_url": "https://ipfs.infura.io:5001",
+                          "cache_dir": ".ipfs"
                         }
                     },
                     "transport": {

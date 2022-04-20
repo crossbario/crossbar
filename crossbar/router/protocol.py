@@ -11,12 +11,12 @@ import crossbar
 import binascii
 
 from twisted import internet
+from twisted.protocols.tls import TLSMemoryBIOProtocol
 
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
-# from autobahn.websocket.types import ConnectionAccept
 from autobahn.websocket.types import ConnectionDeny
 
 from txaio import make_logger
@@ -304,6 +304,11 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # Crossbar.io tracking ID (for cookie tracking)
                 'cbtid': self._cbtid
             }
+            if isinstance(self.transport, TLSMemoryBIOProtocol):
+                # get the TLS channel ID of the underlying TLS connection. Could be None.
+                tls_channel_id = self.get_channel_id('tls-unique')
+                if tls_channel_id:
+                    self._transport_info['channel_id'] = binascii.b2a_hex(tls_channel_id).decode()
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
             # and setting HTTP headers `headers`

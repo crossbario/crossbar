@@ -252,7 +252,7 @@ def _create_tls_server_context(config, cbdir, log):
 
 def _create_tls_client_context(config, cbdir, log):
     """
-    Create a CertificateOptions object for use with TLS listening endpoints.
+    Create a CertificateOptions object for use with TLS connecting endpoints.
     """
     # server hostname: The expected name of the remote host.
     hostname = config['hostname']

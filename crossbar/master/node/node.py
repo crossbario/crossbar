@@ -30,6 +30,7 @@ from crossbar._util import hltype, hlid, hl, hlval
 from crossbar.common import checkconfig
 
 from crossbar._util import merge_config
+from crossbar.node.node import Node
 from crossbar.edge.node import node
 from crossbar.master.node.roles import BUILTIN_ROLES
 from crossbar.master.mrealm.mrealm import ManagementRealm
@@ -375,12 +376,18 @@ class FabricCenterNode(node.FabricNode):
     Crossbar.io Master node personality.
     """
     DEFAULT_CONFIG_PATH = 'master/node/config.json'
-
+    """
+    Builtin default master node configuration.
+    """
     def __init__(self, personality, cbdir=None, reactor=None, native_workers=None, options=None):
         node.FabricNode.__init__(self, personality, cbdir, reactor, native_workers, options)
-        self._config = None
+
+        # master node embedded DB
         self._db = None
         self._schema = None
+
+        # Web3 blockchain connection (if configured)
+        self._w3 = None
 
         # the node license under which this master node will be running (instance of :class:License)
         self._license = None
@@ -398,48 +405,64 @@ class FabricCenterNode(node.FabricNode):
         - and it contains a workers section (a list of workers), these are
         _added_ to the builtin workers.
         """
+        config_source = Node.CONFIG_SOURCE_EMPTY
 
-        # load builtin node configuration as default
+        # 1/4: load builtin master node configuration as default
         #
-        filename = pkg_resources.resource_filename('crossbar', self.DEFAULT_CONFIG_PATH)
-        with open(filename) as f:
+        config_path = pkg_resources.resource_filename('crossbar', self.DEFAULT_CONFIG_PATH)
+        with open(config_path) as f:
             config = json.load(f)
-            config_path = filename
-            config_source = self.CONFIG_SOURCE_DEFAULT
-            # self.personality.check_config(self.personality, config)
-        self.log.debug('Built-in node configuration loaded and checked')
 
-        # try loading node configuration from blockchain (overwriting the previously loaded default config)
-        # FIXME: domain/node configuration was removed from the XBRNetwork contract (for now)
-        # see: https://github.com/crossbario/xbr-protocol/pull/36
-        if False:
-            gateway_config = {
-                "type": "user",
-                "http": "http://localhost:1545",
-            }
+        # no need to check the builtin config (at run-time)
+        # self.personality.check_config(self.personality, config)
 
+        # remember config source
+        config_source += Node.CONFIG_SOURCE_DEFAULT
+        self.log.info('Built-in master node configuration loaded')
+
+        # 2/4: allow extending/overriding the node configuration
+        # with a local master node configuration file (eg for TLS setup)
+        if configfile:
+            config_path = os.path.abspath(os.path.join(self._cbdir, configfile))
+            with open(config_path) as f:
+                custom_config = json.load(f)
+
+            # as an overriding config file does not need to be a fully valid config in itself,
+            # do _not_ check it ..
+            # self.personality.check_config(self.personality, custom_config)
+
+            # .. instead, we merge the config from the local file into the already
+            # loaded default config (see above)
+            config = merge_config(config, custom_config)
+
+            # remember config source
+            config_source += Node.CONFIG_SOURCE_LOCALFILE
+            self.log.info('Local master node configuration merged from "{config_path}"',
+                          config_path=hlval(config_path))
+
+        # 3/4: allow extending/overriding the node configuration
+        # with a remote master node configuration file from blockchain/IPFS
+        if config.get('controller', {}).get('blockchain', None):
+            blockchain_config = config['controller']['blockchain']
+            gateway_config = blockchain_config['gateway']
+
+            # setup Web3 connection from blockchain gateway configuration
             self._w3 = make_w3(gateway_config)
+
+            # configure new Web3 connection as provider for XBR
             xbr.setProvider(self._w3)
 
             if self._w3.isConnected():
                 self.log.info('Connected to Ethereum network {network} at gateway "{gateway_url}"',
-                              network=self._w3.version.network,
+                              network=self._w3.net.version,
                               gateway_url=gateway_config['http'])
 
-                if 'XBR_DEBUG_TOKEN_ADDR' in os.environ:
-                    self.log.info('XBR Token contract address {token_addr} set from environment',
-                                  token_addr=hlid(os.environ['XBR_DEBUG_TOKEN_ADDR']))
-
-                if 'XBR_DEBUG_NETWORK_ADDR' in os.environ:
-                    self.log.info('XBR Network contract address {network_addr} set from environment',
-                                  network_addr=hlid(os.environ['XBR_DEBUG_NETWORK_ADDR']))
-
+                # try to find node by node public key on-chain
                 xbr_node_id = xbr.xbrnetwork.functions.getNodeByKey(self.key.public_key()).call()
-
                 if xbr_node_id != b'\x00' * 16:
-
                     assert (len(xbr_node_id) == 16)
 
+                    # get node domain, type, configuration and license as stored on-chain
                     xbr_node_domain = xbr.xbrnetwork.functions.getNodeDomain(xbr_node_id).call()
                     xbr_node_type = xbr.xbrnetwork.functions.getNodeType(xbr_node_id).call()
                     xbr_node_config = xbr.xbrnetwork.functions.getNodeConfig(xbr_node_id).call()
@@ -460,6 +483,8 @@ class FabricCenterNode(node.FabricNode):
                     self.log.info('Node is registered in the XBR network with license type={license}',
                                   license=self._license.type)
 
+                    # if a (hash of a) configuration is set on-chain for the master node, fetch the
+                    # configuration content for the hash from IPFS
                     if xbr_node_config:
                         if 'IPFS_GATEWAY_URL' in os.environ:
                             ipfs_gateway_url = os.environ['IPFS_GATEWAY_URL']
@@ -508,21 +533,7 @@ class FabricCenterNode(node.FabricNode):
             else:
                 self.log.warn('Could not connect to Ethereum blockchain')
 
-        # allow extending/overriding the node configuration loaded with local config files
-        #
-        if configfile:
-            config_source = self.CONFIG_SOURCE_LOCALFILE
-            config_path = os.path.abspath(os.path.join(self._cbdir, configfile))
-
-            self.log.info('Expanding built-in node configuration from local file {configpath}',
-                          configpath=hlid(config_path))
-            with open(config_path) as f:
-                custom_config = json.load(f)
-                # as an overriding config file does not need to be a fully valid config in itself, do _not_ check it!
-                # self.personality.check_config(self.personality, custom_config)
-            config = merge_config(config, custom_config)
-
-        # check the final, assembled initial node configuration to apply
+        # 4/4: check and set the final merged master node configuration
         #
         self.personality.check_config(self.personality, config)
         self._config = config

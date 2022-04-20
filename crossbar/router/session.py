@@ -6,7 +6,9 @@
 #####################################################################################
 
 import os
-import binascii
+from typing import Optional, Union, Dict, List
+
+import werkzeug
 
 import txaio
 
@@ -29,9 +31,13 @@ from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 from crossbar.router.router import Router, RouterFactory
 from crossbar.router import NotAttached
 from crossbar._util import hl, hlid, hltype
+from crossbar.router.protocol import WampWebSocketServerProtocol, WampRawSocketServerProtocol
+from crossbar.node.native import NativeWorkerClientProtocol
 
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
+
+from mock.mock import MagicMock
 
 try:
     from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
@@ -348,15 +354,15 @@ class RouterSession(BaseSession):
 
     log = make_logger()
 
-    def __init__(self, router_factory):
+    def __init__(self, router_factory: RouterFactory):
         """
 
         :param router_factory: The router factory this session is created from. This is different from
             the :class:`crossbar.router.session.RouterSessionFactory` stored in ``self.factory``.
-        :type router_factory: Instance of :class:`crossbar.router.router.RouterFactory`.
         """
         super(RouterSession, self).__init__()
-        self._transport = None
+        self._transport: Optional[Union[WampWebSocketServerProtocol, WampRawSocketServerProtocol,
+                                        NativeWorkerClientProtocol]] = None
 
         # self._router_factory._node_id
         # self._router_factory._worker
@@ -366,18 +372,22 @@ class RouterSession(BaseSession):
 
         self._router = None
         self._realm = None
-        self._testaments = {"destroyed": [], "detached": []}
+        self._testaments: Dict[str, List[message.Message]] = {"destroyed": [], "detached": []}
 
         self._goodbye_sent = False
         self._transport_is_closing = False
         self._session_details = None
         self._service_session = None
 
-    def onOpen(self, transport):
+    def onOpen(self, transport: Union[WampWebSocketServerProtocol, WampRawSocketServerProtocol,
+                                      NativeWorkerClientProtocol, MagicMock]):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onOpen`
         """
         # this is a WAMP transport instance
+        assert isinstance(transport,
+                          (WampWebSocketServerProtocol, WampRawSocketServerProtocol, NativeWorkerClientProtocol,
+                           MagicMock)), 'unexpected router transport type {}'.format(type(transport))
         self._transport = transport
 
         # WampLongPollResourceSession instance has no attribute '_transport_info'
@@ -395,23 +405,24 @@ class RouterSession(BaseSession):
         client_cert = None
         # eg LongPoll transports lack underlying Twisted stream transport, since LongPoll is
         # implemented at the Twisted Web layer. But we should nevertheless be able to
-        # extract the HTTP client cert! <= FIXME
+        # extract the HTTP client cert!
         if hasattr(self._transport, 'transport'):
             client_cert = extract_peer_certificate(self._transport.transport)
         if client_cert:
             self._transport._transport_info['client_cert'] = client_cert
-            self.log.debug("Client connecting with TLS certificate {client_cert}", client_cert=client_cert)
+            self.log.info("Client connecting with TLS certificate {client_cert}", client_cert=client_cert)
 
+        # FIXME: this is wrong!
         # forward the transport channel ID (if any) on transport details
-        channel_id = None
-        if hasattr(self._transport, 'get_channel_id'):
-            # channel ID isn't implemented for LongPolL!
-            channel_id = self._transport.get_channel_id()
-        if channel_id:
-            self._transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
+        # channel_id = None
+        # if hasattr(self._transport, 'get_channel_id'):
+        #     # channel ID isn't implemented for LongPolL!
+        #     channel_id = self._transport.get_channel_id()
+        # if channel_id:
+        #     self._transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
 
-        self.log.debug("Client session connected - transport: {transport_info}",
-                       transport_info=self._transport._transport_info)
+        self.log.info("Client session connected - transport: {transport_info}",
+                      transport_info=self._transport._transport_info)
 
         # basic session information
         self._pending_session_id = None
@@ -774,6 +785,16 @@ class RouterSession(BaseSession):
                     if hasattr(self._transport, '_cbtid'):
                         self._transport.factory._cookiestore.setAuth(self._transport._cbtid, None, None, None, None,
                                                                      None)
+                        self.log.info(
+                            '{meth}: cookiestore.setAuth(cbtid={cbtid}, authid={authid}, authrole={authrole}, authmethod={authmethod}, authextra={authextra}, realm={realm})',
+                            meth=hltype(self.onHello),
+                            cbtid=hlid(self._transport._cbtid),
+                            authid=None,
+                            authrole=None,
+                            authmethod=None,
+                            authextra=None,
+                            realm=None)
+
                 else:
                     pass  # TLS authentication is not revoked here
 
@@ -810,7 +831,8 @@ class RouterSession(BaseSession):
                     if 'anonymous' not in authmethods:
                         return types.Deny(
                             ApplicationError.NO_AUTH_METHOD,
-                            message='cannot authenticate using any of the offered authmethods {}'.format(authmethods))
+                            message='cannot authenticate [1] using any of the offered authmethods {}'.format(
+                                authmethods))
 
                     authmethod = 'anonymous'
 
@@ -894,12 +916,48 @@ class RouterSession(BaseSession):
 
                         # WAMP-Cookie authentication
                         elif authmethod == 'cookie':
-                            # the client requested cookie authentication, but there is 1) no cookie set,
-                            # or 2) a cookie set, but that cookie wasn't authenticated before using
-                            # a different auth method (if it had been, we would never have entered here, since then
-                            # auth info would already have been extracted from the transport)
-                            # consequently, we skip this auth method and move on to next auth method.
-                            continue
+                            cbtid = None
+                            _ti = self._transport._transport_info
+                            if 'http_headers_received' in _ti and 'set-cookie' in _ti['http_headers_received']:
+                                cookie_name = 'cbtid'
+                                cookie_received = werkzeug.http.parse_cookie(
+                                    _ti['http_headers_received']['set-cookie'])
+                                if cookie_name in cookie_received:
+                                    cbtid = cookie_received[cookie_name]
+
+                            if cbtid:
+                                if self._transport.factory._cookiestore.exists(cbtid):
+                                    _cookie_authid, _cookie_authrole, _cookie_authmethod, _cookie_authrealm, _cookie_authextra = self._transport.factory._cookiestore.getAuth(
+                                        cbtid)
+                                    self.log.debug(
+                                        '{func}: authentication for received cookie {cbtid} found: authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}, authextra={authextra}',
+                                        func=hltype(self.onHello),
+                                        cbtid=hlid(cbtid),
+                                        authid=hlid(_cookie_authid),
+                                        authrole=hlid(_cookie_authrole),
+                                        authmethod=hlid(_cookie_authmethod),
+                                        authrealm=hlid(_cookie_authrealm),
+                                        authextra=_cookie_authextra)
+                                    return types.Accept(realm=_cookie_authrealm,
+                                                        authid=_cookie_authid,
+                                                        authrole=_cookie_authrole,
+                                                        authmethod=_cookie_authmethod,
+                                                        authprovider='cookie',
+                                                        authextra=_cookie_authextra)
+                                else:
+                                    self.log.debug(
+                                        '{func}: received cookie for cbtid={cbtid} not authenticated before',
+                                        func=hltype(self.onHello),
+                                        cbtid=hlid(cbtid))
+                                    continue
+                            else:
+                                # the client requested cookie authentication, but there is 1) no cookie set,
+                                # or 2) a cookie set, but that cookie wasn't authenticated before using
+                                # a different auth method (if it had been, we would never have entered here, since then
+                                # auth info would already have been extracted from the transport)
+                                # consequently, we skip this auth method and move on to next auth method.
+                                self.log.debug('{func}: no cookie set for cbtid', func=hltype(self.onHello))
+                                continue
 
                         else:
                             # should not arrive here
@@ -908,7 +966,7 @@ class RouterSession(BaseSession):
                     # no suitable authmethod found!
                     return types.Deny(
                         ApplicationError.NO_AUTH_METHOD,
-                        message='cannot authenticate using any of the offered authmethods {}'.format(authmethods))
+                        message='cannot authenticate [2] using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
             self.log.failure()
@@ -953,6 +1011,15 @@ class RouterSession(BaseSession):
             if details.authmethod != 'cookie':
                 self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole,
                                                              details.authmethod, details.authextra, self._realm)
+                self.log.warn(
+                    '{meth}: cookiestore.setAuth(cbtid={cbtid}, authid={authid}, authrole={authrole}, authmethod={authmethod}, authextra={authextra}, realm={realm})',
+                    meth=hltype(self.onJoin),
+                    cbtid=hlid(self._transport._cbtid),
+                    authid=hlid(details.authid),
+                    authrole=hlid(details.authrole),
+                    authmethod=hlid(details.authmethod),
+                    authextra=hlid(details.authextra),
+                    realm=hlid(self._realm))
 
         # Router/Realm service session
         #

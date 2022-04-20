@@ -153,12 +153,11 @@ jobs:
     # pip install -r requirements-min.txt
     - name: Install Crossbar.io package dependencies & Crossbar.io
       run: |
-        pip install -U -r requirements-latest.txt
         pip install .
+        pip install -U --force-reinstall -r requirements-latest.txt
 
     - name: Display Crossbar.io version
       run: |
-        python -c "import crossbar; print(crossbar.__version__)"
         crossbar version
 
     - name: Run Python import tests
@@ -205,12 +204,11 @@ jobs:
 
     - name: Install Crossbar.io package dependencies & Crossbar.io
       run: |
-        pip install -U -r requirements-latest.txt
         pip install .
+        pip install -U --force-reinstall -r requirements-latest.txt
 
     - name: Display Crossbar.io version
       run: |
-        python -c "import crossbar; print(crossbar.__version__)"
         crossbar version
 
     - name: Run functional tests using direct node management APIs

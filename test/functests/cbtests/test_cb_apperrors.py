@@ -83,7 +83,7 @@ if __name__ == '__main__':
     request.addfinalizer(cleanup)
 
     try:
-        x = yield DeferredList([sleep(5), cb._all_done], fireOnOneErrback=True, fireOnOneCallback=True)
+        x = yield DeferredList([sleep(10), cb._all_done], fireOnOneErrback=True, fireOnOneCallback=True)
         if x[1] == 0:
             print("We timed-out; crossbar *should* ideally exit with error, though")
     except RuntimeError as e:
@@ -232,7 +232,7 @@ class Component(ApplicationSession):
             pass
     request.addfinalizer(cleanup)
 
-    yield DeferredList([sleep(5), monitor.done, cb._all_done], fireOnOneCallback=True, fireOnOneErrback=True)
+    yield DeferredList([sleep(10), monitor.done, cb._all_done], fireOnOneCallback=True, fireOnOneErrback=True)
     assert not cb._all_done.called, "looks like crossbar exited early"
     assert monitor.done.called, "didn't see our exception"
     assert 'A RuntimeError from __init__' in monitor.logs

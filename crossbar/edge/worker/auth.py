@@ -13,7 +13,7 @@ from twisted.internet.defer import inlineCallbacks
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
-from autobahn.xbr._util import hl, hlid, hltype
+from autobahn.util import hl, hltype, hlid
 
 # a simple principals database. in real world use, this likey would be
 # replaced by some persistent database used to store principals.

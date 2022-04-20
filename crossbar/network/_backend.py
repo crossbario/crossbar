@@ -40,7 +40,7 @@ from hexbytes import HexBytes
 from txaio import make_logger, time_ns, sleep
 from twisted.internet.threads import deferToThread
 
-from autobahn.util import generate_activation_code
+from autobahn.util import generate_activation_code, with_0x
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions
 from autobahn.twisted.wamp import ApplicationSession
@@ -60,7 +60,7 @@ from autobahn.xbr import recover_eip712_market_create
 from autobahn.xbr import recover_eip712_market_join
 from autobahn.xbr import recover_eip712_catalog_create
 from autobahn.xbr import recover_eip712_api_publish
-from autobahn.xbr import is_address, is_block_number, is_chain_id, is_cs_pubkey, with_0x
+from autobahn.xbr import is_address, is_block_number, is_chain_id, is_cs_pubkey
 
 from ._mailgw import MailGateway
 

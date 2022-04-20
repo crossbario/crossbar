@@ -29,7 +29,7 @@ from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
-from crossbar.common.key import _maybe_generate_key, _read_node_key, _read_release_key
+from crossbar.common.key import _maybe_generate_node_key, _read_node_key, _read_release_key
 
 from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
@@ -504,7 +504,7 @@ def _run_command_keys(options, reactor, personality):
     log = make_logger()
 
     # Generate a new node key pair (2 files), load and check
-    _maybe_generate_key(options.cbdir)
+    _maybe_generate_node_key(options.cbdir)
 
     # Print keys
 
@@ -556,7 +556,7 @@ def _run_command_init(options, reactor, personality):
 
     get_started_hint = Templates.init(options.appdir, template='default')
 
-    _maybe_generate_key(cbdir)
+    _maybe_generate_node_key(cbdir)
 
     log.info("Application directory initialized")
 
