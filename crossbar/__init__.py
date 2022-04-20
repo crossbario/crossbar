@@ -12,6 +12,8 @@ import sys
 
 import psutil
 
+import setuptools
+
 from crossbar._util import hl
 from crossbar._version import __version__, __build__
 
@@ -79,6 +81,10 @@ if not hasattr(abi, 'process_type'):
 # https://docs.python.org/3/library/warnings.html
 # /opt/pypy3/lib-python/3/importlib/_bootstrap.py:223: builtins.UserWarning: builtins.type size changed, may indicate binary incompatibility. Expected 872, got 416
 warnings.filterwarnings("ignore", message="builtins.type size changed, may indicate binary incompatibility")
+
+# https://peps.python.org/pep-0632/
+# site-packages/_distutils_hack/__init__.py:30: builtins.UserWarning: Setuptools is replacing distutils.
+warnings.filterwarnings("ignore", message="Setuptools is replacing distutils.")
 
 __all__ = ('__version__', '__build__', 'run', 'personalities')
 

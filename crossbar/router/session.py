@@ -37,7 +37,12 @@ from crossbar.node.native import NativeWorkerClientProtocol
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
-from mock.mock import MagicMock
+try:
+    from mock.mock import MagicMock
+except ImportError:
+    # just define a "No-Op" class as we only use it for type checks
+    class MagicMock:
+        pass
 
 try:
     from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
