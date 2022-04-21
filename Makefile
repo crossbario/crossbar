@@ -89,7 +89,7 @@ test_quick:
 	tox -e  sphinx,flake8,mypy,yapf .
 
 # test all targets on the host via tox
-test:
+test_all:
 	tox -e  sphinx,flake8,mypy,yapf,bandit,py39-pinned-trial,py39-unpinned-trial,py39-abtrunk-trial,py39-examples,pytest,functests-cb,functests-cfc,py39-api-1,py39-cli-0,py39-cli-1,py39-cli-2,py39-cli-3 .
 
 # test all broken (FIXME) targets
