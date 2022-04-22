@@ -708,9 +708,34 @@ def check_cookie_store_file(store):
     """
     check_dict_args({
         'type': (True, [str]),
-        'filename': (False, [str]),
+        'filename': (True, [str]),
         'purge_on_startup': (False, [bool])
-    }, store, "WebSocket memory-backed cookie store configuration")
+    }, store, "WebSocket file-backed cookie store configuration")
+
+
+def check_cookie_store_database(store):
+    """
+    Checking database-backed cookie store configuration.
+
+    .. code-block:: json
+
+        "store": {
+            "type": "database",
+            "path": ".cookies",
+            "maxsize": 1048576,
+            "readonly": false,
+            "sync": true
+        }
+    """
+    check_dict_args(
+        {
+            'type': (True, [str]),
+            'path': (True, [str]),
+            'purge_on_startup': (False, [bool]),
+            'maxsize': (False, [int]),
+            'readonly': (False, [bool]),
+            'sync': (False, [bool]),
+        }, store, "WebSocket database-backed cookie store configuration")
 
 
 def check_transport_cookie(personality, cookie, ignore=[]):
@@ -756,7 +781,7 @@ def check_transport_cookie(personality, cookie, ignore=[]):
                 "missing mandatory attribute 'type' in cookie store configuration\n\n{}".format(pformat(cookie)))
 
         store_type = store['type']
-        if store_type not in ['memory', 'file'] + ignore:
+        if store_type not in ['memory', 'file', 'database'] + ignore:
             raise InvalidConfigException(
                 "invalid attribute value '{}' for attribute 'type' in cookie store item\n\n{}".format(
                     store_type, pformat(cookie)))
@@ -765,6 +790,8 @@ def check_transport_cookie(personality, cookie, ignore=[]):
             check_cookie_store_memory(store)
         elif store_type == 'file':
             check_cookie_store_file(store)
+        elif store_type == 'database':
+            check_cookie_store_database(store)
         elif store_type in ignore:
             pass
         else:

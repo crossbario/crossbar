@@ -153,3 +153,6 @@ gource:
 
 find_uris:
 	python find-uris.py
+
+find_registers:
+	find crossbar -name "*.py" -exec grep -Hi -n2 "@wamp.register" {} \;

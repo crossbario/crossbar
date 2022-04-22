@@ -18,10 +18,11 @@ from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
 from autobahn.websocket.types import ConnectionDeny
+from autobahn.util import hlval, hltype
 
 from txaio import make_logger
 
-from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked
+from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked, CookieStoreDatabaseBacked
 
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
@@ -412,7 +413,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import FlatBuffersSerializer
                     serializers.append(FlatBuffersSerializer(batched=True))
                     serializers.append(FlatBuffersSerializer())
-                except ImportError:
+                except ImportError('FlatBuffersSerializer'):
                     self.log.warn("Warning: could not load WAMP-FlatBuffers serializer")
                 else:
                     sers.discard('flatbuffers')
@@ -423,7 +424,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import CBORSerializer
                     serializers.append(CBORSerializer(batched=True))
                     serializers.append(CBORSerializer())
-                except ImportError:
+                except ImportError('CBORSerializer'):
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
                     sers.discard('cbor')
@@ -434,7 +435,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import MsgPackSerializer
                     serializers.append(MsgPackSerializer(batched=True))
                     serializers.append(MsgPackSerializer())
-                except ImportError:
+                except ImportError('MsgPackSerializer'):
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
                     sers.discard('msgpack')
@@ -445,7 +446,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import UBJSONSerializer
                     serializers.append(UBJSONSerializer(batched=True))
                     serializers.append(UBJSONSerializer())
-                except ImportError:
+                except ImportError('UBJSONSerializer'):
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
                 else:
                     sers.discard('ubjson')
@@ -456,7 +457,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import JsonSerializer
                     serializers.append(JsonSerializer(batched=True))
                     serializers.append(JsonSerializer())
-                except ImportError:
+                except ImportError('JsonSerializer'):
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
                     sers.discard('json')
@@ -486,26 +487,40 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         # Jinja2 templates for 404 etc
         self._templates = templates
 
-        # cookie tracking
+        # enable cookie tracking if a cookie store is configured
         if 'cookie' in config:
-            cookie_store_type = config['cookie']['store']['type']
+            # cookie store configuration item
+            cookie_config = config['cookie']
 
-            # ephemeral, memory-backed cookie store
+            # cookie store
+            cookie_store_config = cookie_config['store']
+            cookie_store_type = cookie_store_config['type']
+
+            # setup ephemeral, memory-backed cookie store
             if cookie_store_type == 'memory':
-                self._cookiestore = CookieStoreMemoryBacked(config['cookie'])
+                self._cookiestore = CookieStoreMemoryBacked(cookie_config)
                 self.log.info("Memory-backed cookie store active.")
 
-            # persistent, file-backed cookie store
+            # setup persistent, file-backed cookie store
             elif cookie_store_type == 'file':
-                cookie_store_file = os.path.abspath(os.path.join(self._cbdir, config['cookie']['store']['filename']))
-                self._cookiestore = CookieStoreFileBacked(cookie_store_file, config['cookie'])
+                cookie_store_file = os.path.abspath(os.path.join(self._cbdir, cookie_store_config['filename']))
+                self._cookiestore = CookieStoreFileBacked(cookie_store_file, cookie_config)
                 self.log.info("File-backed cookie store active {cookie_store_file}",
-                              cookie_store_file=cookie_store_file)
+                              cookie_store_file=hlval(cookie_store_file))
+
+            # setup persistent, database-backed cookie store
+            elif cookie_store_type == 'database':
+                cookie_dbpath = os.path.abspath(os.path.join(self._cbdir, cookie_store_config['path']))
+                self._cookiestore = CookieStoreDatabaseBacked(cookie_dbpath, cookie_config)
+                self.log.info("Database-backed cookie store active! [cookiestore={cookiestore}]",
+                              cookiestore=hltype(CookieStoreDatabaseBacked))
 
             else:
                 # should not arrive here as the config should have been checked before
-                raise Exception("logic error")
+                raise NotImplementedError('{}: implementation of cookiestore of type "{}" missing'.format(
+                    self.__class__.__name__, cookie_store_type))
         else:
+            # this disables cookie tracking (both with or without WAMP-cookie authentication)
             self._cookiestore = None
 
         # set WebSocket options
