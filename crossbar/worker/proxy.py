@@ -291,6 +291,10 @@ class ProxyFrontendSession(object):
         # backend).
         self.log.info('Proxy frontend session accepted ({accept}) [{func}]', func=hltype(self._accept), accept=accept)
 
+        if hasattr(self.transport, '_cbtid'):
+            self.transport.factory._cookiestore.setAuth(self.transport._cbtid, accept.authid, accept.authrole,
+                                                        accept.authmethod, accept.authextra, accept.realm)
+
         result = Deferred()
 
         @inlineCallbacks
@@ -493,6 +497,18 @@ class ProxyFrontendSession(object):
             # create instance of authenticator using authenticator class for the respective authmethod
             authklass = extra_auth_methods[authmethod] if authmethod in extra_auth_methods else AUTHMETHOD_MAP[
                 authmethod]
+
+            if authklass is None:
+                self.log.warn('{func}: skipping authenticator for authmethod "{authmethod}"',
+                              func=hltype(self._process_Hello),
+                              authmethod=hlval(authmethod))
+                self.log.warn()
+                continue
+
+            self.log.info('{func}: instantiating authenticator class {authklass} for authmethod "{authmethod}"',
+                          func=hltype(self._process_Hello),
+                          authklass=hltype(authklass),
+                          authmethod=hlval(authmethod))
             self._pending_auth = authklass(
                 self._pending_session_id,
                 self.transport._transport_info,

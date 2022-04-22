@@ -79,7 +79,7 @@ class CookieStore(object):
         Parse HTTP header for cookie. If cookie is found, return cookie ID,
         else return None.
         """
-        self.log.debug("Parsing cookie from {headers}", headers=headers)
+        self.log.info('{func} parsing cookie from {headers}', func=hltype(self.parse), headers=headers)
 
         # see if there already is a cookie set
         if 'cookie' in headers:
@@ -115,7 +115,11 @@ class CookieStore(object):
         with the cookie having the given ID. Return the new count of
         connections associated with the cookie.
         """
-        self.log.info('{func} adding proto {proto} for cookie "{cbtid}"', proto=proto, cbtid=hlid(cbtid))
+        self.log.info('{func} adding proto {proto} for cookie "{cbtid}"',
+                      func=hltype(self.addProto),
+                      proto=proto,
+                      cbtid=hlid(cbtid))
+
         if self.exists(cbtid):
             if cbtid not in self._connections:
                 self._connections[cbtid] = set()
@@ -132,7 +136,10 @@ class CookieStore(object):
         with the cookie having the given ID. Return the new count of
         connections associated with the cookie.
         """
-        self.log.info('{func} removing proto {proto} from cookie "{cbtid}"', proto=proto, cbtid=hlid(cbtid))
+        self.log.info('{func} removing proto {proto} from cookie "{cbtid}"',
+                      func=hltype(self.dropProto),
+                      proto=proto,
+                      cbtid=hlid(cbtid))
 
         if self.exists(cbtid):
             if cbtid in self._connections:
@@ -477,7 +484,7 @@ class CookieStoreDatabaseBacked(CookieStore):
                 cbtid = cookie.value
 
                 # FIXME: cookie.authmethod
-                cookie_auth_info = cookie.authid, cookie.authrole, 'cookie', cookie.authrealm, cookie.authextra
+                cookie_auth_info = cookie.authid, cookie.authrole, cookie.authenticated_authmethod, cookie.authrealm, cookie.authextra
             else:
                 cbtid = None
                 cookie_auth_info = None, None, None, None, None
@@ -524,6 +531,7 @@ class CookieStoreDatabaseBacked(CookieStore):
 
                     # FIXME
                     # cookie.authmethod = authmethod
+                    cookie.authenticated_authmethod = authmethod
 
                     cookie.authrealm = authrealm
                     cookie.authextra = authextra

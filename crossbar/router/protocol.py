@@ -6,7 +6,6 @@
 #####################################################################################
 
 import os
-import traceback
 import crossbar
 import binascii
 
@@ -228,7 +227,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 self._cbtid = self.factory._cookiestore.parse(request.headers)
 
                 # if no cookie is set, create a new one ..
-                if self._cbtid is None:
+                if self._cbtid is None or not self.factory._cookiestore.exists(self._cbtid):
 
                     self._cbtid, headers['Set-Cookie'] = self.factory._cookiestore.create()
 
@@ -242,9 +241,9 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         if 'same_site' in self.factory._config['cookie']:
                             headers['Set-Cookie'] += ';SameSite=' + self.factory._config['cookie']['same_site']
 
-                    self.log.debug("Setting new cookie: {cookie}", cookie=headers['Set-Cookie'])
+                    self.log.info("Setting new cookie: {cookie}", cookie=headers['Set-Cookie'])
                 else:
-                    self.log.debug("Cookie already set")
+                    self.log.info("Cookie already set and stored")
 
                 # add this WebSocket connection to the set of connections
                 # associated with the same cookie
@@ -263,7 +262,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         # there is a cookie set, and the cookie was previously successfully authenticated,
                         # so immediately authenticate the client using that information
                         self._authprovider = 'cookie'
-                        self.log.debug(
+                        self.log.info(
                             "Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
                             cookiename=self.factory._cookiestore._cookie_id_field,
                             cbtid=self._cbtid,
@@ -273,7 +272,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                             authrealm=self._authrealm)
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
-                        self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")
+                        self.log.info("Cookie-based authentication enabled, but cookie isn't authenticated yet")
                 else:
                     self.log.debug("Cookie-based authentication disabled")
             else:
@@ -314,10 +313,10 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             # accept the WebSocket connection, speaking subprotocol `protocol`
             # and setting HTTP headers `headers`
             #
-            return (protocol, headers)
+            return protocol, headers
 
-        except Exception:
-            traceback.print_exc()
+        except:
+            self.log.failure()
 
     def onOpen(self):
         if False:
