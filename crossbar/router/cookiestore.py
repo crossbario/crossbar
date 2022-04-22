@@ -10,7 +10,7 @@ import json
 import uuid
 import datetime
 from pprint import pformat
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Optional, Tuple, Dict, Any, List, Set
 
 from http import cookies as http_cookies
 
@@ -19,34 +19,46 @@ import numpy as np
 import zlmdb
 
 import txaio
+
 txaio.use_twisted()  # noqa
 from txaio import make_logger, time_ns
 
 from autobahn import util
 from autobahn.util import hltype, hlval, hlid
+
+from autobahn.wamp.interfaces import ISession
 # from crossbar.router.protocol import WampWebSocketServerProtocol
+
 from cfxdb import cookiestore
 
 __all__ = (
+    'CookieStore',
     'CookieStoreMemoryBacked',
     'CookieStoreFileBacked',
     'CookieStoreDatabaseBacked',
 )
 
 
-class _CookieStore(object):
+class CookieStore(object):
     """
     Cookie store common base.
     """
 
     log = make_logger()
 
-    def __init__(self, config):
+    def __init__(self, config: Dict[str, Any]):
         """
-        Ctor.
+
+        .. code-block:: json
+
+            {
+                "type": "memory",
+                "name": "cbtid",
+                "length": 24,
+                "max_age": 604800
+            }
 
         :param config: The cookie configuration.
-        :type config: dict
         """
         self._config = config
 
@@ -59,13 +71,8 @@ class _CookieStore(object):
         # lifetime of the cookie in seconds (http://tools.ietf.org/html/rfc6265#page-20)
         self._cookie_max_age = int(config.get('max_age', 86400 * 7))
 
-        # transient cookie database
-        self._cookies = {}
-
         # transient sessions per cookie database
-        self._connections = {}
-
-        self.log.debug("Cookie stored created with config {config}", config=config)
+        self._connections: Dict[str, Set[ISession]] = {}
 
     def parse(self, headers):
         """
@@ -74,7 +81,7 @@ class _CookieStore(object):
         """
         self.log.debug("Parsing cookie from {headers}", headers=headers)
 
-        # see if there already is a cookie set ..
+        # see if there already is a cookie set
         if 'cookie' in headers:
             try:
                 cookie = http_cookies.SimpleCookie()
@@ -96,9 +103,83 @@ class _CookieStore(object):
             else:
                 if self._cookie_id_field in cookie:
                     cbtid = cookie[self._cookie_id_field].value
-                    if cbtid in self._cookies:
-                        return cbtid
+                    return cbtid
         return None
+
+    def exists(self, cbtid: str) -> bool:
+        return False
+
+    def addProto(self, cbtid: str, proto: ISession) -> int:
+        """
+        Add given WebSocket connection to the set of connections associated
+        with the cookie having the given ID. Return the new count of
+        connections associated with the cookie.
+        """
+        self.log.info('{func} adding proto {proto} for cookie "{cbtid}"', proto=proto, cbtid=hlid(cbtid))
+        if self.exists(cbtid):
+            if cbtid not in self._connections:
+                self._connections[cbtid] = set()
+            self._connections[cbtid].add(proto)
+            return len(self._connections[cbtid])
+        else:
+            if cbtid in self._connections:
+                del self._connections[cbtid]
+            return 0
+
+    def dropProto(self, cbtid: str, proto: ISession):
+        """
+        Remove given WebSocket connection from the set of connections associated
+        with the cookie having the given ID. Return the new count of
+        connections associated with the cookie.
+        """
+        self.log.info('{func} removing proto {proto} from cookie "{cbtid}"', proto=proto, cbtid=hlid(cbtid))
+
+        if self.exists(cbtid):
+            if cbtid in self._connections:
+                # remove this WebSocket connection from the set of connections
+                # associated with the same cookie
+                self._connections[cbtid].discard(proto)
+                remaining = len(self._connections[cbtid])
+                if remaining:
+                    return remaining
+                else:
+                    del self._connections[cbtid]
+        else:
+            if cbtid in self._connections:
+                del self._connections[cbtid]
+        return 0
+
+    def getProtos(self, cbtid: str) -> List[ISession]:
+        """
+        Get all WebSocket connections currently associated with the cookie.
+        """
+        if self.exists(cbtid):
+            if cbtid in self._connections:
+                return list(self._connections[cbtid])
+        return []
+
+
+class CookieStoreMemoryBacked(CookieStore):
+    """
+    Memory-backed cookie store.
+    """
+    def __init__(self, config: Dict[str, Any]):
+        CookieStore.__init__(self, config)
+
+        # transient cookie database
+        self._cookies: Dict[str, Dict[str, Any]] = {}
+
+        self.log.info('{func} cookie stored created with config=\n{config}',
+                      func=hltype(CookieStoreMemoryBacked.__init__),
+                      config=pformat(config))
+
+    def exists(self, cbtid):
+        """
+        Check if cookie with given ID exists.
+        """
+        cookie_exists = cbtid in self._cookies
+        self.log.debug("Cookie {cbtid} exists = {cookie_exists}", cbtid=cbtid, cookie_exists=cookie_exists)
+        return cookie_exists
 
     def create(self):
         """
@@ -141,14 +222,6 @@ class _CookieStore(object):
         #
         return cbtid, '%s=%s;max-age=%d' % (self._cookie_id_field, cbtid, cbtData['max_age'])
 
-    def exists(self, cbtid):
-        """
-        Check if cookie with given ID exists.
-        """
-        cookie_exists = cbtid in self._cookies
-        self.log.debug("Cookie {cbtid} exists = {cookie_exists}", cbtid=cbtid, cookie_exists=cookie_exists)
-        return cookie_exists
-
     def getAuth(self, cbtid):
         """
         Return `(authid, authrole, authmethod, authrealm, authextra)` tuple given cookie ID.
@@ -177,63 +250,8 @@ class _CookieStore(object):
             c['authmethod'] = authmethod
             c['authextra'] = authextra
 
-    def addProto(self, cbtid: str, proto: 'WampWebSocketServerProtocol') -> int:
-        """
-        Add given WebSocket connection to the set of connections associated
-        with the cookie having the given ID. Return the new count of
-        connections associated with the cookie.
-        """
-        self.log.info('{func} adding proto {proto} for cookie "{cbtid}"', proto=proto, cbtid=hlid(cbtid))
-        if self.exists(cbtid):
-            if cbtid not in self._connections:
-                self._connections[cbtid] = set()
-            self._connections[cbtid].add(proto)
-            return len(self._connections[cbtid])
-        else:
-            if cbtid in self._connections:
-                del self._connections[cbtid]
-            return 0
 
-    def dropProto(self, cbtid: str, proto: 'WampWebSocketServerProtocol'):
-        """
-        Remove given WebSocket connection from the set of connections associated
-        with the cookie having the given ID. Return the new count of
-        connections associated with the cookie.
-        """
-        self.log.info('{func} removing proto {proto} from cookie "{cbtid}"', proto=proto, cbtid=hlid(cbtid))
-
-        if self.exists(cbtid):
-            if cbtid in self._connections:
-                # remove this WebSocket connection from the set of connections
-                # associated with the same cookie
-                self._connections[cbtid].discard(proto)
-                remaining = len(self._connections[cbtid])
-                if remaining:
-                    return remaining
-                else:
-                    del self._connections[cbtid]
-        else:
-            if cbtid in self._connections:
-                del self._connections[cbtid]
-        return 0
-
-    def getProtos(self, cbtid: str) -> List['WampWebSocketServerProtocol']:
-        """
-        Get all WebSocket connections currently associated with the cookie.
-        """
-        if self.exists(cbtid):
-            if cbtid in self._connections:
-                return list(self._connections[cbtid])
-        return []
-
-
-class CookieStoreMemoryBacked(_CookieStore):
-    """
-    Memory-backed cookie store.
-    """
-
-
-class CookieStoreFileBacked(_CookieStore):
+class CookieStoreFileBacked(CookieStoreMemoryBacked):
     """
     A persistent, file-backed cookie store.
 
@@ -244,7 +262,7 @@ class CookieStoreFileBacked(_CookieStore):
     The last record for a given cookie ID is remembered in memory.
     """
     def __init__(self, cookie_file_name, config):
-        _CookieStore.__init__(self, config)
+        CookieStoreMemoryBacked.__init__(self, config)
 
         self._cookie_file_name = cookie_file_name
 
@@ -274,11 +292,11 @@ class CookieStoreFileBacked(_CookieStore):
 
                 yield d
 
-    def _persist(self, id, c, status='created'):
+    def _persist(self, cbtid, c, status='created'):
 
         self._cookie_file.write(
             json.dumps({
-                'id': id,
+                'cbtid': cbtid,
                 status: c['created'],
                 'max_age': c['max_age'],
                 'authid': c['authid'],
@@ -293,10 +311,10 @@ class CookieStoreFileBacked(_CookieStore):
     def _init_store(self):
         n = 0
         for cookie in self._iter_persisted():
-            id = cookie.pop('id')
-            if id not in self._cookies:
-                self._cookies[id] = {}
-            self._cookies[id].update(cookie)
+            cbtid = cookie.pop('cbtid')
+            if cbtid not in self._cookies:
+                self._cookies[cbtid] = {}
+            self._cookies[cbtid].update(cookie)
             n += 1
 
         self.log.info("Loaded {cnt_cookie_records} cookie records from file. Cookie store has {cnt_cookies} entries.",
@@ -304,7 +322,7 @@ class CookieStoreFileBacked(_CookieStore):
                       cnt_cookies=len(self._cookies))
 
     def create(self):
-        cbtid, header = _CookieStore.create(self)
+        cbtid, header = CookieStoreMemoryBacked.create(self)
 
         c = self._cookies[cbtid]
 
@@ -321,9 +339,9 @@ class CookieStoreFileBacked(_CookieStore):
             cookie = self._cookies[cbtid]
 
             # only set the changes and write them to the file if any of the values changed
-            if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie[
-                    'authmethod'] or authrealm != cookie['authrealm'] or authextra != cookie['authextra']:
-                _CookieStore.setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm)
+            if (authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']
+                    or authrealm != cookie['authrealm'] or authextra != cookie['authextra']):
+                CookieStoreMemoryBacked.setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm)
                 self._persist(cbtid, cookie, status='modified')
 
     def _clean_cookie_file(self):
@@ -351,16 +369,33 @@ class CookieStoreFileBacked(_CookieStore):
             os.fsync(cookie_file.fileno())
 
 
-class CookieStoreDatabaseBacked(_CookieStore):
+class CookieStoreDatabaseBacked(CookieStore):
     """
     A persistent, database-backed cookie store. This implementation uses a zLMDB
     based embedded database with Flatbuffers data serialization.
     """
-    def __init__(self, dbpath, config):
+    def __init__(self, dbpath: str, config: Dict[str, Any]):
+        """
+        Initialize a database-backed cookiestore. Example configuration:
+
+        .. code-block:: json
+
+            {
+                "type": "database",
+                "path": ".cookies",
+                "purge_on_startup": false,
+                "maxsize": 1048576,
+                "readonly": false,
+                "sync": true
+            }
+
+        :param dbpath: Filesystem path to database.
+        :param config: Database cookie store configuration.
+        """
         self.log.info('{func}: initializing database-backed cookiestore with config=\n{config}',
-                      func=hltype(self.__init__),
+                      func=hltype(CookieStoreDatabaseBacked.__init__),
                       config=pformat(config))
-        _CookieStore.__init__(self, config)
+        CookieStore.__init__(self, config)
 
         maxsize = config['store'].get('maxsize', 1024 * 2**20)
         assert type(maxsize) == int, "maxsize must be an int, was {}".format(type(maxsize))
@@ -377,7 +412,7 @@ class CookieStoreDatabaseBacked(_CookieStore):
         if config['store'].get('purge_on_startup', False):
             zlmdb.Database.scratch(dbpath)
             self.log.warn('{func}: scratched embedded database (purge_on_startup is enabled)!',
-                          func=hltype(self.__init__))
+                          func=hltype(CookieStoreDatabaseBacked.__init__))
 
         self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync)
         # self._db.__enter__()
@@ -386,11 +421,17 @@ class CookieStoreDatabaseBacked(_CookieStore):
         dbstats = self._db.stats(include_slots=True)
 
         self.log.info('{func}: database-backed cookiestore opened from dbpath="{dbpath}" - dbstats=\n{dbstats}',
-                      func=hltype(self.__init__),
+                      func=hltype(CookieStoreDatabaseBacked.__init__),
                       dbpath=hlval(dbpath),
                       dbstats=pformat(dbstats))
 
     def exists(self, cbtid: str) -> bool:
+        """
+        Check if a cookie with given value currently exists in the cookie store.
+
+        :param cbtid: Cookie value (ID) to check.
+        :return: Flag indicating whether a cookie (authenticated or not) is stored in the database.
+        """
         with self._db.begin() as txn:
             cookie_exists = self._schema.idx_cookies_by_value[txn, cbtid] is not None
         self.log.info('{func}(cbtid="{cbtid}") -> {cookie_exists}',
@@ -400,6 +441,11 @@ class CookieStoreDatabaseBacked(_CookieStore):
         return cookie_exists
 
     def create(self) -> Tuple[str, str]:
+        """
+        Create and store a new cookie (unauthenticated) in the database.
+
+        :return: A pair with Cookie value (ID, ``cbtid``) and complete Cookie HTTP header value.
+        """
         cookie = cookiestore.Cookie()
         cookie.oid = uuid.uuid4()
         cookie.created = np.datetime64(time_ns(), 'ns')
@@ -410,13 +456,19 @@ class CookieStoreDatabaseBacked(_CookieStore):
         with self._db.begin(write=True) as txn:
             self._schema.cookies[txn, cookie.oid] = cookie
 
-        self._cookies[cookie.value] = {'connections': set()}
-
         self.log.info('{func} new cookie {cbtid} stored in database', func=hltype(self.create), cbtid=cookie.value)
 
         return cookie.value, '%s=%s;max-age=%d' % (cookie.name, cookie.value, cookie.max_age)
 
     def getAuth(self, cbtid):
+        """
+        Get the authentication info (if any) for a cookie stored in the database.
+
+        :param cbtid: Cookie value (ID) to get authentication for.
+        :return: A tuple ``(authid, authrole, authmethod, authrealm, authextra)`` if the cookie exists,
+            or a tuple ``(None, None, None, None, None)`` if no cookie with given ``cbtid`` is
+            currently stored.
+        """
         with self._db.begin() as txn:
             cookie_oid = self._schema.idx_cookies_by_value[txn, cbtid]
             if cookie_oid:
@@ -444,6 +496,18 @@ class CookieStoreDatabaseBacked(_CookieStore):
 
     def setAuth(self, cbtid: str, authid: Optional[str], authrole: Optional[str], authmethod: Optional[str],
                 authextra: Optional[Dict[str, Any]], authrealm: Optional[str]):
+        """
+        Update the authentication information associated and stored for an existing cookie (if any).
+
+        :param cbtid: Cookie value (ID) to update authentication for.
+        :param authid: The WAMP authid a cookie-authenticating session is to be assigned.
+        :param authrole: The WAMP authrole a cookie-authenticating session is to join under.
+        :param authmethod: FIXME
+        :param authextra: The WAMP authentication extra data to be returned to the client performing
+            cookie-based authentication.
+        :param authrealm: The WAMP realm a cookie-authenticating session is to join.
+        :return: Flag indicating an existing cookie was modified.
+        """
 
         was_existing = False
         was_modified = False
