@@ -200,6 +200,9 @@ class CookieStoreMemoryBacked(CookieStore):
 
         # cookie tracking data
         cbtData = {
+            # cookie ID
+            'cbtid': cbtid,
+
             # UTC timestamp when the cookie was created
             'created': util.utcnow(),
 
@@ -361,7 +364,7 @@ class CookieStoreFileBacked(CookieStoreMemoryBacked):
                     continue
 
                 cookie_record = json.dumps({
-                    'id': cbtid,
+                    'cbtid': cbtid,
                     'created': cookie['created'],
                     'max_age': cookie['max_age'],
                     'authid': cookie['authid'],

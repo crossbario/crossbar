@@ -16,7 +16,7 @@ class TestCookieStore(unittest.TestCase):
     def read_cookies_from_file(self, file):
         file.seek(0)
         cookies = list(map(lambda x: json.loads(x.decode('utf-8')), file.readlines()))
-        cookies.sort(key=lambda x: x['id'])
+        cookies.sort(key=lambda x: x['cbtid'])
         return cookies
 
     def test_purge_on_startup(self):
@@ -24,7 +24,7 @@ class TestCookieStore(unittest.TestCase):
         created_time = util.utcnow()
 
         original = [{
-            "id": "thisIsAnID",
+            "cbtid": "thisIsAnID",
             "created": created_time,
             "max_age": 604800,
             "authid": "example.authid",
@@ -33,7 +33,7 @@ class TestCookieStore(unittest.TestCase):
             "authmethod": "example.authmethod",
             "authextra": {},
         }, {
-            "id": "thisIsAnotherID",
+            "cbtid": "thisIsAnotherID",
             "created": created_time,
             "max_age": 604800,
             "authid": "example.other.authid",
@@ -44,7 +44,7 @@ class TestCookieStore(unittest.TestCase):
                 "a": "b"
             },
         }, {
-            "id": "thisIsAnID",
+            "cbtid": "thisIsAnID",
             "modified": created_time,
             "max_age": 604800,
             "authid": "example.second.authid",
@@ -55,7 +55,7 @@ class TestCookieStore(unittest.TestCase):
         }]
 
         expected = [{
-            "id": "thisIsAnID",
+            "cbtid": "thisIsAnID",
             "created": created_time,
             "max_age": 604800,
             "authid": "example.second.authid",
@@ -64,7 +64,7 @@ class TestCookieStore(unittest.TestCase):
             "authmethod": "example.second.authmethod",
             "authextra": {},
         }, {
-            "id": "thisIsAnotherID",
+            "cbtid": "thisIsAnotherID",
             "created": created_time,
             "max_age": 604800,
             "authid": "example.other.authid",
@@ -89,7 +89,7 @@ class TestCookieStore(unittest.TestCase):
     def test_purge_on_startup_default_is_false(self):
 
         original = [{
-            "id": "thisIsAnID",
+            "cbtid": "thisIsAnID",
             "created": "2016-03-02T20:23:00.000Z",
             "max_age": 604800,
             "authid": "example.authid",
@@ -98,7 +98,7 @@ class TestCookieStore(unittest.TestCase):
             "authmethod": "example.authmethod",
             "authextra": {},
         }, {
-            "id": "thisIsAnID",
+            "cbtid": "thisIsAnID",
             "modified": "2016-03-02T20:24:00.000Z",
             "max_age": 604800,
             "authid": "example.second.authid",
@@ -107,7 +107,7 @@ class TestCookieStore(unittest.TestCase):
             "authmethod": "example.second.authmethod",
             "authextra": {},
         }, {
-            "id": "thisIsAnotherID",
+            "cbtid": "thisIsAnotherID",
             "created": "2016-03-02T20:23:30.000Z",
             "max_age": 604800,
             "authid": "example.other.authid",
@@ -135,7 +135,7 @@ class TestCookieStore(unittest.TestCase):
         expired_time = util.utcstr(datetime.fromtimestamp(now - max_age - 10))
 
         original = [{
-            "id": "thisIsAnID",
+            "cbtid": "thisIsAnID",
             "created": expired_time,
             "max_age": max_age,
             "authid": "example.authid",
@@ -144,7 +144,7 @@ class TestCookieStore(unittest.TestCase):
             "authmethod": "example.authmethod",
             "authextra": {},
         }, {
-            "id": "thisIsAnotherID",
+            "cbtid": "thisIsAnotherID",
             "created": valid_time,
             "max_age": max_age,
             "authid": "example.other.authid",
@@ -153,7 +153,7 @@ class TestCookieStore(unittest.TestCase):
             "authmethod": "example.other.authmethod",
             "authextra": {},
         }, {
-            "id": "thisIsAnID",
+            "cbtid": "thisIsAnID",
             "modified": valid_time,
             "max_age": max_age,
             "authid": "example.second.authid",
@@ -165,7 +165,7 @@ class TestCookieStore(unittest.TestCase):
 
         expected = [
             {
-                "id": "thisIsAnotherID",
+                "cbtid": "thisIsAnotherID",
                 "created": valid_time,
                 "max_age": max_age,
                 "authid": "example.other.authid",

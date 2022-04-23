@@ -99,6 +99,9 @@ test_fixme:
 test_cb_proxy:
 	pytest -sv --no-install test/functests/cbtests/test_cb_proxy.py
 
+test_cb_cookie:
+	trial crossbar.router.test.test_cookiestore
+
 test_wap:
 	trial crossbar.webservice.test
 
