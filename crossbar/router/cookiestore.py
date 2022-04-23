@@ -76,12 +76,12 @@ class CookieStore(object):
 
     def parse(self, headers):
         """
-        Parse HTTP header for cookie. If cookie is found, return cookie ID,
+        Parse HTTP request header for cookie. If cookie is found, return cookie ID,
         else return None.
         """
-        self.log.info('{func} parsing cookie from {headers}', func=hltype(self.parse), headers=headers)
+        self.log.debug('{func} parsing cookie from {headers}', func=hltype(self.parse), headers=headers)
 
-        # see if there already is a cookie set
+        # see if there already is a cookie set in the HTTP request
         if 'cookie' in headers:
             try:
                 cookie = http_cookies.SimpleCookie()
@@ -442,12 +442,13 @@ class CookieStoreDatabaseBacked(CookieStore):
         :param cbtid: Cookie value (ID) to check.
         :return: Flag indicating whether a cookie (authenticated or not) is stored in the database.
         """
+        # check if a cookie with the given value exists
         with self._db.begin() as txn:
             cookie_exists = self._schema.idx_cookies_by_value[txn, cbtid] is not None
-        self.log.info('{func}(cbtid="{cbtid}") -> {cookie_exists}',
-                      func=hltype(self.exists),
-                      cbtid=hlval(cbtid),
-                      cookie_exists=hlval(cookie_exists))
+        self.log.debug('{func}(cbtid="{cbtid}") -> {cookie_exists}',
+                       func=hltype(self.exists),
+                       cbtid=hlval(cbtid),
+                       cookie_exists=hlval(cookie_exists))
         return cookie_exists
 
     def create(self) -> Tuple[str, str]:
@@ -456,6 +457,7 @@ class CookieStoreDatabaseBacked(CookieStore):
 
         :return: A pair with Cookie value (ID, ``cbtid``) and complete Cookie HTTP header value.
         """
+        # create new cookie
         cookie = cookiestore.Cookie()
         cookie.oid = uuid.uuid4()
         cookie.created = np.datetime64(time_ns(), 'ns')
@@ -463,6 +465,7 @@ class CookieStoreDatabaseBacked(CookieStore):
         cookie.name = self._cookie_id_field
         cookie.value = util.newid(self._cookie_id_field_length)
 
+        # write cookie to database
         with self._db.begin(write=True) as txn:
             self._schema.cookies[txn, cookie.oid] = cookie
 
@@ -470,7 +473,9 @@ class CookieStoreDatabaseBacked(CookieStore):
 
         return cookie.value, '%s=%s;max-age=%d' % (cookie.name, cookie.value, cookie.max_age)
 
-    def getAuth(self, cbtid):
+    def getAuth(
+            self,
+            cbtid: str) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[Dict[str, Any]]]:
         """
         Get the authentication info (if any) for a cookie stored in the database.
 
@@ -480,14 +485,14 @@ class CookieStoreDatabaseBacked(CookieStore):
             currently stored.
         """
         with self._db.begin() as txn:
+            # find cookie OID by cookie value
             cookie_oid = self._schema.idx_cookies_by_value[txn, cbtid]
             if cookie_oid:
+                # if we found a cookie OID, read the actual cookie from database
                 cookie = self._schema.cookies[txn, cookie_oid]
                 assert cookie
                 cbtid = cookie.value
-
-                # FIXME: cookie.authmethod
-                cookie_auth_info = cookie.authid, cookie.authrole, cookie.authenticated_authmethod, cookie.authrealm, cookie.authextra
+                cookie_auth_info = cookie.authid, cookie.authrole, cookie.authmethod, cookie.authrealm, cookie.authextra
             else:
                 cbtid = None
                 cookie_auth_info = None, None, None, None, None
@@ -505,16 +510,17 @@ class CookieStoreDatabaseBacked(CookieStore):
         return cookie_auth_info
 
     def setAuth(self, cbtid: str, authid: Optional[str], authrole: Optional[str], authmethod: Optional[str],
-                authextra: Optional[Dict[str, Any]], authrealm: Optional[str]):
+                authextra: Optional[Dict[str, Any]], authrealm: Optional[str]) -> bool:
         """
         Update the authentication information associated and stored for an existing cookie (if any).
 
         :param cbtid: Cookie value (ID) to update authentication for.
         :param authid: The WAMP authid a cookie-authenticating session is to be assigned.
         :param authrole: The WAMP authrole a cookie-authenticating session is to join under.
-        :param authmethod: FIXME
+        :param authmethod: The WAMP authentication method to be returned to the client performing
+            this cookie-based authentication.
         :param authextra: The WAMP authentication extra data to be returned to the client performing
-            cookie-based authentication.
+            this cookie-based authentication.
         :param authrealm: The WAMP realm a cookie-authenticating session is to join.
         :return: Flag indicating an existing cookie was modified.
         """
@@ -524,6 +530,7 @@ class CookieStoreDatabaseBacked(CookieStore):
         with self._db.begin(write=True) as txn:
             cookie_oid = self._schema.idx_cookies_by_value[txn, cbtid]
             if cookie_oid:
+                # read current cookie from database
                 cookie = self._schema.cookies[txn, cookie_oid]
                 assert cookie
                 was_existing = True
@@ -531,13 +538,10 @@ class CookieStoreDatabaseBacked(CookieStore):
                         or authrealm != cookie.authrealm or authextra != cookie.authextra):
                     cookie.authid = authid
                     cookie.authrole = authrole
-
-                    # FIXME
-                    # cookie.authmethod = authmethod
-                    cookie.authenticated_authmethod = authmethod
-
+                    cookie.authmethod = authmethod
                     cookie.authrealm = authrealm
                     cookie.authextra = authextra
+                    # write updated cookie to database
                     self._schema.cookies[txn, cookie.oid] = cookie
                     was_modified = True
 

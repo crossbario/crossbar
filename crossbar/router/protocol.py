@@ -180,6 +180,8 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
     def onConnect(self, request):
 
+        self.log.info('{func}(request={request})', func=hltype(self.onConnect), request=request)
+
         if self.factory.debug_traffic:
             from twisted.internet import reactor
 
@@ -204,6 +206,10 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
         #
         protocol, headers = websocket.WampWebSocketServerProtocol.onConnect(self, request)
 
+        self.log.info('{func}: proceed with WebSocket opening handshake for WebSocket subprotocol "{protocol}"',
+                      func=hltype(self.onConnect),
+                      protocol=hlval(protocol))
+
         try:
 
             self._origin = request.origin
@@ -226,7 +232,11 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # try to parse an already set cookie from HTTP request headers
                 self._cbtid = self.factory._cookiestore.parse(request.headers)
 
-                # if no cookie is set, create a new one ..
+                self.log.info('{func}: parsed cookie cbtid {cbtid} from HTTP request headers',
+                              func=hltype(self.onConnect),
+                              cbtid=hlval(self._cbtid))
+
+                # if no cookie is set, or it doesn't exist in our database, create a new cookie
                 if self._cbtid is None or not self.factory._cookiestore.exists(self._cbtid):
 
                     self._cbtid, headers['Set-Cookie'] = self.factory._cookiestore.create()
@@ -241,9 +251,13 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         if 'same_site' in self.factory._config['cookie']:
                             headers['Set-Cookie'] += ';SameSite=' + self.factory._config['cookie']['same_site']
 
-                    self.log.info("Setting new cookie: {cookie}", cookie=headers['Set-Cookie'])
+                    self.log.info('{func}: setting new cookie: {cookie}',
+                                  func=hltype(self.onConnect),
+                                  cookie=headers['Set-Cookie'])
                 else:
-                    self.log.info("Cookie already set and stored")
+                    self.log.info('{func}: cookie {cbtid} already set and stored',
+                                  func=hltype(self.onConnect),
+                                  cbtid=hlval(self._cbtid))
 
                 # add this WebSocket connection to the set of connections
                 # associated with the same cookie
@@ -272,11 +286,13 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                             authrealm=self._authrealm)
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
-                        self.log.info("Cookie-based authentication enabled, but cookie isn't authenticated yet")
+                        self.log.info(
+                            "Cookie-based authentication enabled, but cookie isn't authenticated yet on WebSocket connection {ws}",
+                            ws=self)
                 else:
-                    self.log.debug("Cookie-based authentication disabled")
+                    self.log.info("Cookie-based authentication disabled on WebSocket connection {ws}", ws=self)
             else:
-                self.log.debug("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
+                self.log.info("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
