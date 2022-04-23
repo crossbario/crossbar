@@ -491,16 +491,16 @@ class CookieStoreDatabaseBacked(CookieStore):
                 # if we found a cookie OID, read the actual cookie from database
                 cookie = self._schema.cookies[txn, cookie_oid]
                 assert cookie
-                cbtid = cookie.value
+                cbtid_ = cookie.value
                 cookie_auth_info = cookie.authid, cookie.authrole, cookie.authmethod, cookie.authrealm, cookie.authextra
             else:
-                cbtid = None
+                cbtid_ = None
                 cookie_auth_info = None, None, None, None, None
 
-        if cbtid:
+        if cbtid_:
             self.log.info('{func} cookie auth info for "{cbtid}" retrieved: {cookie_auth_info}',
                           func=hltype(self.getAuth),
-                          cbtid=hlid(cbtid),
+                          cbtid=hlid(cbtid_),
                           cookie_auth_info=cookie_auth_info)
         else:
             self.log.info('{func} no cookie for "{cbtid}" stored in cookiestore database',
