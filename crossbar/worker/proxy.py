@@ -291,8 +291,8 @@ class ProxyFrontendSession(object):
         # backend).
         self.log.info('Proxy frontend session accepted ({accept}) [{func}]', func=hltype(self._accept), accept=accept)
 
-        if (hasattr(self.transport, '_cbtid') and hasattr(self.transport.factory, '_cookiestore') and
-                self.transport.factory._cookiestore):
+        if (hasattr(self.transport, '_cbtid') and hasattr(self.transport.factory, '_cookiestore')
+                and self.transport.factory._cookiestore):
             self.transport.factory._cookiestore.setAuth(self.transport._cbtid, accept.authid, accept.authrole,
                                                         accept.authmethod, accept.authextra, accept.realm)
 
