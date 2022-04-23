@@ -291,6 +291,11 @@ class ProxyFrontendSession(object):
         # backend).
         self.log.info('Proxy frontend session accepted ({accept}) [{func}]', func=hltype(self._accept), accept=accept)
 
+        if (hasattr(self.transport, '_cbtid') and hasattr(self.transport.factory, '_cookiestore')
+                and self.transport.factory._cookiestore):
+            self.transport.factory._cookiestore.setAuth(self.transport._cbtid, accept.authid, accept.authrole,
+                                                        accept.authmethod, accept.authextra, accept.realm)
+
         result = Deferred()
 
         @inlineCallbacks
@@ -409,9 +414,10 @@ class ProxyFrontendSession(object):
         self._pending_session_id = util.id()
         self._goodbye_sent = False
 
-        extra_auth_methods = self._controller.personality.EXTRA_AUTH_METHODS
+        realm = msg.realm
 
         # allow "Personality" classes to add authmethods
+        extra_auth_methods = self._controller.personality.EXTRA_AUTH_METHODS
         authmethods = list(extra_auth_methods.keys()) + (msg.authmethods or ['anonymous'])
 
         # if the client had a reassigned realm during authentication, restore it from the cookie
@@ -432,11 +438,12 @@ class ProxyFrontendSession(object):
         # already authenticated, eg via HTTP-cookie or TLS-client-certificate authentication
         if self.transport._authid is not None and (self.transport._authmethod == 'trusted'
                                                    or self.transport._authprovider in authmethods):
-            msg.realm = self.transport._realm
+            msg.realm = realm
             msg.authid = self.transport._authid
             msg.authrole = self.transport._authrole
+            msg.authextra = self.transport._authextra
 
-        details = types.HelloDetails(realm=msg.realm,
+        details = types.HelloDetails(realm=realm,
                                      authmethods=authmethods,
                                      authid=msg.authid,
                                      authrole=msg.authrole,
@@ -490,29 +497,54 @@ class ProxyFrontendSession(object):
                                authmethod=authmethod)
                 continue
 
-            # create instance of authenticator using authenticator class for the respective authmethod
-            authklass = extra_auth_methods[authmethod] if authmethod in extra_auth_methods else AUTHMETHOD_MAP[
-                authmethod]
-            self._pending_auth = authklass(
-                self._pending_session_id,
-                self.transport._transport_info,
-                self._controller,
-                auth_config[authmethod],
-            )
-            try:
-                # call into authenticator for processing the HELLO message
-                hello_result = yield as_future(self._pending_auth.hello, msg.realm, details)
-            except Exception as e:
-                self.log.failure()
-                self.transport.send(
-                    message.Abort(ApplicationError.AUTHENTICATION_FAILED,
-                                  message='Frontend connection accept failed ({})'.format(e)))
-                return
-            self.log.info('Processed authmethod "{authmethod}" using {authklass}: {hello_result} [{func}]',
-                          func=hltype(self._process_Hello),
-                          authmethod=authmethod,
-                          authklass=authklass,
-                          hello_result=hello_result)
+            if authmethod == 'cookie' and hasattr(self.transport,
+                                                  "_cbtid") and self.transport._cbtid and self.transport._authid:
+                hello_result = types.Accept(realm=realm,
+                                            authid=self.transport._authid,
+                                            authrole=self.transport._authrole,
+                                            authmethod=self.transport._authmethod,
+                                            authprovider='cookie',
+                                            authextra=self.transport._authextra)
+                self.log.info('{func}: authenticating client using cookie-authentication, hello_result={hello_result}',
+                              func=hltype(self._process_Hello),
+                              hello_result=hello_result)
+
+            else:
+                # create instance of authenticator using authenticator class for the respective authmethod
+                authklass = extra_auth_methods[authmethod] if authmethod in extra_auth_methods else AUTHMETHOD_MAP[
+                    authmethod]
+
+                if authklass is None:
+                    self.log.warn('{func}: skipping authenticator for authmethod "{authmethod}"',
+                                  func=hltype(self._process_Hello),
+                                  authmethod=hlval(authmethod))
+                    self.log.warn()
+                    continue
+
+                self.log.info('{func}: instantiating authenticator class {authklass} for authmethod "{authmethod}"',
+                              func=hltype(self._process_Hello),
+                              authklass=hltype(authklass),
+                              authmethod=hlval(authmethod))
+                self._pending_auth = authklass(
+                    self._pending_session_id,
+                    self.transport._transport_info,
+                    self._controller,
+                    auth_config[authmethod],
+                )
+                try:
+                    # call into authenticator for processing the HELLO message
+                    hello_result = yield as_future(self._pending_auth.hello, realm, details)
+                except Exception as e:
+                    self.log.failure()
+                    self.transport.send(
+                        message.Abort(ApplicationError.AUTHENTICATION_FAILED,
+                                      message='Frontend connection accept failed ({})'.format(e)))
+                    return
+                self.log.info('Processed authmethod "{authmethod}" using {authklass}: {hello_result} [{func}]',
+                              func=hltype(self._process_Hello),
+                              authmethod=authmethod,
+                              authklass=authklass,
+                              hello_result=hello_result)
 
             # if the frontend session is accepted right away (eg when doing "anonymous" authentication), process the
             # frontend accept ..

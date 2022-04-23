@@ -9,6 +9,7 @@ import os
 import io
 import zipfile
 import hashlib
+from pprint import pformat
 
 from urllib.parse import urlparse
 
@@ -23,6 +24,8 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.python.compat import intToBytes, networkString
 from twisted.web import server, resource
 from twisted.web.static import http, NoRangeStaticProducer, loadMimeTypes
+
+from autobahn.util import hlval
 
 from crossbar.webservice.base import RouterWebService
 from crossbar.common.checkconfig import InvalidConfigException, check_dict_args
@@ -128,8 +131,9 @@ class ZipArchiveResource(resource.Resource):
         if self._default_file:
             self._default_file = self._default_file.encode('utf-8')
 
-        self.log.info('ZipArchiveResource: {zlen} files in ZIP archive', zlen=len(self._zipfiles))
-        self.log.debug('ZipArchiveResource files: {filelist}', filelist=sorted(self._zipfiles.keys()))
+        self.log.info('ZipArchiveResource initialized with {zlen} files from ZIP archive:\n{filelist}',
+                      zlen=len(self._zipfiles),
+                      filelist=pformat(sorted(self._zipfiles.keys())))
 
     def getChild(self, path, request, retry=True):
         self.log.debug(
@@ -139,17 +143,25 @@ class ZipArchiveResource(resource.Resource):
             postpath=request.postpath,
             request=request)
 
-        search_path = b'/'.join([path] + request.postpath).decode('utf8')
+        # complete request URI
+        request_path = b'/'.join([path] + request.postpath).decode('utf8')
 
+        # local search path
+        search_path = request_path
+
+        # possibly apply default object name
         if (search_path == '' or search_path.endswith('/')) and self._default_object:
             search_path += self._default_object
 
+        # possibly apply local object (=archive) prefix
         if self._object_prefix:
             search_path = os.path.join(self._object_prefix, search_path)
 
-        self.log.debug('ZipArchiveResource.getChild - effective search path: "{}"'.format(search_path))
+        found = search_path in self._zipfiles
+        cached = False
+        default = False
 
-        if search_path in self._zipfiles:
+        if found:
             # check cache
             data = self._zipfiles[search_path]
 
@@ -171,6 +183,7 @@ class ZipArchiveResource(resource.Resource):
                     self.log.debug('cache archive not loaded')
                     return resource.NoResource()
             else:
+                cached = True
                 self.log.debug(
                     'cache hit: contents for file {search_path} from archive {archive_file} cached in memory',
                     search_path=search_path,
@@ -185,13 +198,23 @@ class ZipArchiveResource(resource.Resource):
 
             # create and return resource that returns the file contents
             res = ZipFileResource(fd, file_size, content_type)
-            return res
 
         else:
             if self._default_file and retry:
-                return self.getChild(self._default_file, request, False)
+                res = self.getChild(self._default_file, request, False)
+                default = True
             else:
-                return resource.NoResource()
+                res = resource.NoResource()
+
+        self.log.info(
+            'ZipArchiveResource processed HTTP/GET for request_path="{request_path}", search_path="{search_path}": found={found}, cached={cached}, default={default}',
+            request_path=hlval(request_path),
+            search_path=hlval(search_path),
+            found=hlval(found),
+            cached=hlval(cached),
+            default=hlval(default))
+
+        return res
 
 
 class RouterWebServiceArchive(RouterWebService):

@@ -89,7 +89,7 @@ test_quick:
 	tox -e  sphinx,flake8,mypy,yapf .
 
 # test all targets on the host via tox
-test:
+test_all:
 	tox -e  sphinx,flake8,mypy,yapf,bandit,py39-pinned-trial,py39-unpinned-trial,py39-abtrunk-trial,py39-examples,pytest,functests-cb,functests-cfc,py39-api-1,py39-cli-0,py39-cli-1,py39-cli-2,py39-cli-3 .
 
 # test all broken (FIXME) targets
@@ -98,6 +98,9 @@ test_fixme:
 
 test_cb_proxy:
 	pytest -sv --no-install test/functests/cbtests/test_cb_proxy.py
+
+test_cb_cookie:
+	trial crossbar.router.test.test_cookiestore
 
 test_wap:
 	trial crossbar.webservice.test
@@ -153,3 +156,6 @@ gource:
 
 find_uris:
 	python find-uris.py
+
+find_registers:
+	find crossbar -name "*.py" -exec grep -Hi -n2 "@wamp.register" {} \;

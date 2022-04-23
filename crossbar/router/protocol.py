@@ -6,7 +6,6 @@
 #####################################################################################
 
 import os
-import traceback
 import crossbar
 import binascii
 
@@ -18,10 +17,11 @@ from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
 from autobahn.websocket.types import ConnectionDeny
+from autobahn.util import hlval, hltype
 
 from txaio import make_logger
 
-from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked
+from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked, CookieStoreDatabaseBacked
 
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
@@ -180,6 +180,8 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
     def onConnect(self, request):
 
+        self.log.info('{func}(request={request})', func=hltype(self.onConnect), request=request)
+
         if self.factory.debug_traffic:
             from twisted.internet import reactor
 
@@ -204,6 +206,10 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
         #
         protocol, headers = websocket.WampWebSocketServerProtocol.onConnect(self, request)
 
+        self.log.info('{func}: proceed with WebSocket opening handshake for WebSocket subprotocol "{protocol}"',
+                      func=hltype(self.onConnect),
+                      protocol=hlval(protocol))
+
         try:
 
             self._origin = request.origin
@@ -226,8 +232,12 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # try to parse an already set cookie from HTTP request headers
                 self._cbtid = self.factory._cookiestore.parse(request.headers)
 
-                # if no cookie is set, create a new one ..
-                if self._cbtid is None:
+                self.log.info('{func}: parsed cookie cbtid {cbtid} from HTTP request headers',
+                              func=hltype(self.onConnect),
+                              cbtid=hlval(self._cbtid))
+
+                # if no cookie is set, or it doesn't exist in our database, create a new cookie
+                if self._cbtid is None or not self.factory._cookiestore.exists(self._cbtid):
 
                     self._cbtid, headers['Set-Cookie'] = self.factory._cookiestore.create()
 
@@ -241,9 +251,13 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         if 'same_site' in self.factory._config['cookie']:
                             headers['Set-Cookie'] += ';SameSite=' + self.factory._config['cookie']['same_site']
 
-                    self.log.debug("Setting new cookie: {cookie}", cookie=headers['Set-Cookie'])
+                    self.log.info('{func}: setting new cookie: {cookie}',
+                                  func=hltype(self.onConnect),
+                                  cookie=headers['Set-Cookie'])
                 else:
-                    self.log.debug("Cookie already set")
+                    self.log.info('{func}: cookie {cbtid} already set and stored',
+                                  func=hltype(self.onConnect),
+                                  cbtid=hlval(self._cbtid))
 
                 # add this WebSocket connection to the set of connections
                 # associated with the same cookie
@@ -262,7 +276,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         # there is a cookie set, and the cookie was previously successfully authenticated,
                         # so immediately authenticate the client using that information
                         self._authprovider = 'cookie'
-                        self.log.debug(
+                        self.log.info(
                             "Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
                             cookiename=self.factory._cookiestore._cookie_id_field,
                             cbtid=self._cbtid,
@@ -272,11 +286,13 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                             authrealm=self._authrealm)
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
-                        self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")
+                        self.log.info(
+                            "Cookie-based authentication enabled, but cookie isn't authenticated yet on WebSocket connection {ws}",
+                            ws=self)
                 else:
-                    self.log.debug("Cookie-based authentication disabled")
+                    self.log.info("Cookie-based authentication disabled on WebSocket connection {ws}", ws=self)
             else:
-                self.log.debug("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
+                self.log.info("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
@@ -313,10 +329,10 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             # accept the WebSocket connection, speaking subprotocol `protocol`
             # and setting HTTP headers `headers`
             #
-            return (protocol, headers)
+            return protocol, headers
 
-        except Exception:
-            traceback.print_exc()
+        except:
+            self.log.failure()
 
     def onOpen(self):
         if False:
@@ -412,7 +428,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import FlatBuffersSerializer
                     serializers.append(FlatBuffersSerializer(batched=True))
                     serializers.append(FlatBuffersSerializer())
-                except ImportError:
+                except ImportError('FlatBuffersSerializer'):
                     self.log.warn("Warning: could not load WAMP-FlatBuffers serializer")
                 else:
                     sers.discard('flatbuffers')
@@ -423,7 +439,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import CBORSerializer
                     serializers.append(CBORSerializer(batched=True))
                     serializers.append(CBORSerializer())
-                except ImportError:
+                except ImportError('CBORSerializer'):
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
                     sers.discard('cbor')
@@ -434,7 +450,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import MsgPackSerializer
                     serializers.append(MsgPackSerializer(batched=True))
                     serializers.append(MsgPackSerializer())
-                except ImportError:
+                except ImportError('MsgPackSerializer'):
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
                     sers.discard('msgpack')
@@ -445,7 +461,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import UBJSONSerializer
                     serializers.append(UBJSONSerializer(batched=True))
                     serializers.append(UBJSONSerializer())
-                except ImportError:
+                except ImportError('UBJSONSerializer'):
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
                 else:
                     sers.discard('ubjson')
@@ -456,7 +472,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import JsonSerializer
                     serializers.append(JsonSerializer(batched=True))
                     serializers.append(JsonSerializer())
-                except ImportError:
+                except ImportError('JsonSerializer'):
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
                     sers.discard('json')
@@ -486,26 +502,40 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         # Jinja2 templates for 404 etc
         self._templates = templates
 
-        # cookie tracking
+        # enable cookie tracking if a cookie store is configured
         if 'cookie' in config:
-            cookie_store_type = config['cookie']['store']['type']
+            # cookie store configuration item
+            cookie_config = config['cookie']
 
-            # ephemeral, memory-backed cookie store
+            # cookie store
+            cookie_store_config = cookie_config['store']
+            cookie_store_type = cookie_store_config['type']
+
+            # setup ephemeral, memory-backed cookie store
             if cookie_store_type == 'memory':
-                self._cookiestore = CookieStoreMemoryBacked(config['cookie'])
+                self._cookiestore = CookieStoreMemoryBacked(cookie_config)
                 self.log.info("Memory-backed cookie store active.")
 
-            # persistent, file-backed cookie store
+            # setup persistent, file-backed cookie store
             elif cookie_store_type == 'file':
-                cookie_store_file = os.path.abspath(os.path.join(self._cbdir, config['cookie']['store']['filename']))
-                self._cookiestore = CookieStoreFileBacked(cookie_store_file, config['cookie'])
+                cookie_store_file = os.path.abspath(os.path.join(self._cbdir, cookie_store_config['filename']))
+                self._cookiestore = CookieStoreFileBacked(cookie_store_file, cookie_config)
                 self.log.info("File-backed cookie store active {cookie_store_file}",
-                              cookie_store_file=cookie_store_file)
+                              cookie_store_file=hlval(cookie_store_file))
+
+            # setup persistent, database-backed cookie store
+            elif cookie_store_type == 'database':
+                cookie_dbpath = os.path.abspath(os.path.join(self._cbdir, cookie_store_config['path']))
+                self._cookiestore = CookieStoreDatabaseBacked(cookie_dbpath, cookie_config)
+                self.log.info("Database-backed cookie store active! [cookiestore={cookiestore}]",
+                              cookiestore=hltype(CookieStoreDatabaseBacked))
 
             else:
                 # should not arrive here as the config should have been checked before
-                raise Exception("logic error")
+                raise NotImplementedError('{}: implementation of cookiestore of type "{}" missing'.format(
+                    self.__class__.__name__, cookie_store_type))
         else:
+            # this disables cookie tracking (both with or without WAMP-cookie authentication)
             self._cookiestore = None
 
         # set WebSocket options

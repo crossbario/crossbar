@@ -636,11 +636,13 @@ def check_transport_auth_anonymous(config):
             format(config['type']))
 
     if config['type'] == 'static':
-        check_dict_args({
-            'type': (True, [str]),
-            'role': (False, [str]),
-            'authid': (False, [str]),
-        }, config, "WAMP-Anonymous configuration")
+        check_dict_args(
+            {
+                'type': (True, [str]),
+                'realm': (False, [str]),
+                'role': (False, [str]),
+                'authid': (False, [str]),
+            }, config, "WAMP-Anonymous configuration")
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
@@ -706,9 +708,34 @@ def check_cookie_store_file(store):
     """
     check_dict_args({
         'type': (True, [str]),
-        'filename': (False, [str]),
+        'filename': (True, [str]),
         'purge_on_startup': (False, [bool])
-    }, store, "WebSocket memory-backed cookie store configuration")
+    }, store, "WebSocket file-backed cookie store configuration")
+
+
+def check_cookie_store_database(store):
+    """
+    Checking database-backed cookie store configuration.
+
+    .. code-block:: json
+
+        "store": {
+            "type": "database",
+            "path": ".cookies",
+            "maxsize": 1048576,
+            "readonly": false,
+            "sync": true
+        }
+    """
+    check_dict_args(
+        {
+            'type': (True, [str]),
+            'path': (True, [str]),
+            'purge_on_startup': (False, [bool]),
+            'maxsize': (False, [int]),
+            'readonly': (False, [bool]),
+            'sync': (False, [bool]),
+        }, store, "WebSocket database-backed cookie store configuration")
 
 
 def check_transport_cookie(personality, cookie, ignore=[]):
@@ -754,7 +781,7 @@ def check_transport_cookie(personality, cookie, ignore=[]):
                 "missing mandatory attribute 'type' in cookie store configuration\n\n{}".format(pformat(cookie)))
 
         store_type = store['type']
-        if store_type not in ['memory', 'file'] + ignore:
+        if store_type not in ['memory', 'file', 'database'] + ignore:
             raise InvalidConfigException(
                 "invalid attribute value '{}' for attribute 'type' in cookie store item\n\n{}".format(
                     store_type, pformat(cookie)))
@@ -763,6 +790,8 @@ def check_transport_cookie(personality, cookie, ignore=[]):
             check_cookie_store_memory(store)
         elif store_type == 'file':
             check_cookie_store_file(store)
+        elif store_type == 'database':
+            check_cookie_store_database(store)
         elif store_type in ignore:
             pass
         else:
@@ -2623,22 +2652,33 @@ def check_router_component(personality, component, ignore=[]):
             {
                 'id': (False, [str]),
                 'type': (True, [str]),
+                # we MUST have a realm to embed the session in the right router realm
                 'realm': (True, [str]),
+                # we MAY be given an explicit role to embed the session under (since this is trusted setup anyways)
                 'role': (False, [str]),
                 'references': (False, [Sequence]),
                 'classname': (True, [str]),
+                # any user extra configuration to forward
                 'extra': (False, None),
-            }, component, "invalid component configuration")
+            },
+            component,
+            "invalid component configuration")
 
     elif ctype == 'function':
         check_dict_args(
             {
                 'id': (False, [str]),
                 'type': (True, [str]),
+                # we MUST have a realm to embed the session in the right router realm
                 'realm': (True, [str]),
+                # we MAY be given an explicit role to embed the session under (since this is trusted setup anyways)
                 'role': (False, [str]),
                 'callbacks': (False, [dict]),
-            }, component, "invalid component configuration")
+                # any user extra configuration to forward
+                'extra': (False, None),
+            },
+            component,
+            "invalid component configuration")
         if 'callbacks' in component:
             valid_callbacks = ['join', 'leave', 'connect', 'disconnect']
             for name in component['callbacks'].keys():
@@ -2709,23 +2749,37 @@ def check_container_component(personality, component, ignore=[]):
             {
                 'id': (False, [str]),
                 'type': (True, [str]),
+                # we MUST be given a realm for the container to know where to join
                 'realm': (True, [str]),
+                # the role is assigned via WAMP-authentication!
+                # 'role': (False, [str]),
+                # the transport to the local (or remote) router worker
                 'transport': (True, [Mapping]),
                 'classname': (True, [str]),
+                # any user extra configuration to forward
                 'extra': (False, None),
-            }, component, "invalid component configuration")
+            },
+            component,
+            "invalid component configuration")
 
     elif ctype == 'function':
         check_dict_args(
             {
                 'id': (False, [str]),
                 'type': (True, [str]),
+                # we MUST be given a realm for the container to know where to join
                 'realm': (True, [str]),
+                # the role is assigned via WAMP-authentication!
+                # 'role': (False, [str]),
+                # the transport to the local (or remote) router worker
                 'transport': (True, [Mapping]),
                 'auth': (True, [Mapping]),
-                'role': (False, [str]),
                 'callbacks': (False, [dict]),
-            }, component, "invalid component configuration")
+                # any user extra configuration to forward
+                'extra': (False, None),
+            },
+            component,
+            "invalid component configuration")
         if 'callbacks' in component:
             valid_callbacks = ['join', 'leave', 'connect', 'disconnect']
             for name in component['callbacks'].keys():
