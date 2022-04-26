@@ -360,11 +360,25 @@ class WorkerController(NativeProcess):
         return res
 
     @inlineCallbacks
-    def sign_challenge(self, challenge: Challenge, channel_id):
-        result = yield self.call("crossbar.sign_challenge", challenge.method, challenge.extra, channel_id)
+    def sign_challenge(self, challenge: Challenge, channel_id, channel_id_type='tls-unique'):
+        """
+        Call into node controller (over secure controller-worker pipe) to sign challenge with node key.
+
+        :param challenge:
+        :param channel_id:
+        :param channel_id_type:
+        :return:
+        """
+        result = yield self.call("crossbar.sign_challenge", challenge.method, challenge.extra, channel_id,
+                                 channel_id_type)
         return result
 
     @inlineCallbacks
     def get_public_key(self):
+        """
+        Call into node controller (over secure controller-worker pipe) to get the node's public key.
+
+        :return:
+        """
         result = yield self.call("crossbar.get_public_key")
         return result
