@@ -771,9 +771,9 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
     :return: A deferred that resolves with a proxy backend session that is joined on the realm,
         under the authrole, as the proxy frontend session.
     """
-    log.debug('Connecting to backend with config [{func}]\n{config}',
-              func=hltype(make_backend_connection),
-              config=pformat(backend_config))
+    log.info('Connecting to backend with config [{func}]\n{config}',
+             func=hltype(make_backend_connection),
+             config=pformat(backend_config))
 
     cbdir = controller.cbdir
 
@@ -794,11 +794,15 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
 
         # forward WAMP session information of the incoming proxy session
         authextra = {
+            'proxy_realm': frontend_session.realm,
             'proxy_authid': frontend_session.authid,
             'proxy_authrole': frontend_session.authrole,
-            'proxy_realm': frontend_session.realm,
             'proxy_authextra': frontend_session.authextra,
+            'proxy_transport_details': frontend_session.transport.transport_details
         }
+        log.info('{func}::create_session() connecting to backend with authextra=\n{authextra}',
+                 func=hltype(make_backend_connection),
+                 authextra=pformat(authextra))
 
         # if auth is configured and includes "cryptosign-proxy", always prefer
         # that and connect to the backend node authenticating with WAMP-cryptosign
@@ -1555,6 +1559,12 @@ class ProxyController(TransportController):
 
         # if auth uses cryptosign but has no privkey, we'd ideally
         # insert the node's private key
+
+        # frontend.transport.authid,
+        print('6' * 100, frontend, frontend.realm, frontend.authid, frontend.transport,
+              frontend.transport.transport_details)
+        print(frontend.transport.transport_details, type(frontend.transport.transport_details))
+        print('7' * 100, frontend.transport, pformat(frontend.transport._transport_info))
 
         if authrole is None:
             if len(self._routes.get(realm, set())) != 1:
