@@ -1560,12 +1560,6 @@ class ProxyController(TransportController):
         # if auth uses cryptosign but has no privkey, we'd ideally
         # insert the node's private key
 
-        # frontend.transport.authid,
-        print('6' * 100, frontend, frontend.realm, frontend.authid, frontend.transport,
-              frontend.transport.transport_details)
-        print(frontend.transport.transport_details, type(frontend.transport.transport_details))
-        print('7' * 100, frontend.transport, pformat(frontend.transport._transport_info))
-
         if authrole is None:
             if len(self._routes.get(realm, set())) != 1:
                 raise RuntimeError("Cannot select default role unless realm has exactly 1")
