@@ -553,19 +553,15 @@ class RLinkRemoteSession(BridgeSession):
         })
 
         self.log.info(
-                '{func}: joining with realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra}',
-                self.log.info('{func}', func=hltype(self.onConnect)),
-                realm=hlval(self.config.realm),
-                authmethods=hlval(authmethods),
-                authid=hlval(authid),
-                authrole=hlval(authrole),
-                authextra=authextra)
+            '{func}: joining with realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra}',
+            self.log.info('{func}', func=hltype(self.onConnect)),
+            realm=hlval(self.config.realm),
+            authmethods=hlval(authmethods),
+            authid=hlval(authid),
+            authrole=hlval(authrole),
+            authextra=authextra)
 
-        self.join(self.config.realm,
-                  authmethods=authmethods,
-                  authid=authid,
-                  authrole=authrole,
-                  authextra=authextra)
+        self.join(self.config.realm, authmethods=authmethods, authid=authid, authrole=authrole, authextra=authextra)
 
     async def onChallenge(self, challenge):
         self.log.debug('{klass}.onChallenge(challenge={challenge})',

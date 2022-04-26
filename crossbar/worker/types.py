@@ -8,7 +8,6 @@
 from datetime import datetime
 
 from autobahn.util import utcstr
-from crossbar.worker.rlink import RLinkManager
 
 
 class RouterComponent(object):
@@ -69,6 +68,9 @@ class RouterRealm(object):
         :param session: The realm service session.
         :type session: :class:`crossbar.router.service.RouterServiceAgent`
         """
+        # import here to dissolve circular dependency
+        from crossbar.worker.rlink import RLinkManager
+
         self.controller = controller
         self.id = id
         self.config = config
