@@ -26,7 +26,6 @@ from autobahn.wamp.exception import SessionNotReady
 from autobahn.wamp.types import SessionDetails, PublishOptions
 from autobahn.wamp.interfaces import ITransportHandler
 
-from crossbar.common.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 from crossbar.router.router import Router, RouterFactory
@@ -406,27 +405,6 @@ class RouterSession(BaseSession):
             self._transport_config = self._transport.factory._config
         else:
             self._transport_config = {}
-
-        # a dict with x509 TLS client certificate information (if the client provided a cert)
-        # constructed from information from the Twisted stream transport underlying the WAMP transport
-        client_cert = None
-        # eg LongPoll transports lack underlying Twisted stream transport, since LongPoll is
-        # implemented at the Twisted Web layer. But we should nevertheless be able to
-        # extract the HTTP client cert!
-        if hasattr(self._transport, 'transport'):
-            client_cert = extract_peer_certificate(self._transport.transport)
-        if client_cert:
-            self._transport._transport_info['client_cert'] = client_cert
-            self.log.info("Client connecting with TLS certificate {client_cert}", client_cert=client_cert)
-
-        # FIXME: this is wrong!
-        # forward the transport channel ID (if any) on transport details
-        # channel_id = None
-        # if hasattr(self._transport, 'get_channel_id'):
-        #     # channel ID isn't implemented for LongPolL!
-        #     channel_id = self._transport.get_channel_id()
-        # if channel_id:
-        #     self._transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
 
         self.log.info("Client session connected, - transport_info=\n{transport_info}",
                       transport_info=pformat(self._transport._transport_info))

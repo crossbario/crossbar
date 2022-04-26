@@ -13,6 +13,7 @@ import mock
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp import role
+from autobahn.wamp.types import TransportDetails
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.worker.types import RouterRealm
@@ -140,7 +141,7 @@ class TestBrokerPublish(unittest.TestCase):
 
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -173,7 +174,7 @@ class TestBrokerPublish(unittest.TestCase):
 
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -362,10 +363,10 @@ class TestBrokerPublish(unittest.TestCase):
         # _session_id *is* None (not joined yet, or left already)
         self.assertIs(None, session0._session_id)
         session0._transport = mock.MagicMock()
-        session0._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        session0._transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
         session1._session_id = 1234  # "from" session should look connected + joined
         session1._transport = mock.MagicMock()
-        session1._transport.channel_id = b'aaaabeef'
+        session1._transport.transport_details = TransportDetails(channel_id={'tls-unique': b'aaaabeef'})
 
         # here's the main "cheat"; we're faking out the
         # router.authorize because we need it to callback immediately
@@ -414,15 +415,15 @@ class TestBrokerPublish(unittest.TestCase):
 
         session0._session_id = 1000
         session0._transport = mock.MagicMock()
-        session0._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        session0._transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
 
         session1._session_id = 1001
         session1._transport = mock.MagicMock()
-        session1._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        session1._transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
 
         session2._session_id = 1002
         session2._transport = mock.MagicMock()
-        session2._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        session2._transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
 
         # here's the main "cheat"; we're faking out the
         # router.authorize because we need it to callback immediately
@@ -488,7 +489,7 @@ class TestBrokerPublish(unittest.TestCase):
             for i, sess in enumerate(sessions):
                 sess._session_id = 1000 + i
                 sess._transport = mock.MagicMock()
-                sess._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+                sess._transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
 
             # here's the main "cheat"; we're faking out the
             # router.authorize because we need it to callback immediately
@@ -722,7 +723,7 @@ class TestRouterSession(unittest.TestCase):
                 # for this test, pretend we're connected (without
                 # going through sending a Hello etc.)
                 self._transport = mock.MagicMock()
-                self._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+                self._transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
                 self._session_id = 1234
                 self._router = router  # normally done in Hello processing
                 self._service_session = mock.MagicMock()

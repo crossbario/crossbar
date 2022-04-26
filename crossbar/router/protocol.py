@@ -294,9 +294,9 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             else:
                 self.log.info("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
 
+            # FIXME: use transport_details instead and remove self._transport_info
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
-            #
             self._transport_info = {
                 'type': 'websocket',
                 'protocol': protocol,
@@ -314,24 +314,30 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # protocol level (WebSocketServerProtocol)
                 # 'http_response_lines': None,
 
-                # WebSocket extensions in use .. will be filled in onOpen() - see below
+                # WebSocket extensions in use. will be filled in onOpen(), see below
                 'websocket_extensions_in_use': None,
 
                 # Crossbar.io tracking ID (for cookie tracking)
                 'cbtid': self._cbtid
             }
 
-            # FIXME
-            # if isinstance(self.transport, TLSMemoryBIOProtocol):
-            #     # get the TLS channel ID of the underlying TLS connection. Could be None.
-            #     tls_channel_id = self.get_channel_id('tls-unique')
-            #     if tls_channel_id:
-            #         self._transport_info['channel_id'] = binascii.b2a_hex(tls_channel_id).decode()
-            # print('5' * 100, self, pformat(self._transport_info))
+            # negotiated WebSocket subprotocol in use, e.g. "wamp.2.cbor.batched"
+            self._transport_details.websocket_protocol = protocol
+
+            # WebSocket extensions in use. will be filled in onOpen(), see below
+            self._transport_details.websocket_extensions_in_use = None
+
+            # Crossbar.io tracking ID (for cookie tracking)
+            self._transport_details.http_cbtid = self._cbtid
+
+            # all HTTP headers as received by the WebSocket client
+            self._transport_details.http_headers_received = request.headers
+
+            # only customer user headers (such as cookie)
+            self._transport_details.http_headers_sent = headers
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
             # and setting HTTP headers `headers`
-            #
             return protocol, headers
 
         except:

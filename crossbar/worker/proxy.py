@@ -6,7 +6,6 @@
 #####################################################################################
 
 import os
-import binascii
 from pprint import pformat
 from typing import Dict, Any, Optional, Tuple, Set
 
@@ -37,7 +36,6 @@ from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
 from crossbar.worker.transport import TransportController
 from crossbar.common.key import _read_node_key
-from crossbar.common.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
 from crossbar.router.auth import AUTHMETHOD_MAP
 from crossbar.router.session import RouterSessionFactory
@@ -172,28 +170,6 @@ class ProxyFrontendSession(object):
             self._transport_config = self.transport.factory._config
         else:
             self._transport_config = {}
-
-        # a dict with x509 TLS client certificate information (if the client provided a cert)
-        # constructed from information from the Twisted stream transport underlying the WAMP transport
-        client_cert = None
-        # eg LongPoll transports lack underlying Twisted stream transport, since LongPoll is
-        # implemented at the Twisted Web layer. But we should nevertheless be able to
-        # extract the HTTP client cert! <= FIXME
-        if hasattr(self.transport, 'transport'):
-            client_cert = extract_peer_certificate(self.transport.transport)
-        if client_cert:
-            self.transport._transport_info['client_cert'] = client_cert
-            self.log.info('Proxy frontend session connecting with TLS client certificate {client_cert} [{func}]',
-                          func=hltype(self.onOpen),
-                          client_cert=client_cert)
-
-        # forward the transport channel ID (if any) on transport details
-        channel_id = None
-        if hasattr(self.transport, 'get_channel_id'):
-            # channel ID isn't implemented for LongPolL!
-            channel_id = self.transport.get_channel_id()
-        if channel_id:
-            self.transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
 
         self._custom_authextra = {
             'x_cb_proxy_node': self._router_factory._node_id,

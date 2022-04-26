@@ -572,14 +572,15 @@ class RLinkRemoteSession(BridgeSession):
         if challenge.method == 'cryptosign':
             # alright, we've got a challenge from the router.
 
-            # not yet implemented. check the trustchain the router provided against
-            # our trustroot, and check the signature provided by the
-            # router for our previous challenge. if both are ok, everything
-            # is fine - the router is authentic wrt our trustroot.
-
             # sign the challenge with our private key.
-            signed_challenge = self._rlink_manager._controller.sign_challenge(
-                challenge, self._rlink_manager._controller._transport.get_channel_id())
+            channel_id_type = 'tls-unique'
+            channel_id_map = self._rlink_manager._controller._transport.transport_details.channel_id
+            if channel_id_type in channel_id_map:
+                channel_id = channel_id_map[channel_id_type]
+            else:
+                channel_id = None
+                channel_id_type = None
+            signed_challenge = self._rlink_manager._controller.sign_challenge(challenge, channel_id, channel_id_type)
 
             # send back the signed challenge for verification
             return signed_challenge

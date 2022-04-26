@@ -38,7 +38,7 @@ try:
     from OpenSSL import crypto
     # from OpenSSL.SSL import OP_NO_SSLv3, OP_NO_TLSv1
     from twisted.internet._sslverify import TLSVersion
-    from twisted.internet.interfaces import ISSLTransport
+    from twisted.internet.interfaces import ISSLTransport  # noqa
 
     _HAS_TLS = True
     _LACKS_TLS_MSG = None
@@ -47,61 +47,7 @@ except ImportError as e:
     _LACKS_TLS_MSG = "{}".format(e)
 
 __all__ = ('create_listening_endpoint_from_config', 'create_listening_port_from_config',
-           'create_connecting_endpoint_from_config', 'create_connecting_port_from_config', 'extract_peer_certificate')
-
-
-def extract_peer_certificate(transport):
-    """
-    Extract TLS x509 client certificate information from a Twisted stream transport.
-    """
-    if not _HAS_TLS:
-        raise Exception("cannot extract certificate - TLS support packages not installed")
-
-    # check if the Twisted transport is a TLSMemoryBIOProtocol
-    if not (hasattr(transport, 'getPeerCertificate') and ISSLTransport.providedBy(transport)):
-        return None
-
-    cert = transport.getPeerCertificate()
-    if cert:
-        # Extract x509 name components from an OpenSSL X509Name object.
-        # pkey = cert.get_pubkey()
-        def maybe_bytes(value):
-            if isinstance(value, bytes):
-                return value.decode('utf8')
-            else:
-                return value
-
-        result = {
-            'md5': '{}'.format(maybe_bytes(cert.digest('md5'))).upper(),
-            'sha1': '{}'.format(maybe_bytes(cert.digest('sha1'))).upper(),
-            'sha256': '{}'.format(maybe_bytes(cert.digest('sha256'))).upper(),
-            'expired': bool(cert.has_expired()),
-            'hash': maybe_bytes(cert.subject_name_hash()),
-            'serial': int(cert.get_serial_number()),
-            'signature_algorithm': maybe_bytes(cert.get_signature_algorithm()),
-            'version': int(cert.get_version()),
-            'not_before': maybe_bytes(cert.get_notBefore()),
-            'not_after': maybe_bytes(cert.get_notAfter()),
-            'extensions': []
-        }
-
-        for i in range(cert.get_extension_count()):
-            ext = cert.get_extension(i)
-            ext_info = {
-                'name': '{}'.format(maybe_bytes(ext.get_short_name())),
-                'value': '{}'.format(maybe_bytes(ext)),
-                'criticial': ext.get_critical() != 0
-            }
-            result['extensions'].append(ext_info)
-
-        for entity, name in [('subject', cert.get_subject()), ('issuer', cert.get_issuer())]:
-            result[entity] = {}
-            for key, value in name.get_components():
-                key = maybe_bytes(key)
-                value = maybe_bytes(value)
-                result[entity]['{}'.format(key).lower()] = '{}'.format(value)
-
-        return result
+           'create_connecting_endpoint_from_config', 'create_connecting_port_from_config')
 
 
 def _create_tls_server_context(config, cbdir, log):
