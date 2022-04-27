@@ -47,7 +47,7 @@ class PendingAuth:
         """
         # Details about the authenticating session
         self._session_details = {
-            'transport': transport_details,
+            'transport': transport_details.marshal(),
             'session': pending_session_id,
             'authmethod': None,
             'authextra': None

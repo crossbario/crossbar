@@ -39,7 +39,8 @@ class PendingAuthTLS(PendingAuth):
         # https://tools.ietf.org/html/rfc5056
         # https://tools.ietf.org/html/rfc5929
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
-        self._channel_id = transport_details.channel_id.get('tls-unique', None)
+        self._channel_id = transport_details.channel_id.get('tls-unique',
+                                                            None) if transport_details.channel_id else None
         self._peer_cert = transport_details.peer_cert
 
         # for static-mode, the config has principals as a dict indexed
