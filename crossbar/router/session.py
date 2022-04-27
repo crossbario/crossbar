@@ -396,18 +396,11 @@ class RouterSession(BaseSession):
                            MagicMock)), 'unexpected router transport type {}'.format(type(transport))
         self._transport = transport
 
-        # WampLongPollResourceSession instance has no attribute '_transport_info'
-        if not hasattr(self._transport, '_transport_info') or self._transport._transport_info is None:
-            self._transport._transport_info = {}
-
         # transport configuration
         if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
             self._transport_config = self._transport.factory._config
         else:
             self._transport_config = {}
-
-        self.log.info("Client session connected, - transport_info=\n{transport_info}",
-                      transport_info=pformat(self._transport._transport_info))
 
         # basic session information
         self._pending_session_id = None
@@ -902,11 +895,10 @@ class RouterSession(BaseSession):
                         # WAMP-Cookie authentication
                         elif authmethod == 'cookie':
                             cbtid = None
-                            _ti = self._transport._transport_info
-                            if 'http_headers_received' in _ti and 'set-cookie' in _ti['http_headers_received']:
+                            _ti = self._transport.transport_details.http_headers_received
+                            if 'set-cookie' in _ti:
                                 cookie_name = 'cbtid'
-                                cookie_received = werkzeug.http.parse_cookie(
-                                    _ti['http_headers_received']['set-cookie'])
+                                cookie_received = werkzeug.http.parse_cookie(_ti['set-cookie'])
                                 if cookie_name in cookie_received:
                                     cbtid = cookie_received[cookie_name]
 
@@ -1017,7 +1009,7 @@ class RouterSession(BaseSession):
         self._session_details = details
         self._router._session_joined(self, details)
 
-        # dispatch session metaevent from WAMP AP
+        # dispatch session meta event from WAMP AP
         #
         if self._service_session:
             session_info_long = {
@@ -1027,7 +1019,7 @@ class RouterSession(BaseSession):
                 'authmethod': details.authmethod,
                 'authextra': details.authextra,
                 'authprovider': details.authprovider,
-                'transport': self._transport._transport_info
+                'transport': self._transport.transport_details.marshal() if self._transport.transport_details else None
             }
             self._service_session.publish('wamp.session.on_join', session_info_long)
 

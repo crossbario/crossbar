@@ -40,10 +40,6 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         # the client (worker) is created
         self._authprovider = 'programcode'
 
-        # FIXME / CHECKME
-        self._cbtid = None
-        self._transport_info = None
-
     def connectionLost(self, reason):
         if isinstance(reason.value, ConnectionDone):
             self.log.info("Native worker connection closed cleanly.")

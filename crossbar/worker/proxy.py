@@ -180,7 +180,7 @@ class ProxyFrontendSession(object):
 
         self.log.info('Proxy frontend session connected from peer {peer} [{func}]',
                       func=hltype(self.onOpen),
-                      peer=hlval(self.transport._transport_info['peer']))
+                      peer=hlval(self.transport.transport_details.peer) if self.transport.transport_details else None)
 
     def onClose(self, wasClean):
         """
@@ -503,7 +503,7 @@ class ProxyFrontendSession(object):
                               authmethod=hlval(authmethod))
                 self._pending_auth = authklass(
                     self._pending_session_id,
-                    self.transport._transport_info,
+                    self.transport.transport_details,
                     self._controller,
                     auth_config[authmethod],
                 )

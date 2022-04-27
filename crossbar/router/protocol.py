@@ -16,6 +16,7 @@ from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
+from autobahn.wamp.types import TransportDetails
 from autobahn.websocket.types import ConnectionDeny
 from autobahn.util import hlval, hltype
 
@@ -294,33 +295,6 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             else:
                 self.log.info("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
 
-            # FIXME: use transport_details instead and remove self._transport_info
-            # remember transport level info for later forwarding in
-            # WAMP meta event "wamp.session.on_join"
-            self._transport_info = {
-                'type': 'websocket',
-                'protocol': protocol,
-                'peer': self.peer,
-
-                # all HTTP headers as received by the WebSocket client
-                'http_headers_received': request.headers,
-
-                # only customer user headers (such as cookie)
-                'http_headers_sent': headers,
-
-                # all HTTP response lines sent (verbatim, in order as sent)
-                # this will get filled in onOpen() from the HTTP response
-                # data that will be stored by AutobahnPython at the WebSocket
-                # protocol level (WebSocketServerProtocol)
-                # 'http_response_lines': None,
-
-                # WebSocket extensions in use. will be filled in onOpen(), see below
-                'websocket_extensions_in_use': None,
-
-                # Crossbar.io tracking ID (for cookie tracking)
-                'cbtid': self._cbtid
-            }
-
             # negotiated WebSocket subprotocol in use, e.g. "wamp.2.cbor.batched"
             self._transport_details.websocket_protocol = protocol
 
@@ -344,17 +318,8 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             self.log.failure()
 
     def onOpen(self):
-        if False:
-            # this is little bit silly, we parse the complete response data into lines again
-            http_response_lines = []
-            for line in self.http_response_data.split('\r\n'):
-                line = line.strip()
-                if line:
-                    http_response_lines.append(line)
-            self._transport_info['http_response_lines'] = http_response_lines
-
         # note the WebSocket extensions negotiated
-        self._transport_info['websocket_extensions_in_use'] = [e.__json__() for e in self.websocket_extensions_in_use]
+        self._transport_details.websocket_extensions_in_use = [e.__json__() for e in self.websocket_extensions_in_use]
 
         return super(WampWebSocketServerProtocol, self).onOpen()
 
@@ -587,13 +552,10 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         #
         self._cbtid = None
 
-        # remember transport level info for later forwarding in
-        # WAMP meta event "wamp.session.on_join"
-        #
-        self._transport_info = {'type': 'rawsocket', 'protocol': None, 'peer': self.peer}
-
     def _on_handshake_complete(self):
-        self._transport_info['protocol'] = 'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
+        self._transport_details.channel_serializer = TransportDetails.CHANNEL_SERIALIZER_FROM_STR[
+            self._serializer.SERIALIZER_ID]
+        self._transport_details.websocket_protocol = 'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
         return rawsocket.WampRawSocketServerProtocol._on_handshake_complete(self)
 
 
