@@ -67,14 +67,9 @@ class PendingAuthCryptosign(PendingAuth):
                     self._pubkey_to_authid[pubkey] = authid
 
     def _compute_challenge(self, requested_channel_binding: Optional[str]) -> Dict[str, Any]:
-        tls_channel_id = self._session_details['transport'].get('channel_id', None)
-        if tls_channel_id:
-            tls_channel_id = binascii.a2b_hex(tls_channel_id)
-
         self._challenge = os.urandom(32)
-
-        if tls_channel_id and requested_channel_binding:
-            self._expected_signed_message = util.xor(self._challenge, tls_channel_id)
+        if self._channel_id and requested_channel_binding == 'tls-unique':
+            self._expected_signed_message = util.xor(self._challenge, self._channel_id)
         else:
             self._expected_signed_message = self._challenge
 
