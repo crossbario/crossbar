@@ -523,49 +523,62 @@ class RLinkRemoteSession(BridgeSession):
         self._rlink_manager: RLinkManager = self.config.extra['rlink_manager']
         self._router_controller: RouterController = self._rlink_manager.controller
 
-    async def onConnect(self):
+    # FIXME: async? see below
+    def onConnect(self):
         self.log.info('{func}', func=hltype(self.onConnect))
 
         authid = self.config.extra.get('authid', None)
         authrole = self.config.extra.get('authrole', None)
         authextra = self.config.extra.get('authextra', {})
+
+        # FIXME: use cryptosign-proxy
         authmethods = ['cryptosign']
 
         # use WorkerController.get_public_key to call node controller
-        public_key = await self._router_controller.get_public_key()
+        # FIXME: the following does _not_ work with onConnect (?!)
+        # _public_key = await self._router_controller.get_public_key()
 
-        authextra.update({
-            # forward the client pubkey: this allows us to omit authid as
-            # the router can identify us with the pubkey already
-            'pubkey': public_key,
+        def actually_join(_public_key):
+            authextra.update({
+                # forward the client pubkey: this allows us to omit authid as
+                # the router can identify us with the pubkey already
+                'pubkey': _public_key,
 
-            # not yet implemented. a public key the router should provide
-            # a trustchain for it's public key. the trustroot can eg be
-            # hard-coded in the client, or come from a command line option.
-            'trustroot': None,
+                # not yet implemented. a public key the router should provide
+                # a trustchain for it's public key. the trustroot can eg be
+                # hard-coded in the client, or come from a command line option.
+                'trustroot': None,
 
-            # not yet implemented. for authenticating the router, this
-            # challenge will need to be signed by the router and send back
-            # in AUTHENTICATE for client to verify. A string with a hex
-            # encoded 32 bytes random value.
-            'challenge': None,
+                # not yet implemented. for authenticating the router, this
+                # challenge will need to be signed by the router and send back
+                # in AUTHENTICATE for client to verify. A string with a hex
+                # encoded 32 bytes random value.
+                'challenge': None,
 
-            # https://tools.ietf.org/html/rfc5929
-            'channel_binding': 'tls-unique'
-        })
+                # https://tools.ietf.org/html/rfc5929
+                'channel_binding': 'tls-unique'
+            })
 
-        self.log.info(
-            '{func}: joining with realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra}',
-            self.log.info('{func}', func=hltype(self.onConnect)),
-            realm=hlval(self.config.realm),
-            authmethods=hlval(authmethods),
-            authid=hlval(authid),
-            authrole=hlval(authrole),
-            authextra=authextra)
+            self.log.info(
+                '{func}: joining with realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra}',
+                self.log.info('{func}', func=hltype(self.onConnect)),
+                realm=hlval(self.config.realm),
+                authmethods=hlval(authmethods),
+                authid=hlval(authid),
+                authrole=hlval(authrole),
+                authextra=authextra)
 
-        self.join(self.config.realm, authmethods=authmethods, authid=authid, authrole=authrole, authextra=authextra)
+            self.join(self.config.realm,
+                      authmethods=authmethods,
+                      authid=authid,
+                      authrole=authrole,
+                      authextra=authextra)
 
-    async def onChallenge(self, challenge):
+        res = self._rlink_manager._controller.get_public_key()
+        res.addCallback(actually_join)
+
+    # FIXME: async? see below
+    def onChallenge(self, challenge):
         self.log.debug('{klass}.onChallenge(challenge={challenge})',
                        klass=self.__class__.__name__,
                        challenge=challenge)
@@ -583,7 +596,8 @@ class RLinkRemoteSession(BridgeSession):
                 channel_id_type = None
 
             # use WorkerController.get_public_key to call node controller
-            signed_challenge = await self._router_controller.sign_challenge(challenge, channel_id, channel_id_type)
+            # FIXME: await?
+            signed_challenge = self._router_controller.sign_challenge(challenge, channel_id, channel_id_type)
 
             # send back the signed challenge for verification
             return signed_challenge
