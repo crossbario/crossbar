@@ -19,8 +19,6 @@ from autobahn.util import hl, hlid, hltype, hluserid, hlval
 
 from crossbar.common.checkconfig import check_dict_args, check_realm_name, check_connecting_transport
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
-from crossbar.edge.worker.router import ExtRouterRealm
-from crossbar.worker.router import RouterController
 
 from autobahn.wamp.types import SubscribeOptions, PublishOptions, RegisterOptions, CallOptions, ComponentConfig
 from autobahn.wamp.message import Event, Invocation
@@ -517,6 +515,10 @@ class RLinkRemoteSession(BridgeSession):
 
     def __init__(self, config):
         BridgeSession.__init__(self, config)
+
+        # import here to resolve import dependency issues
+        from crossbar.worker.router import RouterController
+
         self._subs = {}
         self._rlink_manager: RLinkManager = self.config.extra['rlink_manager']
         self._router_controller: RouterController = self._rlink_manager.controller
@@ -801,15 +803,18 @@ class RLinkManager(object):
     """
     Router-to-router links manager.
     """
-
     log = make_logger()
 
-    def __init__(self, realm: ExtRouterRealm, controller: RouterController):
+    def __init__(self, realm, controller):
         """
 
         :param realm: The (local) router realm this object is managing links for.
         :param controller: The router controller this rlink is running under.
         """
+        # import here to resolve import dependency issues
+        from crossbar.edge.worker.router import ExtRouterRealm
+        from crossbar.worker.router import RouterController
+
         self._realm: ExtRouterRealm = realm
         self._controller: RouterController = controller
 
@@ -817,7 +822,11 @@ class RLinkManager(object):
         self._links: Dict[str, RLink] = {}
 
     @property
-    def controller(self) -> RouterController:
+    def realm(self):
+        return self._realm
+
+    @property
+    def controller(self):
         return self._controller
 
     def __getitem__(self, link_id):

@@ -5,15 +5,18 @@
 #
 #####################################################################################
 
-from typing import Dict
 import importlib
+from typing import Union, Dict, Any, Optional
 
-from autobahn.wamp import types
-from autobahn.wamp.exception import ApplicationError
 from txaio import make_logger
 from twisted.internet.defer import Deferred
 
+from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
+from autobahn.wamp.interfaces import ISession
+
 from crossbar._util import hlid, hltype
+from crossbar._interfaces import IRealmContainer
 
 import txaio
 
@@ -33,55 +36,56 @@ class PendingAuth:
 
     AUTHMETHOD = 'abstract'
 
-    def __init__(self, pending_session_id, transport_info, realm_container, config):
-        """
-        :param int pending_session_id: the Session ID if this succeeds
-
-        :param dict transport_info: information about the session's transport
-
-        :param crossbar._interfaces.IRealmContainer realm_container: access configured realms / roles
-
-        :param dict config: Authentication configuration to apply for the pending auth.
+    def __init__(self, pending_session_id: int, transport_details: TransportDetails, realm_container: IRealmContainer,
+                 config: Dict[str, Any]):
         """
 
+        :param pending_session_id: The WAMP session ID if this authentication succeeds.
+        :param transport_details: Transport details of the authenticating session.
+        :param realm_container: Realm container (router or proxy) for access to configured realms and roles.
+        :param config: Authentication configuration to apply for the pending auth.
+        """
         # Details about the authenticating session
         self._session_details = {
-            'transport': transport_info,
+            'transport': transport_details,
             'session': pending_session_id,
             'authmethod': None,
             'authextra': None
         }
 
         # The router factory we are working for
-        self._realm_container = realm_container
+        self._realm_container: IRealmContainer = realm_container
 
         # WAMP-Ticket configuration to apply for the pending auth
-        self._config = config
+        self._config: Dict[str, Any] = config
+
+        # The realm of the authenticating principal.
+        self._realm: Optional[str] = None
 
         # The authentication ID of the authenticating principal.
-        self._authid = None
+        self._authid: Optional[str] = None
 
         # The role under which the principal will be authenticated when
         # the authentication succeeds.
-        self._authrole = None
+        self._authrole: Optional[str] = None
 
         # Optional authentication provider (URI of procedure to call).
-        self._authprovider = None
+        self._authprovider: Optional[str] = None
 
         # The authentication method
-        self._authmethod = self.AUTHMETHOD
+        self._authmethod: str = self.AUTHMETHOD
 
         # Application-specific extra data forwarded to the authenticating client in WELCOME
-        self._authextra = None
+        self._authextra: Optional[Dict[str, Any]] = None
 
         # The URI of the authenticator procedure to call (filled only in dynamic mode).
-        self._authenticator = None
+        self._authenticator: Optional[str] = None
 
         # The realm the (dynamic) authenticator itself is joined to
-        self._authenticator_realm = None
+        self._authenticator_realm: Optional[str] = None
 
         # The session over which to issue the call to the authenticator (filled only in dynamic mode).
-        self._authenticator_session = None
+        self._authenticator_session: Optional[ISession] = None
 
     def _assign_principal(self, principal):
         if isinstance(principal, str):
@@ -93,7 +97,7 @@ class PendingAuth:
         else:
             error = ApplicationError.AUTHENTICATION_FAILED
             message = 'got invalid return type "{}" from dynamic authenticator'.format(type(principal))
-            return types.Deny(error, message)
+            return Deny(error, message)
 
         # backwards compatibility: dynamic authenticator
         # was expected to return a role directly
@@ -120,26 +124,26 @@ class PendingAuth:
 
         # a realm must have been assigned by now, otherwise bail out!
         if not self._realm:
-            return types.Deny(ApplicationError.NO_SUCH_REALM, message='no realm assigned')
+            return Deny(ApplicationError.NO_SUCH_REALM, message='no realm assigned')
 
         # an authid MUST be set at least by here - otherwise bail out now!
         if not self._authid:
-            return types.Deny(ApplicationError.NO_SUCH_PRINCIPAL, message='no authid assigned')
+            return Deny(ApplicationError.NO_SUCH_PRINCIPAL, message='no authid assigned')
 
         # an authrole MUST be set at least by here - otherwise bail out now!
         if not self._authrole:
-            return types.Deny(ApplicationError.NO_SUCH_ROLE, message='no authrole assigned')
+            return Deny(ApplicationError.NO_SUCH_ROLE, message='no authrole assigned')
 
         # if realm is not started on router, bail out now!
         if not self._realm_container.has_realm(self._realm):
-            return types.Deny(ApplicationError.NO_SUCH_REALM,
-                              message='no realm "{}" exists on this router'.format(self._realm))
+            return Deny(ApplicationError.NO_SUCH_REALM,
+                        message='no realm "{}" exists on this router'.format(self._realm))
 
         # if role is not running on realm, bail out now!
         if self._authrole not in ['trusted', 'anonymous'
                                   ] and not self._realm_container.has_role(self._realm, self._authrole):
-            return types.Deny(ApplicationError.NO_SUCH_ROLE,
-                              message='realm "{}" has no role "{}"'.format(self._realm, self._authrole))
+            return Deny(ApplicationError.NO_SUCH_ROLE,
+                        message='realm "{}" has no role "{}"'.format(self._realm, self._authrole))
 
     def _init_dynamic_authenticator(self):
         # procedure URI to call
@@ -158,9 +162,9 @@ class PendingAuth:
                            realm=hlid(self._authenticator_realm))
 
         if not self._realm_container.has_realm(self._authenticator_realm):
-            return types.Deny(ApplicationError.NO_SUCH_REALM,
-                              message=("explicit realm <{}> configured for dynamic "
-                                       "authenticator does not exist".format(self._authenticator_realm)))
+            return Deny(ApplicationError.NO_SUCH_REALM,
+                        message=("explicit realm <{}> configured for dynamic "
+                                 "authenticator does not exist".format(self._authenticator_realm)))
 
         # authenticator role
         if 'authenticator-role' in self._config:
@@ -175,12 +179,12 @@ class PendingAuth:
                            authrole=hlid(self._authenticator_role))
 
         if self._authenticator_realm is None:
-            return types.Deny(
+            return Deny(
                 ApplicationError.NO_SUCH_ROLE,
                 message="role <{}> configured, but no realm".format(self._authenticator_role),
             )
         if not self._realm_container.has_role(self._authenticator_realm, self._authenticator_role):
-            return types.Deny(
+            return Deny(
                 ApplicationError.NO_SUCH_ROLE,
                 message="explicit role <{}> on realm <{}> configured for dynamic authenticator does not exist".format(
                     self._authenticator_role, self._authenticator_realm))
@@ -223,20 +227,20 @@ class PendingAuth:
             msg = None
             if err.value.args:
                 msg = '{}'.format(err.value.args[0])
-            return types.Deny(err.value.error, msg)
+            return Deny(err.value.error, msg)
         else:
             # wrap the error
             error = ApplicationError.AUTHENTICATION_FAILED
             message = 'dynamic authenticator failed: {}'.format(err.value)
-            return types.Deny(error, message)
+            return Deny(error, message)
 
     def _accept(self):
-        return types.Accept(realm=self._realm,
-                            authid=self._authid,
-                            authrole=self._authrole,
-                            authmethod=self._authmethod,
-                            authprovider=self._authprovider,
-                            authextra=self._authextra)
+        return Accept(realm=self._realm,
+                      authid=self._authid,
+                      authrole=self._authrole,
+                      authmethod=self._authmethod,
+                      authprovider=self._authprovider,
+                      authextra=self._authextra)
 
     def _init_function_authenticator(self):
         self.log.debug('{klass}._init_function_authenticator', klass=self.__class__.__name__)
@@ -244,8 +248,8 @@ class PendingAuth:
         # import the module for the function
         create_fqn = self._config['create']
         if '.' not in create_fqn:
-            return types.Deny(ApplicationError.NO_SUCH_PROCEDURE,
-                              "'function' authenticator has no module: '{}'".format(create_fqn))
+            return Deny(ApplicationError.NO_SUCH_PROCEDURE,
+                        "'function' authenticator has no module: '{}'".format(create_fqn))
 
         if self._config.get('expose_controller', None):
             from crossbar.worker.controller import WorkerController
@@ -266,21 +270,22 @@ class PendingAuth:
         create_d.addCallback(got_authenticator)
         return create_d
 
-    def hello(self, realm, details):
+    def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
         """
         When a HELLO message is received, this gets called to open the pending authentication.
 
-        :param realm: The realm to client wishes to join (if the client did announance a realm).
-        :type realm: unicode or None
+        :param realm: The realm to client wishes to join (if the client did announce a realm).
         :param details: The details of the client provided for HELLO.
-        :type details: dict
+        :returns: Either return a challenge, or immediately accept or deny session.
         """
         raise Exception("not implemented {})".format(self.__class__.__name__))
 
-    def authenticate(self, signature):
+    def authenticate(self, signature: str) -> Union[Accept, Deny]:
         """
-        The WAMP client has answered with a WAMP AUTHENTICATE message. Verify the message and
-        return `types.Accept` or `types.Deny`.
+        The client has answered with a WAMP AUTHENTICATE message. Verify the message and accept or deny.
+
+        :param signature: Signature over the challenge as received from the authenticating session.
+        :returns: Either accept or deny the session.
         """
         raise Exception("not implemented")
 

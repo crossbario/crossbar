@@ -14,10 +14,15 @@ Interfaces used internally inside Crossbar.io to abstract/decouple different sof
 """
 
 import abc
+from typing import Union
 
 from autobahn.wamp import ISession
+from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge
 
-__all__ = ('IRealmContainer', )
+__all__ = (
+    'IRealmContainer',
+    'IPendingAuth',
+)
 
 
 class IRealmContainer(abc.ABC):
@@ -62,4 +67,28 @@ class IRealmContainer(abc.ABC):
         :param role: WAMP authentication role name.
 
         :returns: A service session joined on the given realm and role.
+        """
+
+
+class IPendingAuth(abc.ABC):
+    """
+    Interface to pending WAMP authentications.
+    """
+    @abc.abstractmethod
+    def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
+        """
+        When a HELLO message is received, this gets called to open the pending authentication.
+
+        :param realm: The realm to client wishes to join (if the client did announce a realm).
+        :param details: The details of the client provided for HELLO.
+        :returns: Either return a challenge, or immediately accept or deny session.
+        """
+
+    @abc.abstractmethod
+    def authenticate(self, signature: str) -> Union[Accept, Deny]:
+        """
+        The client has answered with a WAMP AUTHENTICATE message. Verify the message and accept or deny.
+
+        :param signature: Signature over the challenge as received from the authenticating session.
+        :returns: Either accept or deny the session.
         """

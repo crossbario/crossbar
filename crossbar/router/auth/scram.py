@@ -10,15 +10,17 @@ import hmac
 import hashlib
 import base64
 import binascii
-
-from autobahn import util
-from autobahn.wamp import types
+from typing import Union, Dict, Any
 
 from passlib.utils import saslprep
 
 from txaio import make_logger, as_future
 
+from autobahn import util
+from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
+
 from crossbar.router.auth.pending import PendingAuth
+from crossbar._interfaces import IRealmContainer, IPendingAuth
 
 __all__ = ('PendingAuthScram', )
 
@@ -32,10 +34,11 @@ class PendingAuthScram(PendingAuth):
 
     AUTHMETHOD = 'scram'
 
-    def __init__(self, pending_session_id, transport_info, realm_container, config):
+    def __init__(self, pending_session_id: int, transport_details: TransportDetails, realm_container: IRealmContainer,
+                 config: Dict[str, Any]):
         super(PendingAuthScram, self).__init__(
             pending_session_id,
-            transport_info,
+            transport_details,
             realm_container,
             config,
         )
@@ -43,22 +46,18 @@ class PendingAuthScram(PendingAuth):
         # https://tools.ietf.org/html/rfc5056
         # https://tools.ietf.org/html/rfc5929
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
-        channel_id_hex = transport_info.get('channel_id', None)
-        if channel_id_hex:
-            self._channel_id = binascii.a2b_hex(channel_id_hex)
-        else:
-            self._channel_id = None
+        self._channel_id = transport_details.channel_id.get('tls-unique', None)
 
-    def hello(self, realm, details):
+    def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
         # the channel binding requested by the client authenticating
         # client must send "nonce" in details, and MAY send "gs2_cbind_flag"
         self._client_nonce = details.authextra.get("nonce", None)
         if self._client_nonce is None:
-            return types.Deny(message='client must send a nonce')
+            return Deny(message='client must send a nonce')
         try:
             self._client_nonce = base64.b64decode(self._client_nonce)
         except Exception:
-            return types.Deny(message='client nonce must be base64')
+            return Deny(message='client nonce must be base64')
 
         # FIXME TODO: channel-binding (currently "gs2_cbind_flag" in
         # the draft spec)
@@ -71,7 +70,7 @@ class PendingAuthScram(PendingAuth):
         self._authid = details.authid
 
         if self._authid is None:
-            return types.Deny(message='cannot identify client: no authid requested')
+            return Deny(message='cannot identify client: no authid requested')
         self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
         self._session_details['authextra'] = details.authextra
 
@@ -89,7 +88,7 @@ class PendingAuthScram(PendingAuth):
 
             # XXX TODO this needs to include (optional) channel-binding
             extra = self._compute_challenge()
-            return types.Challenge(self._authmethod, extra)
+            return Challenge(self._authmethod, extra)
 
         def on_authenticate_error(err):
             return self._marshal_dynamic_authenticator_error(err)
@@ -103,7 +102,7 @@ class PendingAuthScram(PendingAuth):
                 return on_authenticate_ok(self._config['principals'][self._authid])
             else:
                 self.log.debug("No pricipal found for {authid}", authid=details.authid)
-                return types.Deny(message='no principal with authid "{}" exists'.format(details.authid))
+                return Deny(message='no principal with authid "{}" exists'.format(details.authid))
 
         elif self._config['type'] == 'dynamic':
             self._authprovider = 'dynamic'
@@ -141,8 +140,8 @@ class PendingAuthScram(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
-                              format(self._config['type']))
+            return Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
+                self._config['type']))
 
     # XXX TODO this needs to include (optional) channel-binding
     def _compute_challenge(self):
@@ -157,11 +156,11 @@ class PendingAuthScram(PendingAuth):
         }
         return challenge
 
-    def authenticate(self, signed_message):
+    def authenticate(self, signature: str) -> Union[Accept, Deny]:
         """
         Verify the signed message sent by the client.
 
-        :param signed_message: the base64-encoded result "ClientProof"
+        :param signature: the base64-encoded result "ClientProof"
             from the SCRAM protocol
         """
 
@@ -175,7 +174,7 @@ class PendingAuthScram(PendingAuth):
             client_final_no_proof="c={},r={}".format(channel_binding, server_nonce),
         ))
 
-        received_client_proof = base64.b64decode(signed_message)
+        received_client_proof = base64.b64decode(signature)
 
         client_signature = hmac.new(self._stored_key, auth_message.encode('ascii'), hashlib.sha256).digest()
         recovered_client_key = util.xor(client_signature, received_client_proof)
@@ -192,4 +191,7 @@ class PendingAuthScram(PendingAuth):
             return self._accept()
 
         self.log.error("SCRAM authentication failed for '{authid}'", authid=self._authid)
-        return types.Deny(message='SCRAM authentication failed')
+        return Deny(message='SCRAM authentication failed')
+
+
+IPendingAuth.register(PendingAuthScram)

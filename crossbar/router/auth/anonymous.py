@@ -5,10 +5,11 @@
 #
 #####################################################################################
 
-from autobahn import util
-from autobahn.wamp import types
-
+from typing import Union
 from txaio import make_logger, as_future
+
+from autobahn import util
+from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge
 
 from crossbar.router.auth.pending import PendingAuth
 from crossbar._util import hlid, hltype, hlval
@@ -28,7 +29,7 @@ class PendingAuthAnonymous(PendingAuth):
 
     AUTHMETHOD = 'anonymous'
 
-    def hello(self, realm: str, details: types.SessionDetails):
+    def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
         self.log.info(
             '{func}(realm={realm}, details.realm={authrealm}, details.authid={authid}, details.authrole={authrole}) [config={config}]',
             func=hltype(self.hello),
@@ -81,10 +82,10 @@ class PendingAuthAnonymous(PendingAuth):
                 d = self._authenticator_session.call(self._authenticator, self._realm, self._authid,
                                                      self._session_details)
 
-                def on_authenticate_ok(principal):
-                    error = self._assign_principal(principal)
-                    if error:
-                        return error
+                def on_authenticate_ok(_principal):
+                    _error = self._assign_principal(_principal)
+                    if _error:
+                        return _error
 
                     return self._accept()
 
@@ -100,8 +101,8 @@ class PendingAuthAnonymous(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
-                              format(self._config['type']))
+            return Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
+                self._config['type']))
 
 
 class PendingAuthAnonymousProxy(PendingAuthAnonymous):
@@ -121,7 +122,7 @@ class PendingAuthAnonymousProxy(PendingAuthAnonymous):
 
         for attr in ['proxy_authid', 'proxy_authrole', 'proxy_realm']:
             if attr not in extra:
-                return types.Deny(message='missing required attribute {}'.format(attr))
+                return Deny(message='missing required attribute {}'.format(attr))
 
         realm = extra['proxy_realm']
         details.authid = extra['proxy_authid']

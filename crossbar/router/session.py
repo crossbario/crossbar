@@ -842,7 +842,7 @@ class RouterSession(BaseSession):
                     except KeyError:
                         PendingAuthKlass = extra_auth_methods[authmethod]
 
-                    self._pending_auth = PendingAuthKlass(self._pending_session_id, self._transport._transport_info,
+                    self._pending_auth = PendingAuthKlass(self._pending_session_id, self._transport.transport_details,
                                                           self._router_factory._worker, {
                                                               'type': 'static',
                                                               'authrole': 'anonymous',
@@ -893,7 +893,7 @@ class RouterSession(BaseSession):
 
                             self._pending_auth = PendingAuthKlass(
                                 self._pending_session_id,
-                                self._transport._transport_info,
+                                self._transport.transport_details,
                                 self._router_factory._worker,
                                 auth_config[authmethod],
                             )
