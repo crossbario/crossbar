@@ -769,12 +769,16 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
         session = ProxyBackendSession()
 
         # forward WAMP session information of the incoming proxy session
+        if frontend_session.transport.transport_details:
+            _td = frontend_session.transport.transport_details.marshal()
+        else:
+            _td = None
         authextra = {
             'proxy_realm': frontend_session.realm,
             'proxy_authid': frontend_session.authid,
             'proxy_authrole': frontend_session.authrole,
             'proxy_authextra': frontend_session.authextra,
-            'proxy_transport_details': frontend_session.transport.transport_details
+            'proxy_transport_details': _td
         }
         log.info('{func}::create_session() connecting to backend with authextra=\n{authextra}',
                  func=hltype(make_backend_connection),

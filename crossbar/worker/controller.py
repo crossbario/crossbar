@@ -10,11 +10,12 @@ import sys
 import pkg_resources
 import jinja2
 import signal
+from typing import Optional
 
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import inlineCallbacks
 
-from autobahn.util import utcnow
+from autobahn.util import utcnow, hltype
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, Challenge
 from autobahn import wamp
@@ -360,7 +361,7 @@ class WorkerController(NativeProcess):
         return res
 
     @inlineCallbacks
-    def sign_challenge(self, challenge: Challenge, channel_id, channel_id_type='tls-unique'):
+    def sign_challenge(self, challenge: Challenge, channel_id: Optional[bytes], channel_id_type=Optional[str]):
         """
         Call into node controller (over secure controller-worker pipe) to sign challenge with node key.
 
@@ -369,8 +370,10 @@ class WorkerController(NativeProcess):
         :param channel_id_type:
         :return:
         """
+        self.log.info('{func}() ...', func=hltype(self.sign_challenge))
         result = yield self.call("crossbar.sign_challenge", challenge.method, challenge.extra, channel_id,
                                  channel_id_type)
+        self.log.info('{func}(): {result}', func=hltype(self.sign_challenge), result=result)
         return result
 
     @inlineCallbacks
@@ -380,5 +383,7 @@ class WorkerController(NativeProcess):
 
         :return:
         """
+        self.log.info('{func}() ...', func=hltype(self.get_public_key))
         result = yield self.call("crossbar.get_public_key")
+        self.log.info('{func}(): {result}', func=hltype(self.get_public_key), result=result)
         return result

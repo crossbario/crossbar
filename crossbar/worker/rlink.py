@@ -114,7 +114,7 @@ class BridgeSession(ApplicationSession):
                 }
 
                 if details.forward_for:
-                    # the event comes already forwarded from a router node ..
+                    # the event comes already forwarded from a router node
                     if len(details.forward_for) >= 0:
                         self.log.debug('SKIP! already forwarded')
                         return
@@ -239,7 +239,7 @@ class BridgeSession(ApplicationSession):
             The handler will then also register on the other router, and when receiving
             calls, re-issue those on this router.
 
-            :param reg_id:
+            :param reg_session:
             :param reg_details:
             :param details:
             :return:
@@ -525,7 +525,7 @@ class RLinkRemoteSession(BridgeSession):
 
     # FIXME: async? see below
     def onConnect(self):
-        self.log.info('{func}', func=hltype(self.onConnect))
+        self.log.info('{func}() ...', func=hltype(self.onConnect))
 
         authid = self.config.extra.get('authid', None)
         authrole = self.config.extra.get('authrole', None)
@@ -545,7 +545,7 @@ class RLinkRemoteSession(BridgeSession):
                 'pubkey': _public_key,
 
                 # not yet implemented. a public key the router should provide
-                # a trustchain for it's public key. the trustroot can eg be
+                # a trustchain for its public key. the trustroot can eg be
                 # hard-coded in the client, or come from a command line option.
                 'trustroot': None,
 
@@ -560,8 +560,8 @@ class RLinkRemoteSession(BridgeSession):
             })
 
             self.log.info(
-                '{func}: joining with realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra}',
-                self.log.info('{func}', func=hltype(self.onConnect)),
+                '{func} joining with realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra}',
+                func=hltype(self.onConnect),
                 realm=hlval(self.config.realm),
                 authmethods=hlval(authmethods),
                 authid=hlval(authid),
@@ -576,12 +576,12 @@ class RLinkRemoteSession(BridgeSession):
 
         res = self._rlink_manager._controller.get_public_key()
         res.addCallback(actually_join)
+        self.log.info('{func}() done (res={res}).', func=hltype(self.onConnect), res=res)
+        return res
 
     # FIXME: async? see below
     def onChallenge(self, challenge):
-        self.log.debug('{klass}.onChallenge(challenge={challenge})',
-                       klass=self.__class__.__name__,
-                       challenge=challenge)
+        self.log.debug('{func}(challenge={challenge})', func=hltype(self.onChallenge), challenge=challenge)
 
         if challenge.method == 'cryptosign':
             # alright, we've got a challenge from the router.
