@@ -6,7 +6,6 @@
 #####################################################################################
 
 import os
-import binascii
 from pprint import pformat
 from typing import Dict, Any, Optional, Tuple, Set
 
@@ -37,7 +36,6 @@ from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
 from crossbar.worker.transport import TransportController
 from crossbar.common.key import _read_node_key
-from crossbar.common.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
 from crossbar.router.auth import AUTHMETHOD_MAP
 from crossbar.router.session import RouterSessionFactory
@@ -173,28 +171,6 @@ class ProxyFrontendSession(object):
         else:
             self._transport_config = {}
 
-        # a dict with x509 TLS client certificate information (if the client provided a cert)
-        # constructed from information from the Twisted stream transport underlying the WAMP transport
-        client_cert = None
-        # eg LongPoll transports lack underlying Twisted stream transport, since LongPoll is
-        # implemented at the Twisted Web layer. But we should nevertheless be able to
-        # extract the HTTP client cert! <= FIXME
-        if hasattr(self.transport, 'transport'):
-            client_cert = extract_peer_certificate(self.transport.transport)
-        if client_cert:
-            self.transport._transport_info['client_cert'] = client_cert
-            self.log.info('Proxy frontend session connecting with TLS client certificate {client_cert} [{func}]',
-                          func=hltype(self.onOpen),
-                          client_cert=client_cert)
-
-        # forward the transport channel ID (if any) on transport details
-        channel_id = None
-        if hasattr(self.transport, 'get_channel_id'):
-            # channel ID isn't implemented for LongPolL!
-            channel_id = self.transport.get_channel_id()
-        if channel_id:
-            self.transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
-
         self._custom_authextra = {
             'x_cb_proxy_node': self._router_factory._node_id,
             'x_cb_proxy_worker': self._router_factory._worker_id,
@@ -204,7 +180,7 @@ class ProxyFrontendSession(object):
 
         self.log.info('Proxy frontend session connected from peer {peer} [{func}]',
                       func=hltype(self.onOpen),
-                      peer=hlval(self.transport._transport_info['peer']))
+                      peer=hlval(self.transport.transport_details.peer) if self.transport.transport_details else None)
 
     def onClose(self, wasClean):
         """
@@ -527,7 +503,7 @@ class ProxyFrontendSession(object):
                               authmethod=hlval(authmethod))
                 self._pending_auth = authklass(
                     self._pending_session_id,
-                    self.transport._transport_info,
+                    self.transport.transport_details,
                     self._controller,
                     auth_config[authmethod],
                 )
@@ -771,9 +747,9 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
     :return: A deferred that resolves with a proxy backend session that is joined on the realm,
         under the authrole, as the proxy frontend session.
     """
-    log.debug('Connecting to backend with config [{func}]\n{config}',
-              func=hltype(make_backend_connection),
-              config=pformat(backend_config))
+    log.info('Connecting to backend with config [{func}]\n{config}',
+             func=hltype(make_backend_connection),
+             config=pformat(backend_config))
 
     cbdir = controller.cbdir
 
@@ -793,12 +769,20 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
         session = ProxyBackendSession()
 
         # forward WAMP session information of the incoming proxy session
+        if frontend_session.transport.transport_details:
+            _td = frontend_session.transport.transport_details.marshal()
+        else:
+            _td = None
         authextra = {
+            'proxy_realm': frontend_session.realm,
             'proxy_authid': frontend_session.authid,
             'proxy_authrole': frontend_session.authrole,
-            'proxy_realm': frontend_session.realm,
             'proxy_authextra': frontend_session.authextra,
+            'proxy_transport_details': _td
         }
+        log.info('{func}::create_session() connecting to backend with authextra=\n{authextra}',
+                 func=hltype(make_backend_connection),
+                 authextra=pformat(authextra))
 
         # if auth is configured and includes "cryptosign-proxy", always prefer
         # that and connect to the backend node authenticating with WAMP-cryptosign

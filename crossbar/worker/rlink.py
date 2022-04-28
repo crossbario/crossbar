@@ -9,13 +9,14 @@ import copy
 import pprint
 
 from collections.abc import Mapping, Sequence
+from typing import Dict
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from autobahn import util
 from autobahn.wamp.types import SessionIdent
+from autobahn.util import hl, hlid, hltype, hluserid, hlval
 
-from crossbar._util import hl, hlid, hltype, hluserid
 from crossbar.common.checkconfig import check_dict_args, check_realm_name, check_connecting_transport
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
@@ -113,7 +114,7 @@ class BridgeSession(ApplicationSession):
                 }
 
                 if details.forward_for:
-                    # the event comes already forwarded from a router node ..
+                    # the event comes already forwarded from a router node
                     if len(details.forward_for) >= 0:
                         self.log.debug('SKIP! already forwarded')
                         return
@@ -238,7 +239,7 @@ class BridgeSession(ApplicationSession):
             The handler will then also register on the other router, and when receiving
             calls, re-issue those on this router.
 
-            :param reg_id:
+            :param reg_session:
             :param reg_details:
             :param details:
             :return:
@@ -514,25 +515,37 @@ class RLinkRemoteSession(BridgeSession):
 
     def __init__(self, config):
         BridgeSession.__init__(self, config)
-        self._subs = {}
-        self._rlink_manager = self.config.extra['rlink_manager']
 
+        # import here to resolve import dependency issues
+        from crossbar.worker.router import RouterController
+
+        self._subs = {}
+        self._rlink_manager: RLinkManager = self.config.extra['rlink_manager']
+        self._router_controller: RouterController = self._rlink_manager.controller
+
+    # FIXME: async? see below
     def onConnect(self):
-        self.log.debug('{klass}.onConnect()', klass=self.__class__.__name__)
+        self.log.info('{func}() ...', func=hltype(self.onConnect))
 
         authid = self.config.extra.get('authid', None)
         authrole = self.config.extra.get('authrole', None)
         authextra = self.config.extra.get('authextra', {})
+
+        # FIXME: use cryptosign-proxy
         authmethods = ['cryptosign']
 
-        def actually_join(public_key):
+        # use WorkerController.get_public_key to call node controller
+        # FIXME: the following does _not_ work with onConnect (?!)
+        # _public_key = await self._router_controller.get_public_key()
+
+        def actually_join(_public_key):
             authextra.update({
                 # forward the client pubkey: this allows us to omit authid as
                 # the router can identify us with the pubkey already
-                'pubkey': public_key,
+                'pubkey': _public_key,
 
                 # not yet implemented. a public key the router should provide
-                # a trustchain for it's public key. the trustroot can eg be
+                # a trustchain for its public key. the trustroot can eg be
                 # hard-coded in the client, or come from a command line option.
                 'trustroot': None,
 
@@ -547,12 +560,12 @@ class RLinkRemoteSession(BridgeSession):
             })
 
             self.log.info(
-                '{klass}.join(realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra})',
-                klass=self.__class__.__name__,
-                realm=self.config.realm,
-                authmethods=authmethods,
-                authid=authid,
-                authrole=authrole,
+                '{func} joining with realm="{realm}", authmethods={authmethods}, authid="{authid}", authrole="{authrole}", authextra={authextra}',
+                func=hltype(self.onConnect),
+                realm=hlval(self.config.realm),
+                authmethods=hlval(authmethods),
+                authid=hlval(authid),
+                authrole=hlval(authrole),
                 authextra=authextra)
 
             self.join(self.config.realm,
@@ -563,23 +576,28 @@ class RLinkRemoteSession(BridgeSession):
 
         res = self._rlink_manager._controller.get_public_key()
         res.addCallback(actually_join)
+        self.log.info('{func}() done (res={res}).', func=hltype(self.onConnect), res=res)
+        return res
 
+    # FIXME: async? see below
     def onChallenge(self, challenge):
-        self.log.debug('{klass}.onChallenge(challenge={challenge})',
-                       klass=self.__class__.__name__,
-                       challenge=challenge)
+        self.log.debug('{func}(challenge={challenge})', func=hltype(self.onChallenge), challenge=challenge)
 
         if challenge.method == 'cryptosign':
             # alright, we've got a challenge from the router.
 
-            # not yet implemented. check the trustchain the router provided against
-            # our trustroot, and check the signature provided by the
-            # router for our previous challenge. if both are ok, everything
-            # is fine - the router is authentic wrt our trustroot.
-
             # sign the challenge with our private key.
-            signed_challenge = self._rlink_manager._controller.sign_challenge(
-                challenge, self._rlink_manager._controller._transport.get_channel_id())
+            channel_id_type = 'tls-unique'
+            channel_id_map = self._router_controller._transport.transport_details.channel_id
+            if channel_id_type in channel_id_map:
+                channel_id = channel_id_map[channel_id_type]
+            else:
+                channel_id = None
+                channel_id_type = None
+
+            # use WorkerController.get_public_key to call node controller
+            # FIXME: await?
+            signed_challenge = self._router_controller.sign_challenge(challenge, channel_id, channel_id_type)
 
             # send back the signed challenge for verification
             return signed_challenge
@@ -796,23 +814,34 @@ class RLinkConfig(object):
 
 
 class RLinkManager(object):
-
+    """
+    Router-to-router links manager.
+    """
     log = make_logger()
 
     def __init__(self, realm, controller):
         """
 
         :param realm: The (local) router realm this object is managing links for.
-        :type realm: :class:`crossbar.edge.worker.router.ExtRouterRealm`
+        :param controller: The router controller this rlink is running under.
         """
-        # assert isinstance(realm, ExtRouterRealm)
+        # import here to resolve import dependency issues
+        from crossbar.edge.worker.router import ExtRouterRealm
+        from crossbar.worker.router import RouterController
 
-        # ExtRouterRealm
-        self._realm = realm
-        self._controller = controller
+        self._realm: ExtRouterRealm = realm
+        self._controller: RouterController = controller
 
         # map: link_id -> RLink
-        self._links = {}
+        self._links: Dict[str, RLink] = {}
+
+    @property
+    def realm(self):
+        return self._realm
+
+    @property
+    def controller(self):
+        return self._controller
 
     def __getitem__(self, link_id):
         if link_id in self._links:

@@ -13,6 +13,7 @@ import mock
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp import role
+from autobahn.wamp.types import TransportDetails
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.router import RouterFactory
@@ -199,7 +200,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -234,7 +235,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):

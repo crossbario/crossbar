@@ -5,11 +5,15 @@
 #
 #####################################################################################
 
-import binascii
-from autobahn.wamp import types
+from typing import Dict, Any
+
+import txaio
+from txaio import make_logger
+
+from autobahn.wamp.types import Deny, TransportDetails
 
 from crossbar.router.auth.pending import PendingAuth
-import txaio
+from crossbar._interfaces import IRealmContainer, IPendingAuth
 
 __all__ = ('PendingAuthTLS', )
 
@@ -21,10 +25,13 @@ class PendingAuthTLS(PendingAuth):
 
     AUTHMETHOD = 'tls'
 
-    def __init__(self, pending_session_id, transport_info, realm_container, config):
+    log = make_logger()
+
+    def __init__(self, pending_session_id: int, transport_details: TransportDetails, realm_container: IRealmContainer,
+                 config: Dict[str, Any]):
         super(PendingAuthTLS, self).__init__(
             pending_session_id,
-            transport_info,
+            transport_details,
             realm_container,
             config,
         )
@@ -32,11 +39,9 @@ class PendingAuthTLS(PendingAuth):
         # https://tools.ietf.org/html/rfc5056
         # https://tools.ietf.org/html/rfc5929
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
-        channel_id_hex = transport_info.get('channel_id', None)
-        if channel_id_hex:
-            self._channel_id = binascii.a2b_hex(channel_id_hex)
-        else:
-            self._channel_id = None
+        self._channel_id = transport_details.channel_id.get('tls-unique',
+                                                            None) if transport_details.channel_id else None
+        self._peer_cert = transport_details.peer_cert
 
         # for static-mode, the config has principals as a dict indexed
         # by authid, but we need the reverse map: cert-sha1 -> principal
@@ -52,6 +57,10 @@ class PendingAuthTLS(PendingAuth):
 
     def hello(self, realm, details):
 
+        # we must have a client TLS certificate to continue
+        if not self._peer_cert:
+            return Deny(message='client did not send a TLS client certificate')
+
         # remember the realm the client requested to join (if any)
         self._realm = realm
 
@@ -63,24 +72,15 @@ class PendingAuthTLS(PendingAuth):
 
             self._authprovider = 'static'
 
-            client_cert = self._session_details['transport'].get('client_cert', None)
-            if not client_cert:
-                return types.Deny(message='client did not send a TLS client certificate')
-            client_cert_sha1 = client_cert['sha1']
-
+            client_cert_sha1 = self._peer_cert['sha1']
             if client_cert_sha1 in self._cert_sha1_to_principal:
-
                 principal = self._cert_sha1_to_principal[client_cert_sha1]
-
                 error = self._assign_principal(principal)
                 if error:
                     return error
-
                 return self._accept()
             else:
-                return types.Deny(message='no principal with authid "{}" exists'.format(client_cert_sha1))
-
-            raise Exception("not implemented")
+                return Deny(message='no principal with authid "{}" exists'.format(client_cert_sha1))
 
         # use configured procedure to dynamically get a ticket for the principal
         elif self._config['type'] == 'dynamic':
@@ -98,10 +98,10 @@ class PendingAuthTLS(PendingAuth):
 
                 d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
-                def on_authenticate_ok(principal):
-                    error = self._assign_principal(principal)
-                    if error:
-                        return error
+                def on_authenticate_ok(_principal):
+                    _error = self._assign_principal(_principal)
+                    if _error:
+                        return _error
 
                     # FIXME: not sure about this .. TLS is a transport-level auth mechanism .. so forward
                     # self._transport._authid = self._authid
@@ -123,9 +123,12 @@ class PendingAuthTLS(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
-                              format(self._config['type']))
+            return Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
+                self._config['type']))
 
     def authenticate(self, signature):
         # should not arrive here!
         raise Exception("internal error (WAMP-TLS does not implement AUTHENTICATE)")
+
+
+IPendingAuth.register(PendingAuthTLS)

@@ -43,8 +43,7 @@ class TestDynamicAuth(unittest.TestCase):
         We pass along the authextra to a dynamic authenticator
         """
         session = Mock()
-        session._transport._transport_info = {}
-        session
+        session._transport.transport_details = types.TransportDetails()
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
@@ -79,10 +78,10 @@ class TestDynamicAuth(unittest.TestCase):
         details.authextra = extra
 
         pending_session_id = 1
-        transport_info = {}
+        transport_details = types.TransportDetails()
         realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
-        auth = cryptosign.PendingAuthCryptosign(pending_session_id, transport_info, realm_container, config)
+        auth = cryptosign.PendingAuthCryptosign(pending_session_id, transport_details, realm_container, config)
         val = yield auth.hello("realm", details)
 
         self.assertTrue(isinstance(val, types.Challenge))
@@ -96,7 +95,7 @@ class TestDynamicAuth(unittest.TestCase):
         We pass along the authextra to a dynamic authenticator
         """
         session = Mock()
-        session._transport._transport_info = {}
+        session._transport.transport_details = types.TransportDetails()
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
@@ -133,10 +132,10 @@ class TestDynamicAuth(unittest.TestCase):
         details.authextra = extra
 
         pending_session_id = 1
-        transport_info = {}
+        transport_details = types.TransportDetails()
         realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
-        auth = wampcra.PendingAuthWampCra(pending_session_id, transport_info, realm_container, config)
+        auth = wampcra.PendingAuthWampCra(pending_session_id, transport_details, realm_container, config)
         val = yield auth.hello("realm", details)
 
         self.assertTrue(isinstance(val, types.Challenge))
@@ -150,7 +149,7 @@ class TestDynamicAuth(unittest.TestCase):
         We pass along the authextra to a dynamic authenticator
         """
         session = Mock()
-        session._transport._transport_info = {}
+        session._transport.transport_details = types.TransportDetails()
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
@@ -187,10 +186,10 @@ class TestDynamicAuth(unittest.TestCase):
         details.authextra = extra
 
         pending_session_id = 1
-        transport_info = {}
+        transport_details = types.TransportDetails(channel_id={'tls-unique': b'anything'}, peer_cert={'some': 'thing'})
         realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
-        auth = tls.PendingAuthTLS(pending_session_id, transport_info, realm_container, config)
+        auth = tls.PendingAuthTLS(pending_session_id, transport_details, realm_container, config)
         val = yield auth.hello("realm", details)
 
         self.assertTrue(isinstance(val, types.Accept))
@@ -203,7 +202,7 @@ class TestDynamicAuth(unittest.TestCase):
         We pass along the authextra to a dynamic authenticator
         """
         session = Mock()
-        session._transport._transport_info = {}
+        session._transport.transport_details = types.TransportDetails()
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
@@ -240,10 +239,10 @@ class TestDynamicAuth(unittest.TestCase):
         details.authextra = extra
 
         pending_session_id = 1
-        transport_info = {}
+        transport_details = types.TransportDetails()
         realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
-        auth = anonymous.PendingAuthAnonymous(pending_session_id, transport_info, realm_container, config)
+        auth = anonymous.PendingAuthAnonymous(pending_session_id, transport_details, realm_container, config)
         val = yield auth.hello("realm", details)
 
         self.assertTrue(isinstance(val, types.Accept))
@@ -256,7 +255,7 @@ class TestDynamicAuth(unittest.TestCase):
         We pass along the authextra to a dynamic authenticator
         """
         session = Mock()
-        session._transport._transport_info = {}
+        session._transport.transport_details = types.TransportDetails()
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
@@ -293,10 +292,10 @@ class TestDynamicAuth(unittest.TestCase):
         details.authextra = extra
 
         pending_session_id = 1
-        transport_info = {}
+        transport_details = types.TransportDetails()
         realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
 
-        auth = ticket.PendingAuthTicket(pending_session_id, transport_info, realm_container, config)
+        auth = ticket.PendingAuthTicket(pending_session_id, transport_details, realm_container, config)
         val = yield auth.hello("realm", details)
 
         self.assertTrue(isinstance(val, types.Challenge))

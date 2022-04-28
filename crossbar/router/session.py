@@ -6,7 +6,6 @@
 #####################################################################################
 
 import os
-from pprint import pformat
 from typing import Optional, Union, Dict, List
 
 import werkzeug
@@ -26,7 +25,6 @@ from autobahn.wamp.exception import SessionNotReady
 from autobahn.wamp.types import SessionDetails, PublishOptions
 from autobahn.wamp.interfaces import ITransportHandler
 
-from crossbar.common.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 from crossbar.router.router import Router, RouterFactory
@@ -397,39 +395,11 @@ class RouterSession(BaseSession):
                            MagicMock)), 'unexpected router transport type {}'.format(type(transport))
         self._transport = transport
 
-        # WampLongPollResourceSession instance has no attribute '_transport_info'
-        if not hasattr(self._transport, '_transport_info') or self._transport._transport_info is None:
-            self._transport._transport_info = {}
-
         # transport configuration
         if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
             self._transport_config = self._transport.factory._config
         else:
             self._transport_config = {}
-
-        # a dict with x509 TLS client certificate information (if the client provided a cert)
-        # constructed from information from the Twisted stream transport underlying the WAMP transport
-        client_cert = None
-        # eg LongPoll transports lack underlying Twisted stream transport, since LongPoll is
-        # implemented at the Twisted Web layer. But we should nevertheless be able to
-        # extract the HTTP client cert!
-        if hasattr(self._transport, 'transport'):
-            client_cert = extract_peer_certificate(self._transport.transport)
-        if client_cert:
-            self._transport._transport_info['client_cert'] = client_cert
-            self.log.info("Client connecting with TLS certificate {client_cert}", client_cert=client_cert)
-
-        # FIXME: this is wrong!
-        # forward the transport channel ID (if any) on transport details
-        # channel_id = None
-        # if hasattr(self._transport, 'get_channel_id'):
-        #     # channel ID isn't implemented for LongPolL!
-        #     channel_id = self._transport.get_channel_id()
-        # if channel_id:
-        #     self._transport._transport_info['channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
-
-        self.log.info("Client session connected, - transport_info=\n{transport_info}",
-                      transport_info=pformat(self._transport._transport_info))
 
         # basic session information
         self._pending_session_id = None
@@ -864,7 +834,7 @@ class RouterSession(BaseSession):
                     except KeyError:
                         PendingAuthKlass = extra_auth_methods[authmethod]
 
-                    self._pending_auth = PendingAuthKlass(self._pending_session_id, self._transport._transport_info,
+                    self._pending_auth = PendingAuthKlass(self._pending_session_id, self._transport.transport_details,
                                                           self._router_factory._worker, {
                                                               'type': 'static',
                                                               'authrole': 'anonymous',
@@ -915,7 +885,7 @@ class RouterSession(BaseSession):
 
                             self._pending_auth = PendingAuthKlass(
                                 self._pending_session_id,
-                                self._transport._transport_info,
+                                self._transport.transport_details,
                                 self._router_factory._worker,
                                 auth_config[authmethod],
                             )
@@ -924,11 +894,10 @@ class RouterSession(BaseSession):
                         # WAMP-Cookie authentication
                         elif authmethod == 'cookie':
                             cbtid = None
-                            _ti = self._transport._transport_info
-                            if 'http_headers_received' in _ti and 'set-cookie' in _ti['http_headers_received']:
+                            _ti = self._transport.transport_details.http_headers_received
+                            if 'set-cookie' in _ti:
                                 cookie_name = 'cbtid'
-                                cookie_received = werkzeug.http.parse_cookie(
-                                    _ti['http_headers_received']['set-cookie'])
+                                cookie_received = werkzeug.http.parse_cookie(_ti['set-cookie'])
                                 if cookie_name in cookie_received:
                                     cbtid = cookie_received[cookie_name]
 
@@ -1039,7 +1008,7 @@ class RouterSession(BaseSession):
         self._session_details = details
         self._router._session_joined(self, details)
 
-        # dispatch session metaevent from WAMP AP
+        # dispatch session meta event from WAMP AP
         #
         if self._service_session:
             session_info_long = {
@@ -1049,7 +1018,7 @@ class RouterSession(BaseSession):
                 'authmethod': details.authmethod,
                 'authextra': details.authextra,
                 'authprovider': details.authprovider,
-                'transport': self._transport._transport_info
+                'transport': self._transport.transport_details.marshal() if self._transport.transport_details else None
             }
             self._service_session.publish('wamp.session.on_join', session_info_long)
 

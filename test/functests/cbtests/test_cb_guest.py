@@ -39,8 +39,16 @@ def test_guest_logging(reactor, request, virtualenv, virtualenv3, temp_dir):
         f.write('''
 from __future__ import print_function
 from sys import stderr, stdout
-#from autobahn.twisted.wamp import ApplicationSession
-from autobahn.asyncio.wamp import ApplicationSession
+
+import txaio
+if True:
+    txaio.use_asyncio()
+    from autobahn.asyncio.wamp import ApplicationSession
+    from autobahn.asyncio.wamp import ApplicationRunner
+else:
+    txaio.use_twisted()
+    from autobahn.twisted.wamp import ApplicationSession
+    from autobahn.twisted.wamp import ApplicationRunner
 
 class Component(ApplicationSession):
     def onJoin(self, details):
@@ -52,8 +60,6 @@ class Component(ApplicationSession):
         print("testcase: onClose stderr", file=stderr)
 
 if __name__ == '__main__':
-    #from autobahn.twisted.wamp import ApplicationRunner
-    from autobahn.asyncio.wamp import ApplicationRunner
     runner = ApplicationRunner(u"ws://127.0.0.1:%(client_port)s/ws", u"%(client_realm)s")
     runner.run(Component)
     print("testcase: post-run() stdout", file=stdout)

@@ -246,8 +246,8 @@ class RouterServiceAgent(ApplicationSession):
             session = self._router._session_id_to_session[session_id]
             if not is_restricted_session(session):
                 session_info = session._session_details.marshal() if hasattr(session, '_session_details') else dict()
-                session_info['transport'] = session._transport._transport_info if hasattr(
-                    session, '_transport') and hasattr(session._transport, '_transport_info') else None
+                _td = session._transport.transport_details.marshal() if session._transport.transport_details else None
+                session_info['transport'] = _td
                 return session_info
             else:
                 self.log.warn('wamp.session.get: denied returning restricted session {session_id}',

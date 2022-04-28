@@ -6,16 +6,18 @@
 #####################################################################################
 
 import json
-
-from autobahn import util
-from autobahn.wamp import auth
-from autobahn.wamp import types
-from autobahn.util import hltype
-
-from crossbar.router.auth.pending import PendingAuth
+from typing import Union, Dict, Any
 
 import txaio
 from txaio import make_logger
+
+from autobahn import util
+from autobahn.wamp import auth
+from autobahn.util import hltype
+from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
+
+from crossbar.router.auth.pending import PendingAuth
+from crossbar._interfaces import IRealmContainer, IPendingAuth
 
 __all__ = ('PendingAuthWampCra', )
 
@@ -29,13 +31,18 @@ class PendingAuthWampCra(PendingAuth):
 
     log = make_logger()
 
-    def __init__(self, pending_session_id, transport_info, realm_container, config):
+    def __init__(self, pending_session_id: int, transport_details: TransportDetails, realm_container: IRealmContainer,
+                 config: Dict[str, Any]):
         super(PendingAuthWampCra, self).__init__(
             pending_session_id,
-            transport_info,
+            transport_details,
             realm_container,
             config,
         )
+
+        # filled with what the client requested originally (if any)
+        self._realm = None
+        self._authid = None
 
         # The signature we expect the client to send in AUTHENTICATE.
         self._signature = None
@@ -53,13 +60,7 @@ class PendingAuthWampCra(PendingAuth):
             'nonce': util.newid(64),
             'timestamp': util.utcnow()
         }
-        challenge = json.dumps(challenge_obj, ensure_ascii=False)
-
-        # Sometimes, if it doesn't have to be Unicode, PyPy won't make it
-        # Unicode. Make it Unicode, even if it's just ASCII.
-        if not isinstance(challenge, str):
-            challenge = challenge.decode('utf8')
-
+        challenge: str = json.dumps(challenge_obj, ensure_ascii=False)
         secret = user['secret'].encode('utf8')
         signature = auth.compute_wcs(secret, challenge.encode('utf8')).decode('ascii')
 
@@ -75,7 +76,7 @@ class PendingAuthWampCra(PendingAuth):
 
         return extra, signature
 
-    def hello(self, realm, details):
+    def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
@@ -83,17 +84,20 @@ class PendingAuthWampCra(PendingAuth):
         # remember the authid the client wants to identify as (if any)
         self._authid = details.authid
 
-        def on_authenticate_ok(principal):
-            error = self._assign_principal(principal)
-            if error:
-                return error
+        # define local helpers
+        if self._config['type'] in ['dynamic', 'function']:
 
-            # now compute CHALLENGE.Extra and signature expected
-            extra, self._signature = self._compute_challenge(principal)
-            return types.Challenge(self._authmethod, extra)
+            def on_authenticate_ok(_principal):
+                _error = self._assign_principal(_principal)
+                if _error:
+                    return _error
 
-        def on_authenticate_error(err):
-            return self._marshal_dynamic_authenticator_error(err)
+                # now compute CHALLENGE.Extra and signature expected
+                _extra, self._signature = self._compute_challenge(_principal)
+                return Challenge(self._authmethod, _extra)
+
+            def on_authenticate_error(err):
+                return self._marshal_dynamic_authenticator_error(err)
 
         # use static principal database from configuration
         if self._config['type'] == 'static':
@@ -112,9 +116,9 @@ class PendingAuthWampCra(PendingAuth):
                 # expected for WAMP-CRA
                 extra, self._signature = self._compute_challenge(principal)
 
-                return types.Challenge(self._authmethod, extra)
+                return Challenge(self._authmethod, extra)
             else:
-                return types.Deny(message='no principal with authid "{}" exists'.format(details.authid))
+                return Deny(message='no principal with authid "{}" exists'.format(details.authid))
 
         # use configured procedure to dynamically get a ticket for the principal
         elif self._config['type'] == 'dynamic':
@@ -165,10 +169,10 @@ class PendingAuthWampCra(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.
-                              format(self._config['type']))
+            return Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
+                self._config['type']))
 
-    def authenticate(self, signature):
+    def authenticate(self, signature: str) -> Union[Accept, Deny]:
 
         if signature == self._signature:
             # signature was valid: accept the client
@@ -179,4 +183,7 @@ class PendingAuthWampCra(PendingAuth):
                           func=hltype(self.authenticate),
                           expected=self._signature,
                           signature=signature)
-            return types.Deny(message='WAMP-CRA client signature is invalid')
+            return Deny(message='WAMP-CRA client signature is invalid')
+
+
+IPendingAuth.register(PendingAuthWampCra)

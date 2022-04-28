@@ -355,6 +355,7 @@ class RouterRoleDynamicAuth(RouterRole):
                 }
             }
         else:
+            _td = session._transport.transport_details.marshal() if session._transport.transport_details else None
             details = {
                 'session': session_details.session,
                 'authid': session_details.authid,
@@ -362,7 +363,7 @@ class RouterRoleDynamicAuth(RouterRole):
                 'authmethod': session_details.authmethod,
                 'authprovider': session_details.authprovider,
                 'authextra': session_details.authextra,
-                'transport': session._transport._transport_info
+                'transport': _td
             }
 
         self.log.debug("CrossbarRouterRoleDynamicAuth.authorize {uri} {action} {details}",

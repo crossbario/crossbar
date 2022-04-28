@@ -27,7 +27,8 @@ from autobahn import util
 from autobahn.wamp import message, role
 from autobahn.wamp.message import _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_LOOSE_LAST_EMPTY, _URI_PAT_LOOSE_EMPTY
 from autobahn.wamp.serializer import JsonObjectSerializer, MsgPackObjectSerializer, CBORObjectSerializer, UBJSONObjectSerializer
-from autobahn.twisted.util import transport_channel_id, peer2str
+from autobahn.wamp.types import TransportDetails
+from autobahn.twisted.util import peer2str
 from autobahn.websocket.utf8validator import Utf8Validator
 
 _validator = Utf8Validator()
@@ -132,21 +133,11 @@ class WampTransport(object):
         self.factory = factory
         self.on_message = on_message
         self.transport = real_transport
+        self.transport_details = TransportDetails()
         real_transport._transport_config = {'foo': 32}
-        self._transport_info = {
-            'type': 'mqtt',
-            'peer': peer2str(self.transport.getPeer()),
-        }
-
-    @property
-    def peer(self):
-        return self._transport_info[u'peer']
 
     def send(self, msg):
         self.on_message(msg)
-
-    def get_channel_id(self, channel_id_type='tls-unique'):
-        return transport_channel_id(self.transport, is_server=True, channel_id_type=channel_id_type)
 
 
 @implementer(IHandshakeListener)
