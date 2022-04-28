@@ -124,7 +124,7 @@ class UniSocketServerProtocol(Protocol):
                         self._proto = self._factory._web_factory.buildProtocol(self._addr)
 
                         # watch out: this is definitely a hack!
-                        self._proto._owner.transport = self.transport
+                        self._proto._channel.transport = self.transport
                     else:
                         self.log.warn('client wants to talk HTTP/Web, but we have no factory configured for that')
                         self.transport.loseConnection()
