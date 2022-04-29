@@ -286,12 +286,16 @@ class ProxyFrontendSession(object):
                 # authid of the connecting backend (proxy service) session is this proxy node's ID
                 backend_authid = self._controller.node_id
 
+                # authmethods we announce to the backend router we connect to
                 authmethods = list(backend_session._authenticators.keys())
 
+                # get marshalled transport details for this proxy frontend session
                 if self.transport.transport_details:
                     _td = self.transport.transport_details.marshal()
                 else:
                     _td = None
+
+                # authentication extra we transmit from the proxy to backend router worker
                 authextra = {
                     # for WAMP-cryptosign authentication of the proxy frontend
                     # to the backend router
@@ -308,10 +312,13 @@ class ProxyFrontendSession(object):
                     "proxy_authmethod": accept.authmethod,
                     "proxy_authprovider": accept.authprovider,
 
-                    # this is the authextra returned from the frontend authenticator, which
-                    # would normally be returned to the client
+                    # this is the authextra returned from the proxy frontend authenticator
                     # "proxy_authextra": accept.authextra,
-                    "proxy_authextra": _td,
+
+                    # these are the transport details from the proxy frontend session
+                    "proxy_authextra": {
+                        "transport": _td
+                    },
                 }
 
                 self.log.info(
@@ -320,6 +327,7 @@ class ProxyFrontendSession(object):
                     authmethods=authmethods,
                     authextra=pformat(authextra))
 
+                # now join session, which might first start WAMP authentication (for authmethod "cryptosign-proxy")
                 backend_session.join(accept.realm, authmethods=authmethods, authid=backend_authid, authextra=authextra)
 
                 def _on_backend_joined(session, details):
