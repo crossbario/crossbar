@@ -693,7 +693,7 @@ class ProxyBackendSession(Session):
         return super(ProxyBackendSession, self).onChallenge(challenge)
 
     def onWelcome(self, _msg):
-        self.log.info('{func}(message={})', func=hltype(self.onWelcome), msg=_msg)
+        self.log.info('{func}(message={msg})', func=hltype(self.onWelcome), msg=_msg)
         # This is WRONG:
         # if msg.authmethod == "cryptosign-proxy":
         #     msg.authmethod = "cryptosign"
@@ -793,18 +793,7 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
         # this is our WAMP session to the backend
         session = ProxyBackendSession()
 
-        # forward WAMP session information of the incoming proxy session
-        if frontend_session.transport.transport_details:
-            _td = frontend_session.transport.transport_details.marshal()
-        else:
-            _td = None
-        authextra = {
-            'proxy_realm': frontend_session.realm,
-            'proxy_authid': frontend_session.authid,
-            'proxy_authrole': frontend_session.authrole,
-            'proxy_authextra': frontend_session.authextra or {},
-            'proxy_transport_details': _td
-        }
+        authextra = {}
         log.info('{func}::create_session() connecting to backend with authextra=\n{authextra}',
                  func=hltype(make_backend_connection),
                  authextra=pformat(authextra))
@@ -967,9 +956,7 @@ def make_service_session(reactor: ReactorBase, controller: 'ProxyController', ba
                     'proxy_realm': realm,
                     'proxy_authid': proxy_authid,
                     'proxy_authrole': authrole,
-                    # service session don't have a connected frontend session, so nothing to forward
                     'proxy_authextra': None,
-                    'proxy_transport_details': None,
                 }
             }
         }
@@ -990,9 +977,7 @@ def make_service_session(reactor: ReactorBase, controller: 'ProxyController', ba
                         'proxy_realm': realm,
                         'proxy_authid': proxy_authid,
                         'proxy_authrole': authrole,
-                        # service session don't have a connected frontend session, so nothing to forward
                         'proxy_authextra': None,
-                        'proxy_transport_details': None,
                     }
                 }
             }

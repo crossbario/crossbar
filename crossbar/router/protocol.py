@@ -18,7 +18,7 @@ from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflat
 
 from autobahn.wamp.types import TransportDetails
 from autobahn.websocket.types import ConnectionDeny
-from autobahn.util import hlval, hltype
+from autobahn.util import hlval, hltype, hlid
 
 from txaio import make_logger
 
@@ -181,7 +181,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
     def onConnect(self, request):
 
-        self.log.info('{func}(request={request})', func=hltype(self.onConnect), request=request)
+        self.log.debug('{func}(request={request})', func=hltype(self.onConnect), request=request)
 
         if self.factory.debug_traffic:
             from twisted.internet import reactor
@@ -207,9 +207,9 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
         #
         protocol, headers = websocket.WampWebSocketServerProtocol.onConnect(self, request)
 
-        self.log.info('{func}: proceed with WebSocket opening handshake for WebSocket subprotocol "{protocol}"',
-                      func=hltype(self.onConnect),
-                      protocol=hlval(protocol))
+        self.log.debug('{func}: proceed with WebSocket opening handshake for WebSocket subprotocol "{protocol}"',
+                       func=hltype(self.onConnect),
+                       protocol=hlval(protocol))
 
         try:
 
@@ -252,9 +252,9 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         if 'same_site' in self.factory._config['cookie']:
                             headers['Set-Cookie'] += ';SameSite=' + self.factory._config['cookie']['same_site']
 
-                    self.log.info('{func}: setting new cookie: {cookie}',
+                    self.log.info('{func}: setting new cookie {cookie}',
                                   func=hltype(self.onConnect),
-                                  cookie=headers['Set-Cookie'])
+                                  cookie=hlval(headers['Set-Cookie']))
                 else:
                     self.log.info('{func}: cookie {cbtid} already set and stored',
                                   func=hltype(self.onConnect),
@@ -278,22 +278,25 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         # so immediately authenticate the client using that information
                         self._authprovider = 'cookie'
                         self.log.info(
-                            "Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
-                            cookiename=self.factory._cookiestore._cookie_id_field,
-                            cbtid=self._cbtid,
-                            authid=self._authid,
-                            authrole=self._authrole,
-                            authmethod=self._authmethod,
-                            authrealm=self._authrealm)
+                            '{func} authenticated client via cookie {cookiename}={cbtid} as authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}", authrealm="{authrealm}"',
+                            func=hltype(self.onConnect),
+                            cookiename=hlid(self.factory._cookiestore._cookie_id_field),
+                            cbtid=hlval(self._cbtid),
+                            authid=hlval(self._authid),
+                            authrole=hlval(self._authrole),
+                            authmethod=hlval(self._authmethod),
+                            authprovider=hlval(self._authprovider),
+                            authrealm=hlval(self._authrealm))
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
                         self.log.info(
-                            "Cookie-based authentication enabled, but cookie isn't authenticated yet on WebSocket connection {ws}",
-                            ws=self)
+                            '{func} cookie-based authentication enabled, but cookie is not authenticated yet',
+                            func=hltype(self.onConnect))
                 else:
-                    self.log.info("Cookie-based authentication disabled on WebSocket connection {ws}", ws=self)
+                    self.log.info('{func} cookie-based authentication disabled on connection',
+                                  func=hltype(self.onConnect))
             else:
-                self.log.info("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
+                self.log.info('{func} cookie tracking disabled on WebSocket connection', func=hltype(self.onConnect))
 
             # negotiated WebSocket subprotocol in use, e.g. "wamp.2.cbor.batched"
             self._transport_details.websocket_protocol = protocol

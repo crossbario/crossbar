@@ -755,10 +755,10 @@ class RouterSession(BaseSession):
             authmethods = details.authmethods or ['anonymous']
             authextra = details.authextra
 
-            self.log.info('{func} processing authmethods={authmethods}, authextra={authextra}',
-                          func=hltype(self.onHello),
-                          authextra=authextra,
-                          authmethods=authmethods)
+            self.log.debug('{func} processing authmethods={authmethods}, authextra={authextra}',
+                           func=hltype(self.onHello),
+                           authextra=authextra,
+                           authmethods=authmethods)
 
             assert self._transport
 
@@ -775,7 +775,7 @@ class RouterSession(BaseSession):
                     if hasattr(self._transport, '_cbtid'):
                         self._transport.factory._cookiestore.setAuth(self._transport._cbtid, None, None, None, None,
                                                                      None)
-                        self.log.info(
+                        self.log.debug(
                             '{meth}: cookiestore.setAuth[1](cbtid={cbtid}, authid={authid}, authrole={authrole}, authmethod={authmethod}, authextra={authextra}, realm={realm})',
                             meth=hltype(self.onHello),
                             cbtid=hlid(self._transport._cbtid),
@@ -1007,7 +1007,7 @@ class RouterSession(BaseSession):
             if details.authmethod != 'cookie':
                 self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole,
                                                              details.authmethod, details.authextra, self._realm)
-                self.log.warn(
+                self.log.debug(
                     '{meth}: cookiestore.setAuth[2](cbtid={cbtid}, authid={authid}, authrole={authrole}, authmethod={authmethod}, authextra={authextra}, realm={realm})',
                     meth=hltype(self.onJoin),
                     cbtid=hlid(self._transport._cbtid),
