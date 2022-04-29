@@ -7,6 +7,7 @@
 
 import txaio
 import uuid
+from pprint import pformat
 from typing import Optional, Dict
 
 from txaio import make_logger
@@ -153,13 +154,14 @@ class Router(object):
         self._attached += 1
 
         self.log.info(
-            'Router attached new session to realm "{realm}" (session={session}, authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}") {func}',
+            '{func} router attached new session to realm="{realm}", session={session}, authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}"), authextra=\n{authextra}',
             func=hltype(self.attach),
             session=hlid(session._session_id) if session else '',
             authid=hlid(session._authid),
             authrole=hlid(session._authrole),
             authmethod=hlval(session._authmethod),
             authprovider=hlval(session._authprovider),
+            authextra=pformat(session._authextra) if session._authextra else None,
             realm=hlid(session._realm))
 
         return {'broker': self._broker._role_features, 'dealer': self._dealer._role_features}

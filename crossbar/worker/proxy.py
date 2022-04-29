@@ -178,7 +178,7 @@ class ProxyFrontendSession(object):
             'x_cb_proxy_pid': os.getpid(),
         }
 
-        self.log.info('Proxy frontend session connected from peer {peer} [{func}]',
+        self.log.info('{func} proxy frontend session connected from peer {peer}',
                       func=hltype(self.onOpen),
                       peer=hlval(self.transport.transport_details.peer) if self.transport.transport_details else None)
 
@@ -189,11 +189,11 @@ class ProxyFrontendSession(object):
         :param wasClean: Indicates if the transport has been closed regularly.
         :type wasClean: bool
         """
-        self.log.info('Proxy frontend session closed (wasClean={wasClean}) [{func}]',
+        self.log.info('{func} proxy frontend session closed (wasClean={wasClean})',
                       func=hltype(self.onClose),
                       wasClean=wasClean)
 
-        # actually, at this point, the backend session should already be gone .. but better check!
+        # actually, at this point, the backend session should already be gone, but better check!
         if self._backend_session:
             self._controller.unmap_backend(self, self._backend_session)
             self._backend_session = None
@@ -211,7 +211,7 @@ class ProxyFrontendSession(object):
         :param msg: The WAMP message received.
         :type msg: object implementing :class:`autobahn.wamp.interfaces.IMessage`
         """
-        self.log.debug('Proxy frontend session onMessage(msg={msg}) [{func}]', func=hltype(self.onMessage), msg=msg)
+        self.log.debug('{func} proxy frontend session onMessage(msg={msg})', func=hltype(self.onMessage), msg=msg)
         if self._session_id is None:
             # no frontend session established yet, so we expect one of HELLO, ABORT, AUTHENTICATE
 
@@ -246,7 +246,7 @@ class ProxyFrontendSession(object):
                     self._controller.unmap_backend(self, self._backend_session)
                     self._backend_session = None
                 else:
-                    self.log.warn('Frontend session left, but no active backend session to close! [{func}]',
+                    self.log.warn('{func} frontend session left, but no active backend session to close!',
                                   func=hltype(self.onMessage))
 
                 # complete the closing handshake (initiated by the client in this case) by replying with GOODBYE
@@ -265,7 +265,7 @@ class ProxyFrontendSession(object):
         # the backend (and we wait to tell the client they're
         # welcome until we have actually connected to the
         # backend).
-        self.log.info('Proxy frontend session accepted ({accept}) [{func}]', func=hltype(self._accept), accept=accept)
+        self.log.info('{func} proxy frontend session accepted ({accept})', func=hltype(self._accept), accept=accept)
 
         if (hasattr(self.transport, '_cbtid') and hasattr(self.transport.factory, '_cookiestore')
                 and self.transport.factory._cookiestore):
@@ -287,37 +287,43 @@ class ProxyFrontendSession(object):
                 backend_authid = self._controller.node_id
 
                 authmethods = list(backend_session._authenticators.keys())
-                self.log.info('Proxy backend session authenticating (authmethods={authmethods}) [{func}]',
-                              func=hltype(_backend_connected),
-                              authmethods=authmethods)
 
-                backend_session.join(
-                    accept.realm,
+                if self.transport.transport_details:
+                    _td = self.transport.transport_details.marshal()
+                else:
+                    _td = None
+                authextra = {
+                    # for WAMP-cryptosign authentication of the proxy frontend
+                    # to the backend router
+                    "pubkey": key['hex'],
+
+                    # forward authentication credentials of the connecting client
+                    #
+                    # the following are the effective (realm, authid, authrole) under
+                    # which the client (proxy frontend connection) was successfully
+                    # authenticated (using the authmethod+authprovider)
+                    "proxy_realm": accept.realm,
+                    "proxy_authid": accept.authid,
+                    "proxy_authrole": accept.authrole,
+                    "proxy_authmethod": accept.authmethod,
+                    "proxy_authprovider": accept.authprovider,
+
+                    # this is the authextra returned from the frontend authenticator, which
+                    # would normally be returned to the client
+                    # "proxy_authextra": accept.authextra,
+                    "proxy_authextra": _td,
+                }
+
+                self.log.info(
+                    '{func} proxy backend session authenticating with authmethods={authmethods}, authextra=\n{authextra}',
+                    func=hltype(_backend_connected),
                     authmethods=authmethods,
-                    authid=backend_authid,
-                    authextra={
-                        # for WAMP-cryptosign authentication of the proxy frontend
-                        # to the backend router
-                        "pubkey": key['hex'],
+                    authextra=pformat(authextra))
 
-                        # forward authentication credentials of the connecting client
-                        #
-                        # the following are the effective (realm, authid, authrole) under
-                        # which the client (proxy frontend connection) was successfully
-                        # authenticated (using the authmethod+authprovider)
-                        "proxy_realm": accept.realm,
-                        "proxy_authid": accept.authid,
-                        "proxy_authrole": accept.authrole,
-                        "proxy_authmethod": accept.authmethod,
-                        "proxy_authprovider": accept.authprovider,
-
-                        # this is the authextra returned from the frontend authenticator, which
-                        # would normally be returned to the client
-                        "proxy_authextra": accept.authextra,
-                    })
+                backend_session.join(accept.realm, authmethods=authmethods, authid=backend_authid, authextra=authextra)
 
                 def _on_backend_joined(session, details):
-                    self.log.info('Proxy backend session joined (backend_session_id={backend_session_id}) [{func}]',
+                    self.log.info('{func} proxy backend session joined (backend_session_id={backend_session_id})',
                                   backend_session_id=hlid(details.session),
                                   backend_session=session,
                                   pending_session_id=self._pending_session_id,
@@ -384,7 +390,7 @@ class ProxyFrontendSession(object):
         Now we do any authentication necessary with them and connect
         to our backend.
         """
-        self.log.debug('Proxy frontend session processing HELLO (msg={msg}) [{func}]',
+        self.log.debug('{func} proxy frontend session processing HELLO (msg={msg})',
                        func=hltype(self._process_Hello),
                        msg=msg)
         self._pending_session_id = util.id()
@@ -451,7 +457,7 @@ class ProxyFrontendSession(object):
                 }
             }
             self.log.warn(
-                'No authentication configured for proxy frontend session (using builtin anonymous access policy) [{func}]',
+                '{func} no authentication configured for proxy frontend session (using builtin anonymous access policy)',
                 func=hltype(self._process_Hello))
 
         for authmethod in authmethods:
@@ -468,7 +474,7 @@ class ProxyFrontendSession(object):
 
             # authmethod not available
             if authmethod not in AUTHMETHOD_MAP and authmethod not in extra_auth_methods:
-                self.log.debug("Client requested valid, but unavailable authentication method {authmethod} [{func}]",
+                self.log.debug("{func} client requested valid, but unavailable authentication method {authmethod}",
                                func=hltype(self._process_Hello),
                                authmethod=authmethod)
                 continue
@@ -516,7 +522,7 @@ class ProxyFrontendSession(object):
                         message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                       message='Frontend connection accept failed ({})'.format(e)))
                     return
-                self.log.info('Processed authmethod "{authmethod}" using {authklass}: {hello_result} [{func}]',
+                self.log.info('{func} processed authmethod "{authmethod}" using {authklass}: {hello_result}',
                               func=hltype(self._process_Hello),
                               authmethod=authmethod,
                               authklass=authklass,
@@ -548,7 +554,7 @@ class ProxyFrontendSession(object):
                     self._backend_session = session
                     self.transport.send(msg)
                     self.log.info(
-                        'Proxy frontend session WELCOME: session_id={session}, session={session}, details="{details}" [{func}]',
+                        '{func} proxy frontend session WELCOME: session_id={session}, session={session}, details="{details}"',
                         func=hltype(self._process_Hello),
                         session_id=hlid(self._session_id),
                         session=self,
@@ -566,7 +572,7 @@ class ProxyFrontendSession(object):
 
             else:
                 # should not arrive here: internal (logic) error
-                self.log.warn('internal error: unexpected authenticator return type {rtype} [{func}]',
+                self.log.warn('{func} internal error: unexpected authenticator return type {rtype}',
                               rtype=hltype(hello_result),
                               func=hltype(self._process_Hello))
                 self.transport.send(
@@ -579,7 +585,7 @@ class ProxyFrontendSession(object):
 
     @inlineCallbacks
     def _process_Authenticate(self, msg):
-        self.log.debug('Proxy frontend session process AUTHENTICATE (msg={msg}) [{func}]',
+        self.log.debug('{func} proxy frontend session process AUTHENTICATE (msg={msg})',
                        func=hltype(self._process_Authenticate),
                        msg=msg)
         if self._pending_auth:
@@ -588,7 +594,7 @@ class ProxyFrontendSession(object):
                isinstance(self._pending_auth, PendingAuthCryptosign) or \
                isinstance(self._pending_auth, PendingAuthScram):
                 auth_result = yield as_future(self._pending_auth.authenticate, msg.signature)
-                self.log.info('Processed pending authentication {pending_auth}: {authresult} [{func}]',
+                self.log.info('{func} processed pending authentication {pending_auth}: {authresult}',
                               func=hltype(self._process_Authenticate),
                               pending_auth=self._pending_auth,
                               authresult=auth_result)
@@ -614,7 +620,7 @@ class ProxyFrontendSession(object):
                             self._backend_session = session
                             self.transport.send(msg)
                             self.log.debug(
-                                'Proxy frontend session WELCOME: session_id={session_id}, session={session}, msg={msg} [{func}]',
+                                '{func} proxy frontend session WELCOME: session_id={session_id}, session={session}, msg={msg}',
                                 func=hltype(self._process_Authenticate),
                                 session_id=hlid(self._session_id),
                                 session=self,
@@ -625,7 +631,7 @@ class ProxyFrontendSession(object):
                     self.transport.send(message.Abort(auth_result.reason, message=auth_result.message))
                 else:
                     # should not arrive here: logic error
-                    self.log.warn('internal error: unexpected authenticator return type {rtype} [{func}]',
+                    self.log.warn('{func} internal error: unexpected authenticator return type {rtype}',
                                   rtype=hltype(auth_result),
                                   func=hltype(self._process_Authenticate))
                     self.transport.send(
@@ -655,6 +661,7 @@ class ProxyBackendSession(Session):
     there's a backend connection per frontend client).
     """
     def onOpen(self, transport):
+        self.log.info('{func}(transport={transport})', func=hltype(self.onOpen), transport=transport)
         # instance of Frontend (frontend_session)
         self._frontend = transport._proxy_other_side
         self._on_connect = Deferred()
@@ -667,27 +674,32 @@ class ProxyBackendSession(Session):
         instead we await the frontend sending its hello and forward
         that along.
         """
+        self.log.info('{func}(): on_connect={on_connect}', func=hltype(self.onConnect), on_connect=self._on_connect)
         self._on_connect.callback(None)
 
     def onChallenge(self, challenge):
+        self.log.info('{func}(challenge={})', func=hltype(self.onChallenge), challenge=challenge)
         if challenge.method == "cryptosign-proxy":
             return super(ProxyBackendSession, self).onChallenge(types.Challenge("cryptosign", extra=challenge.extra))
 
         return super(ProxyBackendSession, self).onChallenge(challenge)
 
-    def onWelcome(self, msg):
+    def onWelcome(self, _msg):
+        self.log.info('{func}(message={})', func=hltype(self.onWelcome), msg=_msg)
         # This is WRONG:
         # if msg.authmethod == "cryptosign-proxy":
         #     msg.authmethod = "cryptosign"
         # elif msg.authmethod == "anonymous-proxy":
         #     msg.authmethod = "anonymous"
-        return super(ProxyBackendSession, self).onWelcome(msg)
+        return super(ProxyBackendSession, self).onWelcome(_msg)
 
     def onJoin(self, details):
+        self.log.info('{func}(details={details})', func=hltype(self.onJoin), details=details)
         if not self._on_ready.called:
             self._on_ready.callback(self)
 
     def onClose(self, wasClean):
+        self.log.info('{func}(wasClean={wasClean})', func=hltype(self.onClose), wasClean=wasClean)
         if self._frontend is not None and self._frontend.transport is not None:
             try:
                 if self._session_id:
@@ -747,9 +759,14 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
     :return: A deferred that resolves with a proxy backend session that is joined on the realm,
         under the authrole, as the proxy frontend session.
     """
-    log.info('Connecting to backend with config [{func}]\n{config}',
-             func=hltype(make_backend_connection),
-             config=pformat(backend_config))
+    log.info(
+        '{func} connecting frontend session realm="{realm}", authid="{authid}", authrole="{authrole}", authextra={authextra} to backend with backend_config=\n{backend_config}',
+        func=hltype(make_backend_connection),
+        realm=hlval(frontend_session.realm),
+        authid=hlval(frontend_session.authid),
+        authrole=hlval(frontend_session.authrole),
+        authextra=pformat(frontend_session.authextra),
+        backend_config=pformat(backend_config))
 
     cbdir = controller.cbdir
 
@@ -777,7 +794,7 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
             'proxy_realm': frontend_session.realm,
             'proxy_authid': frontend_session.authid,
             'proxy_authrole': frontend_session.authrole,
-            'proxy_authextra': frontend_session.authextra,
+            'proxy_authextra': frontend_session.authextra or {},
             'proxy_transport_details': _td
         }
         log.info('{func}::create_session() connecting to backend with authextra=\n{authextra}',
@@ -793,6 +810,9 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
         if 'auth' in backend_config and 'cryptosign-proxy' in backend_config['auth']:
             session.add_authenticator(create_authenticator('cryptosign-proxy', privkey=key['hex'],
                                                            authextra=authextra))
+            log.info('{func} using cryptosign-proxy authenticator for backend connection, authextra=\n{authextra}',
+                     func=hltype(make_backend_connection),
+                     authextra=pformat(authextra))
 
         # if auth is not configured, or is configured and includes "anonymous-proxy",
         # try to connect to the backend node authenticating with WAMP-anonymous
@@ -800,10 +820,16 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
         # authentication via WAMP-anonymous MAY be possible with the backend node if enabled
         #
         elif 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
+            log.info('{func}', func=hltype(make_backend_connection))
+
             # IMPORTANT: this is security sensitive! we only allow anonymous proxy
             # locally on a host, that is, when the transport type is Unix domain socket
             if backend_config['transport']['endpoint']['type'] == 'unix':
                 session.add_authenticator(create_authenticator('anonymous-proxy', authextra=authextra))
+                log.info(
+                    '{func} using anonymous-proxy over UDS authenticator for backend connection, authextra=\n{authextra}',
+                    func=hltype(make_backend_connection),
+                    authextra=pformat(authextra))
             else:
                 raise RuntimeError(
                     'anonymous-proxy authenticator only allowed on Unix domain socket based transports, not type "{}"'.
@@ -858,7 +884,7 @@ class AuthenticatorSession(ApplicationSession):
             if self.is_attached():
                 self.leave()
         else:
-            self.log.info('Client public key loaded: {pubkey} [{func}]',
+            self.log.info('{func} client public key loaded: {pubkey}',
                           pubkey=hlval(self._key.public_key()),
                           func=hltype(self.__init__))
 
@@ -885,10 +911,10 @@ class AuthenticatorSession(ApplicationSession):
             self.config.extra['ready'] = None
 
     def onLeave(self, details):
-        self.log.info('Session closed (details={details}) [{func}]', details=details, func=hltype(self.onDisconnect))
+        self.log.info('{func} session closed (details={details})', details=details, func=hltype(self.onDisconnect))
 
     def onDisconnect(self):
-        self.log.info('Connection closed [{func}]', func=hltype(self.onDisconnect))
+        self.log.info('{func} connection closed', func=hltype(self.onDisconnect))
 
 
 def make_service_session(reactor: ReactorBase, controller: 'ProxyController', backend_config: Dict[str, Any],
@@ -932,7 +958,10 @@ def make_service_session(reactor: ReactorBase, controller: 'ProxyController', ba
                 'authextra': {
                     'proxy_realm': realm,
                     'proxy_authid': proxy_authid,
-                    'proxy_authrole': authrole
+                    'proxy_authrole': authrole,
+                    # service session don't have a connected frontend session, so nothing to forward
+                    'proxy_authextra': None,
+                    'proxy_transport_details': None,
                 }
             }
         }
@@ -952,7 +981,10 @@ def make_service_session(reactor: ReactorBase, controller: 'ProxyController', ba
                     'authextra': {
                         'proxy_realm': realm,
                         'proxy_authid': proxy_authid,
-                        'proxy_authrole': authrole
+                        'proxy_authrole': authrole,
+                        # service session don't have a connected frontend session, so nothing to forward
+                        'proxy_authextra': None,
+                        'proxy_transport_details': None,
                     }
                 }
             }
@@ -1128,7 +1160,7 @@ class ProxyRoute(object):
         topic = '{}.on_proxy_route_started'.format(self._controller._uri_prefix)
         yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
 
-        self.log.info('Proxy route {route_id} started for realm "{realm}" [{func}]\n{config}',
+        self.log.info('{func} proxy route {route_id} started for realm "{realm}" with config=\n{config}',
                       func=hltype(self.start),
                       route_id=hlid(self._route_id),
                       realm=hlval(self._realm_name),
@@ -1152,7 +1184,7 @@ class ProxyRoute(object):
         topic = '{}.on_proxy_route_stopped'.format(self._controller._uri_prefix)
         yield self._controller.publish(topic, self.marshal(), options=types.PublishOptions(acknowledge=True))
 
-        self.log.info('Proxy route {route_id} stopped for realm "{realm}" [{func}]',
+        self.log.info('{func} proxy route {route_id} stopped for realm "{realm}"',
                       func=hltype(self.stop),
                       route_id=hlid(self._route_id),
                       realm=hlval(self._realm_name))
@@ -1524,7 +1556,7 @@ class ProxyController(TransportController):
         :param authextra:
         :return: a protocol instance connected to the backend
         """
-        self.log.debug(
+        self.log.info(
             '{func}(frontend={frontend}, realm="{realm}", authid="{authid}", authrole="{authrole}", authextra={authextra})',
             func=hltype(self.map_backend),
             frontend=frontend,
@@ -1532,8 +1564,11 @@ class ProxyController(TransportController):
             authid=hlid(authid),
             authrole=hlid(authrole),
             authextra=authextra)
+
         if frontend in self._backends_by_frontend:
-            return self._backends_by_frontend[frontend]
+            backend = self._backends_by_frontend[frontend]
+            self.log.info('{func} CACHE HIT {backend}', func=hltype(self.map_backend), backend=backend)
+            return backend
 
         backend_config = self.get_backend_config(realm, authrole)
 
@@ -1544,8 +1579,8 @@ class ProxyController(TransportController):
             if len(self._routes.get(realm, set())) != 1:
                 raise RuntimeError("Cannot select default role unless realm has exactly 1")
 
-        self.log.debug(
-            'Opening proxy backend connection for realm "{realm}", authrole "{authrole}" using backend_config [{func}]\n{backend_config}',
+        self.log.info(
+            '{func} CACHE MISS - opening new proxy backend connection for realm "{realm}", authrole "{authrole}" using backend_config=\n{backend_config}',
             func=hltype(self.map_backend),
             backend_config=pformat(backend_config),
             realm=hlid(realm),
@@ -1563,7 +1598,7 @@ class ProxyController(TransportController):
             self._backends_by_frontend[frontend] = backend_proto
 
         self.log.info(
-            'Proxy backend connection opened mapping frontend session to realm "{realm}", authrole "{authrole}" [{func}]',
+            '{func} proxy backend connection opened mapping frontend session to realm "{realm}", authrole "{authrole}"',
             func=hltype(self.map_backend),
             backend_config=pformat(backend_config),
             realm=hlid(realm),
@@ -1586,20 +1621,20 @@ class ProxyController(TransportController):
                 backend.leave()
                 del self._backends_by_frontend[frontend]
                 self.log.debug(
-                    'Unmapped frontend session {frontend_session_id} from backend session {backend_session_id} [{func}]',
+                    '{func} unmapped frontend session {frontend_session_id} from backend session {backend_session_id}',
                     func=hltype(self.unmap_backend),
                     frontend_session_id=hlid(frontend._session_id),
                     backend_session_id=hlid(backend._session_id))
             else:
                 self.log.warn(
-                    'Frontend session {frontend_session_id} currently mapped to backend session {backend_session_id} - NOT to specified backend {specified_session_id} [{func}]'
+                    '{func} frontend session {frontend_session_id} currently mapped to backend session {backend_session_id} - NOT to specified backend {specified_session_id}'
                     .format(func=hltype(self.unmap_backend),
                             frontend_session_id=hlid(frontend._session_id),
                             backend_session_id=hlid(self._backends_by_frontend[frontend]._session_id),
                             specified_session_id=hlid(backend._session_id)))
         else:
             if frontend:
-                self.log.warn('Frontend session {session_id} not currently mapped to any backend [{func}]',
+                self.log.warn('{func} frontend session {session_id} not currently mapped to any backend',
                               func=hltype(self.unmap_backend),
                               session_id=hlid(frontend._session_id))
 
@@ -1629,7 +1664,7 @@ class ProxyController(TransportController):
         Called when worker process has joined the node's management realm.
         """
         self.log.info(
-            'Proxy worker "{worker_id}" session {session_id} initializing [{func}]',
+            '{func} proxy worker "{worker_id}" session {session_id} initializing',
             func=hltype(self.onJoin),
             worker_id=hlid(self._worker_id),
             session_id=hlid(details.session),
@@ -1732,7 +1767,7 @@ class ProxyController(TransportController):
                      transport_started,
                      options=types.PublishOptions(exclude=caller))
 
-        self.log.info('Proxy transport "{transport_id}" started and listening! [{func}]',
+        self.log.info('{func} proxy transport "{transport_id}" started and listening!',
                       func=hltype(self.start_proxy_transport),
                       transport_id=hlid(transport_id))
 

@@ -6,7 +6,7 @@
 #####################################################################################
 
 import os
-from typing import Optional, Union, Dict, List
+from typing import Optional, Union, Dict, List, Type
 
 import werkzeug
 
@@ -18,6 +18,7 @@ from autobahn import util
 
 from autobahn import wamp
 from autobahn.wamp import types
+from autobahn.wamp.types import TransportDetails
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.protocol import BaseSession, ApplicationSession
@@ -25,7 +26,7 @@ from autobahn.wamp.exception import SessionNotReady
 from autobahn.wamp.types import SessionDetails, PublishOptions
 from autobahn.wamp.interfaces import ITransportHandler
 
-from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
+from crossbar.router.auth import PendingAuth, PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 from crossbar.router.router import Router, RouterFactory
 from crossbar.router import NotAttached
@@ -122,18 +123,28 @@ class RouterApplicationSession(object):
             self._store.event_store.store_session_joined(self._session, self._session_details)
 
         # set fake transport on session ("pass-through transport")
-        #
         self._session._transport = self
+        self._transport_details = TransportDetails(channel_type=TransportDetails.CHANNEL_TYPE_FUNCTION,
+                                                   channel_framing=TransportDetails.CHANNEL_FRAMING_NATIVE)
 
         self.log.debug('{func} firing {session}.onConnect() ..',
                        session=self._session,
                        func=hltype(RouterApplicationSession.__init__))
 
-        # now start firing "connect" observers on the session ..
+        # now start firing "connect" observers on the session
         self._session.fire('connect', self._session, self)
 
         # .. as well as the old-school "onConnect" callback the session.
         self._session.onConnect()
+
+    @property
+    def transport_details(self) -> Optional[TransportDetails]:
+        """
+        Implements :class:`autobahn.wamp.interfaces.ITransport.transport_details`.
+
+        See "pass-through transport".
+        """
+        return self._transport_details
 
     def _swallow_error(self, fail, msg):
         try:
@@ -731,7 +742,7 @@ class RouterSession(BaseSession):
         self._pending_session_id = None
         return None  # we've handled the error; don't propagate
 
-    def onHello(self, realm, details):
+    def onHello(self, realm: str, details: types.HelloDetails):
 
         try:
             # allow "Personality" classes to add authmethods
@@ -744,10 +755,12 @@ class RouterSession(BaseSession):
             authmethods = details.authmethods or ['anonymous']
             authextra = details.authextra
 
-            self.log.debug('{func} processing authmethods={authmethods}, authextra={authextra}',
-                           func=hltype(self.onHello),
-                           authextra=authextra,
-                           authmethods=authmethods)
+            self.log.info('{func} processing authmethods={authmethods}, authextra={authextra}',
+                          func=hltype(self.onHello),
+                          authextra=authextra,
+                          authmethods=authmethods)
+
+            assert self._transport
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
@@ -804,7 +817,7 @@ class RouterSession(BaseSession):
                 if not auth_config:
                     # if authentication is _not_ configured, allow anyone to join as "anonymous"!
 
-                    # .. but don't if the client isn't ready/willing to go on "anonymous"
+                    # but don't if the client isn't ready/willing to go on "anonymous"
                     if 'anonymous' not in authmethods:
                         return types.Deny(
                             ApplicationError.NO_AUTH_METHOD,
@@ -829,17 +842,21 @@ class RouterSession(BaseSession):
                         # if no cookie tracking, generate a random value for authid
                         authid = util.generate_serial_number()
 
-                    try:
-                        PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
-                    except KeyError:
-                        PendingAuthKlass = extra_auth_methods[authmethod]
+                    pending_auth_klass: Type[PendingAuth]
+                    if authmethod in AUTHMETHOD_MAP:
+                        pending_auth_klass = AUTHMETHOD_MAP[authmethod]
+                    else:
+                        pending_auth_klass = extra_auth_methods[authmethod]
+                    assert pending_auth_klass
+                    assert self._pending_session_id
 
-                    self._pending_auth = PendingAuthKlass(self._pending_session_id, self._transport.transport_details,
-                                                          self._router_factory._worker, {
-                                                              'type': 'static',
-                                                              'authrole': 'anonymous',
-                                                              'authid': authid
-                                                          })
+                    self._pending_auth = pending_auth_klass(self._pending_session_id,
+                                                            self._transport.transport_details,
+                                                            self._router_factory._worker, {
+                                                                'type': 'static',
+                                                                'authrole': 'anonymous',
+                                                                'authid': authid
+                                                            })  # type: ignore
                     return self._pending_auth.hello(realm, details)
 
                 else:
@@ -878,12 +895,15 @@ class RouterSession(BaseSession):
                             'scram',
                         ] + list(extra_auth_methods.keys())
                         if authmethod in pending_auth_methods:
-                            try:
-                                PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
-                            except KeyError:
-                                PendingAuthKlass = extra_auth_methods[authmethod]
+                            pending_auth_klass_2: Type[PendingAuth]
+                            if authmethod in AUTHMETHOD_MAP:
+                                pending_auth_klass_2 = AUTHMETHOD_MAP[authmethod]
+                            else:
+                                pending_auth_klass_2 = extra_auth_methods[authmethod]
+                            assert pending_auth_klass_2
+                            assert self._pending_session_id
 
-                            self._pending_auth = PendingAuthKlass(
+                            self._pending_auth = pending_auth_klass_2(
                                 self._pending_session_id,
                                 self._transport.transport_details,
                                 self._router_factory._worker,
