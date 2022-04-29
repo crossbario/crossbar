@@ -233,9 +233,12 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # try to parse an already set cookie from HTTP request headers
                 self._cbtid = self.factory._cookiestore.parse(request.headers)
 
-                self.log.info('{func}: parsed cookie cbtid {cbtid} from HTTP request headers',
-                              func=hltype(self.onConnect),
-                              cbtid=hlval(self._cbtid))
+                if self._cbtid:
+                    self.log.info('{func}: parsed cookie cbtid {cbtid} from HTTP request headers',
+                                  func=hltype(self.onConnect),
+                                  cbtid=hlval(self._cbtid))
+                else:
+                    self.log.info('{func}: no cookie found in HTTP request headers!', func=hltype(self.onConnect))
 
                 # if no cookie is set, or it doesn't exist in our database, create a new cookie
                 if self._cbtid is None or not self.factory._cookiestore.exists(self._cbtid):

@@ -115,10 +115,10 @@ class CookieStore(object):
         with the cookie having the given ID. Return the new count of
         connections associated with the cookie.
         """
-        self.log.info('{func} adding proto {proto} for cookie "{cbtid}"',
-                      func=hltype(self.addProto),
-                      proto=proto,
-                      cbtid=hlid(cbtid))
+        self.log.debug('{func} adding proto {proto} for cookie "{cbtid}"',
+                       func=hltype(self.addProto),
+                       proto=proto,
+                       cbtid=hlid(cbtid))
 
         if self.exists(cbtid):
             if cbtid not in self._connections:
@@ -136,10 +136,10 @@ class CookieStore(object):
         with the cookie having the given ID. Return the new count of
         connections associated with the cookie.
         """
-        self.log.info('{func} removing proto {proto} from cookie "{cbtid}"',
-                      func=hltype(self.dropProto),
-                      proto=proto,
-                      cbtid=hlid(cbtid))
+        self.log.debug('{func} removing proto {proto} from cookie "{cbtid}"',
+                       func=hltype(self.dropProto),
+                       proto=proto,
+                       cbtid=hlid(cbtid))
 
         if self.exists(cbtid):
             if cbtid in self._connections:

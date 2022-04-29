@@ -5,6 +5,8 @@
 #
 #####################################################################################
 
+from typing import Dict, Any, Optional
+
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
@@ -228,15 +230,78 @@ class RouterServiceAgent(ApplicationSession):
         return session_count
 
     @wamp.register('wamp.session.get')
-    def session_get(self, session_id, details=None):
+    def session_get(self, session_id: int, details=None) -> Optional[Dict[str, Any]]:
         """
         Get details for given session.
 
+        *Example:*
+
+        .. code-block:: json
+
+            {'authextra': {'transport': {'channel_framing': 'websocket',
+                                         'channel_id': {},
+                                         'channel_serializer': None,
+                                         'channel_type': 'tcp',
+                                         'http_cbtid': 'y8pPyx+e8J9cYjdzFVWF/3/e',
+                                         'http_headers_received': {'cache-control': 'no-cache',
+                                                                   'connection': 'Upgrade',
+                                                                   'host': 'localhost:8080',
+                                                                   'pragma': 'no-cache',
+                                                                   'sec-websocket-extensions': 'permessage-deflate; '
+                                                                                               'client_no_context_takeover; '
+                                                                                               'client_max_window_bits',
+                                                                   'sec-websocket-key': '+jParRIjHXuCNGIWYKPtYQ==',
+                                                                   'sec-websocket-protocol': 'wamp.2.json',
+                                                                   'sec-websocket-version': '13',
+                                                                   'upgrade': 'WebSocket',
+                                                                   'user-agent': 'AutobahnPython/22.4.1.dev7'},
+                                         'http_headers_sent': {'Set-Cookie': 'cbtid=y8pPyx+e8J9cYjdzFVWF/3/e;max-age=604800'},
+                                         'is_secure': False,
+                                         'is_server': True,
+                                         'own': None,
+                                         'own_fd': -1,
+                                         'own_pid': 61066,
+                                         'own_tid': 61066,
+                                         'peer': 'tcp4:127.0.0.1:48638',
+                                         'peer_cert': None,
+                                         'websocket_extensions_in_use': [{'client_max_window_bits': 13,
+                                                                          'client_no_context_takeover': False,
+                                                                          'extension': 'permessage-deflate',
+                                                                          'is_server': True,
+                                                                          'mem_level': 5,
+                                                                          'server_max_window_bits': 13,
+                                                                          'server_no_context_takeover': False}],
+                                         'websocket_protocol': 'wamp.2.json'},
+                           'x_cb_node': 'intel-nuci7-61036',
+                           'x_cb_peer': 'unix',
+                           'x_cb_pid': 61045,
+                           'x_cb_worker': 'test_router1'},
+             'authid': 'client1',
+             'authmethod': 'anonymous-proxy',
+             'authprovider': 'static',
+             'authrole': 'frontend',
+             'session': 8459804897712124,
+             'transport': {'channel_framing': 'rawsocket',
+                           'channel_id': {},
+                           'channel_serializer': 'cbor',
+                           'channel_type': 'tcp',
+                           'http_cbtid': None,
+                           'http_headers_received': None,
+                           'http_headers_sent': None,
+                           'is_secure': False,
+                           'is_server': None,
+                           'own': None,
+                           'own_fd': -1,
+                           'own_pid': 61045,
+                           'own_tid': 61045,
+                           'peer': 'unix',
+                           'peer_cert': None,
+                           'websocket_extensions_in_use': None,
+                           'websocket_protocol': 'wamp.2.cbor'}}
+
         :param session_id: The WAMP session ID to retrieve details for.
-        :type session_id: int
 
         :returns: WAMP session details.
-        :rtype: dict or None
         """
         self.log.debug('wamp.session.get(session_id={session_id}, details={details})',
                        session_id=session_id,
