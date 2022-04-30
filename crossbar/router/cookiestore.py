@@ -548,17 +548,17 @@ class CookieStoreDatabaseBacked(CookieStore):
         if was_existing:
             if was_modified:
                 self.log.info(
-                    '{func} cookie with cbtid="{cbtid}" exists, and was updated (authid="{authid}", authrole='
+                    '{func} cookie with cbtid="{cbtid}" exists, but was updated (authid="{authid}", authrole='
                     '"{authrole}", authmethod="{authmethod}", authrealm="{authrealm}", authextra={authextra})',
                     func=hltype(self.setAuth),
                     cbtid=hlid(cbtid),
-                    authid=hlval(authid),
-                    authrole=hlval(authrole),
+                    authid=hlid(authid),
+                    authrole=hlid(authrole),
                     authmethod=hlval(authmethod),
                     authrealm=hlval(authrealm),
                     authextra=pformat(authextra))
             else:
-                self.log.info('{func} cookie with cbtid="{cbtid}" exists, but needs no update',
+                self.log.info('{func} cookie with cbtid="{cbtid}" exists and needs no update',
                               func=hltype(self.setAuth),
                               cbtid=hlid(cbtid))
         else:

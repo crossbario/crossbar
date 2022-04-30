@@ -376,18 +376,18 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
         f = txaio.as_future(super(PendingAuthCryptosignProxy, self).hello, realm, details)
 
         def assign(res):
-            """
-            .. and the incoming backend connection from the proxy frontend is authenticated as the principal
-            the frontend proxy has _already_ authenticated the actual client (before even connecting and
-            authenticating to the backend here)
-            """
             if isinstance(res, Deny):
                 return res
 
+            # the incoming backend connection from the proxy frontend is authenticated as the principal
+            # the frontend proxy has _already_ authenticated the actual client (before even connecting and
+            # authenticating to the backend here)
             principal = {
                 'realm': details.authextra['proxy_realm'],
                 'authid': details.authextra['proxy_authid'],
                 'role': details.authextra['proxy_authrole'],
+
+                # the authextra intended for the principal is forwarded from the proxy
                 'extra': details.authextra.get('proxy_authextra', None)
             }
             self._assign_principal(principal)
@@ -401,8 +401,8 @@ class PendingAuthCryptosignProxy(PendingAuthCryptosign):
             )
             return self._accept()
 
-        def error(f):
-            return Deny("Internal error: {}".format(f))
+        def error(_err):
+            return Deny("Internal error: {}".format(_err))
 
         txaio.add_callbacks(f, assign, error)
         return f

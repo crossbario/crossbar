@@ -234,11 +234,13 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 self._cbtid = self.factory._cookiestore.parse(request.headers)
 
                 if self._cbtid:
-                    self.log.info('{func}: parsed cookie cbtid {cbtid} from HTTP request headers',
-                                  func=hltype(self.onConnect),
-                                  cbtid=hlval(self._cbtid))
+                    self.log.info(
+                        '{func}: parsed tracking/authentication cookie cbtid "{cbtid}" from HTTP request headers',
+                        func=hltype(self.onConnect),
+                        cbtid=hlval(self._cbtid))
                 else:
-                    self.log.info('{func}: no cookie found in HTTP request headers!', func=hltype(self.onConnect))
+                    self.log.info('{func}: no tracking/authentication cookie cbtid found in HTTP request headers!',
+                                  func=hltype(self.onConnect))
 
                 # if no cookie is set, or it doesn't exist in our database, create a new cookie
                 if self._cbtid is None or not self.factory._cookiestore.exists(self._cbtid):
@@ -259,7 +261,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                                   func=hltype(self.onConnect),
                                   cookie=hlval(headers['Set-Cookie']))
                 else:
-                    self.log.info('{func}: cookie {cbtid} already set and stored',
+                    self.log.info('{func}: tracking/authentication cookie cbtid "{cbtid}" already set and stored',
                                   func=hltype(self.onConnect),
                                   cbtid=hlval(self._cbtid))
 
@@ -283,13 +285,13 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         self.log.info(
                             '{func} authenticated client via cookie {cookiename}={cbtid} as authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}", authrealm="{authrealm}"',
                             func=hltype(self.onConnect),
-                            cookiename=hlid(self.factory._cookiestore._cookie_id_field),
-                            cbtid=hlval(self._cbtid),
-                            authid=hlval(self._authid),
-                            authrole=hlval(self._authrole),
+                            cookiename=self.factory._cookiestore._cookie_id_field,
+                            cbtid=hlid(self._cbtid),
+                            authid=hlid(self._authid),
+                            authrole=hlid(self._authrole),
                             authmethod=hlval(self._authmethod),
                             authprovider=hlval(self._authprovider),
-                            authrealm=hlval(self._authrealm))
+                            authrealm=hlid(self._authrealm))
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
                         self.log.info(

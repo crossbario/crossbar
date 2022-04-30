@@ -260,12 +260,14 @@ class ProxyFrontendSession(object):
                     # if we have an active backend connection, forward the WAMP message ..
                     self._backend_session._transport.send(msg)
 
-    def _accept(self, accept):
+    def frontend_accepted(self, accept):
         # we have done authentication with the client; now we can connect to
         # the backend (and we wait to tell the client they're
         # welcome until we have actually connected to the
         # backend).
-        self.log.info('{func} proxy frontend session accepted ({accept})', func=hltype(self._accept), accept=accept)
+        self.log.info('{func} proxy frontend session accepted ({accept})',
+                      func=hltype(self.frontend_accepted),
+                      accept=accept)
 
         if (hasattr(self.transport, '_cbtid') and hasattr(self.transport.factory, '_cookiestore')
                 and self.transport.factory._cookiestore):
@@ -275,10 +277,11 @@ class ProxyFrontendSession(object):
         result = Deferred()
 
         @inlineCallbacks
-        def _backend_connected(backend_session):
+        def backend_connected(backend: ProxyBackendSession):
+            # bytestream-level transport to backend router worker connected.
             try:
-                # wait for the WAMP-level transport to connect
-                yield backend_session._on_connect
+                # first, wait for the WAMP-level transport to connect before starting to join
+                yield backend._on_connect
 
                 # node private key
                 key = _read_node_key(self._controller._cbdir, private=False)
@@ -287,7 +290,7 @@ class ProxyFrontendSession(object):
                 backend_authid = self._controller.node_id
 
                 # authmethods we announce to the backend router we connect to
-                authmethods = list(backend_session._authenticators.keys())
+                authmethods = list(backend._authenticators.keys())
 
                 # get marshalled transport details for this proxy frontend session
                 if self.transport.transport_details:
@@ -315,28 +318,32 @@ class ProxyFrontendSession(object):
                     # this is the authextra returned from the proxy frontend authenticator
                     # "proxy_authextra": accept.authextra,
 
-                    # these are the transport details from the proxy frontend session
+                    # these are the transport details from the proxy frontend session. this is picked
+                    # up in PendingAuthAnonymousProxy.hello() and PendingAuthCryptosignProxy.hello()
                     "proxy_authextra": {
                         "transport": _td
                     },
                 }
 
                 self.log.info(
-                    '{func} proxy backend session authenticating with authmethods={authmethods}, '
-                    'authextra=\n{authextra}',
-                    func=hltype(_backend_connected),
-                    authmethods=authmethods,
-                    authextra=pformat(authextra))
+                    '{func} proxy backend session authenticating with authmethods={authmethods}, pubkey={pubkey}: '
+                    'proxy_authid="{proxy_authid}", proxy_authrole="{proxy_authrole}", proxy_realm="{proxy_realm}"',
+                    func=hltype(backend_connected),
+                    authmethods=hlval(authmethods),
+                    pubkey=hlval(authextra['pubkey']),
+                    proxy_authid=hlid(authextra['proxy_authid']),
+                    proxy_authrole=hlid(authextra['proxy_authrole']),
+                    proxy_realm=hlid(authextra['proxy_realm']))
 
-                # now join session, which might first start WAMP authentication (for authmethod "cryptosign-proxy")
-                backend_session.join(accept.realm, authmethods=authmethods, authid=backend_authid, authextra=authextra)
+                # now join WAMP session, which might first start WAMP authentication (for authmethod "cryptosign-proxy")
+                backend.join(accept.realm, authmethods=authmethods, authid=backend_authid, authextra=authextra)
 
-                def _on_backend_joined(session, details):
+                def backend_joined(session, details):
                     self.log.debug('{func} proxy backend session joined (backend_session_id={backend_session_id})',
                                    backend_session_id=hlid(details.session),
                                    backend_session=session,
                                    pending_session_id=self._pending_session_id,
-                                   func=hltype(_on_backend_joined))
+                                   func=hltype(backend_joined))
                     # we're ready now! store and return the backend session
                     self._backend_session = session
 
@@ -359,16 +366,17 @@ class ProxyFrontendSession(object):
 
                     result.callback(session)
 
-                backend_session.on('join', _on_backend_joined)
-                yield backend_session._on_ready
-                return backend_session
+                backend.on('join', backend_joined)
+                yield backend._on_ready
+                return backend
             except Exception as e:
                 self.log.failure()
                 result.errback(e)
 
-        def _backend_failed(fail):
+        def backend_failed(fail):
             result.errback(fail)
 
+        # map and connect bytestream-level transport to backend router worker
         backend_d = self._controller.map_backend(
             self,
             accept.realm,
@@ -376,8 +384,8 @@ class ProxyFrontendSession(object):
             accept.authrole,
             accept.authextra,
         )
-        backend_d.addCallback(_backend_connected)
-        backend_d.addErrback(_backend_failed)
+        backend_d.addCallback(backend_connected)
+        backend_d.addErrback(backend_failed)
 
         return result
 
@@ -543,7 +551,7 @@ class ProxyFrontendSession(object):
             if isinstance(hello_result, types.Accept):
                 try:
                     # get a backend session mapped to the incoming frontend session
-                    session = yield self._accept(hello_result)
+                    session = yield self.frontend_accepted(hello_result)
                 except Exception as e:
                     self.log.failure()
                     self.transport.send(
@@ -563,7 +571,7 @@ class ProxyFrontendSession(object):
                                           authextra=dict(details.authextra or {}, **self._custom_authextra))
                     self._backend_session = session
                     self.transport.send(msg)
-                    self.log.info(
+                    self.log.debug(
                         '{func} proxy frontend session WELCOME: session_id={session}, session={session}, '
                         'details="{details}"',
                         func=hltype(self._process_Hello),
@@ -611,7 +619,7 @@ class ProxyFrontendSession(object):
                                authresult=auth_result)
                 if isinstance(auth_result, types.Accept):
                     try:
-                        session = yield self._accept(auth_result)
+                        session = yield self.frontend_accepted(auth_result)
                     except Exception as e:
                         self.log.failure()
                         self.transport.send(
@@ -673,7 +681,7 @@ class ProxyBackendSession(Session):
     there's a backend connection per frontend client).
     """
     def onOpen(self, transport):
-        self.log.info('{func}(transport={transport})', func=hltype(self.onOpen), transport=transport)
+        self.log.debug('{func}(transport={transport})', func=hltype(self.onOpen), transport=transport)
         # instance of Frontend (frontend_session)
         self._frontend = transport._proxy_other_side
         self._on_connect = Deferred()
@@ -686,11 +694,11 @@ class ProxyBackendSession(Session):
         instead we await the frontend sending its hello and forward
         that along.
         """
-        self.log.info('{func}(): on_connect={on_connect}', func=hltype(self.onConnect), on_connect=self._on_connect)
+        self.log.debug('{func}(): on_connect={on_connect}', func=hltype(self.onConnect), on_connect=self._on_connect)
         self._on_connect.callback(None)
 
     def onChallenge(self, challenge):
-        self.log.info('{func}(challenge={})', func=hltype(self.onChallenge), challenge=challenge)
+        self.log.debug('{func}(challenge={})', func=hltype(self.onChallenge), challenge=challenge)
         if challenge.method == "cryptosign-proxy":
             return super(ProxyBackendSession, self).onChallenge(types.Challenge("cryptosign", extra=challenge.extra))
 
@@ -706,12 +714,23 @@ class ProxyBackendSession(Session):
         return super(ProxyBackendSession, self).onWelcome(_msg)
 
     def onJoin(self, details):
-        self.log.info('{func}(details={details})', func=hltype(self.onJoin), details=details)
+        self.log.info(
+            '{func} proxy backend session joined (authmethod={authmethod}, authprovider={authprovider}): '
+            'realm="{realm}", authid="{authid}", authrole="{authrole}"',
+            func=hltype(self.onJoin),
+            realm=hlid(details.realm),
+            authid=hlid(details.authid),
+            authrole=hlid(details.authrole),
+            authmethod=hlval(details.authmethod),
+            authprovider=hlval(details.authprovider))
+
         if not self._on_ready.called:
             self._on_ready.callback(self)
 
     def onClose(self, wasClean):
-        self.log.debug('{func}(wasClean={wasClean})', func=hltype(self.onClose), wasClean=wasClean)
+        self.log.info('{func} proxy backend session closed (wasClean={wasClean})',
+                      func=hltype(self.onClose),
+                      wasClean=wasClean)
         if self._frontend is not None and self._frontend.transport is not None:
             try:
                 if self._session_id:
@@ -771,15 +790,9 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
     :return: A deferred that resolves with a proxy backend session that is joined on the realm,
         under the authrole, as the proxy frontend session.
     """
-    log.info(
-        '{func} connecting frontend session realm="{realm}", authid="{authid}", authrole="{authrole}", '
-        'authextra={authextra} to backend with backend_config=\n{backend_config}',
-        func=hltype(make_backend_connection),
-        realm=hlval(frontend_session.realm),
-        authid=hlval(frontend_session.authid),
-        authrole=hlval(frontend_session.authrole),
-        authextra=pformat(frontend_session.authextra),
-        backend_config=pformat(backend_config))
+    log.info('{func} proxy connecting to backend with backend_config=\n{backend_config}',
+             func=hltype(make_backend_connection),
+             backend_config=pformat(backend_config))
 
     cbdir = controller.cbdir
 
@@ -799,9 +812,9 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
         session = ProxyBackendSession()
 
         authextra = {}
-        log.info('{func}::create_session() connecting to backend with authextra=\n{authextra}',
-                 func=hltype(make_backend_connection),
-                 authextra=pformat(authextra))
+        log.debug('{func}::create_session() connecting to backend with authextra=\n{authextra}',
+                  func=hltype(make_backend_connection),
+                  authextra=pformat(authextra))
 
         # if auth is configured and includes "cryptosign-proxy", always prefer
         # that and connect to the backend node authenticating with WAMP-cryptosign
@@ -812,9 +825,9 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
         if 'auth' in backend_config and 'cryptosign-proxy' in backend_config['auth']:
             session.add_authenticator(create_authenticator('cryptosign-proxy', privkey=key['hex'],
                                                            authextra=authextra))
-            log.info('{func} using cryptosign-proxy authenticator for backend connection, authextra=\n{authextra}',
-                     func=hltype(make_backend_connection),
-                     authextra=pformat(authextra))
+            log.debug('{func} using cryptosign-proxy authenticator for backend connection, authextra=\n{authextra}',
+                      func=hltype(make_backend_connection),
+                      authextra=pformat(authextra))
 
         # if auth is not configured, or is configured and includes "anonymous-proxy",
         # try to connect to the backend node authenticating with WAMP-anonymous
@@ -822,13 +835,11 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
         # authentication via WAMP-anonymous MAY be possible with the backend node if enabled
         #
         elif 'auth' not in backend_config or 'anonymous-proxy' in backend_config['auth']:
-            log.info('{func}', func=hltype(make_backend_connection))
-
             # IMPORTANT: this is security sensitive! we only allow anonymous proxy
             # locally on a host, that is, when the transport type is Unix domain socket
             if backend_config['transport']['endpoint']['type'] == 'unix':
                 session.add_authenticator(create_authenticator('anonymous-proxy', authextra=authextra))
-                log.info(
+                log.debug(
                     '{func} using anonymous-proxy over UDS authenticator for backend connection, '
                     'authextra=\n{authextra}',
                     func=hltype(make_backend_connection),
@@ -1558,7 +1569,7 @@ class ProxyController(TransportController):
         :param authextra:
         :return: a protocol instance connected to the backend
         """
-        self.log.info(
+        self.log.debug(
             '{func}(frontend={frontend}, realm="{realm}", authid="{authid}", authrole="{authrole}", '
             'authextra={authextra})',
             func=hltype(self.map_backend),
@@ -1582,7 +1593,7 @@ class ProxyController(TransportController):
             if len(self._routes.get(realm, set())) != 1:
                 raise RuntimeError("Cannot select default role unless realm has exactly 1")
 
-        self.log.info(
+        self.log.debug(
             '{func} CACHE MISS - opening new proxy backend connection for realm "{realm}", authrole "{authrole}" '
             'using backend_config=\n{backend_config}',
             func=hltype(self.map_backend),
@@ -1601,7 +1612,7 @@ class ProxyController(TransportController):
         if frontend:
             self._backends_by_frontend[frontend] = backend_proto
 
-        self.log.info(
+        self.log.debug(
             '{func} proxy backend connection opened mapping frontend session to realm "{realm}", authrole "{authrole}"',
             func=hltype(self.map_backend),
             backend_config=pformat(backend_config),

@@ -154,7 +154,8 @@ class Router(object):
         self._attached += 1
 
         self.log.info(
-            '{func} new session attached for realm="{realm}", session={session}, authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}"), authextra=\n{authextra}',
+            '{func} new session attached for realm="{realm}", session={session}, authid="{authid}", '
+            'authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}", authextra=\n{authextra}',
             func=hltype(self.attach),
             session=hlid(session._session_id) if session else '',
             authid=hlid(session._authid),
