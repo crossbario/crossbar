@@ -467,6 +467,8 @@ class RouterSession(BaseSession):
                 self._authextra['x_cb_peer'] = custom.get('x_cb_peer', None)
                 self._authextra['x_cb_pid'] = custom.get('x_cb_pid', None)
 
+                # add the new session (after WAMP handshake and authentication is complete)
+                # to the router for this realm
                 roles = self._router.attach(self)
 
                 msg = message.Welcome(self._session_id,

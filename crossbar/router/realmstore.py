@@ -7,9 +7,12 @@
 
 from collections import deque
 
+from txaio import use_twisted  # noqa
 from txaio import make_logger, time_ns
 
-__all__ = ('MemoryRealmStore', )
+from autobahn.util import hltype
+
+__all__ = ('RealmStoreMemory', )
 
 
 class QueuedCall(object):
@@ -23,18 +26,20 @@ class QueuedCall(object):
         self.authorization = authorization
 
 
-class MemoryCallQueue(object):
+class RealmStoreMemory(object):
     """
-    Memory-backed call queue.
+    Memory-backed realm store.
     """
 
     log = make_logger()
 
-    GLOBAL_QUEUE_LIMIT = 1000
+    STORE_TYPE = 'memory'
+
+    GLOBAL_HISTORY_LIMIT = 100
     """
-    The global call queue limit, in case not overridden.
+    The global history limit, in case not overridden.
     """
-    def __init__(self, config=None):
+    def __init__(self, personality, factory, config):
         """
 
         See the example here:
@@ -55,66 +60,11 @@ class MemoryCallQueue(object):
                 ]
             }
         """
-        # whole store configuration
-        self._config = config or {}
+        from twisted.internet import reactor
 
-        # limit to call queue per registration
-        self._limit = self._config.get('limit', self.GLOBAL_QUEUE_LIMIT)
-
-        # map: registration.id -> deque( (session, call, registration, authorization) )
-        self._queued_calls = {}
-
-    def maybe_queue_call(self, session, call, registration, authorization):
-        # FIXME: match this against the config, not just plain accept queueing!
-        if registration.id not in self._queued_calls:
-            self._queued_calls[registration.id] = deque()
-
-        self._queued_calls[registration.id].append(QueuedCall(session, call, registration, authorization))
-
-        return True
-
-    def get_queued_call(self, registration):
-        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
-            return self._queued_calls[registration.id][0]
-
-    def pop_queued_call(self, registration):
-        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
-            return self._queued_calls[registration.id].popleft()
-
-
-class MemoryEventStore(object):
-    """
-    Memory-backed event store.
-    """
-
-    log = make_logger()
-
-    STORE_TYPE = 'memory'
-
-    GLOBAL_HISTORY_LIMIT = 100
-    """
-    The global history limit, in case not overridden.
-    """
-    def __init__(self, config=None):
-        """
-
-        See the example here:
-
-        https://github.com/crossbario/crossbar-examples/tree/master/event-history
-
-        "store": {
-            "type": "memory",
-            "limit": 100,       // global default for history limit
-            "event-history": [
-                {
-                    "uri": "com.example.oncounter",
-                    "match": "exact",
-                    "limit": 1000       // topic specific history limit
-                }
-            ]
-        }
-        """
-        # whole store configuration
+        self._reactor = reactor
+        self._personality = personality
+        self._factory = factory
         self._config = config or {}
 
         # limit to event history per subscription
@@ -128,6 +78,11 @@ class MemoryEventStore(object):
 
         # map of subscription ID -> (limit, deque(of publication IDs))
         self._event_history = {}
+
+        # map: registration.id -> deque( (session, call, registration, authorization) )
+        self._queued_calls = {}
+
+        self.log.info('{func} realm store initialized (type=memory)', func=hltype(self.__init__))
 
     def attach_subscription_map(self, subscription_map):
         for sub in self._config.get('event-history', []):
@@ -290,28 +245,19 @@ class MemoryEventStore(object):
         """
         raise Exception("not implemented")
 
+    def maybe_queue_call(self, session, call, registration, authorization):
+        # FIXME: match this against the config, not just plain accept queueing!
+        if registration.id not in self._queued_calls:
+            self._queued_calls[registration.id] = deque()
 
-class MemoryRealmStore(object):
-    """
-    Memory backed realm store.
-    """
+        self._queued_calls[registration.id].append(QueuedCall(session, call, registration, authorization))
 
-    log = make_logger()
+        return True
 
-    event_store = None
-    """
-    Store for event history.
-    """
+    def get_queued_call(self, registration):
+        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
+            return self._queued_calls[registration.id][0]
 
-    call_store = None
-    """
-    Store for call queueing.
-    """
-    def __init__(self, personality, factory, config):
-        """
-
-        :param config: Realm store configuration item.
-        :type config: Mapping
-        """
-        self.event_store = MemoryEventStore(config)
-        self.call_store = MemoryCallQueue(config)
+    def pop_queued_call(self, registration):
+        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
+            return self._queued_calls[registration.id].popleft()

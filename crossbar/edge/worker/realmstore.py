@@ -1,9 +1,10 @@
-##############################################################################
+#####################################################################################
 #
-#                        Crossbar.io
-#     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
+#  Copyright (c) Crossbar.io Technologies GmbH
+#  SPDX-License-Identifier: EUPL-1.2
 #
-##############################################################################
+#####################################################################################
+
 import uuid
 from collections import deque
 
@@ -21,26 +22,16 @@ from autobahn.wamp import message
 from autobahn.wamp.types import SessionDetails, CloseDetails
 
 from crossbar.router.session import RouterSession
+from crossbar.router.realmstore import QueuedCall
 import cfxdb
 from cfxdb.realmstore import RealmStore, Publication
 
-__all__ = ('RealmStoreDatabaseBacked', )
+__all__ = ('RealmStoreDatabase', )
 
 
-class QueuedCall(object):
-
-    __slots__ = ('session', 'call', 'registration', 'authorization')
-
-    def __init__(self, session, call, registration, authorization):
-        self.session = session
-        self.call = call
-        self.registration = registration
-        self.authorization = authorization
-
-
-class RealmStoreDatabaseBacked(object):
+class RealmStoreDatabase(object):
     """
-    zLMDB-backed realm store.
+    Database-backed realm store.
     """
     log = make_logger()
 
@@ -49,7 +40,7 @@ class RealmStoreDatabaseBacked(object):
     The global history limit, in case not overridden.
     """
 
-    STORE_TYPE = 'zlmdb'
+    STORE_TYPE = 'cfxdb'
 
     def __init__(self, personality, factory, config):
         """
@@ -59,6 +50,7 @@ class RealmStoreDatabaseBacked(object):
         :param config: Realm store configuration item.
         """
         from twisted.internet import reactor
+
         self._reactor = reactor
         self._personality = personality
         self._factory = factory

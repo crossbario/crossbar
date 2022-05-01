@@ -19,7 +19,7 @@ from crossbar.node.node import NodeOptions
 from crossbar.node.worker import RouterWorkerProcess
 
 from crossbar.edge.node.node import FabricNode
-from crossbar.edge.worker.realmstore import RealmStoreDatabaseBacked
+from crossbar.edge.worker.realmstore import RealmStoreDatabase
 from crossbar.edge.worker.router import ExtRouterController
 from crossbar.edge.worker.hostmonitor import HostMonitor, HostMonitorProcess
 from crossbar.edge.worker.xbrmm import MarketplaceController, MarketplaceControllerProcess
@@ -366,7 +366,7 @@ class Personality(CrossbarPersonality):
         **CrossbarPersonality.WEB_SERVICE_FACTORIES
     }
 
-    REALM_STORES: Dict[str, object] = {'cfxdb': RealmStoreDatabaseBacked, **CrossbarPersonality.REALM_STORES}
+    REALM_STORES: Dict[str, object] = {'cfxdb': RealmStoreDatabase, **CrossbarPersonality.REALM_STORES}
 
     check_controller = check_controller
     check_controller_options = check_controller_options
