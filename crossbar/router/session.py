@@ -120,7 +120,7 @@ class RouterApplicationSession(object):
         # if a realm store was configured for this session, remember a reference
         self._store = store
         if self._store:
-            self._store.event_store.store_session_joined(self._session, self._session_details)
+            self._store.store_session_joined(self._session, self._session_details)
 
         # set fake transport on session ("pass-through transport")
         self._session._transport = self
@@ -207,7 +207,7 @@ class RouterApplicationSession(object):
         if self._store:
             # FIXME
             close_details = None
-            self._store.event_store.store_session_left(self._session, self._session_details, close_details)
+            self._store.store_session_left(self._session, self._session_details, close_details)
 
     def abort(self):
         """

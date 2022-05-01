@@ -4,26 +4,30 @@
 #     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 #
 ##############################################################################
-
+import uuid
 from collections import deque
 
 import zlmdb
 import numpy as np
 
+from txaio import use_twisted  # noqa
+from txaio import make_logger, time_ns
+
 from twisted.internet.defer import inlineCallbacks
 
-from txaio import time_ns
+from autobahn.util import hltype
 from autobahn.twisted.util import sleep
 from autobahn.wamp import message
 from autobahn.wamp.types import SessionDetails, CloseDetails
 
 from crossbar.router.session import RouterSession
 import cfxdb
+from cfxdb.realmstore import RealmStore, Publication
 
-__all__ = ('CfxDbRealmStore', )
+__all__ = ('RealmStoreDatabaseBacked', )
 
 
-class CfxDbQueuedCall(object):
+class QueuedCall(object):
 
     __slots__ = ('session', 'call', 'registration', 'authorization')
 
@@ -34,85 +38,11 @@ class CfxDbQueuedCall(object):
         self.authorization = authorization
 
 
-class CfxDbCallQueue(object):
+class RealmStoreDatabaseBacked(object):
     """
-    ZLMDB-backed call queue.
+    zLMDB-backed realm store.
     """
-
-    GLOBAL_QUEUE_LIMIT = 1000
-    """
-    The global call queue limit, in case not overridden.
-    """
-    def __init__(self, reactor, db, schema, config):
-        """
-
-        See the example here:
-
-        https://github.com/crossbario/crossbar-examples/tree/master/scaling-microservices/queued
-
-        .. code-block:: json
-
-            "store": {
-                "type": "memory",
-                "limit": 1000,      // global default for limit on call queues
-                "call-queue": [
-                    {
-                        "uri": "com.example.compute",
-                        "match": "exact",
-                        "limit": 10000  // procedure specific call queue limit
-                    }
-                ]
-            }
-        """
-        self.log = db.log
-
-        self._reactor = reactor
-        self._running = False
-        self._db = db
-        self._schema = schema
-
-        # whole store configuration
-        self._config = config
-
-        # limit to call queue per registration
-        self._limit = self._config.get('limit', self.GLOBAL_QUEUE_LIMIT)
-
-        # map: registration.id -> deque( (session, call, registration, authorization) )
-        self._queued_calls = {}
-
-    def start(self):
-        if self._running:
-            raise RuntimeError('call queue is already running')
-        self._queued_calls = {}
-        self._running = True
-
-    def stop(self):
-        if not self._running:
-            raise RuntimeError('call queue is not running')
-        self._running = False
-
-    def maybe_queue_call(self, session, call, registration, authorization):
-        # FIXME: match this against the config, not just plain accept queueing!
-        if registration.id not in self._queued_calls:
-            self._queued_calls[registration.id] = deque()
-
-        self._queued_calls[registration.id].append(CfxDbQueuedCall(session, call, registration, authorization))
-
-        return True
-
-    def get_queued_call(self, registration):
-        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
-            return self._queued_calls[registration.id][0]
-
-    def pop_queued_call(self, registration):
-        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
-            return self._queued_calls[registration.id].popleft()
-
-
-class CfxDbEventStore(object):
-    """
-    ZLMDB-backed event store.
-    """
+    log = make_logger()
 
     GLOBAL_HISTORY_LIMIT = 100
     """
@@ -121,21 +51,57 @@ class CfxDbEventStore(object):
 
     STORE_TYPE = 'zlmdb'
 
-    def __init__(self, reactor, db, schema, config):
-        self.log = db.log
+    def __init__(self, personality, factory, config):
+        """
 
+        :param personality:
+        :param factory:
+        :param config: Realm store configuration item.
+        """
+        from twisted.internet import reactor
         self._reactor = reactor
-        self._running = False
-        self._db = db
-        self._schema = schema
+        self._personality = personality
+        self._factory = factory
+
+        dbpath = config.get('path', None)
+        assert type(dbpath) == str
+
+        maxsize = config.get('maxsize', 128 * 2**20)
+        assert type(maxsize) == int
+        # allow maxsize 128kiB to 128GiB
+        assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
+
+        readonly = config.get('readonly', False)
+        assert type(readonly) == bool
+
+        sync = config.get('sync', True)
+        assert type(sync) == bool
 
         self._config = config
-        self._max_buffer = config.get('max-buffer', 10000)
 
+        self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync)
+        self._db.__enter__()
+        self._schema = RealmStore.attach(self._db)
+
+        self._running = False
+        self._process_buffers_thread = None
+
+        self._max_buffer = config.get('max-buffer', 10000)
         self._buffer_flush = config.get('buffer-flush', 200)
         self._buffer = []
-
         self._log_counter = 0
+
+        # map: registration.id -> deque( (session, call, registration, authorization) )
+        self._queued_calls = {}
+
+        self.log.info(
+            '{func} realm store initialized (type=zlmdb, dbpath="{dbpath}", maxsize={maxsize}, '
+            'readonly={readonly}, sync={sync})',
+            func=hltype(self.__init__),
+            dbpath=dbpath,
+            maxsize=maxsize,
+            readonly=readonly,
+            sync=sync)
 
     @inlineCallbacks
     def start(self):
@@ -146,7 +112,8 @@ class CfxDbEventStore(object):
         self._buffer = []
         self._log_counter = 0
         self._running = True
-        yield self._reactor.callInThread(self._process_buffers)
+        self._process_buffers_thread = yield self._reactor.callInThread(self._process_buffers)
+        self.log.info('{func} realm store ready!', func=hltype(self.start))
 
     def stop(self):
         if not self._running:
@@ -154,6 +121,9 @@ class CfxDbEventStore(object):
         else:
             self.log.info('Stopping CfxDbEventStore ..')
         self._running = False
+
+        # FIXME: wait for _process_buffers_thread
+
         self._buffer = []
         self._log_counter = 0
 
@@ -220,16 +190,21 @@ class CfxDbEventStore(object):
 
     def _store_session_joined(self, txn, session, session_details):
 
-        if session._session_id:
-            ses = self._schema.sessions[txn, session._session_id]
-            if ses:
-                self.log.warn('{klass}._store_session_joined(): session {session} already in store',
-                              klass=self.__class__.__name__,
-                              session=session._session_id)
-                return
-        else:
-            self.log.warn('{klass}._store_session_joined(): cannot store session without session ID',
-                          klass=self.__class__.__name__)
+        # FIXME: use idx_sessions_by_session_id
+        # if session._session_id:
+        #     ses = self._schema.sessions[txn, session._session_id]
+        #     if ses:
+        #         self.log.warn('{klass}._store_session_joined(): session {session} already in store',
+        #                       klass=self.__class__.__name__,
+        #                       session=session._session_id)
+        #         return
+        # else:
+        #     self.log.warn('{klass}._store_session_joined(): cannot store session without session ID',
+        #                   klass=self.__class__.__name__)
+        #     return
+
+        # FIXME
+        if not session._session_id:
             return
 
         self.log.info(
@@ -240,15 +215,18 @@ class CfxDbEventStore(object):
             authid=session._authid,
             authrole=session._authrole)
 
-        ses = cfxdb.eventstore.Session()
+        ses = cfxdb.realmstore.Session()
 
-        ses.joined_at = time_ns()
+        ses.oid = uuid.uuid4()
+        ses.joined_at = np.datetime64(time_ns(), 'ns')
         ses.realm = session._realm
         ses.session = session._session_id
         ses.authid = session._authid
         ses.authrole = session._authrole
 
-        self._schema.sessions[txn, session._session_id] = ses
+        # zlmdb._errors.NullValueConstraint: cannot insert NULL value into
+        # non-nullable index "cfxdb.realmstore._session.Sessions::idx1"
+        self._schema.sessions[txn, ses.oid] = ses
 
         self.log.debug('store_session_joined: session {session} saved', session=ses)
 
@@ -269,6 +247,9 @@ class CfxDbEventStore(object):
         self._buffer.append([self._store_session_left, session, session_details, close_details])
 
     def _store_session_left(self, txn, session, session_details, close_details):
+
+        # FIXME: use idx_sessions_by_session_id
+        return
 
         ses = self._schema.sessions[txn, session_details.session]
         if not ses:
@@ -315,17 +296,19 @@ class CfxDbEventStore(object):
         if pub:
             raise Exception('duplicate event for publication_id={}'.format(publication_id))
 
-        ses = self._schema.sessions[txn, session._session_id] if session._session_id else None
-        if not ses:
-            self.log.info(
-                'session {session} (realm={realm}, authid={authid}, authrole={authrole}) not in store - event on publication {publication_id} not stored!',
-                session=session._session_id,
-                authid=session._authid,
-                authrole=session._authrole,
-                realm=session._realm,
-                publication_id=publication_id)
+        # FIXME: use idx_sessions_by_session_id
+        # ses = self._schema.sessions[txn, session._session_id] if session._session_id else None
+        # if not ses:
+        #     self.log.info(
+        #         'session {session} (realm={realm}, authid={authid}, authrole={authrole}) not in store - '
+        #         'event on publication {publication_id} not stored!',
+        #         session=session._session_id,
+        #         authid=session._authid,
+        #         authrole=session._authrole,
+        #         realm=session._realm,
+        #         publication_id=publication_id)
 
-        pub = cfxdb.eventstore.Publication()
+        pub = cfxdb.realmstore.Publication()
 
         pub.timestamp = time_ns()
         pub.publication = publication_id
@@ -369,7 +352,9 @@ class CfxDbEventStore(object):
         """
         assert type(publication_id) == int
         assert type(subscription_id) == int
-        assert isinstance(receiver, RouterSession)
+
+        # FIXME: unexpected type <class 'backend.BackendSession'> for receiver
+        # assert isinstance(receiver, RouterSession), 'unexpected type {} for receiver'.format(type(receiver))
 
         self._buffer.append([self._store_event_history, publication_id, subscription_id, receiver])
 
@@ -393,7 +378,7 @@ class CfxDbEventStore(object):
             self.log.warn('no session ID for receiver (anymore) - will not store event!')
             return
 
-        evt = cfxdb.eventstore.Event()
+        evt = cfxdb.realmstore.Event()
         evt.timestamp = time_ns()
         evt.subscription = subscription_id
         evt.publication = publication_id
@@ -469,7 +454,7 @@ class CfxDbEventStore(object):
                                                   reverse=True,
                                                   limit=limit):
 
-                pub = self._schema.publications.select(txn, evt.publication)
+                pub: Publication = self._schema.publications.select(txn, evt.publication)
                 if pub:
                     res.append(pub.marshal())
                     i += 1
@@ -478,62 +463,19 @@ class CfxDbEventStore(object):
 
         return res
 
+    def maybe_queue_call(self, session, call, registration, authorization):
+        # FIXME: match this against the config, not just plain accept queueing!
+        if registration.id not in self._queued_calls:
+            self._queued_calls[registration.id] = deque()
 
-class CfxDbRealmStore(object):
-    """
-    CFXDB realm store.
-    """
+        self._queued_calls[registration.id].append(QueuedCall(session, call, registration, authorization))
 
-    event_store = None
-    """
-    Store for event history.
-    """
+        return True
 
-    call_store = None
-    """
-    Store for call queueing.
-    """
-    def __init__(self, personality, factory, config):
-        """
+    def get_queued_call(self, registration):
+        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
+            return self._queued_calls[registration.id][0]
 
-        :param config: Realm store configuration item.
-        :type config: Mapping
-        """
-        dbpath = config.get('path', None)
-        assert type(dbpath) == str
-
-        maxsize = config.get('maxsize', 128 * 2**20)
-        assert type(maxsize) == int
-        # allow maxsize 128kiB to 128GiB
-        assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
-
-        readonly = config.get('readonly', False)
-        assert type(readonly) == bool
-
-        sync = config.get('sync', True)
-        assert type(sync) == bool
-
-        self.log = personality.log
-
-        self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync)
-        self._db.__enter__()
-        self._schema = cfxdb.schema.Schema.attach(self._db)
-
-        from twisted.internet import reactor
-
-        self.event_store = CfxDbEventStore(reactor, self._db, self._schema, config)
-        self.call_store = CfxDbCallQueue(reactor, self._db, self._schema, config)
-
-        self.log.info(
-            'Realm store initialized (type=zlmdb, dbpath="{dbpath}", maxsize={maxsize}, readonly={readonly}, sync={sync})',
-            dbpath=dbpath,
-            maxsize=maxsize,
-            readonly=readonly,
-            sync=sync)
-
-    @inlineCallbacks
-    def start(self):
-        self.log.info('Starting realm store ..')
-        yield self.event_store.start()
-        self.call_store.start()
-        self.log.info('Realm store ready')
+    def pop_queued_call(self, registration):
+        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
+            return self._queued_calls[registration.id].popleft()

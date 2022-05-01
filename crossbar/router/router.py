@@ -182,7 +182,7 @@ class Router(object):
             self._authid_to_sessions[session_details.authid] = set([session])
 
         if self._store:
-            self._store.event_store.store_session_joined(session, session_details)
+            self._store.store_session_joined(session, session_details)
 
         # log session details, but skip Crossbar.io internal sessions
         if self.realm != 'crossbar':
@@ -203,7 +203,7 @@ class Router(object):
         self._authrole_to_sessions[session_details.authrole].discard(session)
 
         if self._store:
-            self._store.event_store.store_session_left(session, session_details, close_details)
+            self._store.store_session_left(session, session_details, close_details)
 
         # log session details, but skip Crossbar.io internal sessions
         if self.realm != 'crossbar':

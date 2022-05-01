@@ -98,7 +98,7 @@ class Broker(object):
 
         # store for event history
         if self._router._store:
-            self._event_store = self._router._store.event_store
+            self._event_store = self._router._store
         else:
             self._event_store = None
 
