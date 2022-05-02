@@ -5,7 +5,7 @@
 #
 #####################################################################################
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
 
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
@@ -63,7 +63,7 @@ class RouterServiceAgent(ApplicationSession):
         # the service session can expose its API on multiple sessions
         # by default, it exposes its API only on itself, and that means, on the
         # router-realm the user started
-        self._expose_on_sessions = []
+        self._expose_on_sessions: List[Tuple[ISession, Optional[str], Optional[str]]] = []
 
         enable_meta_api = self.config.extra.get('enable_meta_api', True) if self.config.extra else True
         if enable_meta_api:
@@ -74,9 +74,11 @@ class RouterServiceAgent(ApplicationSession):
         bridge_meta_api = self.config.extra.get('bridge_meta_api', False) if self.config.extra else False
         if bridge_meta_api:
 
-            management_session = self.config.extra.get('management_session', None) if self.config.extra else None
+            management_session: RouterServiceAgent = self.config.extra.get('management_session',
+                                                                           None) if self.config.extra else None
             if management_session is None:
                 raise Exception('logic error: missing management_session in extra')
+            assert management_session
 
             bridge_meta_api_prefix = self.config.extra.get('bridge_meta_api_prefix',
                                                            None) if self.config.extra else None

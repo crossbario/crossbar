@@ -151,7 +151,7 @@ class IRealmStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_session_by_session_id(self, session_id: str, joined_at: Optional[int]) -> Optional[Dict[str, Any]]:
+    def get_session_by_session_id(self, session_id: int, joined_at: Optional[int] = None) -> Optional[Dict[str, Any]]:
         """
         Get session information by WAMP session ID. If there is no session stored, return ``None``.
 

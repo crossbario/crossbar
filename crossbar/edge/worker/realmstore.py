@@ -279,7 +279,7 @@ class RealmStoreDatabase(object):
         #                klass=self.__class__.__name__,
         #                session=ses)
 
-    def get_session_by_session_id(self, session_id: str, joined_at: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    def get_session_by_session_id(self, session_id: int, joined_at: Optional[int] = None) -> Optional[Dict[str, Any]]:
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_session_by_session_id`
         """
@@ -302,6 +302,8 @@ class RealmStoreDatabase(object):
 
         if session:
             return session.marshal()
+        else:
+            return None
 
     def get_sessions_by_authid(self, authid: str) -> Optional[List[Tuple[str, int]]]:
         """
