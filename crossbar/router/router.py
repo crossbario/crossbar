@@ -22,6 +22,7 @@ from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
+from crossbar.interfaces import IRealmStore
 
 __all__ = (
     'RouterFactory',
@@ -67,7 +68,7 @@ class Router(object):
         """
         self._factory = factory
         self._options = options or RouterOptions()
-        self._store = store
+        self._store: IRealmStore = store
         self._realm = realm
         self.realm = realm.config['name']
 

@@ -7,7 +7,7 @@
 
 import uuid
 from collections import deque
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 
 import zlmdb
 import numpy as np
@@ -278,6 +278,35 @@ class RealmStoreDatabase(object):
         # self.log.debug('{klass}._store_session_left(): store_session_left: session {session} updated',
         #                klass=self.__class__.__name__,
         #                session=ses)
+
+    def get_session_by_session_id(self, session_id: str, joined_at: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_session_by_session_id`
+        """
+        if joined_at:
+            _joined_at = np.datetime64(joined_at, 'ns')
+        else:
+            _joined_at = np.datetime64(time_ns(), 'ns')
+        _from_key = (session_id, _joined_at)
+
+        session = None
+        with self._db.begin() as txn:
+            for session_oid in self._schema.idx_sessions_by_session_id.select(txn,
+                                                                              from_key=_from_key,
+                                                                              reverse=True,
+                                                                              return_keys=False,
+                                                                              return_values=True,
+                                                                              limit=1):
+                session = self._schema.sessions[txn, session_oid]
+                assert session
+
+        if session:
+            return session.marshal()
+
+    def get_sessions_by_authid(self, authid: str) -> Optional[List[Tuple[str, int]]]:
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_sessions_by_authid`
+        """
 
     def attach_subscription_map(self, subscription_map: UriObservationMap):
         """

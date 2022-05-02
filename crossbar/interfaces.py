@@ -14,7 +14,7 @@ Interfaces used internally inside Crossbar.io to abstract/decouple different sof
 """
 
 import abc
-from typing import Union, Dict, List, Any, Optional
+from typing import Union, Dict, List, Any, Optional, Tuple
 
 from autobahn.wamp import ISession
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails
@@ -148,6 +148,35 @@ class IRealmStore(abc.ABC):
 
         :param session: Session that has left a realm it was previously joined on.
         :param details: Session close details.
+        """
+
+    @abc.abstractmethod
+    def get_session_by_session_id(self, session_id: str, joined_at: Optional[int]) -> Optional[Dict[str, Any]]:
+        """
+        Get session information by WAMP session ID. If there is no session stored, return ``None``.
+
+        .. note::
+
+            In the rare event there is more than one session for the same WAMP session ID
+            (which may happen as the WAMP session ID is effectively 56 bit), the procedure
+            will return the information for the session with the most recent ``joined_at``
+            timestamp.
+
+        :param session_id: The WAMP session ID of the session for which to return information.
+        :param joined_at: If there are more than one session for the given ``session_id``,
+            only return the session with the given joining timestamp (or newer).
+        :return: A set of information for the stored session.
+        """
+
+    @abc.abstractmethod
+    def get_sessions_by_authid(self, authid: str) -> Optional[List[Tuple[str, int]]]:
+        """
+        Return session IDs and session joined timestamps given a WAMP authid, ordered by
+        timestamps in reverse chronological order.
+
+        :param authid: The WAMP authid to retrieve sessions for.
+        :return: List of pairs ``(session_id, joined_at)`` or ``None`` if there are no
+            sessions stored for the given ``authid``.
         """
 
     @abc.abstractmethod

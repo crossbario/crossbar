@@ -14,12 +14,13 @@ from autobahn import wamp, util
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
-from autobahn.wamp.types import RegisterOptions, CallDetails
+from autobahn.wamp.types import RegisterOptions, CallDetails, ComponentConfig
 from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.request import Registration
 
 from crossbar._util import hlid, hltype
 from crossbar.router.observation import is_protected_uri
+from crossbar.router.router import Router
 
 from txaio import make_logger
 
@@ -41,17 +42,12 @@ class RouterServiceAgent(ApplicationSession):
 
     log = make_logger()
 
-    def __init__(self, config, router, schemas=None):
+    def __init__(self, config: ComponentConfig, router: Router, schemas=None):
         """
 
         :param config: WAMP application component configuration.
-        :type config: Instance of :class:`autobahn.wamp.types.ComponentConfig`.
-
         :param router: The router this service session is running for.
-        :type: router: instance of :class:`crossbar.router.session.CrossbarRouter`
-
         :param schemas: An (optional) initial schema dictionary to load.
-        :type schemas: dict
         """
         ApplicationSession.__init__(self, config)
         self._router = router
@@ -304,7 +300,8 @@ class RouterServiceAgent(ApplicationSession):
 
         :returns: WAMP session details.
         """
-        self.log.debug('wamp.session.get(session_id={session_id}, details={details})',
+        self.log.debug('{func} session_id={session_id}, details={details}',
+                       func=hltype(self.session_get),
                        session_id=session_id,
                        details=details)
 
@@ -318,13 +315,27 @@ class RouterServiceAgent(ApplicationSession):
                         session_info['transport'] = session.transport.transport_details.marshal()
                     else:
                         session_info['transport'] = None
+                    self.log.info('{func} session {session_id} in active memory',
+                                  func=hltype(self.session_get),
+                                  session_id=hlid(session_id))
                     return session_info
                 else:
                     return None
             else:
-                self.log.warn('wamp.session.get: denied returning restricted session {session_id}',
-                              session_id=session_id)
-        self.log.warn('wamp.session.get: session {session_id} not found', session_id=session_id)
+                self.log.warn('{func} denied returning restricted session {session_id}',
+                              func=hltype(self.session_get),
+                              session_id=hlid(session_id))
+        elif self._router._store:
+            _session = self._router._store.get_session_by_session_id(session_id)
+            if _session:
+                self.log.info('{func} session {session_id} loaded from database',
+                              func=hltype(self.session_get),
+                              session_id=hlid(session_id))
+                return _session
+
+        self.log.warn('{func} session {session_id} not found',
+                      func=hltype(self.session_get),
+                      session_id=hlid(session_id))
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
             'no session with ID {} exists on this router'.format(session_id),
