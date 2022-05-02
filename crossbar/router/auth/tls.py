@@ -13,7 +13,7 @@ from txaio import make_logger
 from autobahn.wamp.types import Deny, TransportDetails
 
 from crossbar.router.auth.pending import PendingAuth
-from crossbar._interfaces import IRealmContainer, IPendingAuth
+from crossbar.interfaces import IRealmContainer, IPendingAuth
 
 __all__ = ('PendingAuthTLS', )
 

@@ -30,7 +30,7 @@ from autobahn.twisted.wamp import Session, ApplicationSession
 from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
 from autobahn.twisted.component import Component
 
-from crossbar._interfaces import IRealmContainer
+from crossbar.interfaces import IRealmContainer
 from crossbar._util import hltype, hlid, hlval
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController

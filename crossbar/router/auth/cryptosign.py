@@ -24,7 +24,7 @@ from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, Transport
 from autobahn.wamp.exception import ApplicationError
 
 from crossbar.router.auth.pending import PendingAuth
-from crossbar._interfaces import IRealmContainer, IPendingAuth
+from crossbar.interfaces import IRealmContainer, IPendingAuth
 
 __all__ = (
     'PendingAuthCryptosign',
