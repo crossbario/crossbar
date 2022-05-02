@@ -10,13 +10,16 @@ from collections import deque
 from txaio import use_twisted  # noqa
 from txaio import make_logger, time_ns
 
-from autobahn.util import hltype
+from autobahn.util import hltype, hlval
+from crossbar.interfaces import IRealmStore
 
-__all__ = ('RealmStoreMemory', )
+__all__ = (
+    'RealmStoreMemory',
+    'QueuedCall',
+)
 
 
 class QueuedCall(object):
-
     __slots__ = ('session', 'call', 'registration', 'authorization')
 
     def __init__(self, session, call, registration, authorization):
@@ -65,7 +68,10 @@ class RealmStoreMemory(object):
         self._reactor = reactor
         self._personality = personality
         self._factory = factory
-        self._config = config or {}
+        self._config = config
+
+        self._type = self._config.get('type', None)
+        assert self._type == self.STORE_TYPE
 
         # limit to event history per subscription
         self._limit = self._config.get('limit', self.GLOBAL_HISTORY_LIMIT)
@@ -82,9 +88,57 @@ class RealmStoreMemory(object):
         # map: registration.id -> deque( (session, call, registration, authorization) )
         self._queued_calls = {}
 
-        self.log.info('{func} realm store initialized (type=memory)', func=hltype(self.__init__))
+        self._running = False
+
+        self.log.info('{func} realm store initialized (type="{stype}")',
+                      stype=hlval(self._type),
+                      func=hltype(self.__init__))
+
+    def type(self) -> str:
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.type`
+        """
+        return self._type
+
+    def is_running(self) -> bool:
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.is_running`
+        """
+        return self._running
+
+    def start(self):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.start`
+        """
+        if self._running:
+            raise RuntimeError('store is already running')
+        else:
+            self.log.info(
+                '{func} starting realm store type="{stype}"',
+                func=hltype(self.start),
+                stype=hlval(self._type),
+            )
+
+        # currently nothing to do in stores of type "memory"
+        self._running = True
+        self.log.info('{func} realm store ready!', func=hltype(self.start))
+
+    def stop(self):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.stop`
+        """
+        if not self._running:
+            raise RuntimeError('store is not running')
+        else:
+            self.log.info('{func} stopping realm store', func=hltype(self.start))
+
+        # currently nothing to do in stores of type "memory"
+        self._running = False
 
     def attach_subscription_map(self, subscription_map):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.attach_subscription_map`
+        """
         for sub in self._config.get('event-history', []):
             uri = sub['uri']
             match = sub.get('match', 'exact')
@@ -97,12 +151,18 @@ class RealmStoreMemory(object):
             self._event_history[subscription_id] = (sub.get('limit', self._limit), deque())
 
     def store_session_joined(self, session, session_details):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
+        """
         self.log.debug('{klass}.store_session_join(session={session}, session_details={session_details})',
                        klass=self.__class__.__name__,
                        session=session,
                        session_details=session_details)
 
     def store_session_left(self, session, session_details, close_details):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
+        """
         self.log.debug(
             '{klass}.store_session_left(session={session}, session_details={session_details}, close_details={close_details})',
             klass=self.__class__.__name__,
@@ -112,16 +172,7 @@ class RealmStoreMemory(object):
 
     def store_event(self, session, publication_id, publish):
         """
-        Store event to event history.
-
-        :param session: The publishing session.
-        :type session: :class:`autobahn.wamp.interfaces.ISession`
-
-        :param publication_id: The WAMP publication ID under which the publish happens
-        :type publication_id: int
-
-        :param publish: The WAMP publish message.
-        :type publish: :class:`autobahn.wamp.messages.Publish`
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_event`
         """
         assert (publication_id not in self._event_store)
         evt = {
@@ -142,14 +193,7 @@ class RealmStoreMemory(object):
 
     def store_event_history(self, publication_id, subscription_id, receiver):
         """
-        Store publication history for subscription.
-
-        :param publication_id: The ID of the event publication to be persisted.
-        :type publication_id: int
-
-        :param subscription_id: The ID of the subscription the event (identified by the publication ID),
-            was published to, because the event's topic matched the subscription.
-        :type subscription_id: int
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_event_history`
         """
         # assert(publication_id in self._event_store)
         # assert(subscription_id in self._event_history)
@@ -202,17 +246,7 @@ class RealmStoreMemory(object):
 
     def get_events(self, subscription_id, limit):
         """
-        Retrieve given number of last events for a given subscription.
-
-        If no history is maintained for the given subscription, None is returned.
-
-        :param subscription_id: The ID of the subscription to retrieve events for.
-        :type subscription_id: int
-        :param limit: Limit number of events returned.
-        :type limit: int
-
-        :return: List of events.
-        :rtype: list or None
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_events`
         """
         if subscription_id not in self._event_history:
             return None
@@ -232,20 +266,14 @@ class RealmStoreMemory(object):
 
     def get_event_history(self, subscription_id, from_ts, until_ts):
         """
-        Retrieve event history for time range for a given subscription.
-
-        If no history is maintained for the given subscription, None is returned.
-
-        :param subscription_id: The ID of the subscription to retrieve events for.
-        :type subscription_id: int
-        :param from_ts: Filter events from this date (string in ISO-8601 format).
-        :type from_ts: unicode
-        :param until_ts: Filter events until this date (string in ISO-8601 format).
-        :type until_ts: unicode
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_event_history`
         """
         raise Exception("not implemented")
 
     def maybe_queue_call(self, session, call, registration, authorization):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.maybe_queue_call`
+        """
         # FIXME: match this against the config, not just plain accept queueing!
         if registration.id not in self._queued_calls:
             self._queued_calls[registration.id] = deque()
@@ -255,9 +283,18 @@ class RealmStoreMemory(object):
         return True
 
     def get_queued_call(self, registration):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_queued_call`
+        """
         if registration.id in self._queued_calls and self._queued_calls[registration.id]:
             return self._queued_calls[registration.id][0]
 
     def pop_queued_call(self, registration):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.pop_queued_call`
+        """
         if registration.id in self._queued_calls and self._queued_calls[registration.id]:
             return self._queued_calls[registration.id].popleft()
+
+
+IRealmStore.register(RealmStoreMemory)

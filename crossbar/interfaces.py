@@ -17,7 +17,7 @@ import abc
 from typing import Union, Dict, List, Any, Optional
 
 from autobahn.wamp import ISession
-from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails, SessionDetails
+from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails
 from autobahn.wamp.message import Publish
 
 __all__ = (
@@ -134,31 +134,25 @@ class IRealmStore(abc.ABC):
         """
 
     @abc.abstractmethod
+    def store_session_joined(self, session: ISession):
+        """
+
+        :param session: Session that has joined a realm.
+        """
+
+    @abc.abstractmethod
+    def store_session_left(self, session: ISession, details: CloseDetails):
+        """
+
+        :param session: Session that has left a realm it was previously joined on.
+        :param details: Session close details.
+        """
+
+    @abc.abstractmethod
     def attach_subscription_map(self, subscription_map):
         """
 
         :param subscription_map:
-        :return:
-        """
-
-    @abc.abstractmethod
-    def store_session_joined(self, session: ISession, session_details: SessionDetails,
-                             transport_details: TransportDetails):
-        """
-
-        :param session:
-        :param session_details:
-        :param transport_details:
-        :return:
-        """
-
-    @abc.abstractmethod
-    def store_session_left(self, session: ISession, session_details, close_details):
-        """
-
-        :param session:
-        :param session_details:
-        :param close_details:
         :return:
         """
 

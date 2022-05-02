@@ -15,6 +15,7 @@ from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.types import RegisterOptions, CallDetails
+from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.request import Registration
 
 from crossbar._util import hlid, hltype
@@ -25,8 +26,8 @@ from txaio import make_logger
 __all__ = ('RouterServiceAgent', )
 
 
-def is_restricted_session(session):
-    return session._authrole is None or session._authrole == 'trusted'
+def is_restricted_session(session: ISession):
+    return session.authrole is None or session.authrole == 'trusted'
 
 
 class RouterServiceAgent(ApplicationSession):
@@ -308,12 +309,18 @@ class RouterServiceAgent(ApplicationSession):
                        details=details)
 
         if session_id in self._router._session_id_to_session:
-            session = self._router._session_id_to_session[session_id]
+            session: ISession = self._router._session_id_to_session[session_id]
+            assert session
             if not is_restricted_session(session):
-                session_info = session._session_details.marshal() if hasattr(session, '_session_details') else dict()
-                _td = session._transport.transport_details.marshal() if session._transport.transport_details else None
-                session_info['transport'] = _td
-                return session_info
+                if session.session_details:
+                    session_info = session.session_details.marshal()
+                    if session.transport and session.transport.transport_details:
+                        session_info['transport'] = session.transport.transport_details.marshal()
+                    else:
+                        session_info['transport'] = None
+                    return session_info
+                else:
+                    return None
             else:
                 self.log.warn('wamp.session.get: denied returning restricted session {session_id}',
                               session_id=session_id)
