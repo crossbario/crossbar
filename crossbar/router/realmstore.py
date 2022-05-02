@@ -6,12 +6,18 @@
 #####################################################################################
 
 from collections import deque
+from typing import Optional, List, Dict, Any
 
 from txaio import use_twisted  # noqa
 from txaio import make_logger, time_ns
 
 from autobahn.util import hltype, hlval
+from autobahn.wamp.interfaces import ISession
+from autobahn.wamp.types import CloseDetails
+from autobahn.wamp.message import Publish
+
 from crossbar.interfaces import IRealmStore
+from crossbar.router.observation import UriObservationMap
 
 __all__ = (
     'RealmStoreMemory',
@@ -135,7 +141,24 @@ class RealmStoreMemory(object):
         # currently nothing to do in stores of type "memory"
         self._running = False
 
-    def attach_subscription_map(self, subscription_map):
+    def store_session_joined(self, session: ISession):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
+        """
+        self.log.info('{func} append new joined session for storing: session={session}',
+                      func=hltype(self.store_session_joined),
+                      session=session)
+
+    def store_session_left(self, session: ISession, details: CloseDetails):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
+        """
+        self.log.info('{func} append left session for storing: session={session}, details={details}',
+                      func=hltype(self.store_session_left),
+                      session=session,
+                      details=details)
+
+    def attach_subscription_map(self, subscription_map: UriObservationMap):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.attach_subscription_map`
         """
@@ -150,27 +173,7 @@ class RealmStoreMemory(object):
             # for in-memory history, we just use a double-ended queue
             self._event_history[subscription_id] = (sub.get('limit', self._limit), deque())
 
-    def store_session_joined(self, session, session_details):
-        """
-        Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
-        """
-        self.log.debug('{klass}.store_session_join(session={session}, session_details={session_details})',
-                       klass=self.__class__.__name__,
-                       session=session,
-                       session_details=session_details)
-
-    def store_session_left(self, session, session_details, close_details):
-        """
-        Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
-        """
-        self.log.debug(
-            '{klass}.store_session_left(session={session}, session_details={session_details}, close_details={close_details})',
-            klass=self.__class__.__name__,
-            session=session,
-            session_details=session_details,
-            close_details=close_details)
-
-    def store_event(self, session, publication_id, publish):
+    def store_event(self, session: ISession, publication_id: int, publish: Publish):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_event`
         """
@@ -191,7 +194,7 @@ class RealmStoreMemory(object):
                        store_type=self.STORE_TYPE,
                        publication_id=publication_id)
 
-    def store_event_history(self, publication_id, subscription_id, receiver):
+    def store_event_history(self, publication_id: int, subscription_id: int, receiver: ISession):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_event_history`
         """
@@ -244,7 +247,7 @@ class RealmStoreMemory(object):
                 del self._event_store[purged_publication_id]
                 self.log.debug("Event {publication_id} purged completey", publication_id=purged_publication_id)
 
-    def get_events(self, subscription_id, limit):
+    def get_events(self, subscription_id: int, limit: Optional[int] = None):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_events`
         """
@@ -256,7 +259,7 @@ class RealmStoreMemory(object):
             # at most "limit" events in reverse chronological order
             res = []
             i = -1
-            if limit > len(history):
+            if limit is None or limit > len(history):
                 limit = len(history)
             for _ in range(limit):
                 publication_id = history[i]
@@ -264,7 +267,7 @@ class RealmStoreMemory(object):
                 i -= 1
             return res
 
-    def get_event_history(self, subscription_id, from_ts, until_ts):
+    def get_event_history(self, subscription_id: int, from_ts: int, until_ts: int) -> Optional[List[Dict[str, Any]]]:
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_event_history`
         """

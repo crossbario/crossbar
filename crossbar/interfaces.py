@@ -20,6 +20,8 @@ from autobahn.wamp import ISession
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails
 from autobahn.wamp.message import Publish
 
+from crossbar.router.observation import UriObservationMap
+
 __all__ = (
     'IRealmContainer',
     'IPendingAuth',
@@ -149,7 +151,7 @@ class IRealmStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def attach_subscription_map(self, subscription_map):
+    def attach_subscription_map(self, subscription_map: UriObservationMap):
         """
 
         :param subscription_map:
@@ -194,7 +196,12 @@ class IRealmStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_event_history(self, subscription_id: int, from_ts: int, until_ts: int) -> Optional[List[Dict[str, Any]]]:
+    def get_event_history(self,
+                          subscription_id: int,
+                          from_ts: int,
+                          until_ts: int,
+                          reverse: Optional[bool] = None,
+                          limit: Optional[int] = None) -> Optional[List[Dict[str, Any]]]:
         """
         Retrieve event history for time range for a given subscription.
 
@@ -203,6 +210,8 @@ class IRealmStore(abc.ABC):
         :param subscription_id: The ID of the subscription to retrieve events for.
         :param from_ts: Filter events from this date (epoch time in ns).
         :param until_ts: Filter events until before this date (epoch time in ns).
+        :param reverse:
+        :param limit:
         """
 
     @abc.abstractmethod

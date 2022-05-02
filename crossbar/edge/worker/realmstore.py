@@ -7,6 +7,7 @@
 
 import uuid
 from collections import deque
+from typing import Dict, List, Any, Optional
 
 import zlmdb
 import numpy as np
@@ -19,10 +20,11 @@ from twisted.internet.defer import inlineCallbacks
 from autobahn.util import hltype, hlval
 from autobahn.twisted.util import sleep
 from autobahn.wamp import message
-from autobahn.wamp.types import SessionDetails, CloseDetails
+from autobahn.wamp.types import CloseDetails
+from autobahn.wamp.message import Publish
 from autobahn.wamp.interfaces import ISession
 
-from crossbar.router.session import RouterSession
+from crossbar.router.observation import UriObservationMap
 from crossbar.router.realmstore import QueuedCall
 from crossbar.interfaces import IRealmStore
 
@@ -190,17 +192,6 @@ class RealmStoreDatabase(object):
         duration_ms = int((ended - started) / 1000000)
         return cnt, errs, duration_ms
 
-    def attach_subscription_map(self, subscription_map):
-        """
-        Implements :meth:`crossbar._interfaces.IRealmStore.attach_subscription_map`
-        """
-        for sub in self._config.get('event-history', []):
-            uri = sub['uri']
-            match = sub.get('match', u'exact')
-            # observation, was_already_observed, was_first_observer
-            subscription_map.add_observer(self, uri=uri, match=match)
-            # subscription_id = observation.id
-
     def store_session_joined(self, session: ISession):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
@@ -213,11 +204,7 @@ class RealmStoreDatabase(object):
         # crossbar.router.service.RouterServiceAgent
         # autobahn.twisted.wamp.ApplicationSession
 
-        from pprint import pprint
-        pprint(dir(session))
-
         ses = cfxdb.realmstore.Session()
-
         ses.oid = uuid.uuid4()
         ses.joined_at = np.datetime64(time_ns(), 'ns')
         ses.session = session.session_id
@@ -257,50 +244,53 @@ class RealmStoreDatabase(object):
                       func=hltype(self._store_session_joined),
                       session=ses)
 
-    def store_session_left(self, session, session_details, close_details):
+    def store_session_left(self, session: ISession, details: CloseDetails):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
         """
-        self.log.debug(
-            '{klass}.store_session_left(session={session}, session_details={session_details}, close_details={close_details})',
-            klass=self.__class__.__name__,
-            session=session,
-            session_details=session_details,
-            close_details=close_details)
+        self.log.info('{func} append left session for storing: session={session}, details={details}',
+                      func=hltype(self.store_session_left),
+                      session=session,
+                      details=details)
 
-        assert isinstance(session, RouterSession), 'session must be RouterSession, not {}'.format(type(session))
-        assert isinstance(session_details, SessionDetails), 'session_details must be SessionDetails, not {}'.format(
-            type(session_details))
-        assert isinstance(close_details,
-                          CloseDetails), 'close_details must be CloseDetails, not {}'.format(type(close_details))
+        self._buffer.append([self._store_session_left, session, details])
 
-        self._buffer.append([self._store_session_left, session, session_details, close_details])
-
-    def _store_session_left(self, txn, session, session_details, close_details):
+    def _store_session_left(self, txn, session, details):
 
         # FIXME: use idx_sessions_by_session_id
         return
 
-        ses = self._schema.sessions[txn, session_details.session]
-        if not ses:
-            self.log.warn('{klass}._store_session_left(): session {session} not in store',
-                          klass=self.__class__.__name__,
-                          session=session_details.session)
-            return
+        # ses = self._schema.sessions[txn, session_details.session]
+        # if not ses:
+        #     self.log.warn('{klass}._store_session_left(): session {session} not in store',
+        #                   klass=self.__class__.__name__,
+        #                   session=session_details.session)
+        #     return
+        #
+        # self.log.debug('{klass}._store_session_left(): store_session_left: session {session} loaded',
+        #                klass=self.__class__.__name__,
+        #                session=ses)
+        #
+        # ses.left_at = time_ns()
+        #
+        # self._schema.sessions[txn, session_details.session] = ses
+        #
+        # self.log.debug('{klass}._store_session_left(): store_session_left: session {session} updated',
+        #                klass=self.__class__.__name__,
+        #                session=ses)
 
-        self.log.debug('{klass}._store_session_left(): store_session_left: session {session} loaded',
-                       klass=self.__class__.__name__,
-                       session=ses)
+    def attach_subscription_map(self, subscription_map: UriObservationMap):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.attach_subscription_map`
+        """
+        for sub in self._config.get('event-history', []):
+            uri = sub['uri']
+            match = sub.get('match', u'exact')
+            # observation, was_already_observed, was_first_observer
+            subscription_map.add_observer(self, uri=uri, match=match)
+            # subscription_id = observation.id
 
-        ses.left_at = time_ns()
-
-        self._schema.sessions[txn, session_details.session] = ses
-
-        self.log.debug('{klass}._store_session_left(): store_session_left: session {session} updated',
-                       klass=self.__class__.__name__,
-                       session=ses)
-
-    def store_event(self, session, publication_id, publish):
+    def store_event(self, session: ISession, publication_id: int, publish: Publish):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_event`
         """
@@ -357,7 +347,7 @@ class RealmStoreDatabase(object):
 
         self._schema.publications[txn, publication_id] = pub
 
-    def store_event_history(self, publication_id, subscription_id, receiver):
+    def store_event_history(self, publication_id: int, subscription_id: int, receiver: ISession):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_event_history`
         """
@@ -403,7 +393,7 @@ class RealmStoreDatabase(object):
 
         self._schema.events[txn, evt_key] = evt
 
-    def get_events(self, subscription_id, limit=None):
+    def get_events(self, subscription_id: int, limit: Optional[int] = None):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_events`
         """
@@ -412,7 +402,12 @@ class RealmStoreDatabase(object):
 
         return self.get_event_history(subscription_id, from_ts=0, until_ts=time_ns(), reverse=True, limit=limit)
 
-    def get_event_history(self, subscription_id, from_ts, until_ts, reverse=False, limit=None):
+    def get_event_history(self,
+                          subscription_id: int,
+                          from_ts: int,
+                          until_ts: int,
+                          reverse: Optional[bool] = None,
+                          limit: Optional[int] = None) -> Optional[List[Dict[str, Any]]]:
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_event_history`
         """
@@ -443,7 +438,7 @@ class RealmStoreDatabase(object):
                 if pub:
                     res.append(pub.marshal())
                     i += 1
-                    if i >= limit:
+                    if limit is not None and i >= limit:
                         break
 
         return res
