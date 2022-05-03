@@ -276,7 +276,7 @@ class RouterApplicationSession(object):
             d.addCallback(
                 lambda _: self.log.debug('{func} fired {session} "join" and "ready" events with details={details})',
                                          session=self._session,
-                                         details=details,
+                                         details=self._session._session_details,
                                          func=hltype(RouterApplicationSession.send)))
 
         # app-to-router
