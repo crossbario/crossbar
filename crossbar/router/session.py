@@ -96,10 +96,10 @@ class RouterApplicationSession(object):
             store=store)
 
         # remember router we are wrapping the app session for
-        self._router = router
+        self._router: Router = router
 
         # remember wrapped app session
-        self._session = session
+        self._session: ISession = session
 
         # set fake transport on session ("pass-through transport")
         self._session._transport = self
@@ -110,7 +110,7 @@ class RouterApplicationSession(object):
         self._trusted_authextra = authextra
 
         # FIXME: do we need / should we do this?
-        self._realm = router._realm
+        self._realm: str = router._realm
         self._authid = authid
         self._authrole = authrole
 
@@ -237,14 +237,22 @@ class RouterApplicationSession(object):
             self._session._authprovider = None
             self._session._authextra = self._trusted_authextra
 
-            self._session._session_details = SessionDetails(realm=self._session._realm,
-                                                            session=self._session._session_id,
-                                                            authid=self._session._authid,
-                                                            authrole=self._session._authrole,
-                                                            authmethod=self._session._authmethod,
-                                                            authprovider=self._session._authprovider,
-                                                            authextra=self._session._authextra,
-                                                            transport=self._transport_details)
+            sd = SessionDetails(
+                realm=self._session._realm,
+                session=self._session._session_id,
+                authid=self._session._authid,
+                authrole=self._session._authrole,
+                authmethod=self._session._authmethod,
+                authprovider=self._session._authprovider,
+                authextra=self._session._authextra,
+                # FIXME
+                serializer=None,
+                resumed=False,
+                resumable=False,
+                resume_token=None,
+                transport=self._transport_details)
+
+            self._session._session_details = sd
 
             # add app session to router
             self._router.attach(self._session)
@@ -263,11 +271,11 @@ class RouterApplicationSession(object):
 
             # have to fire the 'join' notification ourselves, as we're
             # faking out what the protocol usually does.
-            d = self._session.fire('join', self._session, self._session._session_details)
+            d = self._session.fire('join', self._session, sd)
             d.addErrback(lambda fail: self._log_error(fail, "While notifying 'join'"))
             # now fire onJoin (since _log_error returns None, we'll be
             # back in the callback chain even on errors from 'join'
-            d.addCallback(lambda _: txaio.as_future(self._session.onJoin, self._session._session_details))
+            d.addCallback(lambda _: txaio.as_future(self._session.onJoin, sd))
             d.addErrback(lambda fail: self._swallow_error(fail, "While firing onJoin"))
 
             d.addCallback(lambda _: self._session.fire('ready', self._session))
@@ -276,7 +284,7 @@ class RouterApplicationSession(object):
             d.addCallback(
                 lambda _: self.log.debug('{func} fired {session} "join" and "ready" events with details={details})',
                                          session=self._session,
-                                         details=self._session._session_details,
+                                         details=sd,
                                          func=hltype(RouterApplicationSession.send)))
 
         # app-to-router
@@ -486,14 +494,20 @@ class RouterSession(BaseSession):
                                       custom=custom)
                 self._transport.send(msg)
 
-                session_details = SessionDetails(realm=self._realm,
-                                                 session=self._session_id,
-                                                 authid=self._authid,
-                                                 authrole=self._authrole,
-                                                 authmethod=self._authmethod,
-                                                 authprovider=self._authprovider,
-                                                 authextra=self._authextra,
-                                                 transport=self._transport.transport_details)
+                session_details = SessionDetails(
+                    realm=self._realm,
+                    session=self._session_id,
+                    authid=self._authid,
+                    authrole=self._authrole,
+                    authmethod=self._authmethod,
+                    authprovider=self._authprovider,
+                    authextra=self._authextra,
+                    # FIXME
+                    serializer=None,
+                    resumed=False,
+                    resumable=False,
+                    resume_token=None,
+                    transport=self._transport.transport_details)
                 self.onJoin(session_details)
 
             # the first message MUST be HELLO
@@ -1011,9 +1025,8 @@ class RouterSession(BaseSession):
             self.log.failure()
             return Deny(message='internal error: {}'.format(e))
 
-    def onJoin(self, details):
-
-        if hasattr(self._transport, '_cbtid') and self._transport._cbtid:
+    def onJoin(self, details: SessionDetails):
+        if self._transport and hasattr(self._transport, '_cbtid') and self._transport._cbtid:
             if details.authmethod != 'cookie':
                 self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole,
                                                              details.authmethod, details.authextra, self._realm)
@@ -1027,31 +1040,25 @@ class RouterSession(BaseSession):
                     authextra=hlid(details.authextra),
                     realm=hlid(self._realm))
 
-        # Router/Realm service session
-        #
+        # router-realm service session to use for WAMP meta API
+        assert self._router
         self._service_session = self._router._realm.session
-        # self._router:                  crossbar.router.session.CrossbarRouter
-        # self._router_factory:          crossbar.router.session.CrossbarRouterFactory
-        # self._router._realm:           crossbar.worker.router.RouterRealm
-        # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
+        # FIXME: this is wrong, as it refers to the router, not proxy transport serializer
+        # forward actual serializer in use on session details
+        # details.serializer = self._transport._serializer.SERIALIZER_ID
+
+        # remember session details we've got
         self._session_details = details
+
+        # main handling of new session
         self._router._session_joined(self, details)
 
-        # dispatch session meta event from WAMP AP
-        #
+        # dispatch session on-join WAMP meta API event
         if self._service_session:
-            session_info_long = {
-                'session': details.session,
-                'authid': details.authid,
-                'authrole': details.authrole,
-                'authmethod': details.authmethod,
-                'authextra': details.authextra,
-                'authprovider': details.authprovider,
-                'transport': self._transport.transport_details.marshal() if self._transport.transport_details else None
-            }
-            self._service_session.publish('wamp.session.on_join', session_info_long)
+            self._service_session.publish('wamp.session.on_join', details.marshal())
 
+            # possibly dispatch WAMP PubSub statistics events
             realm_config = self._router_factory._routers[self._realm]._realm.config
             if 'stats' in realm_config:
                 rated_message_size = realm_config['stats'].get('rated_message_size', 512)

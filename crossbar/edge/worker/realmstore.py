@@ -20,7 +20,7 @@ from twisted.internet.defer import inlineCallbacks
 from autobahn.util import hltype, hlval
 from autobahn.twisted.util import sleep
 from autobahn.wamp import message
-from autobahn.wamp.types import CloseDetails
+from autobahn.wamp.types import CloseDetails, SessionDetails, TransportDetails
 from autobahn.wamp.message import Publish
 from autobahn.wamp.interfaces import ISession
 
@@ -196,13 +196,9 @@ class RealmStoreDatabase(object):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
         """
-        self.log.info('{func} append new joined session for storing: session={session}',
-                      func=hltype(self.store_session_joined),
-                      session=session)
-
-        # crossbar.router.session.RouterSession
-        # crossbar.router.service.RouterServiceAgent
-        # autobahn.twisted.wamp.ApplicationSession
+        self.log.debug('{func} append new joined session for storing: session={session}',
+                       func=hltype(self.store_session_joined),
+                       session=session)
 
         ses = cfxdb.realmstore.Session()
         ses.oid = uuid.uuid4()
@@ -216,71 +212,34 @@ class RealmStoreDatabase(object):
         ses.authextra = session.authextra
         ses.transport = session.transport.transport_details.marshal()
 
-        # FIXME
-        # ses.session_details = session.session_details.marshal()
-
         self._buffer.append([self._store_session_joined, ses])
 
     def _store_session_joined(self, txn, ses):
 
-        # FIXME: use idx_sessions_by_session_id
-        # if session._session_id:
-        #     ses = self._schema.sessions[txn, session._session_id]
-        #     if ses:
-        #         self.log.warn('{klass}._store_session_joined(): session {session} already in store',
-        #                       klass=self.__class__.__name__,
-        #                       session=session._session_id)
-        #         return
-        # else:
-        #     self.log.warn('{klass}._store_session_joined(): cannot store session without session ID',
-        #                   klass=self.__class__.__name__)
-        #     return
+        # FIXME: use idx_sessions_by_session_id to check there is no session with (session_id, joined_at) yet
 
-        # zlmdb._errors.NullValueConstraint: cannot insert NULL value into
-        # non-nullable index "cfxdb.realmstore._session.Sessions::idx1"
         self._schema.sessions[txn, ses.oid] = ses
 
-        cnt = self._schema.sessions.count(txn)
-
-        self.log.info('{func} database record inserted (now {cnt} records in total): session={session}',
-                      func=hltype(self._store_session_joined),
-                      cnt=hlval(cnt),
-                      session=ses)
+        # cnt = self._schema.sessions.count(txn)
+        self.log.debug('{func} database record inserted session={session}',
+                       func=hltype(self._store_session_joined),
+                       session=ses)
 
     def store_session_left(self, session: ISession, details: CloseDetails):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
         """
-        self.log.info('{func} append left session for storing: session={session}, details={details}',
-                      func=hltype(self.store_session_left),
-                      session=session,
-                      details=details)
+        self.log.debug('{func} append left session for storing: session={session}, details={details}',
+                       func=hltype(self.store_session_left),
+                       session=session,
+                       details=details)
 
         self._buffer.append([self._store_session_left, session, details])
 
     def _store_session_left(self, txn, session, details):
 
-        # FIXME: use idx_sessions_by_session_id
+        # FIXME: use idx_sessions_by_session_id to get existing session, update left_at etc
         return
-
-        # ses = self._schema.sessions[txn, session_details.session]
-        # if not ses:
-        #     self.log.warn('{klass}._store_session_left(): session {session} not in store',
-        #                   klass=self.__class__.__name__,
-        #                   session=session_details.session)
-        #     return
-        #
-        # self.log.debug('{klass}._store_session_left(): store_session_left: session {session} loaded',
-        #                klass=self.__class__.__name__,
-        #                session=ses)
-        #
-        # ses.left_at = time_ns()
-        #
-        # self._schema.sessions[txn, session_details.session] = ses
-        #
-        # self.log.debug('{klass}._store_session_left(): store_session_left: session {session} updated',
-        #                klass=self.__class__.__name__,
-        #                session=ses)
 
     def get_session_by_session_id(self,
                                   session_id: int,
@@ -295,8 +254,11 @@ class RealmStoreDatabase(object):
         _from_key = (session_id, np.datetime64(0, 'ns'))
         _to_key = (session_id, _joined_before)
 
-        session = None
+        # check if we have a record store for the session
+        session: Optional[cfxdb.realmstore.Session] = None
         with self._db.begin() as txn:
+            # lookup session by WAMP session ID and find the most recent session
+            # according to joined_at timestamp
             for session_oid in self._schema.idx_sessions_by_session_id.select(txn,
                                                                               from_key=_from_key,
                                                                               to_key=_to_key,
@@ -304,11 +266,32 @@ class RealmStoreDatabase(object):
                                                                               return_keys=False,
                                                                               return_values=True):
                 session = self._schema.sessions[txn, session_oid]
+
+                # if we have an index, that index must always resolve to an indexed record
                 assert session
+
+                # we only want the most recent session
                 break
 
         if session:
-            return session.marshal()
+            # extract info from database table to construct session details and return
+            td = TransportDetails.parse(session.transport)
+            sd = SessionDetails(
+                realm=session.realm,
+                session=session.session,
+                authid=session.authid,
+                authrole=session.authrole,
+                authmethod=session.authmethod,
+                authprovider=session.authprovider,
+                authextra=session.authextra,
+                # FIXME
+                serializer=None,
+                resumed=False,
+                resumable=False,
+                resume_token=None,
+                transport=td)
+            res = sd.marshal()
+            return res
         else:
             return None
 
