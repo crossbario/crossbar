@@ -96,15 +96,15 @@ class RouterApplicationSession(object):
             store=store)
 
         # remember router we are wrapping the app session for
-        #
         self._router = router
 
         # remember wrapped app session
-        #
         self._session = session
 
+        # set fake transport on session ("pass-through transport")
+        self._session._transport = self
+
         # remember "trusted" authentication information
-        #
         self._trusted_authid = authid
         self._trusted_authrole = authrole
         self._trusted_authextra = authextra
@@ -114,13 +114,9 @@ class RouterApplicationSession(object):
         self._authid = authid
         self._authrole = authrole
 
-        # FIXME: assemble synthetic session info for the router-embedded application session
-        self._session_details = None
-
-        # set fake transport on session ("pass-through transport")
-        self._session._transport = self
         self._transport_details = TransportDetails(channel_type=TransportDetails.CHANNEL_TYPE_FUNCTION,
-                                                   channel_framing=TransportDetails.CHANNEL_FRAMING_NATIVE)
+                                                   channel_framing=TransportDetails.CHANNEL_FRAMING_NATIVE,
+                                                   channel_serializer=TransportDetails.CHANNEL_SERIALIZER_NONE)
 
         self.log.debug('{func} firing {session}.onConnect() ..',
                        session=self._session,
@@ -238,10 +234,17 @@ class RouterApplicationSession(object):
             self._session._authid = self._trusted_authid
             self._session._authrole = self._trusted_authrole
             self._session._authmethod = None
-            # FIXME: the following does blow up
-            # self._session._authmethod = 'trusted'
             self._session._authprovider = None
             self._session._authextra = self._trusted_authextra
+
+            self._session._session_details = SessionDetails(realm=self._session._realm,
+                                                            session=self._session._session_id,
+                                                            authid=self._session._authid,
+                                                            authrole=self._session._authrole,
+                                                            authmethod=self._session._authmethod,
+                                                            authprovider=self._session._authprovider,
+                                                            authextra=self._session._authextra,
+                                                            transport=self._transport_details)
 
             # add app session to router
             self._router.attach(self._session)
@@ -257,17 +260,14 @@ class RouterApplicationSession(object):
                 func=hltype(RouterApplicationSession.send))
 
             # fake app session open
-            details = SessionDetails(self._session._realm, self._session._session_id, self._session._authid,
-                                     self._session._authrole, self._session._authmethod, self._session._authprovider,
-                                     self._session._authextra)
 
             # have to fire the 'join' notification ourselves, as we're
             # faking out what the protocol usually does.
-            d = self._session.fire('join', self._session, details)
+            d = self._session.fire('join', self._session, self._session._session_details)
             d.addErrback(lambda fail: self._log_error(fail, "While notifying 'join'"))
             # now fire onJoin (since _log_error returns None, we'll be
             # back in the callback chain even on errors from 'join'
-            d.addCallback(lambda _: txaio.as_future(self._session.onJoin, details))
+            d.addCallback(lambda _: txaio.as_future(self._session.onJoin, self._session._session_details))
             d.addErrback(lambda fail: self._swallow_error(fail, "While firing onJoin"))
 
             d.addCallback(lambda _: self._session.fire('ready', self._session))
@@ -486,9 +486,15 @@ class RouterSession(BaseSession):
                                       custom=custom)
                 self._transport.send(msg)
 
-                self.onJoin(
-                    SessionDetails(self._realm, self._session_id, self._authid, self._authrole, self._authmethod,
-                                   self._authprovider, self._authextra))
+                session_details = SessionDetails(realm=self._realm,
+                                                 session=self._session_id,
+                                                 authid=self._authid,
+                                                 authrole=self._authrole,
+                                                 authmethod=self._authmethod,
+                                                 authprovider=self._authprovider,
+                                                 authextra=self._authextra,
+                                                 transport=self._transport.transport_details)
+                self.onJoin(session_details)
 
             # the first message MUST be HELLO
             if isinstance(msg, message.Hello):
