@@ -390,17 +390,10 @@ class RouterSession(BaseSession):
         super(RouterSession, self).__init__()
         self._transport: Optional[Union[WampWebSocketServerProtocol, WampRawSocketServerProtocol,
                                         NativeWorkerClientProtocol]] = None
-
-        # self._router_factory._node_id
-        # self._router_factory._worker
-        # self._router_factory._options # :class:`crossbar.router.RouterOptions`
-        # self._router_factory._router[realm]._config
         self._router_factory = router_factory
-
         self._router = None
         self._realm = None
         self._testaments: Dict[str, List[message.Message]] = {"destroyed": [], "detached": []}
-
         self._goodbye_sent = False
         self._transport_is_closing = False
         self._session_details = None

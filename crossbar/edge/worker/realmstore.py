@@ -240,8 +240,11 @@ class RealmStoreDatabase(object):
         # non-nullable index "cfxdb.realmstore._session.Sessions::idx1"
         self._schema.sessions[txn, ses.oid] = ses
 
-        self.log.info('{func} database record inserted: session={session}',
+        cnt = self._schema.sessions.count(txn)
+
+        self.log.info('{func} database record inserted (now {cnt} records in total): session={session}',
                       func=hltype(self._store_session_joined),
+                      cnt=hlval(cnt),
                       session=ses)
 
     def store_session_left(self, session: ISession, details: CloseDetails):
@@ -279,26 +282,30 @@ class RealmStoreDatabase(object):
         #                klass=self.__class__.__name__,
         #                session=ses)
 
-    def get_session_by_session_id(self, session_id: int, joined_at: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    def get_session_by_session_id(self,
+                                  session_id: int,
+                                  joined_before: Optional[int] = None) -> Optional[Dict[str, Any]]:
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_session_by_session_id`
         """
-        if joined_at:
-            _joined_at = np.datetime64(joined_at, 'ns')
+        if joined_before:
+            _joined_before = np.datetime64(joined_before, 'ns')
         else:
-            _joined_at = np.datetime64(time_ns(), 'ns')
-        _from_key = (session_id, _joined_at)
+            _joined_before = np.datetime64(time_ns(), 'ns')
+        _from_key = (session_id, np.datetime64(0, 'ns'))
+        _to_key = (session_id, _joined_before)
 
         session = None
         with self._db.begin() as txn:
             for session_oid in self._schema.idx_sessions_by_session_id.select(txn,
                                                                               from_key=_from_key,
+                                                                              to_key=_to_key,
                                                                               reverse=True,
                                                                               return_keys=False,
-                                                                              return_values=True,
-                                                                              limit=1):
+                                                                              return_values=True):
                 session = self._schema.sessions[txn, session_oid]
                 assert session
+                break
 
         if session:
             return session.marshal()
