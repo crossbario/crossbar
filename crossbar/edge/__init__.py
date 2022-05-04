@@ -6,6 +6,7 @@
 ##############################################################################
 
 import txaio
+
 txaio.use_twisted()  # noqa
 
 from autobahn import xbr

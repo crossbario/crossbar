@@ -7,6 +7,7 @@
 
 import txaio
 import uuid
+from pprint import pformat
 from typing import Optional, Dict
 
 from txaio import make_logger
@@ -21,8 +22,12 @@ from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
+from crossbar.interfaces import IRealmStore
 
-__all__ = ('RouterFactory', )
+__all__ = (
+    'RouterFactory',
+    'Router',
+)
 
 
 def _is_client_session(session):
@@ -63,7 +68,7 @@ class Router(object):
         """
         self._factory = factory
         self._options = options or RouterOptions()
-        self._store = store
+        self._store: IRealmStore = store
         self._realm = realm
         self.realm = realm.config['name']
 
@@ -153,13 +158,15 @@ class Router(object):
         self._attached += 1
 
         self.log.info(
-            'Router attached new session to realm "{realm}" (session={session}, authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}") {func}',
+            '{func} new session attached for realm="{realm}", session={session}, authid="{authid}", '
+            'authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}", authextra=\n{authextra}',
             func=hltype(self.attach),
             session=hlid(session._session_id) if session else '',
             authid=hlid(session._authid),
             authrole=hlid(session._authrole),
             authmethod=hlval(session._authmethod),
             authprovider=hlval(session._authprovider),
+            authextra=pformat(session._authextra) if session._authextra else None,
             realm=hlid(session._realm))
 
         return {'broker': self._broker._role_features, 'dealer': self._dealer._role_features}
@@ -179,7 +186,7 @@ class Router(object):
             self._authid_to_sessions[session_details.authid] = set([session])
 
         if self._store:
-            self._store.event_store.store_session_joined(session, session_details)
+            self._store.store_session_joined(session, session_details)
 
         # log session details, but skip Crossbar.io internal sessions
         if self.realm != 'crossbar':
@@ -200,7 +207,7 @@ class Router(object):
         self._authrole_to_sessions[session_details.authrole].discard(session)
 
         if self._store:
-            self._store.event_store.store_session_left(session, session_details, close_details)
+            self._store.store_session_left(session, close_details)
 
         # log session details, but skip Crossbar.io internal sessions
         if self.realm != 'crossbar':

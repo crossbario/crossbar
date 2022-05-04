@@ -9,6 +9,7 @@ from autobahn import xbr
 from crossbar._version import __version__, __build__
 
 import txaio
+
 txaio.use_twisted()
 
 from crossbar.master.personality import Personality  # noqa

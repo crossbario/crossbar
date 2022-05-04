@@ -21,6 +21,7 @@ from twisted.web.test._util import _render
 from autobahn.wamp import message
 from autobahn.wamp import serializer
 from autobahn.wamp import role
+from autobahn.wamp.types import TransportDetails
 from autobahn import util
 
 publishedMessage = namedtuple("publishedMessage", ["id"])
@@ -136,6 +137,7 @@ class MockTransport(object):
         self._invocations = {}
         self._subscription_topics = {}
         self._my_session_id = util.id()
+        self._transport_details = TransportDetails()
 
         self._handler.onOpen(self)
 
@@ -147,6 +149,9 @@ class MockTransport(object):
     def _s(self, msg):
         if msg:
             self._handler.onMessage(msg)
+
+    def transport_details(self):
+        return self._transport_details
 
     def send(self, msg):
 

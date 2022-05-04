@@ -6,6 +6,7 @@
 #####################################################################################
 
 import txaio
+
 txaio.use_twisted()
 
 from txaio import make_logger

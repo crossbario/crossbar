@@ -5,6 +5,8 @@
 #
 #####################################################################################
 
+from typing import Dict, Any, Optional, List, Tuple
+
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
@@ -12,19 +14,21 @@ from autobahn import wamp, util
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
-from autobahn.wamp.types import RegisterOptions, CallDetails
+from autobahn.wamp.types import RegisterOptions, CallDetails, ComponentConfig
+from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.request import Registration
 
 from crossbar._util import hlid, hltype
 from crossbar.router.observation import is_protected_uri
+from crossbar.router.router import Router
 
 from txaio import make_logger
 
 __all__ = ('RouterServiceAgent', )
 
 
-def is_restricted_session(session):
-    return session._authrole is None or session._authrole == 'trusted'
+def is_restricted_session(session: ISession):
+    return session.authrole is None or session.authrole == 'trusted'
 
 
 class RouterServiceAgent(ApplicationSession):
@@ -38,17 +42,12 @@ class RouterServiceAgent(ApplicationSession):
 
     log = make_logger()
 
-    def __init__(self, config, router, schemas=None):
+    def __init__(self, config: ComponentConfig, router: Router, schemas=None):
         """
 
         :param config: WAMP application component configuration.
-        :type config: Instance of :class:`autobahn.wamp.types.ComponentConfig`.
-
         :param router: The router this service session is running for.
-        :type: router: instance of :class:`crossbar.router.session.CrossbarRouter`
-
         :param schemas: An (optional) initial schema dictionary to load.
-        :type schemas: dict
         """
         ApplicationSession.__init__(self, config)
         self._router = router
@@ -64,7 +63,7 @@ class RouterServiceAgent(ApplicationSession):
         # the service session can expose its API on multiple sessions
         # by default, it exposes its API only on itself, and that means, on the
         # router-realm the user started
-        self._expose_on_sessions = []
+        self._expose_on_sessions: List[Tuple[ISession, Optional[str], Optional[str]]] = []
 
         enable_meta_api = self.config.extra.get('enable_meta_api', True) if self.config.extra else True
         if enable_meta_api:
@@ -75,9 +74,11 @@ class RouterServiceAgent(ApplicationSession):
         bridge_meta_api = self.config.extra.get('bridge_meta_api', False) if self.config.extra else False
         if bridge_meta_api:
 
-            management_session = self.config.extra.get('management_session', None) if self.config.extra else None
+            management_session: RouterServiceAgent = self.config.extra.get('management_session',
+                                                                           None) if self.config.extra else None
             if management_session is None:
                 raise Exception('logic error: missing management_session in extra')
+            assert management_session
 
             bridge_meta_api_prefix = self.config.extra.get('bridge_meta_api_prefix',
                                                            None) if self.config.extra else None
@@ -228,31 +229,116 @@ class RouterServiceAgent(ApplicationSession):
         return session_count
 
     @wamp.register('wamp.session.get')
-    def session_get(self, session_id, details=None):
+    def session_get(self, session_id: int, details=None) -> Optional[Dict[str, Any]]:
         """
         Get details for given session.
 
+        *Example:*
+
+        .. code-block:: json
+
+            {'authextra': {'transport': {'channel_framing': 'websocket',
+                                         'channel_id': {},
+                                         'channel_serializer': None,
+                                         'channel_type': 'tcp',
+                                         'http_cbtid': 'y8pPyx+e8J9cYjdzFVWF/3/e',
+                                         'http_headers_received': {'cache-control': 'no-cache',
+                                                                   'connection': 'Upgrade',
+                                                                   'host': 'localhost:8080',
+                                                                   'pragma': 'no-cache',
+                                                                   'sec-websocket-extensions': 'permessage-deflate; '
+                                                                                               'client_no_context_takeover; '
+                                                                                               'client_max_window_bits',
+                                                                   'sec-websocket-key': '+jParRIjHXuCNGIWYKPtYQ==',
+                                                                   'sec-websocket-protocol': 'wamp.2.json',
+                                                                   'sec-websocket-version': '13',
+                                                                   'upgrade': 'WebSocket',
+                                                                   'user-agent': 'AutobahnPython/22.4.1.dev7'},
+                                         'http_headers_sent': {'Set-Cookie': 'cbtid=y8pPyx+e8J9cYjdzFVWF/3/e;max-age=604800'},
+                                         'is_secure': False,
+                                         'is_server': True,
+                                         'own': None,
+                                         'own_fd': -1,
+                                         'own_pid': 61066,
+                                         'own_tid': 61066,
+                                         'peer': 'tcp4:127.0.0.1:48638',
+                                         'peer_cert': None,
+                                         'websocket_extensions_in_use': [{'client_max_window_bits': 13,
+                                                                          'client_no_context_takeover': False,
+                                                                          'extension': 'permessage-deflate',
+                                                                          'is_server': True,
+                                                                          'mem_level': 5,
+                                                                          'server_max_window_bits': 13,
+                                                                          'server_no_context_takeover': False}],
+                                         'websocket_protocol': 'wamp.2.json'},
+                           'x_cb_node': 'intel-nuci7-61036',
+                           'x_cb_peer': 'unix',
+                           'x_cb_pid': 61045,
+                           'x_cb_worker': 'test_router1'},
+             'authid': 'client1',
+             'authmethod': 'anonymous-proxy',
+             'authprovider': 'static',
+             'authrole': 'frontend',
+             'session': 8459804897712124,
+             'transport': {'channel_framing': 'rawsocket',
+                           'channel_id': {},
+                           'channel_serializer': 'cbor',
+                           'channel_type': 'tcp',
+                           'http_cbtid': None,
+                           'http_headers_received': None,
+                           'http_headers_sent': None,
+                           'is_secure': False,
+                           'is_server': None,
+                           'own': None,
+                           'own_fd': -1,
+                           'own_pid': 61045,
+                           'own_tid': 61045,
+                           'peer': 'unix',
+                           'peer_cert': None,
+                           'websocket_extensions_in_use': None,
+                           'websocket_protocol': 'wamp.2.cbor'}}
+
         :param session_id: The WAMP session ID to retrieve details for.
-        :type session_id: int
 
         :returns: WAMP session details.
-        :rtype: dict or None
         """
-        self.log.debug('wamp.session.get(session_id={session_id}, details={details})',
+        self.log.debug('{func} session_id={session_id}, details={details}',
+                       func=hltype(self.session_get),
                        session_id=session_id,
                        details=details)
 
         if session_id in self._router._session_id_to_session:
-            session = self._router._session_id_to_session[session_id]
+            session: ISession = self._router._session_id_to_session[session_id]
+            assert session
             if not is_restricted_session(session):
-                session_info = session._session_details.marshal() if hasattr(session, '_session_details') else dict()
-                _td = session._transport.transport_details.marshal() if session._transport.transport_details else None
-                session_info['transport'] = _td
-                return session_info
+                if session.session_details:
+                    session_info = session.session_details.marshal()
+                    if False:
+                        if session.transport and session.transport.transport_details:
+                            session_info['transport'] = session.transport.transport_details.marshal()
+                        else:
+                            session_info['transport'] = None
+                    self.log.info('{func} session {session_id} in active memory',
+                                  func=hltype(self.session_get),
+                                  session_id=hlid(session_id))
+                    return session_info
+                else:
+                    return None
             else:
-                self.log.warn('wamp.session.get: denied returning restricted session {session_id}',
-                              session_id=session_id)
-        self.log.warn('wamp.session.get: session {session_id} not found', session_id=session_id)
+                self.log.warn('{func} denied returning restricted session {session_id}',
+                              func=hltype(self.session_get),
+                              session_id=hlid(session_id))
+        elif self._router._store:
+            _session = self._router._store.get_session_by_session_id(session_id)
+            if _session:
+                self.log.info('{func} session {session_id} loaded from database',
+                              func=hltype(self.session_get),
+                              session_id=hlid(session_id))
+                return _session
+
+        self.log.warn('{func} session {session_id} not found',
+                      func=hltype(self.session_get),
+                      session_id=hlid(session_id))
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
             'no session with ID {} exists on this router'.format(session_id),

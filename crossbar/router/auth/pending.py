@@ -16,7 +16,7 @@ from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, Transport
 from autobahn.wamp.interfaces import ISession
 
 from crossbar._util import hlid, hltype
-from crossbar._interfaces import IRealmContainer
+from crossbar.interfaces import IRealmContainer
 
 import txaio
 

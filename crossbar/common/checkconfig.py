@@ -15,6 +15,7 @@ from pprint import pformat
 from pygments import highlight, lexers, formatters
 
 import txaio
+
 txaio.use_twisted()
 
 from autobahn.websocket.util import parse_url
@@ -668,13 +669,11 @@ def check_transport_auth(personality, auth, ignore=[], checks=None):
             type(auth)))
     CHECKS = checks or {
         'anonymous': check_transport_auth_anonymous,
-        'anonymous-proxy': check_transport_auth_anonymous,
         'ticket': check_transport_auth_ticket,
         'wampcra': check_transport_auth_wampcra,
         'tls': check_transport_auth_tls,
         'cookie': check_transport_auth_cookie,
         'cryptosign': check_transport_auth_cryptosign,
-        'cryptosign-proxy': check_transport_auth_cryptosign,
         'scram': check_transport_auth_scram,
 
         # FIXME: these are actually not the same as corresponding non-proxied configuration items

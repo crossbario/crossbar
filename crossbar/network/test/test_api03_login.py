@@ -12,6 +12,7 @@ from pprint import pformat
 import eth_keys
 
 import txaio
+
 txaio.use_twisted()
 
 from txaio import time_ns

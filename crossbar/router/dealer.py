@@ -161,7 +161,7 @@ class Dealer(object):
 
         # store for call queues
         if self._router._store:
-            self._call_store = self._router._store.call_store
+            self._call_store = self._router._store
         else:
             self._call_store = None
 

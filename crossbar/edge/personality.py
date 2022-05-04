@@ -19,7 +19,7 @@ from crossbar.node.node import NodeOptions
 from crossbar.node.worker import RouterWorkerProcess
 
 from crossbar.edge.node.node import FabricNode
-from crossbar.edge.worker.realmstore import CfxDbRealmStore
+from crossbar.edge.worker.realmstore import RealmStoreDatabase
 from crossbar.edge.worker.router import ExtRouterController
 from crossbar.edge.worker.hostmonitor import HostMonitor, HostMonitorProcess
 from crossbar.edge.worker.xbrmm import MarketplaceController, MarketplaceControllerProcess
@@ -306,8 +306,8 @@ _native_workers.update({
         'checkconfig_options': checkconfig.check_router_options,
         'logname': 'Router',
         'topics': {
-            'starting': u'crossbar.on_router_starting',
-            'started': u'crossbar.on_router_started',
+            'starting': 'crossbar.on_router_starting',
+            'started': 'crossbar.on_router_started',
         }
     }
 })
@@ -323,10 +323,10 @@ _native_workers.update({
         'checkconfig_item': do_nothing,
         # FIXME: only check hostmonitor worker options
         'checkconfig_options': check_hostmonitor_options,
-        'logname': u'Hostmonitor',
+        'logname': 'Hostmonitor',
         'topics': {
-            'starting': u'crossbar.on_hostmonitor_starting',
-            'started': u'crossbar.on_hostmonitor_started',
+            'starting': 'crossbar.on_hostmonitor_starting',
+            'started': 'crossbar.on_hostmonitor_started',
         }
     }
 })
@@ -339,10 +339,10 @@ _native_workers.update({
         'worker_class': MarketplaceController,
         'checkconfig_item': check_markets_worker,
         'checkconfig_options': check_markets_worker_options,
-        'logname': u'XBRMM',
+        'logname': 'XBRMM',
         'topics': {
-            'starting': u'crossbar.on_xbrmm_starting',
-            'started': u'crossbar.on_xbrmm_started',
+            'starting': 'crossbar.on_xbrmm_starting',
+            'started': 'crossbar.on_xbrmm_started',
         }
     }
 })
@@ -366,7 +366,7 @@ class Personality(CrossbarPersonality):
         **CrossbarPersonality.WEB_SERVICE_FACTORIES
     }
 
-    REALM_STORES: Dict[str, object] = {'cfxdb': CfxDbRealmStore, **CrossbarPersonality.REALM_STORES}
+    REALM_STORES: Dict[str, object] = {'cfxdb': RealmStoreDatabase, **CrossbarPersonality.REALM_STORES}
 
     check_controller = check_controller
     check_controller_options = check_controller_options

@@ -16,6 +16,7 @@ from twisted.internet import task
 # the network framework before, we get an exception
 # "To use txaio, you must first select a framework" from txaio
 import txaio
+
 txaio.use_twisted()  # noqa
 
 from crossbar.node.node import NodeController

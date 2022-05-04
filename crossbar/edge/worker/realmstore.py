@@ -1,159 +1,154 @@
-##############################################################################
+#####################################################################################
 #
-#                        Crossbar.io
-#     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
+#  Copyright (c) Crossbar.io Technologies GmbH
+#  SPDX-License-Identifier: EUPL-1.2
 #
-##############################################################################
+#####################################################################################
 
+import uuid
 from collections import deque
+from typing import Dict, List, Any, Optional, Tuple
 
 import zlmdb
 import numpy as np
 
+from txaio import use_twisted  # noqa
+from txaio import make_logger, time_ns
+
 from twisted.internet.defer import inlineCallbacks
 
-from txaio import time_ns
+from autobahn.util import hltype, hlval
 from autobahn.twisted.util import sleep
 from autobahn.wamp import message
-from autobahn.wamp.types import SessionDetails, CloseDetails
+from autobahn.wamp.types import CloseDetails, SessionDetails, TransportDetails
+from autobahn.wamp.message import Publish
+from autobahn.wamp.interfaces import ISession
 
-from crossbar.router.session import RouterSession
+from crossbar.router.observation import UriObservationMap
+from crossbar.router.realmstore import QueuedCall
+from crossbar.interfaces import IRealmStore
+
 import cfxdb
+from cfxdb.realmstore import RealmStore, Publication
 
-__all__ = ('CfxDbRealmStore', )
-
-
-class CfxDbQueuedCall(object):
-
-    __slots__ = ('session', 'call', 'registration', 'authorization')
-
-    def __init__(self, session, call, registration, authorization):
-        self.session = session
-        self.call = call
-        self.registration = registration
-        self.authorization = authorization
+__all__ = ('RealmStoreDatabase', )
 
 
-class CfxDbCallQueue(object):
+class RealmStoreDatabase(object):
     """
-    ZLMDB-backed call queue.
+    Database-backed realm store.
     """
-
-    GLOBAL_QUEUE_LIMIT = 1000
-    """
-    The global call queue limit, in case not overridden.
-    """
-    def __init__(self, reactor, db, schema, config):
-        """
-
-        See the example here:
-
-        https://github.com/crossbario/crossbar-examples/tree/master/scaling-microservices/queued
-
-        .. code-block:: json
-
-            "store": {
-                "type": "memory",
-                "limit": 1000,      // global default for limit on call queues
-                "call-queue": [
-                    {
-                        "uri": "com.example.compute",
-                        "match": "exact",
-                        "limit": 10000  // procedure specific call queue limit
-                    }
-                ]
-            }
-        """
-        self.log = db.log
-
-        self._reactor = reactor
-        self._running = False
-        self._db = db
-        self._schema = schema
-
-        # whole store configuration
-        self._config = config
-
-        # limit to call queue per registration
-        self._limit = self._config.get('limit', self.GLOBAL_QUEUE_LIMIT)
-
-        # map: registration.id -> deque( (session, call, registration, authorization) )
-        self._queued_calls = {}
-
-    def start(self):
-        if self._running:
-            raise RuntimeError('call queue is already running')
-        self._queued_calls = {}
-        self._running = True
-
-    def stop(self):
-        if not self._running:
-            raise RuntimeError('call queue is not running')
-        self._running = False
-
-    def maybe_queue_call(self, session, call, registration, authorization):
-        # FIXME: match this against the config, not just plain accept queueing!
-        if registration.id not in self._queued_calls:
-            self._queued_calls[registration.id] = deque()
-
-        self._queued_calls[registration.id].append(CfxDbQueuedCall(session, call, registration, authorization))
-
-        return True
-
-    def get_queued_call(self, registration):
-        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
-            return self._queued_calls[registration.id][0]
-
-    def pop_queued_call(self, registration):
-        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
-            return self._queued_calls[registration.id].popleft()
-
-
-class CfxDbEventStore(object):
-    """
-    ZLMDB-backed event store.
-    """
+    log = make_logger()
 
     GLOBAL_HISTORY_LIMIT = 100
     """
     The global history limit, in case not overridden.
     """
 
-    STORE_TYPE = 'zlmdb'
+    STORE_TYPE = 'cfxdb'
 
-    def __init__(self, reactor, db, schema, config):
-        self.log = db.log
+    def __init__(self, personality, factory, config):
+        """
+
+        :param personality:
+        :param factory:
+        :param config: Realm store configuration item.
+        """
+        from twisted.internet import reactor
 
         self._reactor = reactor
-        self._running = False
-        self._db = db
-        self._schema = schema
+        self._personality = personality
+        self._factory = factory
+
+        dbpath = config.get('path', None)
+        assert type(dbpath) == str
+
+        maxsize = config.get('maxsize', 128 * 2**20)
+        assert type(maxsize) == int
+        # allow maxsize 128kiB to 128GiB
+        assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
+
+        readonly = config.get('readonly', False)
+        assert type(readonly) == bool
+
+        sync = config.get('sync', True)
+        assert type(sync) == bool
 
         self._config = config
-        self._max_buffer = config.get('max-buffer', 10000)
 
+        self._type = self._config.get('type', None)
+        assert self._type == self.STORE_TYPE
+
+        self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync)
+        self._db.__enter__()
+        self._schema = RealmStore.attach(self._db)
+
+        self._running = False
+        self._process_buffers_thread = None
+
+        self._max_buffer = config.get('max-buffer', 10000)
         self._buffer_flush = config.get('buffer-flush', 200)
         self._buffer = []
-
         self._log_counter = 0
+
+        # map: registration.id -> deque( (session, call, registration, authorization) )
+        self._queued_calls = {}
+
+        self.log.info(
+            '{func} realm store initialized (type="{stype}", dbpath="{dbpath}", maxsize={maxsize}, '
+            'readonly={readonly}, sync={sync})',
+            func=hltype(self.__init__),
+            stype=hlval(self._type),
+            dbpath=dbpath,
+            maxsize=maxsize,
+            readonly=readonly,
+            sync=sync)
+
+    def type(self) -> str:
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.type`
+        """
+        return self._type
+
+    def is_running(self) -> bool:
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.is_running`
+        """
+        return self._running
 
     @inlineCallbacks
     def start(self):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.start`
+        """
         if self._running:
             raise RuntimeError('store is already running')
         else:
-            self.log.info('Starting CfxDbEventStore ..')
+            self.log.info(
+                '{func} starting realm store type="{stype}"',
+                func=hltype(self.start),
+                stype=hlval(self._type),
+            )
+
         self._buffer = []
         self._log_counter = 0
         self._running = True
-        yield self._reactor.callInThread(self._process_buffers)
+        self._process_buffers_thread = yield self._reactor.callInThread(self._process_buffers)
+        self.log.info('{func} realm store ready!', func=hltype(self.start))
 
     def stop(self):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.stop`
+        """
         if not self._running:
             raise RuntimeError('store is not running')
         else:
-            self.log.info('Stopping CfxDbEventStore ..')
+            self.log.info('{func} stopping realm store', func=hltype(self.start))
+
         self._running = False
+
+        # FIXME: wait for _process_buffers_thread
+
         self._buffer = []
         self._log_counter = 0
 
@@ -197,7 +192,171 @@ class CfxDbEventStore(object):
         duration_ms = int((ended - started) / 1000000)
         return cnt, errs, duration_ms
 
-    def attach_subscription_map(self, subscription_map):
+    def store_session_joined(self, session: ISession, details: SessionDetails):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
+        """
+        self.log.debug('{func} new session joined session={session}, details={details}',
+                       func=hltype(self.store_session_joined),
+                       session=session,
+                       details=details)
+
+        ses = cfxdb.realmstore.Session()
+        ses.oid = uuid.uuid4()
+        ses.joined_at = np.datetime64(time_ns(), 'ns')
+        ses.session = details.session
+        ses.realm = details.realm
+        ses.authid = details.authid
+        ses.authrole = details.authrole
+        ses.authmethod = details.authmethod
+        ses.authprovider = details.authprovider
+        ses.authextra = details.authextra
+
+        # the client frontend transport, both in router-based and proxy-router setups
+        ses.transport = details.transport.marshal()
+
+        # in proxy-router setups, this transport is the proxy-to-router transport,
+        # whereas in plain router-based setups, this is the same as above.
+        ptd = session._transport.transport_details.marshal()
+
+        # FIXME: we should have a better way to recognize proxy-router setups
+        if ptd != ses.transport:
+            ses.proxy_transport = ptd
+
+        # FIXME: fill with the proxy-to-router authentication of the proxy itself
+        ses.proxy_node_oid = None
+        ses.proxy_node_authid = None
+        ses.proxy_worker_name = None
+        ses.proxy_worker_pid = None
+
+        self._buffer.append([self._store_session_joined, ses])
+
+    def _store_session_joined(self, txn: zlmdb.Transaction, ses: cfxdb.realmstore.Session):
+
+        # FIXME: use idx_sessions_by_session_id to check there is no session with (session_id, joined_at) yet
+
+        self._schema.sessions[txn, ses.oid] = ses
+
+        cnt = self._schema.sessions.count(txn)
+        self.log.info('{func} database record inserted [total={total}] session={session}',
+                      func=hltype(self._store_session_joined),
+                      total=hlval(cnt),
+                      session=ses)
+
+    def store_session_left(self, session: ISession, details: CloseDetails):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
+        """
+        self.log.debug('{func} session left session={session}, details={details}',
+                       func=hltype(self.store_session_left),
+                       session=session,
+                       details=details)
+
+        self._buffer.append([self._store_session_left, session, details])
+
+    def _store_session_left(self, txn: zlmdb.Transaction, session: ISession, details: CloseDetails):
+
+        # FIXME: apparently, session ID is already erased at this point:(
+        _session_id = session._session_id
+
+        # FIXME: move left_at to autobahn.wamp.types.CloseDetails
+        _left_at = np.datetime64(time_ns(), 'ns')
+
+        # lookup session by WAMP session ID and find the most recent session
+        # according to joined_at timestamp
+        session_obj = None
+        _from_key = (_session_id, np.datetime64(0, 'ns'))
+        _to_key = (_session_id, np.datetime64(time_ns(), 'ns'))
+        for session_oid in self._schema.idx_sessions_by_session_id.select(txn,
+                                                                          from_key=_from_key,
+                                                                          to_key=_to_key,
+                                                                          reverse=True,
+                                                                          return_keys=False,
+                                                                          return_values=True):
+            session_obj = self._schema.sessions[txn, session_oid]
+
+            # if we have an index, that index must always resolve to an indexed record
+            assert session_obj
+
+            # we only want the most recent session
+            break
+
+        if session_obj:
+            # FIXME: also store other CloseDetails attributes
+            session_obj.left_at = _left_at
+
+            self.log.info('{func} database record session={session} updated: left_at={left_at}',
+                          func=hltype(self._store_session_left),
+                          left_at=hlval(_left_at),
+                          session=hlval(_session_id))
+        else:
+            self.log.warn('{func} could not update database record for session={session}: record not found!',
+                          func=hltype(self._store_session_left),
+                          session=hlval(_session_id))
+
+    def get_session_by_session_id(self,
+                                  session_id: int,
+                                  joined_before: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_session_by_session_id`
+        """
+        if joined_before:
+            _joined_before = np.datetime64(joined_before, 'ns')
+        else:
+            _joined_before = np.datetime64(time_ns(), 'ns')
+        _from_key = (session_id, np.datetime64(0, 'ns'))
+        _to_key = (session_id, _joined_before)
+
+        # check if we have a record store for the session
+        session: Optional[cfxdb.realmstore.Session] = None
+        with self._db.begin() as txn:
+            # lookup session by WAMP session ID and find the most recent session
+            # according to joined_at timestamp
+            for session_oid in self._schema.idx_sessions_by_session_id.select(txn,
+                                                                              from_key=_from_key,
+                                                                              to_key=_to_key,
+                                                                              reverse=True,
+                                                                              return_keys=False,
+                                                                              return_values=True):
+                session = self._schema.sessions[txn, session_oid]
+
+                # if we have an index, that index must always resolve to an indexed record
+                assert session
+
+                # we only want the most recent session
+                break
+
+        if session:
+            # extract info from database table to construct session details and return
+            td = TransportDetails.parse(session.transport)
+            sd = SessionDetails(
+                realm=session.realm,
+                session=session.session,
+                authid=session.authid,
+                authrole=session.authrole,
+                authmethod=session.authmethod,
+                authprovider=session.authprovider,
+                authextra=session.authextra,
+                # FIXME
+                serializer=None,
+                resumed=False,
+                resumable=False,
+                resume_token=None,
+                transport=td)
+            res = sd.marshal()
+            return res
+        else:
+            return None
+
+    def get_sessions_by_authid(self, authid: str) -> Optional[List[Tuple[str, int]]]:
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_sessions_by_authid`
+        """
+
+    def attach_subscription_map(self, subscription_map: UriObservationMap):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.attach_subscription_map`
+        """
         for sub in self._config.get('event-history', []):
             uri = sub['uri']
             match = sub.get('match', u'exact')
@@ -205,102 +364,9 @@ class CfxDbEventStore(object):
             subscription_map.add_observer(self, uri=uri, match=match)
             # subscription_id = observation.id
 
-    def store_session_joined(self, session, session_details):
-        self.log.debug('{klass}.store_session_join(session={session}, session_details={session_details})',
-                       klass=self.__class__.__name__,
-                       session=session,
-                       session_details=session_details)
-
-        # FIXME
-        # crossbar.router.service.RouterServiceAgent
-        # assert isinstance(session, RouterSession) or isinstance(session, RouterApplicationSession), 'invalid type {} for session'.format(type(session))
-        # assert isinstance(session_details, SessionDetails)
-
-        self._buffer.append([self._store_session_joined, session, session_details])
-
-    def _store_session_joined(self, txn, session, session_details):
-
-        if session._session_id:
-            ses = self._schema.sessions[txn, session._session_id]
-            if ses:
-                self.log.warn('{klass}._store_session_joined(): session {session} already in store',
-                              klass=self.__class__.__name__,
-                              session=session._session_id)
-                return
-        else:
-            self.log.warn('{klass}._store_session_joined(): cannot store session without session ID',
-                          klass=self.__class__.__name__)
-            return
-
-        self.log.info(
-            '{klass}._store_session_joined(): realm="{realm}", session={session}, authid="{authid}", authrole="{authrole}"',
-            klass=self.__class__.__name__,
-            realm=session._realm,
-            session=session._session_id,
-            authid=session._authid,
-            authrole=session._authrole)
-
-        ses = cfxdb.eventstore.Session()
-
-        ses.joined_at = time_ns()
-        ses.realm = session._realm
-        ses.session = session._session_id
-        ses.authid = session._authid
-        ses.authrole = session._authrole
-
-        self._schema.sessions[txn, session._session_id] = ses
-
-        self.log.debug('store_session_joined: session {session} saved', session=ses)
-
-    def store_session_left(self, session, session_details, close_details):
-        self.log.debug(
-            '{klass}.store_session_left(session={session}, session_details={session_details}, close_details={close_details})',
-            klass=self.__class__.__name__,
-            session=session,
-            session_details=session_details,
-            close_details=close_details)
-
-        assert isinstance(session, RouterSession), 'session must be RouterSession, not {}'.format(type(session))
-        assert isinstance(session_details, SessionDetails), 'session_details must be SessionDetails, not {}'.format(
-            type(session_details))
-        assert isinstance(close_details,
-                          CloseDetails), 'close_details must be CloseDetails, not {}'.format(type(close_details))
-
-        self._buffer.append([self._store_session_left, session, session_details, close_details])
-
-    def _store_session_left(self, txn, session, session_details, close_details):
-
-        ses = self._schema.sessions[txn, session_details.session]
-        if not ses:
-            self.log.warn('{klass}._store_session_left(): session {session} not in store',
-                          klass=self.__class__.__name__,
-                          session=session_details.session)
-            return
-
-        self.log.debug('{klass}._store_session_left(): store_session_left: session {session} loaded',
-                       klass=self.__class__.__name__,
-                       session=ses)
-
-        ses.left_at = time_ns()
-
-        self._schema.sessions[txn, session_details.session] = ses
-
-        self.log.debug('{klass}._store_session_left(): store_session_left: session {session} updated',
-                       klass=self.__class__.__name__,
-                       session=ses)
-
-    def store_event(self, session, publication_id, publish):
+    def store_event(self, session: ISession, publication_id: int, publish: Publish):
         """
-        Store event to event history.
-
-        :param session: The publishing session.
-        :type session: :class:`autobahn.wamp.interfaces.ISession`
-
-        :param publication_id: The WAMP publication ID under which the publish happens
-        :type publication_id: int
-
-        :param publish: The WAMP publish message.
-        :type publish: :class:`autobahn.wamp.messages.Publish`
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_event`
         """
         # FIXME: builtins.AssertionError: invalid type <class 'crossbar.router.service.RouterServiceAgent'> for "session"
         # assert isinstance(session, RouterSession), 'invalid type {} for "session"'.format(type(session))
@@ -315,17 +381,19 @@ class CfxDbEventStore(object):
         if pub:
             raise Exception('duplicate event for publication_id={}'.format(publication_id))
 
-        ses = self._schema.sessions[txn, session._session_id] if session._session_id else None
-        if not ses:
-            self.log.info(
-                'session {session} (realm={realm}, authid={authid}, authrole={authrole}) not in store - event on publication {publication_id} not stored!',
-                session=session._session_id,
-                authid=session._authid,
-                authrole=session._authrole,
-                realm=session._realm,
-                publication_id=publication_id)
+        # FIXME: use idx_sessions_by_session_id
+        # ses = self._schema.sessions[txn, session._session_id] if session._session_id else None
+        # if not ses:
+        #     self.log.info(
+        #         'session {session} (realm={realm}, authid={authid}, authrole={authrole}) not in store - '
+        #         'event on publication {publication_id} not stored!',
+        #         session=session._session_id,
+        #         authid=session._authid,
+        #         authrole=session._authrole,
+        #         realm=session._realm,
+        #         publication_id=publication_id)
 
-        pub = cfxdb.eventstore.Publication()
+        pub = cfxdb.realmstore.Publication()
 
         pub.timestamp = time_ns()
         pub.publication = publication_id
@@ -353,23 +421,15 @@ class CfxDbEventStore(object):
 
         self._schema.publications[txn, publication_id] = pub
 
-    def store_event_history(self, publication_id, subscription_id, receiver):
+    def store_event_history(self, publication_id: int, subscription_id: int, receiver: ISession):
         """
-        Store publication history for subscription.
-
-        :param publication_id: The ID of the event publication to be persisted.
-        :type publication_id: int
-
-        :param subscription_id: The ID of the subscription the event (identified by the publication ID),
-            was published to, because the event's topic matched the subscription.
-        :type subscription_id: int
-
-        :param receiver: The receiving session.
-        :type receiver: :class:`crossbar.router.session.RouterSession`
+        Implements :meth:`crossbar._interfaces.IRealmStore.store_event_history`
         """
         assert type(publication_id) == int
         assert type(subscription_id) == int
-        assert isinstance(receiver, RouterSession)
+
+        # FIXME: unexpected type <class 'backend.BackendSession'> for receiver
+        # assert isinstance(receiver, RouterSession), 'unexpected type {} for receiver'.format(type(receiver))
 
         self._buffer.append([self._store_event_history, publication_id, subscription_id, receiver])
 
@@ -393,7 +453,7 @@ class CfxDbEventStore(object):
             self.log.warn('no session ID for receiver (anymore) - will not store event!')
             return
 
-        evt = cfxdb.eventstore.Event()
+        evt = cfxdb.realmstore.Event()
         evt.timestamp = time_ns()
         evt.subscription = subscription_id
         evt.publication = publication_id
@@ -407,44 +467,23 @@ class CfxDbEventStore(object):
 
         self._schema.events[txn, evt_key] = evt
 
-    def get_events(self, subscription_id, limit=None):
+    def get_events(self, subscription_id: int, limit: Optional[int] = None):
         """
-        Retrieve given number of last events for a given subscription.
-
-        If no events are yet stored, an empty list ``[]`` is returned.
-        If no history is maintained at all for the given subscription, ``None`` is returned.
-
-        This procedure is called by the service session of Crossbar.io and
-        exposed under the WAMP meta API procedure ``wamp.subscription.get_events``.
-
-        :param subscription_id: The ID of the subscription to retrieve events for.
-        :type subscription_id: int
-
-        :param limit: Limit number of events returned.
-        :type limit: int
-
-        :return: List of events: at most ``limit`` events in reverse chronological order.
-        :rtype: list or None
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_events`
         """
         assert type(subscription_id) == int
         assert limit is None or type(limit) == int
 
         return self.get_event_history(subscription_id, from_ts=0, until_ts=time_ns(), reverse=True, limit=limit)
 
-    def get_event_history(self, subscription_id, from_ts, until_ts, reverse=False, limit=None):
+    def get_event_history(self,
+                          subscription_id: int,
+                          from_ts: int,
+                          until_ts: int,
+                          reverse: Optional[bool] = None,
+                          limit: Optional[int] = None) -> Optional[List[Dict[str, Any]]]:
         """
-        Retrieve event history for time range for a given subscription.
-
-        If no history is maintained for the given subscription, None is returned.
-
-        :param subscription_id: The ID of the subscription to retrieve events for.
-        :type subscription_id: int
-
-        :param from_ts: Filter events from this date (epoch time in ns).
-        :type from_ts: int
-
-        :param until_ts: Filter events until before this date (epoch time in ns).
-        :type until_ts: int
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_event_history`
         """
         assert type(subscription_id) == int
         assert type(from_ts) == int
@@ -469,71 +508,40 @@ class CfxDbEventStore(object):
                                                   reverse=True,
                                                   limit=limit):
 
-                pub = self._schema.publications.select(txn, evt.publication)
+                pub: Publication = self._schema.publications.select(txn, evt.publication)
                 if pub:
                     res.append(pub.marshal())
                     i += 1
-                    if i >= limit:
+                    if limit is not None and i >= limit:
                         break
 
         return res
 
-
-class CfxDbRealmStore(object):
-    """
-    CFXDB realm store.
-    """
-
-    event_store = None
-    """
-    Store for event history.
-    """
-
-    call_store = None
-    """
-    Store for call queueing.
-    """
-    def __init__(self, personality, factory, config):
+    def maybe_queue_call(self, session, call, registration, authorization):
         """
-
-        :param config: Realm store configuration item.
-        :type config: Mapping
+        Implements :meth:`crossbar._interfaces.IRealmStore.maybe_queue_call`
         """
-        dbpath = config.get('path', None)
-        assert type(dbpath) == str
+        # FIXME: match this against the config, not just plain accept queueing!
+        if registration.id not in self._queued_calls:
+            self._queued_calls[registration.id] = deque()
 
-        maxsize = config.get('maxsize', 128 * 2**20)
-        assert type(maxsize) == int
-        # allow maxsize 128kiB to 128GiB
-        assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
+        self._queued_calls[registration.id].append(QueuedCall(session, call, registration, authorization))
 
-        readonly = config.get('readonly', False)
-        assert type(readonly) == bool
+        return True
 
-        sync = config.get('sync', True)
-        assert type(sync) == bool
+    def get_queued_call(self, registration):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_queued_call`
+        """
+        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
+            return self._queued_calls[registration.id][0]
 
-        self.log = personality.log
+    def pop_queued_call(self, registration):
+        """
+        Implements :meth:`crossbar._interfaces.IRealmStore.get_event_history`
+        """
+        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
+            return self._queued_calls[registration.id].popleft()
 
-        self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync)
-        self._db.__enter__()
-        self._schema = cfxdb.schema.Schema.attach(self._db)
 
-        from twisted.internet import reactor
-
-        self.event_store = CfxDbEventStore(reactor, self._db, self._schema, config)
-        self.call_store = CfxDbCallQueue(reactor, self._db, self._schema, config)
-
-        self.log.info(
-            'Realm store initialized (type=zlmdb, dbpath="{dbpath}", maxsize={maxsize}, readonly={readonly}, sync={sync})',
-            dbpath=dbpath,
-            maxsize=maxsize,
-            readonly=readonly,
-            sync=sync)
-
-    @inlineCallbacks
-    def start(self):
-        self.log.info('Starting realm store ..')
-        yield self.event_store.start()
-        self.call_store.start()
-        self.log.info('Realm store ready')
+IRealmStore.register(RealmStoreDatabase)

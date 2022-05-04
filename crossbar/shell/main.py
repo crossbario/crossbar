@@ -29,6 +29,7 @@ import _cffi_backend  # noqa
 
 # import and select network framework in txaio _before_ any further crossbar.shell imports
 import txaio
+
 txaio.use_twisted()  # noqa
 
 from cfxdb.exporter import Exporter

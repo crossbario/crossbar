@@ -21,6 +21,7 @@ from eth_keys import KeyAPI
 from eth_keys.backends import NativeECCBackend
 
 import txaio
+
 txaio.use_twisted()  # noqa
 
 from autobahn.util import utcnow

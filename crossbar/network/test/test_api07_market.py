@@ -12,6 +12,7 @@ import eth_keys
 import web3
 
 import txaio
+
 txaio.use_twisted()
 
 from twisted.internet import reactor

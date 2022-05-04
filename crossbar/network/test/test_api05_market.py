@@ -17,6 +17,7 @@ import multihash
 import cbor2
 
 import txaio
+
 txaio.use_twisted()
 
 from twisted.internet import reactor

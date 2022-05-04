@@ -13,11 +13,11 @@ from txaio import make_logger
 
 from autobahn import util
 from autobahn.wamp import auth
-from autobahn.util import hltype
+from autobahn.util import hltype, hlval
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
 
 from crossbar.router.auth.pending import PendingAuth
-from crossbar._interfaces import IRealmContainer, IPendingAuth
+from crossbar.interfaces import IRealmContainer, IPendingAuth
 
 __all__ = ('PendingAuthWampCra', )
 
@@ -181,8 +181,8 @@ class PendingAuthWampCra(PendingAuth):
             # signature was invalid: deny the client
             self.log.warn('{func}: WAMP-CRA client signature is invalid (expected {expected} but got {signature})',
                           func=hltype(self.authenticate),
-                          expected=self._signature,
-                          signature=signature)
+                          expected=hlval(self._signature),
+                          signature=hlval(signature, color='red'))
             return Deny(message='WAMP-CRA client signature is invalid')
 
 

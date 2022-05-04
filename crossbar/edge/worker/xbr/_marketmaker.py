@@ -35,6 +35,7 @@ from requests.exceptions import ConnectionError
 from hexbytes import HexBytes
 
 import txaio
+
 txaio.use_twisted()  # noqa
 from txaio import time_ns
 

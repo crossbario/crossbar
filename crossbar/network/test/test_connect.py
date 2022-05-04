@@ -5,6 +5,7 @@ import sys
 import argparse
 
 import txaio
+
 txaio.use_twisted()
 
 import web3

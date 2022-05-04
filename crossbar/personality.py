@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from typing import Dict
 
 import txaio
+
 txaio.use_twisted()
 
 import crossbar
@@ -23,7 +24,7 @@ from crossbar.worker.testee import WebSocketTesteeController
 from crossbar.worker.proxy import ProxyController, ProxyWorkerProcess
 from crossbar.webservice import base
 from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static, archive, wap
-from crossbar.router.realmstore import MemoryRealmStore
+from crossbar.router.realmstore import RealmStoreMemory
 
 
 def do_nothing(*args, **kw):
@@ -251,7 +252,7 @@ class Personality(object):
 
     EXTRA_AUTH_METHODS: Dict[str, object] = {}
 
-    REALM_STORES: Dict[str, object] = {'memory': MemoryRealmStore}
+    REALM_STORES: Dict[str, object] = {'memory': RealmStoreMemory}
 
     Node = node.Node
     NodeOptions = node.NodeOptions
