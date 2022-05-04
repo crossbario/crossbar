@@ -231,7 +231,7 @@ class RealmStoreDatabase(object):
 
         self._buffer.append([self._store_session_joined, ses])
 
-    def _store_session_joined(self, txn, ses):
+    def _store_session_joined(self, txn: zlmdb.Transaction, ses: cfxdb.realmstore.Session):
 
         # FIXME: use idx_sessions_by_session_id to check there is no session with (session_id, joined_at) yet
 
@@ -254,10 +254,45 @@ class RealmStoreDatabase(object):
 
         self._buffer.append([self._store_session_left, session, details])
 
-    def _store_session_left(self, txn, session, details):
+    def _store_session_left(self, txn: zlmdb.Transaction, session: ISession, details: CloseDetails):
 
-        # FIXME: use idx_sessions_by_session_id to get existing session, update left_at etc
-        return
+        # FIXME: apparently, session ID is already erased at this point:(
+        _session_id = session._session_id
+
+        # FIXME: move left_at to autobahn.wamp.types.CloseDetails
+        _left_at = np.datetime64(time_ns(), 'ns')
+
+        # lookup session by WAMP session ID and find the most recent session
+        # according to joined_at timestamp
+        session_obj = None
+        _from_key = (_session_id, np.datetime64(0, 'ns'))
+        _to_key = (_session_id, np.datetime64(time_ns(), 'ns'))
+        for session_oid in self._schema.idx_sessions_by_session_id.select(txn,
+                                                                          from_key=_from_key,
+                                                                          to_key=_to_key,
+                                                                          reverse=True,
+                                                                          return_keys=False,
+                                                                          return_values=True):
+            session_obj = self._schema.sessions[txn, session_oid]
+
+            # if we have an index, that index must always resolve to an indexed record
+            assert session_obj
+
+            # we only want the most recent session
+            break
+
+        if session_obj:
+            # FIXME: also store other CloseDetails attributes
+            session_obj.left_at = _left_at
+
+            self.log.info('{func} database record session={session} updated: left_at={left_at}',
+                          func=hltype(self._store_session_left),
+                          left_at=hlval(_left_at),
+                          session=hlval(_session_id))
+        else:
+            self.log.warn('{func} could not update database record for session={session}: record not found!',
+                          func=hltype(self._store_session_left),
+                          session=hlval(_session_id))
 
     def get_session_by_session_id(self,
                                   session_id: int,
