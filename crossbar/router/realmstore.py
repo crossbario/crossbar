@@ -13,7 +13,7 @@ from txaio import make_logger, time_ns
 
 from autobahn.util import hltype, hlval
 from autobahn.wamp.interfaces import ISession
-from autobahn.wamp.types import CloseDetails
+from autobahn.wamp.types import CloseDetails, SessionDetails
 from autobahn.wamp.message import Publish
 
 from crossbar.interfaces import IRealmStore
@@ -141,19 +141,20 @@ class RealmStoreMemory(object):
         # currently nothing to do in stores of type "memory"
         self._running = False
 
-    def store_session_joined(self, session: ISession):
+    def store_session_joined(self, session: ISession, details: SessionDetails):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
         """
-        self.log.info('{func} append new joined session for storing: session={session}',
+        self.log.info('{func} new session joined session={session}, details={details}',
                       func=hltype(self.store_session_joined),
-                      session=session)
+                      session=session,
+                      details=details)
 
     def store_session_left(self, session: ISession, details: CloseDetails):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
         """
-        self.log.info('{func} append left session for storing: session={session}, details={details}',
+        self.log.info('{func} session left session={session}, details={details}',
                       func=hltype(self.store_session_left),
                       session=session,
                       details=details)

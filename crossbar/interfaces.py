@@ -17,7 +17,7 @@ import abc
 from typing import Union, Dict, List, Any, Optional, Tuple
 
 from autobahn.wamp import ISession
-from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails
+from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails, SessionDetails
 from autobahn.wamp.message import Publish
 
 from crossbar.router.observation import UriObservationMap
@@ -136,10 +136,11 @@ class IRealmStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def store_session_joined(self, session: ISession):
+    def store_session_joined(self, session: ISession, details: SessionDetails):
         """
 
         :param session: Session that has joined a realm.
+        :param details: Session details of the joined session.
         """
 
     @abc.abstractmethod

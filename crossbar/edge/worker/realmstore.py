@@ -192,25 +192,26 @@ class RealmStoreDatabase(object):
         duration_ms = int((ended - started) / 1000000)
         return cnt, errs, duration_ms
 
-    def store_session_joined(self, session: ISession):
+    def store_session_joined(self, session: ISession, details: SessionDetails):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
         """
-        self.log.debug('{func} append new joined session for storing: session={session}',
+        self.log.debug('{func} new session joined session={session}, details={details}',
                        func=hltype(self.store_session_joined),
-                       session=session)
+                       session=session,
+                       details=details)
 
         ses = cfxdb.realmstore.Session()
         ses.oid = uuid.uuid4()
         ses.joined_at = np.datetime64(time_ns(), 'ns')
-        ses.session = session.session_id
-        ses.realm = session.realm
-        ses.authid = session.authid
-        ses.authrole = session.authrole
-        ses.authmethod = session.authmethod
-        ses.authprovider = session.authprovider
-        ses.authextra = session.authextra
-        ses.transport = session.transport.transport_details.marshal()
+        ses.session = details.session
+        ses.realm = details.realm
+        ses.authid = details.authid
+        ses.authrole = details.authrole
+        ses.authmethod = details.authmethod
+        ses.authprovider = details.authprovider
+        ses.authextra = details.authextra
+        ses.transport = details.transport.marshal()
 
         self._buffer.append([self._store_session_joined, ses])
 
@@ -220,16 +221,17 @@ class RealmStoreDatabase(object):
 
         self._schema.sessions[txn, ses.oid] = ses
 
-        # cnt = self._schema.sessions.count(txn)
-        self.log.debug('{func} database record inserted session={session}',
-                       func=hltype(self._store_session_joined),
-                       session=ses)
+        cnt = self._schema.sessions.count(txn)
+        self.log.info('{func} database record inserted [total={total}] session={session}',
+                      func=hltype(self._store_session_joined),
+                      total=hlval(cnt),
+                      session=ses)
 
     def store_session_left(self, session: ISession, details: CloseDetails):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
         """
-        self.log.debug('{func} append left session for storing: session={session}, details={details}',
+        self.log.debug('{func} session left session={session}, details={details}',
                        func=hltype(self.store_session_left),
                        session=session,
                        details=details)

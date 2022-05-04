@@ -186,7 +186,7 @@ class Router(object):
             self._authid_to_sessions[session_details.authid] = set([session])
 
         if self._store:
-            self._store.store_session_joined(session)
+            self._store.store_session_joined(session, session_details)
 
         # log session details, but skip Crossbar.io internal sessions
         if self.realm != 'crossbar':

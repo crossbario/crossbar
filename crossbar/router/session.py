@@ -132,13 +132,11 @@ class RouterApplicationSession(object):
         # information - already at this point for router embedded sessions,
         # as there will be no WAMP opening handshake ending in onJoin
         self._store = store
-
-        # FIXME
         if self._store:
             # self._session:
             #   - crossbar.router.service.RouterServiceAgent
             #   - user ApplicationSession (e.g. backend.BackendSession)
-            self._store.store_session_joined(self._session)
+            self._store.store_session_joined(self._session, self._session.session_details)
 
     @property
     def transport_details(self) -> Optional[TransportDetails]:
@@ -494,6 +492,13 @@ class RouterSession(BaseSession):
                                       custom=custom)
                 self._transport.send(msg)
 
+                # expose incoming frontend transport of proxy
+                # rather than proxy-router transport details
+                if 'transport' in self._authextra:
+                    td = TransportDetails.parse(self._authextra.pop('transport'))
+                else:
+                    td = self._transport.transport_details
+
                 session_details = SessionDetails(
                     realm=self._realm,
                     session=self._session_id,
@@ -502,12 +507,12 @@ class RouterSession(BaseSession):
                     authmethod=self._authmethod,
                     authprovider=self._authprovider,
                     authextra=self._authextra,
-                    # FIXME
-                    serializer=None,
+                    serializer=td.channel_serializer,
+                    # FIXME: for resumable session feature
                     resumed=False,
                     resumable=False,
                     resume_token=None,
-                    transport=self._transport.transport_details)
+                    transport=td)
                 self.onJoin(session_details)
 
             # the first message MUST be HELLO
