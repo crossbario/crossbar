@@ -1,4 +1,5 @@
 import json
+
 txt = """{
     "Id": "5eca2ece88c8aa2de2507466ff1dd9ec7496169002d2942a45c42c2ad3b79676",
     "Created": "2019-06-10T10:29:00.581179505Z",

@@ -32,6 +32,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import hmac as hazmat_hmac
 
 from autobahn.websocket.utf8validator import Utf8Validator
+
 _validator = Utf8Validator()
 
 _ALLOWED_CONTENT_TYPES = set([b'application/json'])

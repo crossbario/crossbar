@@ -9,6 +9,7 @@ from twisted.trial import unittest
 from twisted.internet import defer
 
 import txaio
+
 txaio.use_twisted()  # noqa
 
 from crossbar.router.role import RouterRoleStaticAuth

@@ -211,7 +211,23 @@ class RealmStoreDatabase(object):
         ses.authmethod = details.authmethod
         ses.authprovider = details.authprovider
         ses.authextra = details.authextra
+
+        # the client frontend transport, both in router-based and proxy-router setups
         ses.transport = details.transport.marshal()
+
+        # in proxy-router setups, this transport is the proxy-to-router transport,
+        # whereas in plain router-based setups, this is the same as above.
+        ptd = session._transport.transport_details.marshal()
+
+        # FIXME: we should have a better way to recognize proxy-router setups
+        if ptd != ses.transport:
+            ses.proxy_transport = ptd
+
+        # FIXME: fill with the proxy-to-router authentication of the proxy itself
+        ses.proxy_node_oid = None
+        ses.proxy_node_authid = None
+        ses.proxy_worker_name = None
+        ses.proxy_worker_pid = None
 
         self._buffer.append([self._store_session_joined, ses])
 

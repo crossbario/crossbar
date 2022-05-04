@@ -9,6 +9,7 @@ from uuid import UUID
 import eth_keys
 
 import txaio
+
 txaio.use_twisted()
 
 from twisted.internet import reactor

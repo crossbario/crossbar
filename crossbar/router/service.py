@@ -313,10 +313,11 @@ class RouterServiceAgent(ApplicationSession):
             if not is_restricted_session(session):
                 if session.session_details:
                     session_info = session.session_details.marshal()
-                    if session.transport and session.transport.transport_details:
-                        session_info['transport'] = session.transport.transport_details.marshal()
-                    else:
-                        session_info['transport'] = None
+                    if False:
+                        if session.transport and session.transport.transport_details:
+                            session_info['transport'] = session.transport.transport_details.marshal()
+                        else:
+                            session_info['transport'] = None
                     self.log.info('{func} session {session_id} in active memory',
                                   func=hltype(self.session_get),
                                   session_id=hlid(session_id))

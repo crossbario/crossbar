@@ -16,6 +16,7 @@ import sys
 import pkg_resources
 
 import txaio
+
 txaio.use_twisted()  # noqa
 
 from txaio import make_logger, start_logging, set_global_log_level, failure_format_traceback

@@ -22,6 +22,7 @@ from cfxdb.mrealm import RouterCluster, RouterClusterNodeMembership, RouterWorke
 from cfxdb.mrealm import cluster, RouterWorkerGroup, WorkerGroupStatus
 
 import txaio
+
 txaio.use_twisted()
 from txaio import time_ns, sleep, make_logger  # noqa
 from twisted.internet.defer import inlineCallbacks

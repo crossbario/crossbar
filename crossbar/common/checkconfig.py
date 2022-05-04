@@ -15,6 +15,7 @@ from pprint import pformat
 from pygments import highlight, lexers, formatters
 
 import txaio
+
 txaio.use_twisted()
 
 from autobahn.websocket.util import parse_url

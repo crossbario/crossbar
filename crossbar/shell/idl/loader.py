@@ -17,6 +17,7 @@ from crossbar.shell.util import hl
 from crossbar.shell.reflection import Schema
 
 import txaio
+
 txaio.use_twisted()
 
 

@@ -9,6 +9,7 @@ import cbor2
 from pprint import pformat
 
 import txaio
+
 txaio.use_twisted()
 
 import hashlib

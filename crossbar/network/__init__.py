@@ -6,6 +6,7 @@
 ##############################################################################
 
 import txaio
+
 txaio.use_twisted()
 
 from crossbar.network._authenticator import Authenticator as XbrNetworkAuthenticator
