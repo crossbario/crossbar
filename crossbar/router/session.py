@@ -6,6 +6,7 @@
 #####################################################################################
 
 import os
+from pprint import pformat
 from typing import Optional, Union, Dict, List, Type, Any
 
 import werkzeug
@@ -15,7 +16,7 @@ import txaio
 from txaio import make_logger
 
 from autobahn import util
-from autobahn.util import hl, hlid, hltype
+from autobahn.util import hl, hlid, hltype, hlval
 from autobahn import wamp
 from autobahn.wamp.types import TransportDetails
 from autobahn.wamp import message
@@ -456,6 +457,15 @@ class RouterSession(BaseSession):
                         authprovider=None,
                         authextra=None,
                         custom=None):
+                self.log.debug(
+                    '{func} realm="{realm}", authid="{authid}", authrole="{authrole}", authmethod={authmethod}, authprovider={authprovider}, authextra={authextra}',
+                    realm=hlid(realm),
+                    authid=hlid(authid),
+                    authrole=hlid(authrole),
+                    authmethod=hlval(authmethod),
+                    authprovider=hlval(authprovider),
+                    authextra=pformat(authextra) if authextra else None,
+                    func=hltype(welcome))
                 self._realm = realm
                 self._session_id = self._pending_session_id
                 self._pending_session_id = None
