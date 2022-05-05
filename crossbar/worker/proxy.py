@@ -292,12 +292,6 @@ class ProxyFrontendSession(object):
                 # authmethods we announce to the backend router we connect to
                 authmethods = list(backend._authenticators.keys())
 
-                # get marshalled transport details for this proxy frontend session
-                if self.transport.transport_details:
-                    _td = self.transport.transport_details.marshal()
-                else:
-                    _td = None
-
                 # authentication extra we transmit from the proxy to backend router worker
                 authextra = {
                     # for WAMP-cryptosign authentication of the proxy frontend
@@ -316,14 +310,18 @@ class ProxyFrontendSession(object):
                     "proxy_authprovider": accept.authprovider,
 
                     # this is the authextra returned from the proxy frontend authenticator
-                    # "proxy_authextra": accept.authextra,
+                    "proxy_authextra": accept.authextra or {},
+                }
+
+                # get marshalled transport details for this proxy frontend session
+                if self.transport.transport_details:
+                    # IMPORTANT: this attribute "transport" is in addition to _other_ attributes that
+                    # might be already present from "accept.authextra".
+                    assert 'transport' not in authextra["proxy_authextra"]
 
                     # these are the transport details from the proxy frontend session. this is picked
                     # up in PendingAuthAnonymousProxy.hello() and PendingAuthCryptosignProxy.hello()
-                    "proxy_authextra": {
-                        "transport": _td
-                    },
-                }
+                    authextra["proxy_authextra"]["transport"] = self.transport.transport_details.marshal()
 
                 self.log.info(
                     '{func} proxy backend session authenticating with authmethods={authmethods}, pubkey={pubkey}: '
