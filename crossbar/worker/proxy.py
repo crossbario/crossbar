@@ -310,7 +310,7 @@ class ProxyFrontendSession(object):
                     "proxy_authprovider": accept.authprovider,
 
                     # this is the authextra returned from the proxy frontend authenticator
-                    "proxy_authextra": accept.authextra,
+                    "proxy_authextra": accept.authextra or {},
                 }
 
                 # get marshalled transport details for this proxy frontend session
