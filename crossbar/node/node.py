@@ -13,7 +13,7 @@ from twisted.internet.defer import succeed
 from txaio import make_logger
 
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.cryptosign import SigningKey
+from autobahn.wamp.cryptosign import CryptosignKey
 from autobahn.wamp.types import CallOptions, ComponentConfig
 
 from crossbar._util import hltype, hlid, hluserid, hl
@@ -101,7 +101,7 @@ class Node(object):
         # source(s) of the config of this node
         self._config_source = 0
 
-        # node private key :class:`autobahn.wamp.cryptosign.SigningKey`
+        # node private key :class:`autobahn.wamp.cryptosign.CryptosignKey`
         self._node_key = None
 
         # when running in managed mode, this will hold the session to CFC
@@ -153,7 +153,7 @@ class Node(object):
         Returns the node (private signing) key pair.
 
         :return: The node key.
-        :rtype: :class:`autobahn.wamp.cryptosign.SigningKey`
+        :rtype: :class:`autobahn.wamp.cryptosign.CryptosignKey`
         """
         return self._node_key
 
@@ -207,7 +207,7 @@ class Node(object):
             keyring_type = self._config['controller']['keyring']['type']
             if keyring_type == 'file':
                 key_path = self._config['controller']['keyring']['path']
-                self._node_key = SigningKey.from_raw_key(key_path)
+                self._node_key = CryptosignKey.from_file(key_path)
             else:
                 raise RuntimeError("NotImplemented: hsm authentication is currently not implemented.")
 

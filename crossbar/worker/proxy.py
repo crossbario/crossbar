@@ -890,7 +890,7 @@ class AuthenticatorSession(ApplicationSession):
 
         # load the client private key (raw format)
         try:
-            self._key = cryptosign.SigningKey.from_key_bytes(config.extra['key'])
+            self._key = cryptosign.CryptosignKey.from_bytes(config.extra['key'])
         except:
             self.log.failure()
             if self.is_attached():

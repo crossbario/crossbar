@@ -43,7 +43,7 @@ class XbrDelegate(ApplicationSession):
 
         self.log.info("Client (delegate) Ethereum key loaded (adr=0x{adr})", adr=self._ethadr)
 
-        self._key = cryptosign.SigningKey.from_key_bytes(config.extra['cskey'])
+        self._key = cryptosign.CryptosignKey.from_bytes(config.extra['cskey'])
         self.log.info("Client (delegate) WAMP-cryptosign authentication key loaded (pubkey=0x{pubkey})",
                       pubkey=self._key.public_key())
 

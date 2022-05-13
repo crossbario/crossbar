@@ -318,4 +318,4 @@ def _maybe_generate_node_key(cbdir, privfile='key.priv', pubfile='key.pub'):
         'Node key loaded from {priv_path}',
         priv_path=hlid(privkey_path),
     )
-    return was_new, cryptosign.SigningKey(privkey)
+    return was_new, cryptosign.CryptosignKey(privkey, can_sign=True)

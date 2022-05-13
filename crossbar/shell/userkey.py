@@ -273,4 +273,4 @@ class UserKey(object):
         self._eth_privkey = eth_privkey
 
         self.user_id = user_id
-        self.key = cryptosign.SigningKey(privkey)
+        self.key = cryptosign.CryptosignKey(privkey, can_sign=True)

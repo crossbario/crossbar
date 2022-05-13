@@ -173,7 +173,7 @@ class DomainController(ApplicationSession):
 
         # Node key
         self._node_key_hex = _read_node_key(cbdir, private=True)['hex']
-        self._node_key = nacl.signing.SigningKey(self._node_key_hex, encoder=nacl.encoding.HexEncoder)
+        self._node_key = nacl.signing.CryptosignKey(self._node_key_hex, encoder=nacl.encoding.HexEncoder)
 
         # Metering knobs - FIXME: read and honor all knobs
         self._meterurl = self.config.extra.get('metering', {}).get('submit', {}).get('url', '${CROSSBAR_METERING_URL}')
