@@ -504,7 +504,7 @@ def functest_management_session(url=u'ws://localhost:9000/ws', realm=u'com.cross
     if user_id is None:
         raise Exception('no user ID found in keyfile!')
 
-    key = cryptosign.SigningKey.from_key_bytes(binascii.a2b_hex(privkey_hex))
+    key = cryptosign.CryptosignKey.from_bytes(binascii.a2b_hex(privkey_hex))
     extra = {
         u'key': key,
         u'authid': user_id,

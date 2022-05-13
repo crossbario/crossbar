@@ -19,8 +19,8 @@ import txaio
 txaio.use_twisted()
 
 from autobahn.websocket.util import parse_url
-from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
-from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
+from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, _URI_PAT_STRICT_LAST_EMPTY, \
+    _URI_PAT_REALM_NAME
 from autobahn.wamp.uri import convert_starred_uri
 
 from yaml import Loader, SafeLoader, Dumper, SafeDumper
@@ -83,9 +83,6 @@ _ENVPAT = re.compile(_ENVPAT_STR)
 
 _CONFIG_ITEM_ID_PAT_STR = r'^[a-z][a-z0-9_]{2,63}$'
 _CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
-
-_REALM_NAME_PAT_STR = r'^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$'
-_REALM_NAME_PAT = re.compile(_REALM_NAME_PAT_STR)
 
 log = txaio.make_logger()
 
@@ -312,9 +309,9 @@ def check_realm_name(name):
     """
     if not isinstance(name, str):
         raise InvalidConfigException('invalid realm name "{}" - type must be string, was {}'.format(name, type(name)))
-    if not _REALM_NAME_PAT.match(name):
+    if not _URI_PAT_REALM_NAME.match(name):
         raise InvalidConfigException('invalid realm name "{}" - must match regular expression {}'.format(
-            name, _REALM_NAME_PAT_STR))
+            name, _URI_PAT_REALM_NAME.pattern))
 
 
 def check_dict_args(spec, config, msg):

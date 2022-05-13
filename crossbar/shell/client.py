@@ -212,7 +212,7 @@ def create_management_session(url='wss://master.xbr.network/ws',
 
     url_is_secure, _, _, _, _, _ = parse_url(url)
 
-    key = cryptosign.SigningKey.from_key_bytes(binascii.a2b_hex(privkey_hex))
+    key = cryptosign.CryptosignKey.from_bytes(binascii.a2b_hex(privkey_hex))
     extra = {
         'key': key,
         'authid': user_id,
@@ -298,7 +298,7 @@ def run(main=None, parser=None):
         if user_id is None:
             raise Exception('no user ID found in keyfile!')
 
-        key = cryptosign.SigningKey.from_key_bytes(binascii.a2b_hex(privkey_hex))
+        key = cryptosign.CryptosignKey.from_bytes(binascii.a2b_hex(privkey_hex))
 
         extra = {'args': args, 'key': key, 'authid': user_id, 'main': main, 'return_code': None}
 

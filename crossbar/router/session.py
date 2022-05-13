@@ -168,6 +168,8 @@ class RouterApplicationSession(object):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransport.isOpen`
         """
+        # router embedded session are always "connected" as the transport is simply function-calls
+        return True
 
     @property
     def is_closed(self):
@@ -180,6 +182,10 @@ class RouterApplicationSession(object):
         self.log.info('{klass}.close(session={session})', klass=self.__class__.__name__, session=self._session)
         if self._router:
             if self._router.is_attached(self._session):
+
+                # FIXME
+                # self._session.onLeave(CloseDetails(reason=CloseDetails.REASON_DEFAULT))
+
                 # See also #578; this is to prevent the set() of observers
                 # shrinking while itering in broker.py:329 since the
                 # send() call happens synchronously because this class is
