@@ -8,12 +8,13 @@
 import txaio
 import uuid
 from pprint import pformat
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 from txaio import make_logger
 
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
+from autobahn.wamp.interfaces import ISession
 
 from crossbar._util import hltype, hlid, hlval
 from crossbar.router import RouterOptions
@@ -54,17 +55,17 @@ class Router(object):
     """
     The dealer class this router will use.
     """
-    def __init__(self, factory, realm, options=None, store=None):
+    def __init__(self, factory, realm, options: Optional[RouterOptions] = None, store: Optional[IRealmStore] = None):
         """
 
         :param factory: The router factory this router was created by.
-        :type factory: Object that implements :class:`autobahn.wamp.interfaces.IRouterFactory`..
+        :type factory: Object that implements :class:`autobahn.wamp.interfaces.IRouterFactory`.
 
         :param realm: The realm this router is working for.
-        :type realm: str
+        :type realm: Instance of :class:`crossbar.worker.router.RouterRealm`.
 
         :param options: Router options.
-        :type options: Instance of :class:`crossbar.router.RouterOptions`.
+        :param store: Router realm store to use (optional).
         """
         self._factory = factory
         self._options = options or RouterOptions()
@@ -83,13 +84,16 @@ class Router(object):
         # map: authrole -> set(session)
         self._authrole_to_sessions = {}
 
+        # map: (realm, authid, authrole, uri, action) -> authorization
+        self._authorization_cache = {}
+
         self._broker = self.broker(self, factory._reactor, self._options)
         self._dealer = self.dealer(self, factory._reactor, self._options)
         self._attached = 0
 
         self._roles = {'trusted': RouterTrustedRole(self, 'trusted')}
 
-        # FIXME: this was previsouly just checking for existence of
+        # FIXME: this was previously just checking for existence of
         # self._factory._worker._maybe_trace_tx_msg / _maybe_trace_rx_msg
         self._is_traced = False
 
@@ -399,26 +403,45 @@ class Router(object):
         else:
             return False
 
-    def authorize(self, session, uri, action, options):
+    def authorize(self, session: ISession, uri: str, action: str, options: Dict[str, Any]):
         """
         Authorizes a session for an action on an URI.
 
         Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
         """
-        assert (type(uri) == str)
         assert (action in ['call', 'register', 'publish', 'subscribe'])
 
-        # the role under which the session that wishes to perform the given action on
-        # the given URI was authenticated under
-        role = session._authrole
+        # the realm, authid and authrole under which the session that wishes to perform the
+        # given action on the given URI was authenticated under
+        realm = session._realm
+        authid = session._authid
+        authrole = session._authrole
 
-        if role in self._roles:
-            # the authorizer procedure of the role which we will call ..
-            authorize = self._roles[role].authorize
-            d = txaio.as_future(authorize, session, uri, action, options)
+        # the permission of a WAMP client is always determined (only) from
+        # WAMP realm, authid, authrole, URI and action already
+        cache_key = (realm, authid, authrole, uri, action)
+
+        # if we do have a cache entry, use the authorization cached
+        cached_authorization = self._authorization_cache.get(cache_key, None)
+
+        # normally, the role should exist on the router (and hence we should not arrive
+        # here), but the role might have been dynamically removed - and anyway, safety first!
+        if authrole in self._roles:
+            if cached_authorization:
+                self.log.debug('{func} authorization cache entry found key {cache_key}:\n{authorization}',
+                               func=hltype(self.authorize), cache_key=hlval(cache_key),
+                               authorization=pformat(cached_authorization))
+                d = txaio.create_future_success(cached_authorization)
+            else:
+                # the authorizer procedure of the role which we will call
+                authorize = self._roles[authrole].authorize
+                d = txaio.as_future(authorize, session, uri, action, options)
         else:
-            # normally, the role should exist on the router (and hence we should not arrive
-            # here), but the role might have been dynamically removed - and anyway, safety first!
+            # remove cache entry
+            if cached_authorization:
+                del self._authorization_cache[cache_key]
+
+            # outright deny, since the role isn't active anymore
             d = txaio.create_future_success(False)
 
         # XXX would be nicer for dynamic-authorizer authors if we
@@ -434,11 +457,18 @@ class Router(object):
                     authorization['disclose'] = False
 
             auto_disclose_trusted = True
-            if auto_disclose_trusted and role == 'trusted' and action in ['call', 'publish']:
+            if auto_disclose_trusted and authrole == 'trusted' and action in ['call', 'publish']:
                 authorization['disclose'] = True
 
+            if not cached_authorization and authorization.get('cache', False):
+                self._authorization_cache[cache_key] = authorization
+                self.log.debug('{func} add authorization cache entry for key {cache_key}:\n{authorization}',
+                               func=hltype(got_authorization), cache_key=hlval(cache_key),
+                               authorization=pformat(authorization))
+
             self.log.debug(
-                "Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and authrole '{authrole}' -> authorization: {authorization}",
+                "Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and "
+                "authrole '{authrole}' -> authorization: {authorization}",
                 session_id=session._session_id,
                 uri=uri,
                 action=action,
@@ -481,7 +511,7 @@ class RouterFactory(object):
         self._worker = worker
         self._routers: Dict[str, Router] = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
-        # XXX this should get passed in from .. somewhere
+        # XXX this should get passed in from somewhere
         from twisted.internet import reactor
         self._reactor = reactor
 
@@ -537,7 +567,7 @@ class RouterFactory(object):
 
         # if configuration of realm contains a "store" item, set up a
         # realm store as appropriate ..
-        store = None
+        store: Optional[IRealmStore] = None
         if 'store' in realm.config:
             psn = self._worker.personality
             store = psn.create_realm_store(psn, self, realm.config['store'])

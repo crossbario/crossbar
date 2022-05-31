@@ -94,42 +94,22 @@ class CatalogResource(resource.Resource):
         self._map_adapter: MapAdapter = adapter_map.bind('localhost', '/')
 
         # FIXME
-        self._repo: FbsRepository = FbsRepository('basemodule')
+        self._repo: FbsRepository = FbsRepository('FIXME')
         self._repo.load(self._config['filename'])
-        self._repo.print_summary()
 
     def render(self, request):
-        """
-        Initiate the rendering of a HTTP/GET request by calling a WAMP procedure, the
-        resulting ``dict`` is rendered together with the specified Jinja2 template
-        for this URL.
 
-        :param request: The HTTP request.
-        :returns: server.NOT_DONE_YET (special)
-        """
         # https://twistedmatrix.com/documents/current/api/twisted.web.resource.Resource.html#render
         # The encoded path of the request URI (_not_ (!) including query arguments),
         full_path = request.path.decode('utf-8')
 
-        # HTTP request method (GET, POST, ..)
+        # HTTP request method
         http_method = request.method.decode()
-        if http_method not in ['GET', 'POST']:
+        if http_method not in ['GET']:
             request.setResponseCode(511)
             return self._render_error(
                 'Method not allowed on path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(
                     full_path=full_path), request)
-
-        # in case of HTTP/POST, read request body as one binary string
-        if http_method == 'POST' and request.content:
-            content_type = request.getAllHeaders().get(b'content-type', b'application/octet-stream').decode()
-
-            # https://stackoverflow.com/a/11549600/884770
-            # http://marianoiglesias.com.ar/python/file-uploading-with-multi-part-encoding-using-twisted/
-            body_data = request.content.read()
-            self.log.info('POST data len = {newdata_len}', newdata_len=len(body_data))
-        else:
-            content_type = None
-            body_data = None
 
         # parse and decode any query parameters
         query_args = {}
@@ -141,13 +121,13 @@ class CatalogResource(resource.Resource):
                 query_args[key] = value
             self.log.info('Parsed query parameters: {query_args}', query_args=query_args)
 
-        # parse client announced accept header
+        # parse client announced accept-header
         client_accept = request.getAllHeaders().get(b'accept', None)
         if client_accept:
             client_accept = client_accept.decode()
 
         # flag indicating the client wants to get plain JSON results (not rendered HTML)
-        client_return_json = client_accept == 'application/json'
+        # client_return_json = client_accept == 'application/json'
 
         # client cookie processing
         cookie = request.received_cookies.get(b'session_cookie')
@@ -174,7 +154,7 @@ class CatalogResource(resource.Resource):
                           kwargs=pformat(kwargs))
 
             rendered = template.render(**kwargs).encode('utf8')
-            self.log.info('WapResource successfully rendered HTML result: {rendered} bytes',
+            self.log.info('successfully rendered HTML result: {rendered} bytes',
                           rendered=len(rendered))
             request.setResponseCode(200)
             return rendered

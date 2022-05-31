@@ -305,7 +305,7 @@ class RouterRoleDynamicAuth(RouterRole):
         :type router: instance of ``crossbar.router.router.Router``
         :param id: The URI of the role.
         :type id: unicode
-        :param authorizer: The dynamic authroizer configuration.
+        :param authorizer: The dynamic authorizer configuration.
         :type authorizer: dict
         """
         RouterRole.__init__(self, router, uri)
@@ -335,6 +335,8 @@ class RouterRoleDynamicAuth(RouterRole):
         :type uri: str
         :param action: The action to be performed.
         :type action: str
+        :param options:
+        :type options:
 
         :return: bool -- Flag indicating whether session is authorized or not.
         """
@@ -394,16 +396,25 @@ class RouterRoleDynamicAuth(RouterRole):
             Ensure the return-value we got from the user-supplied method makes sense
             """
             if isinstance(authorization, dict):
+                # check keys
                 for key in authorization.keys():
-                    if key not in ['allow', 'cache', 'disclose']:
+                    if key not in ['allow', 'cache', 'disclose', 'validate', 'meta']:
                         return Failure(ValueError("Authorizer returned unknown key '{key}'".format(key=key, )))
-                # must have "allow"
+                # must have "allow" key
                 if 'allow' not in authorization:
                     return Failure(ValueError("Authorizer must have 'allow' in returned dict"))
-                # all values must be bools
-                for key, value in authorization.items():
-                    if not isinstance(value, bool):
-                        return Failure(ValueError("Authorizer must have bool for '{}'".format(key)))
+                # check bool-valued keys
+                for key in ['allow', 'cache', 'disclose']:
+                    if key in authorization:
+                        value = authorization[key]
+                        if not isinstance(value, bool):
+                            return Failure(ValueError("Authorizer must have bool for '{}'".format(key)))
+                # check dict-valued keys
+                for key in ['validate', 'meta']:
+                    if key in authorization:
+                        value = authorization[key]
+                        if not isinstance(value, dict):
+                            return Failure(ValueError("Authorizer must have dict for '{}'".format(key)))
                 return authorization
 
             elif isinstance(authorization, bool):
