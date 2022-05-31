@@ -674,13 +674,14 @@ class RLinkRemoteSession(BridgeSession):
 
 
 class RLink(object):
-    def __init__(self, id, config, started=None, started_by=None, local=None, remote=None):
+    def __init__(self, id, config, started=None, started_by=None, local=None, remote=None, remote_runner=None):
         assert type(id) == str
         assert isinstance(config, RLinkConfig)
         assert started is None or type(started) == int
         assert started_by is None or isinstance(started_by, RLinkConfig)
         assert local is None or isinstance(local, RLinkLocalSession)
         assert remote is None or isinstance(remote, RLinkLocalSession)
+        assert remote_runner is None or isinstance(remote_runner, ApplicationRunner)
 
         # link ID
         self.id = id
@@ -699,6 +700,9 @@ class RLink(object):
 
         # remote session: RLinkRemoteSession
         self.remote = remote
+
+        # remote runner
+        self.remote_runner = remote_runner
 
         # updated by the session
         self.connected = False
@@ -948,7 +952,9 @@ class RLinkManager(object):
             # retry_delay_growth: The growth factor applied to the retry delay between reconnection attempts (Default 1.5).
             # retry_delay_jitter: A 0-argument callable that introduces nose into the delay. (Default random.random)
             #
+
             remote_runner = ApplicationRunner(url=link_config.transport['url'], realm=remote_realm, extra=remote_extra)
+            rlink.remote_runner = remote_runner
 
             yield remote_runner.run(remote_session,
                                     start_reactor=False,
@@ -974,5 +980,14 @@ class RLinkManager(object):
         return rlink
 
     @inlineCallbacks
-    def stop_link(self, link_id, caller):
-        raise NotImplementedError()
+    def stop_link(self, link_id, _caller):
+        if link_id not in self._links:
+            raise ApplicationError("crossbar.error.not_found", f"rlink with id={link_id} does not exist")
+
+        link: RLink = self._links.pop(link_id)
+
+        yield link.local.leave()
+        yield link.remote.leave()
+        yield link.remote_runner.stop()
+
+        return link

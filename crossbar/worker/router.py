@@ -1198,7 +1198,7 @@ class RouterController(TransportController):
 
         rlink_manager = self.realms[realm_id].rlink_manager
 
-        if link_id not in self.rlink_manager:
+        if link_id not in rlink_manager:
             raise ApplicationError('crossbar.error.no_such_object', 'no router link with ID {}'.format(link_id))
 
         caller = SessionIdent.from_calldetails(details)
