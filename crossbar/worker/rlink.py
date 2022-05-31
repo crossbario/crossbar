@@ -987,7 +987,10 @@ class RLinkManager(object):
         link: RLink = self._links.pop(link_id)
 
         yield link.local.leave()
-        yield link.remote.leave()
+
+        if link.remote.is_attached():
+            yield link.remote.leave()
+
         yield link.remote_runner.stop()
 
         return link
