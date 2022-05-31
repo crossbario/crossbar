@@ -23,7 +23,7 @@ from crossbar.worker.container import ContainerController
 from crossbar.worker.testee import WebSocketTesteeController
 from crossbar.worker.proxy import ProxyController, ProxyWorkerProcess
 from crossbar.webservice import base
-from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static, archive, wap
+from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static, archive, wap, catalog
 from crossbar.router.realmstore import RealmStoreMemory
 
 
@@ -226,11 +226,11 @@ class Personality(object):
         'webhook': checkconfig.check_web_path_service_webhook,
         'archive': archive.RouterWebServiceArchive.check,
         'wap': wap.RouterWebServiceWap.check,
+        'catalog': catalog.RouterWebServiceCatalog.check,
     }
 
     WEB_SERVICE_FACTORIES: Dict[str, object] = {
-        # renders to 404
-        'none': base.RouterWebService,
+        'none': base.RouterWebService,  # renders to 404
         'path': base.RouterWebServiceNestedPath,
         'redirect': base.RouterWebServiceRedirect,
         'resource': base.RouterWebServiceTwistedWeb,
@@ -248,6 +248,7 @@ class Personality(object):
         'webhook': rest.RouterWebServiceWebhook,
         'archive': archive.RouterWebServiceArchive,
         'wap': wap.RouterWebServiceWap,
+        'catalog': catalog.RouterWebServiceCatalog,
     }
 
     EXTRA_AUTH_METHODS: Dict[str, object] = {}

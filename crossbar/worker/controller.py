@@ -8,9 +8,12 @@
 import os
 import sys
 import pkg_resources
-import jinja2
 import signal
-from typing import Optional
+from typing import Optional, List
+
+import jinja2
+from jinja2.sandbox import SandboxedEnvironment
+from jinja2 import Environment
 
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import inlineCallbacks
@@ -64,19 +67,37 @@ class WorkerController(NativeProcess):
 
         # Jinja2 templates for Web (like WS status page et al)
         #
-        template_dirs = []
+        self._templates_dir = []
         for package, directory in self.personality.TEMPLATE_DIRS:
             dir_path = os.path.abspath(pkg_resources.resource_filename(package, directory))
-            template_dirs.append(dir_path)
-        self.log.debug("Using Web templates from {template_dirs}", template_dirs=template_dirs)
-        self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs), autoescape=True)
+            self._templates_dir.append(dir_path)
+        self.log.debug("Using Web templates from {template_dirs}", template_dirs=self._templates_dir)
+
+        # FIXME: make configurable, but default should remain SandboxedEnvironment for security
+        if True:
+            # The sandboxed environment. It works like the regular environment but tells the compiler to
+            # generate sandboxed code.
+            # https://jinja.palletsprojects.com/en/2.11.x/sandbox/#jinja2.sandbox.SandboxedEnvironment
+            self._templates = SandboxedEnvironment(loader=jinja2.FileSystemLoader(self._templates_dir), autoescape=True)
+        else:
+            self._templates = Environment(loader=jinja2.FileSystemLoader(self._templates_dir), autoescape=True)
 
         self.join(self.config.realm)
 
-    def templates(self):
+    @property
+    def templates_dir(self) -> List[str]:
         """
+        Template directories used in the Jinja2 rendering environment.
 
-        :return: jinja2.Environment for the built in templates from personality.TEMPLATE_DIRS
+        :return:
+        """
+        return self._templates_dir
+
+    def templates(self) -> Environment:
+        """
+        Jinja2 rendering environment.
+
+        :return: jinja2.Environment for the built-in templates from personality.TEMPLATE_DIRS
         """
         return self._templates
 
