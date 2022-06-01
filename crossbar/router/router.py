@@ -576,8 +576,10 @@ class RouterFactory(object):
         assert 'name' in realm.config
         uri = realm.config['name']
         assert type(uri) == str
-        self.log.info('{func}: realm={realm} with URI "{uri}"', func=hltype(self.stop_realm),
-                      realm=realm, uri=hlval(uri))
+        self.log.info('{func}: realm={realm} with URI "{uri}"',
+                      func=hltype(self.stop_realm),
+                      realm=realm,
+                      uri=hlval(uri))
 
         if realm in self._routers:
             raise RuntimeError('router for realm "{}" already running'.format(uri))
@@ -632,8 +634,10 @@ class RouterFactory(object):
         :param config: The role configuration.
         :return: The new role object.
         """
-        self.log.info('{func}: realm="{realm}", config=\n{config}', func=hltype(self.add_role),
-                      realm=hlval(realm), config=pformat(config))
+        self.log.info('{func}: realm="{realm}", config=\n{config}',
+                      func=hltype(self.add_role),
+                      realm=hlval(realm),
+                      config=pformat(config))
 
         if realm not in self._routers:
             raise RuntimeError('no router started for realm "{}"'.format(realm))
@@ -661,8 +665,10 @@ class RouterFactory(object):
         :param role: The URI of the role (on the realm) to drop.
         :return: The dropped role object.
         """
-        self.log.info('{func}: realm="{realm}", role="{role}"', func=hltype(self.drop_role),
-                      realm=hlval(realm), role=hlval(role))
+        self.log.info('{func}: realm="{realm}", role="{role}"',
+                      func=hltype(self.drop_role),
+                      realm=hlval(realm),
+                      role=hlval(role))
 
         if realm not in self._routers:
             raise RuntimeError('no router started for realm "{}"'.format(realm))
