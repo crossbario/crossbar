@@ -23,10 +23,35 @@ from autobahn.wamp.message import Publish
 from crossbar.router.observation import UriObservationMap
 
 __all__ = (
-    'IRealmContainer',
     'IPendingAuth',
+    'IRealmContainer',
     'IRealmStore',
+    'IRealmInventory',
 )
+
+
+class IPendingAuth(abc.ABC):
+    """
+    Interface to pending WAMP authentications.
+    """
+    @abc.abstractmethod
+    def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
+        """
+        When a HELLO message is received, this gets called to open the pending authentication.
+
+        :param realm: The realm to client wishes to join (if the client did announce a realm).
+        :param details: The details of the client provided for HELLO.
+        :returns: Either return a challenge, or immediately accept or deny session.
+        """
+
+    @abc.abstractmethod
+    def authenticate(self, signature: str) -> Union[Accept, Deny]:
+        """
+        The client has answered with a WAMP AUTHENTICATE message. Verify the message and accept or deny.
+
+        :param signature: Signature over the challenge as received from the authenticating session.
+        :returns: Either accept or deny the session.
+        """
 
 
 class IRealmContainer(abc.ABC):
@@ -66,30 +91,6 @@ class IRealmContainer(abc.ABC):
         :param realm: WAMP realm name.
         :param role: WAMP authentication role name.
         :returns: A service session joined on the given realm and role.
-        """
-
-
-class IPendingAuth(abc.ABC):
-    """
-    Interface to pending WAMP authentications.
-    """
-    @abc.abstractmethod
-    def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
-        """
-        When a HELLO message is received, this gets called to open the pending authentication.
-
-        :param realm: The realm to client wishes to join (if the client did announce a realm).
-        :param details: The details of the client provided for HELLO.
-        :returns: Either return a challenge, or immediately accept or deny session.
-        """
-
-    @abc.abstractmethod
-    def authenticate(self, signature: str) -> Union[Accept, Deny]:
-        """
-        The client has answered with a WAMP AUTHENTICATE message. Verify the message and accept or deny.
-
-        :param signature: Signature over the challenge as received from the authenticating session.
-        :returns: Either accept or deny the session.
         """
 
 
@@ -269,4 +270,47 @@ class IRealmStore(abc.ABC):
 
         :param registration:
         :return:
+        """
+
+
+class IRealmInventory(abc.ABC):
+    """
+    Realm inventory interface.
+    """
+    @property
+    @abc.abstractmethod
+    def type(self) -> str:
+        """
+
+        :return: Return type of realm inventory, e.g. ``"wamp.eth"``.
+        """
+
+    @property
+    @abc.abstractmethod
+    def is_running(self) -> bool:
+        """
+
+        :return: True if this realm inventory is currently running.
+        """
+
+    @abc.abstractmethod
+    def start(self):
+        """
+        Initialize and start this realm inventory.
+
+        .. note::
+
+            This procedure may or may not run asynchronously
+            depending on inventory type.
+        """
+
+    @abc.abstractmethod
+    def stop(self):
+        """
+        Stop this realm inventory and retain all data.
+
+        .. note::
+
+            This procedure may or may not run asynchronously
+            depending on inventory type.
         """

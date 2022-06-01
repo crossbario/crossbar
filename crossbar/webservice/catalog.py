@@ -27,7 +27,7 @@ from txaio import make_logger, time_ns
 from twisted.web import resource
 
 from autobahn.wamp.serializer import JsonObjectSerializer
-from autobahn.xbr import FbsRepository
+from autobahn.xbr import Catalog
 
 from crossbar.webservice.base import RootResource, RouterWebService
 from crossbar.common.checkconfig import InvalidConfigException, check_dict_args
@@ -94,7 +94,7 @@ class CatalogResource(resource.Resource):
         self._map_adapter: MapAdapter = adapter_map.bind('localhost', '/')
 
         # FIXME
-        self._repo: FbsRepository = FbsRepository('FIXME')
+        self._repo: Catalog = Catalog('FIXME')
         self._repo.load(self._config['filename'])
 
     def render(self, request):

@@ -23,7 +23,7 @@ from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
-from crossbar.interfaces import IRealmStore
+from crossbar.interfaces import IRealmStore, IRealmInventory
 from crossbar.worker.types import RouterRealm
 
 __all__ = (
@@ -56,7 +56,9 @@ class Router(object):
     """
     The dealer class this router will use.
     """
-    def __init__(self, factory, realm, options: Optional[RouterOptions] = None, store: Optional[IRealmStore] = None):
+    def __init__(self, factory, realm, options: Optional[RouterOptions] = None,
+                 store: Optional[IRealmStore] = None,
+                 inventory: Optional[IRealmInventory] = None):
         """
 
         :param factory: The router factory this router was created by.
@@ -69,9 +71,11 @@ class Router(object):
         :param store: Router realm store to use (optional).
         """
         self._factory = factory
+        self._realm = realm
         self._options = options or RouterOptions()
         self._store: Optional[IRealmStore] = store
-        self._realm = realm
+        self._inventory: Optional[IRealmInventory] = inventory
+
         self.realm = realm.config['name']
 
         self._trace_traffic = False
@@ -493,16 +497,17 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
         assert payload_type in ['event', 'call', 'call_result', 'call_error']
-        self.log.info(
-            '{func} validate "{payload_type}" for "{uri}": '
-            'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
-            func=hltype(self.validate),
-            payload_type=hlval(payload_type),
-            uri=hlval(uri),
-            args=hlval(len(args) if args is not None else '-'),
-            kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
-            validate=validate,
-            cb_level="trace")
+        if self._inventory and validate:
+            self.log.info(
+                '{func} validate "{payload_type}" for "{uri}": '
+                'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
+                func=hltype(self.validate),
+                payload_type=hlval(payload_type),
+                uri=hlval(uri),
+                args=hlval(len(args) if args is not None else '-'),
+                kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
+                validate=validate,
+                cb_level="trace")
 
 
 class RouterFactory(object):
@@ -530,6 +535,9 @@ class RouterFactory(object):
         # XXX this should get passed in from somewhere
         from twisted.internet import reactor
         self._reactor = reactor
+
+        from crossbar.worker.router import RouterController
+        assert worker is None or isinstance(worker, RouterController)
 
     @property
     def node_id(self):
@@ -577,19 +585,34 @@ class RouterFactory(object):
         uri = realm.config['name']
         assert type(uri) == str
         self.log.info('{func}: realm={realm} with URI "{uri}"',
-                      func=hltype(self.stop_realm),
+                      func=hltype(self.start_realm),
                       realm=realm,
                       uri=hlval(uri))
 
         if realm in self._routers:
             raise RuntimeError('router for realm "{}" already running'.format(uri))
 
-        # setup optional realm store
+        # setup optional store for realm persistence features
         store: Optional[IRealmStore] = None
-        if 'store' in realm.config:
+        if 'store' in realm.config and realm.config['store']:
+            # the worker's node personality
             psn = self._worker.personality
             store = psn.create_realm_store(psn, self, realm.config['store'])
-            self.log.info('Initialized realm store {rsk} for realm "{realm}"', rsk=store.__class__, realm=uri)
+            self.log.info('{func}: initialized realm store {store_class} for realm "{realm}"',
+                          func=hltype(self.start_realm),
+                          store_class=hlval(store.__class__.__name__, color='green'),
+                          realm=hlval(uri))
+
+        # setup optional inventory for realm API catalogs
+        inventory: Optional[IRealmInventory] = None
+        if 'inventory' in realm.config and realm.config['inventory']:
+            # the worker's node personality
+            psn = self._worker.personality
+            inventory = psn.create_realm_inventory(psn, self, realm.config['inventory'])
+            self.log.info('{func}: initialized realm inventory {inventory_class} for realm "{realm}"',
+                          func=hltype(self.start_realm),
+                          inventory_type=hlval(store.__class__.__name__, color='green'),
+                          realm=hlval(uri))
 
         # setup realm options
         options = RouterOptions(
@@ -601,9 +624,8 @@ class RouterFactory(object):
                 setattr(options, arg, realm.config['options'][arg])
 
         # now create a router for the realm
-        router = self.router(self, realm, options, store=store)
+        router = self.router(self, realm, options, store=store, inventory=inventory)
         self._routers[uri] = router
-        self.log.info('{klass}.start_realm: router created for realm "{uri}"', klass=self.__class__.__name__, uri=uri)
 
         return router
 

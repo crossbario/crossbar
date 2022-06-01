@@ -24,7 +24,9 @@ from crossbar.worker.testee import WebSocketTesteeController
 from crossbar.worker.proxy import ProxyController, ProxyWorkerProcess
 from crossbar.webservice import base
 from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static, archive, wap, catalog
+from crossbar.interfaces import IRealmStore, IRealmInventory
 from crossbar.router.realmstore import RealmStoreMemory
+from crossbar.router.realminventory import RealmInventory
 
 
 def do_nothing(*args, **kw):
@@ -100,20 +102,8 @@ def default_native_workers():
     return factory
 
 
-def create_realm_store(personality, factory, config):
+def create_realm_store(personality, factory, config) -> IRealmStore:
     """
-
-    :param personality: Node personality
-    :type personality: :class:`crossbar.personality
-
-    :param factory: Router factory
-    :type factory: :class:`crossbar.router.router.RouterFactory`
-    :param config:
-    :return:
-    """
-    """
-    store = psn.create_realm_store(psn, self._node_id, self._worker, self, realm.config['store'])
-
     Factory for creating realm stores (which store call queues and event history).
 
     .. code-block:: json
@@ -137,6 +127,12 @@ def create_realm_store(personality, factory, config):
             ]
         }
 
+    :param personality: Node personality
+    :type personality: :class:`crossbar.personality
+
+    :param factory: Router factory
+    :type factory: :class:`crossbar.router.router.RouterFactory`
+
     :param config: Realm store configuration item.
     :type config: dict
     """
@@ -155,6 +151,24 @@ def create_realm_store(personality, factory, config):
     store = store_class(personality, factory, config)
 
     return store
+
+
+def create_realm_inventory(personality, factory, config) -> IRealmInventory:
+    """
+
+    :param personality: Node personality
+    :type personality: :class:`crossbar.personality`
+
+    :param factory: Router factory
+    :type factory: :class:`crossbar.router.router.RouterFactory`
+
+    :param config: Catalog configuration
+    :type config: dict
+
+    :return: A new realm inventory object.
+    """
+    inventory = RealmInventory(personality, factory, config)
+    return inventory
 
 
 _TITLE = "Crossbar.io"
@@ -265,6 +279,8 @@ class Personality(object):
     create_router_transport = transport.create_router_transport
 
     create_realm_store = create_realm_store
+
+    create_realm_inventory = create_realm_inventory
 
     RouterWebTransport = transport.RouterWebTransport
 

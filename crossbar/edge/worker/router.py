@@ -6,6 +6,7 @@
 ##############################################################################
 
 import six
+from typing import Dict
 
 from txaio import make_logger
 
@@ -60,27 +61,23 @@ class ExtRouter(Router):
             return True
         return False
 
-    def validate(self, payload_type, uri, args, kwargs):
-        # Do validation here
-        super().validate(payload_type, uri, args, kwargs)
-
 
 class ExtRouterFactory(RouterFactory):
     """
     Router factory extended with crossbar features.
     """
-    router = ExtRouter
+    router = ExtRouter  # type: ignore
 
     def __init__(self, node_id, worker, options=None):
         RouterFactory.__init__(self, node_id, worker, options=options)
+        self._routers: Dict[str, ExtRouter] = {}
 
     def add_interface(self, realm, interface):
         assert (type(realm) == six.text_type)
         assert (realm in self._routers)
 
-        router = self._routers[realm]
-
-        router.add_interface(RouterInterface(router, interface['uri']))
+        router_ = self._routers[realm]
+        router_.add_interface(RouterInterface(router_, interface['uri']))
 
     def drop_interface(self, realm, interface_id):
         assert (type(realm) == six.text_type)

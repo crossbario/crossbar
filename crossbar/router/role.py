@@ -413,8 +413,8 @@ class RouterRoleDynamicAuth(RouterRole):
                 for key in ['validate', 'meta']:
                     if key in authorization:
                         value = authorization[key]
-                        if not isinstance(value, dict):
-                            return Failure(ValueError("Authorizer must have dict for '{}'".format(key)))
+                        if value is not None and not isinstance(value, dict):
+                            return Failure(ValueError("Authorizer must have dict for '{}' (if present and not null)".format(key)))
                 return authorization
 
             elif isinstance(authorization, bool):
