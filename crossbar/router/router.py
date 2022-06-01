@@ -431,7 +431,8 @@ class Router(object):
         if authrole in self._roles:
             if cached_authorization:
                 self.log.debug('{func} authorization cache entry found key {cache_key}:\n{authorization}',
-                               func=hltype(self.authorize), cache_key=hlval(cache_key),
+                               func=hltype(self.authorize),
+                               cache_key=hlval(cache_key),
                                authorization=pformat(cached_authorization))
                 d = txaio.create_future_success(cached_authorization)
             else:
@@ -465,7 +466,8 @@ class Router(object):
             if not cached_authorization and authorization.get('cache', False):
                 self._authorization_cache[cache_key] = authorization
                 self.log.debug('{func} add authorization cache entry for key {cache_key}:\n{authorization}',
-                               func=hltype(got_authorization), cache_key=hlval(cache_key),
+                               func=hltype(got_authorization),
+                               cache_key=hlval(cache_key),
                                authorization=pformat(authorization))
 
             self.log.debug(
@@ -493,7 +495,16 @@ class Router(object):
         # dealer.py:1307: self._router.validate('call_result', invocation_request.call.procedure, yield_.args,
         # dealer.py:1479: self._router.validate('call_error', invocation_request.call.procedure, error.args,
         # broker.py:346:  self._router.validate('event', publish.topic, publish.args, publish.kwargs)
-        self.log.info("Validate '{payload_type}' for '{uri}'", payload_type=payload_type, uri=uri, cb_level="trace")
+        self.log.info(
+            '{func} validate "{payload_type}" for "{uri}": '
+            'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
+            func=hltype(self.validate),
+            payload_type=hlval(payload_type),
+            uri=hlval(uri),
+            args=hlval(len(args) if args is not None else '-'),
+            kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
+            validate=validate,
+            cb_level="trace")
 
 
 # implements IRouterContainer

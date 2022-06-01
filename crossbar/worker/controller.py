@@ -78,7 +78,8 @@ class WorkerController(NativeProcess):
             # The sandboxed environment. It works like the regular environment but tells the compiler to
             # generate sandboxed code.
             # https://jinja.palletsprojects.com/en/2.11.x/sandbox/#jinja2.sandbox.SandboxedEnvironment
-            self._templates = SandboxedEnvironment(loader=jinja2.FileSystemLoader(self._templates_dir), autoescape=True)
+            self._templates = SandboxedEnvironment(loader=jinja2.FileSystemLoader(self._templates_dir),
+                                                   autoescape=True)
         else:
             self._templates = Environment(loader=jinja2.FileSystemLoader(self._templates_dir), autoescape=True)
 

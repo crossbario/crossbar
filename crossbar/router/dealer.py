@@ -28,7 +28,7 @@ from crossbar._util import hlid, hlflag, hltype
 
 from txaio import make_logger
 
-__all__ = ('Dealer',)
+__all__ = ('Dealer', )
 
 
 class InvocationRequest(object):
@@ -367,8 +367,8 @@ class Dealer(object):
                     ApplicationError.NOT_AUTHORIZED,
                     [
                         'session (session_id={}, authid="{}", authrole="{}") is not authorized to register procedure "{}" on realm "{}"'
-                            .format(session._session_id, session._authid, session._authrole, register.procedure,
-                                    session._realm)
+                        .format(session._session_id, session._authid, session._authrole, register.procedure,
+                                session._realm)
                     ],
                 )
 
@@ -766,15 +766,11 @@ class Dealer(object):
                     authrole=hlid(session._authrole))
 
             if not authorization['allow']:
-                reply = message.Error(message.Call.MESSAGE_TYPE,
-                                      call.request,
-                                      ApplicationError.NOT_AUTHORIZED,
-                                      ['session (session_id={}, authid="{}", authrole="{}") is not authorized to '
-                                       'call procedure "{}" on realm "{}"'.format(session._session_id,
-                                                                                  session._authid,
-                                                                                  session._authrole,
-                                                                                  call.procedure,
-                                                                                  session._realm)])
+                reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NOT_AUTHORIZED, [
+                    'session (session_id={}, authid="{}", authrole="{}") is not authorized to '
+                    'call procedure "{}" on realm "{}"'.format(session._session_id, session._authid, session._authrole,
+                                                               call.procedure, session._realm)
+                ])
                 reply.correlation_id = call.correlation_id
                 reply.correlation_uri = call.procedure
                 reply.correlation_is_anchor = False
@@ -785,7 +781,10 @@ class Dealer(object):
                 # validate payload (skip in "payload_transparency" mode)
                 if call.payload is None:
                     try:
-                        self._router.validate('call', call.procedure, call.args, call.kwargs,
+                        self._router.validate('call',
+                                              call.procedure,
+                                              call.args,
+                                              call.kwargs,
                                               validate=authorization.get('validate', None))
                     except Exception as e:
                         reply = message.Error(
@@ -844,7 +843,7 @@ class Dealer(object):
         # determine callee according to invocation policy
         #
         if registration.extra.invoke in [
-            message.Register.INVOKE_SINGLE, message.Register.INVOKE_FIRST, message.Register.INVOKE_LAST
+                message.Register.INVOKE_SINGLE, message.Register.INVOKE_FIRST, message.Register.INVOKE_LAST
         ]:
 
             # a single endpoint is considered for forwarding the call ..
@@ -866,17 +865,15 @@ class Dealer(object):
             callee_extra = registration.observers_extra.get(callee, None)
             if callee_extra:
                 if callee_extra.concurrency and callee_extra.concurrency_current >= callee_extra.concurrency:
-                    if is_queued_call or (self._call_store and self._call_store.maybe_queue_call(session,
-                                                                                                 call,
-                                                                                                 registration,
-                                                                                                 authorization)):
+                    if is_queued_call or (self._call_store and self._call_store.maybe_queue_call(
+                            session, call, registration, authorization)):
                         return False
                     else:
-                        reply = message.Error(message.Call.MESSAGE_TYPE,
-                                              call.request,
-                                              'crossbar.error.max_concurrency_reached',
-                                              ['maximum concurrency {} of callee/endpoint reached (on '
-                                               'non-shared/single registration)'.format(callee_extra.concurrency)])
+                        reply = message.Error(message.Call.MESSAGE_TYPE, call.request,
+                                              'crossbar.error.max_concurrency_reached', [
+                                                  'maximum concurrency {} of callee/endpoint reached (on '
+                                                  'non-shared/single registration)'.format(callee_extra.concurrency)
+                                              ])
                         reply.correlation_id = call.correlation_id
                         reply.correlation_uri = call.procedure
                         reply.correlation_is_anchor = False
@@ -906,20 +903,19 @@ class Dealer(object):
                         # this callee has set a maximum concurrency that has already been reached.
                         # we need to search further, but only if we haven't reached the beginning
                         # of our round-robin list
-                        if registration.extra.roundrobin_current % len(registration.observers) == roundrobin_start_index:
+                        if registration.extra.roundrobin_current % len(
+                                registration.observers) == roundrobin_start_index:
                             # we've looked through the whole round-robin list, and didn't find a suitable
                             # callee (one that hasn't it's maximum concurrency already reached).
-                            if is_queued_call or (self._call_store and self._call_store.maybe_queue_call(session,
-                                                                                                         call,
-                                                                                                         registration,
-                                                                                                         authorization)):
+                            if is_queued_call or (self._call_store and self._call_store.maybe_queue_call(
+                                    session, call, registration, authorization)):
                                 return False
                             else:
-                                reply = message.Error(message.Call.MESSAGE_TYPE,
-                                                      call.request,
-                                                      'crossbar.error.max_concurrency_reached',
-                                                      ['maximum concurrency {} of all callee/endpoints reached (on '
-                                                       'round-robin registration)'.format(callee_extra.concurrency)])
+                                reply = message.Error(message.Call.MESSAGE_TYPE, call.request,
+                                                      'crossbar.error.max_concurrency_reached', [
+                                                          'maximum concurrency {} of all callee/endpoints reached (on '
+                                                          'round-robin registration)'.format(callee_extra.concurrency)
+                                                      ])
                                 reply.correlation_id = call.correlation_id
                                 reply.correlation_uri = call.procedure
                                 reply.correlation_is_anchor = False
@@ -1304,9 +1300,11 @@ class Dealer(object):
                 if yield_.payload is None:
                     # validate normal args/kwargs payload
                     try:
-                        if False:
-                            self._router.validate('call_result', invocation_request.call.procedure, yield_.args,
-                                                  yield_.kwargs)
+                        self._router.validate('call_result',
+                                              invocation_request.call.procedure,
+                                              yield_.args,
+                                              yield_.kwargs,
+                                              validate=None)
                     except Exception as e:
                         is_valid = False
                         reply = message.Error(
@@ -1474,11 +1472,14 @@ class Dealer(object):
                     reply = invocation_request.error_msg
                     invocation_request.error_msg = None
             else:
-                if False and error.payload is None:
+                if error.payload is None:
                     # validate normal args/kwargs payload
                     try:
-                        self._router.validate('call_error', invocation_request.call.procedure, error.args,
-                                              error.kwargs)
+                        self._router.validate('call_error',
+                                              invocation_request.call.procedure,
+                                              error.args,
+                                              error.kwargs,
+                                              validate=None)
                     except Exception as e:
                         reply = message.Error(
                             message.Call.MESSAGE_TYPE,

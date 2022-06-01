@@ -35,7 +35,7 @@ from crossbar.common.checkconfig import InvalidConfigException, check_dict_args
 from crossbar.worker.proxy import ProxyController
 from crossbar.worker.router import RouterController
 
-__all__ = ('RouterWebServiceCatalog',)
+__all__ = ('RouterWebServiceCatalog', )
 
 
 class CatalogResource(resource.Resource):
@@ -52,8 +52,8 @@ class CatalogResource(resource.Resource):
 
     isLeaf = True
 
-    def __init__(self, jinja_env: Environment, worker: Union[RouterController, ProxyController], config: Dict[str, Any],
-                 path: str):
+    def __init__(self, jinja_env: Environment, worker: Union[RouterController, ProxyController],
+                 config: Dict[str, Any], path: str):
         """
 
         :param worker: The router worker controller within this Web service is started.
@@ -147,15 +147,15 @@ class CatalogResource(resource.Resource):
             kwargs['repo'] = self._repo
             kwargs['created'] = time_ns()
 
-            self.log.info('CatalogResource request on path "{full_path}" mapped to template "{template}" '
-                          'using kwargs\n{kwargs}',
-                          full_path=full_path,
-                          template=template,
-                          kwargs=pformat(kwargs))
+            self.log.info(
+                'CatalogResource request on path "{full_path}" mapped to template "{template}" '
+                'using kwargs\n{kwargs}',
+                full_path=full_path,
+                template=template,
+                kwargs=pformat(kwargs))
 
             rendered = template.render(**kwargs).encode('utf8')
-            self.log.info('successfully rendered HTML result: {rendered} bytes',
-                          rendered=len(rendered))
+            self.log.info('successfully rendered HTML result: {rendered} bytes', rendered=len(rendered))
             request.setResponseCode(200)
             return rendered
 
@@ -180,8 +180,8 @@ class CatalogResource(resource.Resource):
                           e=e)
             request.setResponseCode(500)
             return self._render_error(
-                    'Unknown error with path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(
-                        full_path=full_path), request)
+                'Unknown error with path "{full_path}" [werkzeug.routing.MapAdapter.match]'.format(
+                    full_path=full_path), request)
 
     def _render_error(self, message, request, client_return_json=False):
         """
@@ -210,7 +210,6 @@ class RouterWebServiceCatalog(RouterWebService):
     """
     WAMP API Catalog Web service.
     """
-
     @staticmethod
     def check(personality, config: Dict[str, Any]):
         """
@@ -240,7 +239,8 @@ class RouterWebServiceCatalog(RouterWebService):
                 # path to provide to Werkzeug/Routes (eg "/test" rather than "test")
                 'path': (False, [str]),
             },
-            config, 'Catalog Web service configuration:\n{}'.format(pformat(config)))
+            config,
+            'Catalog Web service configuration:\n{}'.format(pformat(config)))
 
     @staticmethod
     def create(transport, path: str, config: Dict[str, Any]) -> 'RouterWebServiceCatalog':
