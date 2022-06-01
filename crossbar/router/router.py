@@ -56,7 +56,10 @@ class Router(object):
     """
     The dealer class this router will use.
     """
-    def __init__(self, factory, realm, options: Optional[RouterOptions] = None,
+    def __init__(self,
+                 factory,
+                 realm,
+                 options: Optional[RouterOptions] = None,
                  store: Optional[IRealmStore] = None,
                  inventory: Optional[IRealmInventory] = None):
         """
@@ -600,7 +603,7 @@ class RouterFactory(object):
             store = psn.create_realm_store(psn, self, realm.config['store'])
             self.log.info('{func}: initialized realm store {store_class} for realm "{realm}"',
                           func=hltype(self.start_realm),
-                          store_class=hlval(store.__class__.__name__, color='green'),
+                          store_class=hlval(store.__class__, color='green'),
                           realm=hlval(uri))
 
         # setup optional inventory for realm API catalogs
@@ -609,9 +612,10 @@ class RouterFactory(object):
             # the worker's node personality
             psn = self._worker.personality
             inventory = psn.create_realm_inventory(psn, self, realm.config['inventory'])
-            self.log.info('{func}: initialized realm inventory {inventory_class} for realm "{realm}"',
+            assert inventory
+            self.log.info('{func}: initialized realm inventory <{inventory_type}> for realm "{realm}"',
                           func=hltype(self.start_realm),
-                          inventory_type=hlval(store.__class__.__name__, color='green'),
+                          inventory_type=hlval(inventory.type, color='green'),
                           realm=hlval(uri))
 
         # setup realm options

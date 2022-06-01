@@ -414,7 +414,8 @@ class RouterRoleDynamicAuth(RouterRole):
                     if key in authorization:
                         value = authorization[key]
                         if value is not None and not isinstance(value, dict):
-                            return Failure(ValueError("Authorizer must have dict for '{}' (if present and not null)".format(key)))
+                            return Failure(
+                                ValueError("Authorizer must have dict for '{}' (if present and not null)".format(key)))
                 return authorization
 
             elif isinstance(authorization, bool):

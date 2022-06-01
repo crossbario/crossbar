@@ -12,9 +12,7 @@ from autobahn.util import hltype
 
 from crossbar.interfaces import IRealmInventory
 
-__all__ = (
-    'RealmInventory',
-)
+__all__ = ('RealmInventory', )
 
 
 class RealmInventory(IRealmInventory):
@@ -38,7 +36,7 @@ class RealmInventory(IRealmInventory):
 
         self._running = False
 
-        self.log.info('{func} realm inventory initialized', func=hltype(self.__init__))
+        self.log.debug('{func} realm inventory initialized', func=hltype(self.__init__))
 
     @property
     def type(self) -> str:
