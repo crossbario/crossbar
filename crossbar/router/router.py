@@ -237,7 +237,9 @@ class Router(object):
             detached_session_ids.append(session._session_id)
 
         self.log.info(
-            'Router detached session from realm "{realm}" (session={session}, detached_session_ids={detached_session_ids}, authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}") {func}',
+            '{func} router session detached from realm "{realm}" (session={session}, '
+            'detached_session_ids={detached_session_ids}, authid="{authid}", authrole="{authrole}", '
+            'authmethod="{authmethod}", authprovider="{authprovider}")',
             func=hltype(self.detach),
             session=hlid(session._session_id) if session else '',
             authid=hlid(session._authid),
@@ -481,11 +483,17 @@ class Router(object):
         d.addCallback(got_authorization)
         return d
 
-    def validate(self, payload_type, uri, args, kwargs):
+    def validate(self, payload_type, uri, args, kwargs, validate=None):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
-        self.log.debug("Validate '{payload_type}' for '{uri}'", payload_type=payload_type, uri=uri, cb_level="trace")
+        assert payload_type in ['event', 'call', 'call_result', 'call_error']
+        # find crossbar -name "*.py" -exec grep -Hi -n "_router.validate(" {} \;
+        # dealer.py:791:  self._router.validate('call', call.procedure, call.args, call.kwargs,
+        # dealer.py:1307: self._router.validate('call_result', invocation_request.call.procedure, yield_.args,
+        # dealer.py:1479: self._router.validate('call_error', invocation_request.call.procedure, error.args,
+        # broker.py:346:  self._router.validate('event', publish.topic, publish.args, publish.kwargs)
+        self.log.info("Validate '{payload_type}' for '{uri}'", payload_type=payload_type, uri=uri, cb_level="trace")
 
 
 # implements IRouterContainer
