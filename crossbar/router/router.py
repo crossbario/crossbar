@@ -512,6 +512,35 @@ class Router(object):
                 validate=validate,
                 cb_level="trace")
 
+            if uri == 'eth.pydefi.replica.ba3b1e9f-3006-4eae-ae88-cf5896b36342.' \
+                      'book.a17f0b45-1ed2-4b1a-9a7d-c112e8cd5d9b.get_candle_history':
+                if payload_type == 'call':
+                    validate_args = args or []
+                    validation_types_args = validate.get('args', []) or []
+                    if len(validate_args) != len(validation_types_args):
+                        self.log.warn(
+                            'validation error: CALL of "{uri}" with invalid args length (got {args_len}, '
+                            'expected {validation_types_args_len})',
+                            func=hltype(self.validate),
+                            uri=hlval(uri),
+                            args_len=len(validate_args),
+                            validation_types_args_len=len(validation_types_args))
+                    for vt_arg_idx, vt_arg in enumerate(validation_types_args):
+                        self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
+                                      vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
+                                      vt_arg=hlval(vt_arg, color='green'))
+
+                    validate_kwargs = kwargs or {}
+                    validation_types_kwargs = validate.get('kwargs', {}) or {}
+                    if len(validate_kwargs) != len(validation_types_kwargs):
+                        self.log.warn(
+                            'validation error: CALL of "{uri}" with invalid kwargs length (got {kwargs_len}, '
+                            'expected {validation_types_kwargs})',
+                            func=hltype(self.validate),
+                            uri=hlval(uri),
+                            kwargs_len=len(validate_kwargs),
+                            validation_types_kwargs=len(validation_types_kwargs))
+
 
 class RouterFactory(object):
     """
