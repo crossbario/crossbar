@@ -8,15 +8,15 @@
 import txaio
 import uuid
 from pprint import pformat
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Set, Tuple, List
 
 from txaio import make_logger
 
+from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 from autobahn.wamp.interfaces import ISession
 
-from crossbar._util import hltype, hlid, hlval
 from crossbar.router import RouterOptions
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
@@ -24,6 +24,7 @@ from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
 from crossbar.interfaces import IRealmStore
+from crossbar.worker.types import RouterRealm
 
 __all__ = (
     'RouterFactory',
@@ -69,7 +70,7 @@ class Router(object):
         """
         self._factory = factory
         self._options = options or RouterOptions()
-        self._store: IRealmStore = store
+        self._store: Optional[IRealmStore] = store
         self._realm = realm
         self.realm = realm.config['name']
 
@@ -78,14 +79,16 @@ class Router(object):
         self._trace_traffic_roles_exclude = ['trusted']
 
         # map: session_id -> session
-        self._session_id_to_session = {}
-        # map: authid -> set(session)
-        self._authid_to_sessions = {}
-        # map: authrole -> set(session)
-        self._authrole_to_sessions = {}
+        self._session_id_to_session: Dict[int, ISession] = {}
 
-        # map: (realm, authid, authrole, uri, action) -> authorization
-        self._authorization_cache = {}
+        # map: authid -> set(session)
+        self._authid_to_sessions: Dict[str, Set[ISession]] = {}
+
+        # map: authrole -> set(session)
+        self._authrole_to_sessions: Dict[str, Set[ISession]] = {}
+
+        # map: (realm, authrole, uri, action) -> authorization
+        self._authorization_cache: Dict[Tuple[str, str, str, str], Dict[str, Any]] = {}
 
         self._broker = self.broker(self, factory._reactor, self._options)
         self._dealer = self.dealer(self, factory._reactor, self._options)
@@ -145,7 +148,7 @@ class Router(object):
     def is_attached(self, session):
         return session._session_id in self._session_id_to_session
 
-    def attach(self, session):
+    def attach(self, session: ISession):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.attach`
         """
@@ -222,7 +225,7 @@ class Router(object):
             )
             self.log.trace('{details}', details=session_details)
 
-    def detach(self, session=None):
+    def detach(self, session=None) -> List[int]:
         self.log.debug('{func}(session={session})', func=hltype(self.detach), session=session)
 
         detached_session_ids = []
@@ -416,12 +419,12 @@ class Router(object):
         # the realm, authid and authrole under which the session that wishes to perform the
         # given action on the given URI was authenticated under
         realm = session._realm
-        authid = session._authid
+        # authid = session._authid
         authrole = session._authrole
 
         # the permission of a WAMP client is always determined (only) from
-        # WAMP realm, authid, authrole, URI and action already
-        cache_key = (realm, authid, authrole, uri, action)
+        # WAMP realm, authrole, URI and action already
+        cache_key = (realm, authrole, uri, action)
 
         # if we do have a cache entry, use the authorization cached
         cached_authorization = self._authorization_cache.get(cache_key, None)
@@ -490,11 +493,6 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
         assert payload_type in ['event', 'call', 'call_result', 'call_error']
-        # find crossbar -name "*.py" -exec grep -Hi -n "_router.validate(" {} \;
-        # dealer.py:791:  self._router.validate('call', call.procedure, call.args, call.kwargs,
-        # dealer.py:1307: self._router.validate('call_result', invocation_request.call.procedure, yield_.args,
-        # dealer.py:1479: self._router.validate('call_error', invocation_request.call.procedure, error.args,
-        # broker.py:346:  self._router.validate('event', publish.topic, publish.args, publish.kwargs)
         self.log.info(
             '{func} validate "{payload_type}" for "{uri}": '
             'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
@@ -507,10 +505,9 @@ class Router(object):
             cb_level="trace")
 
 
-# implements IRouterContainer
 class RouterFactory(object):
     """
-    Crossbar.io core router factory.
+    Factory for creating router instances operating for application realms.
     """
     log = make_logger()
     router = Router
@@ -567,33 +564,32 @@ class RouterFactory(object):
                 realm=router.realm,
                 realms=sorted(self._routers.keys()))
 
-    def start_realm(self, realm):
+    def start_realm(self, realm: RouterRealm) -> Router:
         """
         Starts a realm on this router.
 
         :param realm: The realm to start.
-        :type realm: instance of :class:`crossbar.worker.router.RouterRealm`.
-
         :returns: The router instance for the started realm.
         :rtype: instance of :class:`crossbar.router.session.CrossbarRouter`
         """
-        self.log.debug("CrossbarRouterFactory.start_realm(realm = {realm})", realm=realm)
-
-        # get name of realm (an URI in general)
-        #
+        # extract name (URI in general) of realm from realm configuration
+        assert 'name' in realm.config
         uri = realm.config['name']
-        assert (uri not in self._routers)
+        assert type(uri) == str
+        self.log.info('{func}: realm={realm} with URI "{uri}"', func=hltype(self.stop_realm),
+                      realm=realm, uri=hlval(uri))
 
-        # if configuration of realm contains a "store" item, set up a
-        # realm store as appropriate ..
+        if realm in self._routers:
+            raise RuntimeError('router for realm "{}" already running'.format(uri))
+
+        # setup optional realm store
         store: Optional[IRealmStore] = None
         if 'store' in realm.config:
             psn = self._worker.personality
             store = psn.create_realm_store(psn, self, realm.config['store'])
             self.log.info('Initialized realm store {rsk} for realm "{realm}"', rsk=store.__class__, realm=uri)
 
-        # now create a router for the realm
-        #
+        # setup realm options
         options = RouterOptions(
             uri_check=self._options.uri_check,
             event_dispatching_chunk_size=self._options.event_dispatching_chunk_size,
@@ -602,38 +598,50 @@ class RouterFactory(object):
             if arg in realm.config.get('options', {}):
                 setattr(options, arg, realm.config['options'][arg])
 
+        # now create a router for the realm
         router = self.router(self, realm, options, store=store)
-
         self._routers[uri] = router
         self.log.info('{klass}.start_realm: router created for realm "{uri}"', klass=self.__class__.__name__, uri=uri)
 
         return router
 
-    def stop_realm(self, realm):
-        self.log.info('{klass}.stop_realm(realm="{realm}")', klass=self.__class__.__name__, realm=realm)
+    def stop_realm(self, realm: str) -> List[int]:
+        """
+        Stop a realm, detaching all active sessions.
 
-        assert (type(realm) == str)
+        :param realm: The realm to stop.
+        :return: A list of session IDs of sessions that have been detached as a consequence of stopping this realm.
+        """
+        self.log.info('{func}: realm="{realm}"', func=hltype(self.stop_realm), realm=realm)
 
         if realm not in self._routers:
-            raise Exception('no router started for realm "{}"'.format(realm))
+            raise RuntimeError('no router started for realm "{}"'.format(realm))
 
         router = self._routers[realm]
         detached_sessions = router.detach()
 
-        if realm in self._routers:
-            del self._routers[realm]
+        del self._routers[realm]
 
         return detached_sessions
 
-    def add_role(self, realm, config):
-        self.log.debug('CrossbarRouterFactory.add_role(realm="{realm}", config={config})', realm=realm, config=config)
+    def add_role(self, realm: str, config: Dict[str, Any]) -> RouterRole:
+        """
+        Add a role to a realm.
 
-        assert (type(realm) == str)
-        assert (realm in self._routers)
+        :param realm: The name of the realm to add the role to.
+        :param config: The role configuration.
+        :return: The new role object.
+        """
+        self.log.info('{func}: realm="{realm}", config=\n{config}', func=hltype(self.add_role),
+                      realm=hlval(realm), config=pformat(config))
+
+        if realm not in self._routers:
+            raise RuntimeError('no router started for realm "{}"'.format(realm))
 
         router = self._routers[realm]
         uri = config['name']
 
+        role: RouterRole
         if 'permissions' in config:
             role = RouterRoleStaticAuth(router, uri, config['permissions'])
         elif 'authorizer' in config:
@@ -643,28 +651,27 @@ class RouterFactory(object):
             role = RouterRole(router, uri, allow_by_default=allow_by_default)
 
         router.add_role(role)
+        return role
 
-    def drop_role(self, realm, role):
+    def drop_role(self, realm: str, role: str) -> RouterRole:
         """
-        Drop a role.
+        Drop a role from a realm.
 
         :param realm: The name of the realm to drop.
-        :type realm: str
         :param role: The URI of the role (on the realm) to drop.
-        :type role: str
+        :return: The dropped role object.
         """
-        self.log.debug('CrossbarRouterFactory.drop_role(realm="{realm}", role={role})', realm=realm, role=role)
-
-        assert (type(realm) == str)
-        assert (type(role) == str)
+        self.log.info('{func}: realm="{realm}", role="{role}"', func=hltype(self.drop_role),
+                      realm=hlval(realm), role=hlval(role))
 
         if realm not in self._routers:
-            raise Exception('no router started for realm "{}"'.format(realm))
+            raise RuntimeError('no router started for realm "{}"'.format(realm))
 
         router = self._routers[realm]
 
         if role not in router._roles:
-            raise Exception('no role "{}" started on router for realm "{}"'.format(role, realm))
+            raise RuntimeError('no role "{}" started on router for realm "{}"'.format(role, realm))
 
-        role = router._roles[role]
+        role_obj = router._roles[role]
         router.drop_role(role)
+        return role_obj
