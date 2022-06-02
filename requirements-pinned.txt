@@ -17,7 +17,7 @@ cached-property==1.5.2
 cbor2==5.4.3
 certifi==2022.5.18.1
 cffi==1.15.0
-cfxdb==22.4.1
+cfxdb==22.5.1
 chardet==4.0.0
 charset-normalizer==2.0.12
 click==8.1.3
@@ -137,5 +137,5 @@ xbr==21.2.1
 yapf==0.29.0
 yarl==1.7.2
 zipp==3.8.0
-zlmdb==22.4.1
+zlmdb==22.5.1
 zope.interface==5.4.0

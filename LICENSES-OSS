@@ -28,7 +28,7 @@
  cbor2                 5.4.3        MIT License                                                                                          UNKNOWN                                                        
  certifi               2022.5.18.1  Mozilla Public License 2.0 (MPL 2.0)                                                                 Kenneth Reitz                                                  
  cffi                  1.15.0       MIT License                                                                                          Armin Rigo, Maciej Fijalkowski                                 
- cfxdb                 22.4.1       MIT License                                                                                          Crossbar.io Technologies GmbH                                  
+ cfxdb                 22.5.1       MIT License                                                                                          Crossbar.io Technologies GmbH                                  
  chardet               4.0.0        GNU Library or Lesser General Public License (LGPL)                                                  Mark Pilgrim                                                   
  charset-normalizer    2.0.12       MIT License                                                                                          Ahmed TAHRI @Ousret                                            
  click                 8.1.3        BSD License                                                                                          Armin Ronacher                                                 
@@ -137,5 +137,5 @@
  yapf                  0.29.0       Apache Software License                                                                              Bill Wendling                                                  
  yarl                  1.7.2        Apache Software License                                                                              Andrew Svetlov                                                 
  zipp                  3.8.0        MIT License                                                                                          Jason R. Coombs                                                
- zlmdb                 22.4.1       MIT License                                                                                          Crossbar.io Technologies GmbH                                  
+ zlmdb                 22.5.1       MIT License                                                                                          Crossbar.io Technologies GmbH                                  
  zope.interface        5.4.0        Zope Public License                                                                                  Zope Foundation and Contributors                               
