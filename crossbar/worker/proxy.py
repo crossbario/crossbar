@@ -1658,7 +1658,8 @@ class ProxyController(TransportController):
         :returns: a dict containing the connection configuration for the backend
             identified by the realm_name and role_name
         """
-        assert self.has_role(realm_name, role_name)
+        assert self.has_role(realm_name, role_name), \
+            'missing (realm_name={}, role_name={}) in ProxyController routes'.format(realm_name, role_name)
 
         key = realm_name, role_name
         if key not in self._roundrobin_idx:
