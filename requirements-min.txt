@@ -1,5 +1,5 @@
 attrs>=17.2.0
-autobahn[twisted,encryption,compress,serialization,scram,xbr]>=22.4.1
+autobahn[twisted,encryption,compress,serialization,scram,xbr]>=22.5.1
 base58>=2.1.0
 bcrypt>=3.1.6
 bitstring>=3.1.5
