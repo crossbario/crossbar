@@ -735,5 +735,5 @@ class RouterFactory(object):
             raise RuntimeError('no role "{}" started on router for realm "{}"'.format(role, realm))
 
         role_obj = router._roles[role]
-        router.drop_role(role)
+        router.drop_role(role_obj)
         return role_obj
