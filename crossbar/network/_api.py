@@ -2034,7 +2034,7 @@ class Network(ApplicationSession):
                              attributes: Optional[dict],
                              details: Optional[CallDetails] = None) -> dict:
         """
-        Create a new XBR Data Catalog.
+        Create a new XBR Data FbsRepository.
 
         :param member_oid: OID of the member to create the catalog under (the member will become catalog owner.).
 
@@ -2116,7 +2116,7 @@ class Network(ApplicationSession):
         :param details: Caller details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
 
-        :return: Catalog creation information. For example:
+        :return: FbsRepository creation information. For example:
 
             .. code-block:: python
 
@@ -2129,7 +2129,7 @@ class Network(ApplicationSession):
                     'transaction_index': b'...'
                 }
 
-            * ``created``: Catalog creation timestamp (number of nanoseconds since the Unix epoch).
+            * ``created``: FbsRepository creation timestamp (number of nanoseconds since the Unix epoch).
             * ``catalog_oid``: ID of newly created catalog (16 bytes UUID).
         """
         self.log.info(
@@ -2154,7 +2154,7 @@ class Network(ApplicationSession):
                        signature: bytes,
                        details: Optional[CallDetails] = None):
         """
-        Remove an existing XBR Data Catalog.
+        Remove an existing XBR Data FbsRepository.
 
         :param member_oid: ID of the member to remove the data market under (must be owner).
 
@@ -2218,14 +2218,14 @@ class Network(ApplicationSession):
                     include_attributes: bool = False,
                     details: Optional[CallDetails] = None) -> dict:
         """
-        Retrieve basic information for the given XBR Data Catalog.
+        Retrieve basic information for the given XBR Data FbsRepository.
 
-        :param catalog_oid: OID of the XBR Data Catalog to retrieve information for.
+        :param catalog_oid: OID of the XBR Data FbsRepository to retrieve information for.
 
         :param details: Caller details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
 
-        :return: Catalog information.
+        :return: FbsRepository information.
         """
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -2325,7 +2325,7 @@ class Network(ApplicationSession):
                     attributes: Optional[dict] = None,
                     details: Optional[CallDetails] = None) -> dict:
         """
-        Publish an API to an existing XBR Data Catalog.
+        Publish an API to an existing XBR Data FbsRepository.
 
         :param member_oid: OID of the member to create the catalog under (the member will become catalog owner.).
 

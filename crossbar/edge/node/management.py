@@ -60,35 +60,35 @@ class NodeManagementSession(ApplicationSession):
         extra = {
             # forward the client pubkey: this allows us to omit authid as
             # the router can identify us with the pubkey already
-            u'pubkey': self.config.extra['node_key'].public_key(),
+            'pubkey': self.config.extra['node_key'].public_key(),
 
             # not yet implemented. a public key the router should provide
             # a trustchain for it's public key. the trustroot can eg be
             # hard-coded in the client, or come from a command line option.
-            u'trustroot': None,
+            'trustroot': None,
 
             # not yet implemented. for authenticating the router, this
             # challenge will need to be signed by the router and send back
             # in AUTHENTICATE for client to verify. A string with a hex
             # encoded 32 bytes random value.
-            u'challenge': None,
+            'challenge': None,
 
             # https://tools.ietf.org/html/rfc5929
-            u'channel_binding': u'tls-unique'
+            'channel_binding': 'tls-unique'
         }
 
         # now request to join. the authrole==node is mandatory. the actual realm
         # we're joined to is decided by Crossbar.io Master, and hence we
         # must not provide that. Same holds for authid (also auto-assigned).
         # the authid assigned will (also) be used as the node_id
-        self.join(realm=None, authrole=u'node', authmethods=[u'cryptosign'], authextra=extra)
+        self.join(realm=None, authrole='node', authmethods=['cryptosign'], authextra=extra)
 
     def onChallenge(self, challenge):
         self.log.debug('{klass}.onChallenge(challenge={challenge})',
                        klass=self.__class__.__name__,
                        challenge=challenge)
 
-        if challenge.method == u'cryptosign':
+        if challenge.method == 'cryptosign':
             # alright, we've got a challenge from the router.
 
             # not yet implemented. check the trustchain the router provided against
@@ -111,10 +111,10 @@ class NodeManagementSession(ApplicationSession):
         self.log.info('{func}(details={details})', func=hltype(self.onJoin), details=details)
 
         # be paranoid .. sanity checks
-        if self.config.extra and u'on_ready' in self.config.extra:
-            if not self.config.extra[u'on_ready'].called:
+        if self.config.extra and 'on_ready' in self.config.extra:
+            if not self.config.extra['on_ready'].called:
 
-                self.config.extra[u'on_ready'].callback((
+                self.config.extra['on_ready'].callback((
                     self,
                     details.realm,  # the management realm we've got auto-assigned to
                     details.session,  # WAMP session ID
@@ -132,12 +132,12 @@ class NodeManagementSession(ApplicationSession):
             # no reason to auto-reconnect: user needs to get active and pair the node first.
             self._runner.stop()
 
-        if self.config.extra and u'on_ready' in self.config.extra:
-            if not self.config.extra[u'on_ready'].called:
+        if self.config.extra and 'on_ready' in self.config.extra:
+            if not self.config.extra['on_ready'].called:
                 self.config.extra['on_ready'].errback(ApplicationError(details.reason, details.message))
 
-        if self.config.extra and u'on_exit' in self.config.extra:
-            if not self.config.extra[u'on_exit'].called:
+        if self.config.extra and 'on_exit' in self.config.extra:
+            if not self.config.extra['on_exit'].called:
                 self.config.extra['on_exit'].callback(details.reason)
             else:
                 raise Exception('internal error: on_exit callback already called when we expected it was not')
@@ -149,7 +149,7 @@ class NodeManagementSession(ApplicationSession):
     def onDisconnect(self):
         self.log.debug('{klass}.onDisconnect()', klass=self.__class__.__name__)
 
-        node = self.config.extra[u'node']
+        node = self.config.extra['node']
 
         # FIXME: the node shutdown behavior should be more sophisticated than this!
         shutdown_on_cfc_lost = False
@@ -176,8 +176,8 @@ class NodeManagementBridgeSession(ApplicationSession):
         self._management_realm = None
         self._node_id = None
         self._regs = {}
-        self._authrole = u'trusted'
-        self._authmethod = u'trusted'
+        self._authrole = 'trusted'
+        self._authmethod = 'trusted'
         self._sub_on_mgmt = None
         self._sub_on_reg_create = None
         self._sub_on_reg_delete = None
@@ -288,11 +288,11 @@ class NodeManagementBridgeSession(ApplicationSession):
         _PREFIX = 'crossbar.'
 
         # the remote (==CFC) URI prefix under which the management API is registered
-        _TARGET_PREFIX = u'crossbarfabriccenter.node'
+        _TARGET_PREFIX = 'crossbarfabriccenter.node'
 
         if uri.startswith(_PREFIX):
             suffix = uri[len(_PREFIX):]
-            mapped_uri = u'.'.join([_TARGET_PREFIX, self._node_id, suffix])
+            mapped_uri = '.'.join([_TARGET_PREFIX, self._node_id, suffix])
             self.log.debug("mapped URI {uri} to {mapped_uri} [suffix={suffix}]",
                            uri=uri,
                            mapped_uri=mapped_uri,
@@ -353,7 +353,7 @@ class NodeManagementBridgeSession(ApplicationSession):
 
             try:
                 if self._manager:
-                    yield self._manager.publish(u'crossbarfabriccenter.node.on_heartbeat',
+                    yield self._manager.publish('crossbarfabriccenter.node.on_heartbeat',
                                                 self._node_id,
                                                 obj,
                                                 options=PublishOptions(acknowledge=True))
@@ -446,7 +446,7 @@ class NodeManagementBridgeSession(ApplicationSession):
                     # now publish the node heartbeat management event
                     try:
                         if self._manager:
-                            yield self._manager.publish(u'crossbarfabriccenter.node.on_worker_heartbeat',
+                            yield self._manager.publish('crossbarfabriccenter.node.on_worker_heartbeat',
                                                         self._node_id,
                                                         str(worker_id),
                                                         worker_status,
@@ -592,7 +592,7 @@ class NodeManagementBridgeSession(ApplicationSession):
                 self._regs[registration['id']] = reg
                 self.log.debug("Management procedure registered: '{remote_uri}'", remote_uri=reg.procedure)
 
-        self._sub_on_reg_create = yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
+        self._sub_on_reg_create = yield self.subscribe(on_registration_create, 'wamp.registration.on_create')
 
         # stop forwarding future registrations
         #
@@ -611,19 +611,19 @@ class NodeManagementBridgeSession(ApplicationSession):
                 self.log.warn("Could not remove forwarding for unmapped registration_id {reg_id}",
                               reg_id=registration_id)
 
-        self._sub_on_reg_delete = yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
+        self._sub_on_reg_delete = yield self.subscribe(on_registration_delete, 'wamp.registration.on_delete')
 
         # start forwarding current registrations
         #
-        res = yield self.call(u'wamp.registration.list')
+        res = yield self.call('wamp.registration.list')
         for match_type, reg_ids in res.items():
             for reg_id in reg_ids:
-                registration = yield self.call(u'wamp.registration.get', reg_id)
-                if registration[u'uri'].startswith(u'crossbar.'):
+                registration = yield self.call('wamp.registration.get', reg_id)
+                if registration['uri'].startswith('crossbar.'):
                     yield on_registration_create(None, registration)
                 else:
                     # eg skip WAMP meta API procs like "wamp.session.list"
-                    self.log.debug('skipped {uri}', uri=registration[u'uri'])
+                    self.log.debug('skipped {uri}', uri=registration['uri'])
 
     @inlineCallbacks
     def _stop_call_forwarding(self):

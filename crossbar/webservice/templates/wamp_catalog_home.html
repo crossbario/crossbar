@@ -1,0 +1,49 @@
+{% extends "wamp_catalog_base.html" %}
+
+{% block header %}
+{% endblock %}
+
+{% block content %}
+<h1>Home</h1>
+<p>(created {{ created }})</p>
+
+<h2>Schemata</h2>
+<table>
+{% for schema in repo.schemata.values() %}
+    <tr>
+        <td>{{ schema.file_name }}</td>
+    </tr>
+{% endfor %}
+</table>
+
+<h2>Services</h2>
+<table>
+{% for svc in repo.services.values() %}
+    <tr>
+        <td>{{ svc.name }}</td>
+        <td>{{ svc.docs }}</td>
+    </tr>
+{% endfor %}
+</table>
+
+<h2>Tables and Structs</h2>
+<table>
+{% for obj in repo.objs.values() %}
+    <tr>
+        <td>{{ obj.name }}</td>
+        <td>{{ obj.docs }}</td>
+    </tr>
+{% endfor %}
+</table>
+
+<h2>Enumerations</h2>
+<table>
+{% for enum in repo.enums.values() %}
+    <tr>
+        <td>{{ enum.name }}</td>
+        <td>{{ enum.docs }}</td>
+    </tr>
+{% endfor %}
+</table>
+
+{% endblock %}

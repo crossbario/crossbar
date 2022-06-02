@@ -160,7 +160,7 @@ class XbrDelegate(ApplicationSession):
             catalog_oid = result['catalog_oid']
             member_oid = result['member_oid']
             self.log.info(
-                'SUCCESS! New XBR Catalog Created: member_oid={member_oid}, catalog_oid={catalog_id}, '
+                'SUCCESS! New XBR FbsRepository Created: member_oid={member_oid}, catalog_oid={catalog_id}, '
                 'result: {result}\n',
                 member_oid=uuid.UUID(bytes=member_oid).__str__(),
                 catalog_id=uuid.UUID(bytes=catalog_oid).__str__(),

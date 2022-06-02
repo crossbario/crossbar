@@ -343,7 +343,7 @@ class Broker(object):
             #
             if publish.payload is None:
                 try:
-                    self._router.validate('event', publish.topic, publish.args, publish.kwargs)
+                    self._router.validate('event', publish.topic, publish.args, publish.kwargs, validate=None)
                 except Exception as e:
                     if publish.acknowledge:
                         if self._router.is_traced:

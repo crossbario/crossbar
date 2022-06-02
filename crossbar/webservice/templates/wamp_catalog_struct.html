@@ -1,0 +1,69 @@
+{% extends "wamp_catalog_base.html" %}
+
+{% block header %}
+{% endblock %}
+
+{% block content %}
+<h1>Struct</h1>
+{% if name in repo.objs and repo.objs[name].is_struct %}
+
+<h2>Summary</h2>
+<table>
+    <tr>
+        <td>name</td><td>{{ name }}</td>
+    </tr>
+    <tr>
+        <td>declaration_file</td><td>{{ repo.objs[name].declaration_file }}</td>
+    </tr>
+    <tr>
+        <td>fields</td><td>{{ repo.objs[name].fields | length }}</td>
+    </tr>
+    <tr>
+        <td>min_align</td><td>{{ repo.objs[name].min_align }}</td>
+    </tr>
+    <tr>
+        <td>bytesize</td><td>{{ repo.objs[name].bytesize }}</td>
+    </tr>
+    <tr>
+        <td>attrs</td><td>{{ repo.objs[name].attrs.keys() | list }}</td>
+    </tr>
+    <tr>
+        <td>docs</td><td>{{ repo.objs[name].docs }}</td>
+    </tr>
+</table>
+
+<h2>Fields</h2>
+<table>
+    <tr>
+        <td>name</td>
+        <td>type</td>
+        <td>id</td>
+        <td>offset</td>
+        <td>default_int</td>
+        <td>default_real</td>
+        <td>deprecated</td>
+        <td>required</td>
+        <td>attrs</td>
+        <td>docs</td>
+    </tr>
+    {% for field in repo.objs[name].fields_by_id | list %}
+    <tr>
+        <td>{{ field.name }}</td>
+        <td>{{ field.type }}</td>
+        <td>{{ field.id }}</td>
+        <td>{{ field.offset }}</td>
+        <td>{{ field.default_int }}</td>
+        <td>{{ field.default_real }}</td>
+        <td>{{ field.deprecated }}</td>
+        <td>{{ field.required }}</td>
+        <td>{{ field.attrs }}</td>
+        <td>{{ field.docs }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% else %}
+<p>No <strong>Struct</strong> named "{{ name }}" in repository.</p>
+{% endif %}
+
+{% endblock %}
