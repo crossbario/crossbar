@@ -162,7 +162,7 @@ def create_realm_inventory(personality, factory, config) -> IRealmInventory:
     :param factory: Router factory
     :type factory: :class:`crossbar.router.router.RouterFactory`
 
-    :param config: Catalog configuration
+    :param config: FbsRepository configuration
     :type config: dict
 
     :return: A new realm inventory object.

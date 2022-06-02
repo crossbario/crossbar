@@ -27,7 +27,7 @@ from txaio import make_logger, time_ns
 from twisted.web import resource
 
 from autobahn.wamp.serializer import JsonObjectSerializer
-from autobahn.xbr import Catalog
+from autobahn.xbr import FbsRepository
 
 from crossbar.webservice.base import RootResource, RouterWebService
 from crossbar.common.checkconfig import InvalidConfigException, check_dict_args
@@ -40,10 +40,10 @@ __all__ = ('RouterWebServiceCatalog', )
 
 class CatalogResource(resource.Resource):
     """
-    Twisted Web resource for API Catalog Web service.
+    Twisted Web resource for API FbsRepository Web service.
 
     This resource uses templates loaded into a Jinja2 environment to render HTML pages
-    with data retrieved from an API Catalog archive file or on-chain address.
+    with data retrieved from an API FbsRepository archive file or on-chain address.
     """
 
     log = make_logger()
@@ -94,7 +94,7 @@ class CatalogResource(resource.Resource):
         self._map_adapter: MapAdapter = adapter_map.bind('localhost', '/')
 
         # FIXME
-        self._repo: Catalog = Catalog('FIXME')
+        self._repo: FbsRepository = FbsRepository('FIXME')
         self._repo.load(self._config['filename'])
 
     def render(self, request):
@@ -208,7 +208,7 @@ class CatalogResource(resource.Resource):
 
 class RouterWebServiceCatalog(RouterWebService):
     """
-    WAMP API Catalog Web service.
+    WAMP API FbsRepository Web service.
     """
     @staticmethod
     def check(personality, config: Dict[str, Any]):
@@ -233,19 +233,19 @@ class RouterWebServiceCatalog(RouterWebService):
                 # must be equal to "catalog"
                 'type': (True, [str]),
 
-                # filename (relative to node directory) to Catalog file (*.bfbs, *.zip or *.zip.sig)
+                # filename (relative to node directory) to FbsRepository file (*.bfbs, *.zip or *.zip.sig)
                 'filename': (True, [str]),
 
                 # path to provide to Werkzeug/Routes (eg "/test" rather than "test")
                 'path': (False, [str]),
             },
             config,
-            'Catalog Web service configuration:\n{}'.format(pformat(config)))
+            'FbsRepository Web service configuration:\n{}'.format(pformat(config)))
 
     @staticmethod
     def create(transport, path: str, config: Dict[str, Any]) -> 'RouterWebServiceCatalog':
         """
-        Create a new Catalog Web service using a Catalog archive file or on-chain address.
+        Create a new FbsRepository Web service using a FbsRepository archive file or on-chain address.
 
         :param transport: Web-transport on which to add the web service.
         :param path: HTTP path on which to add the web service.
