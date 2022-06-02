@@ -569,7 +569,8 @@ class RouterFactory(object):
         self._reactor = reactor
 
         from crossbar.worker.router import RouterController
-        assert worker is None or isinstance(worker, RouterController)
+        from crossbar.worker.proxy import ProxyController
+        assert worker is None or isinstance(worker, RouterController) or isinstance(worker, ProxyController)
 
     @property
     def node_id(self):
