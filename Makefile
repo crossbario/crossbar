@@ -25,6 +25,8 @@ clean:
 	-rm -rf ./_trial*
 	-rm -rf ./pip-wheel-metadata
 	-rm -rf ./docs/_build
+	-rm -rf ./.mypy_cache
+	-rm -rf ./.pytest_cache
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;

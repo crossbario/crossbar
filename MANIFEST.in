@@ -1,5 +1,4 @@
 include README.rst
-include crossbar/LEGAL
 include crossbar/LICENSE
 include crossbar/LICENSES-OSS
 include requirements.txt

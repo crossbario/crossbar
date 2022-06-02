@@ -95,7 +95,7 @@ setup(
     },
     packages=find_packages(),
     include_package_data=True,
-    data_files=[('.', ['crossbar/LEGAL', 'crossbar/LICENSE', 'crossbar/LICENSE-FOR-API', 'crossbar/LICENSES-OSS', 'crossbar.ico'])],
+    data_files=[('.', ['crossbar/LICENSE', 'crossbar/LICENSES-OSS', 'crossbar.ico'])],
     zip_safe=False,
     python_requires='>=3.7',
 
