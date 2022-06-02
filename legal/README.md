@@ -4,25 +4,15 @@ The following sections provide information about legal aspects related to Crossb
 
 ## Code
 
-The Crossbar.io [source code](https://github.com/crossbario/crossbar/tree/master/crossbar) is licensed under the [GNU AGPL 3.0](http://www.gnu.org/licenses/agpl-3.0.html). You can find a copy of the license in the repository [here](https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE) and references to this license at the top of each source code file.
+The Crossbar.io [source code](https://github.com/crossbario/crossbar/tree/master/crossbar) is licensed under the [EUPL-1.2](https://opensource.org/licenses/EUPL-1.2). You can read more about the [European Union Public Licence](https://ec.europa.eu/info/european-union-public-licence_en), you will find a copy of the license in the repository [here](https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE) and references to this license at the top of each source code file (`SPDX-License-Identifier: EUPL-1.2`).
 
 All rights to the Crossbar.io source code remain exclusively with [Crossbar.io Technologies GmbH](http://crossbar.io.com/). All (external) contributors sign a [Contributor Assignement Agreement](http://crossbar.io/docs/Contributing-to-the-project/)
 
 The Crossbar.io [application templates](https://github.com/crossbario/crossbar/tree/master/crossbar/crossbar/templates) and instances of code generated from these templates are licensed under the [BSD 2-clause](http://opensource.org/licenses/BSD-2-Clause) license.
 
-
-## API
-
-In some jurisdictions, the APIs implemented by Crossbar.io may be protected by copyright.
-
-In regards to WAMP and the WAMP meta-API, these are covered by the respective licenses provided by the WAMP project.
-
-In regard to other program APIs, we provide a [license](https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE-FOR-API).
-
-
 ## WAMP clients as separate works
 
-We see any code which connects to Crossbar.io via WAMP as a separate work. The Crossbar.io license (the AGPL v3) does not apply to WAMP clients. This applies irrespective of where these run, i.e. also to components which are run side-by-side within an native worker of type router, which are run in a native worker of type container or in a guest worker. We promise to stand by this view of the license.
+We see any code which connects to Crossbar.io via WAMP as a separate work. The Crossbar.io license (the EUPL-1.2) does not apply to WAMP clients. This applies irrespective of where these run, i.e. also to components which are run side-by-side within an native worker of type router, which are run in a native worker of type container or in a guest worker. We promise to stand by this view of the license.
 If you need further assurance, you can email us at contact@crossbario.com for a signed letter asserting the above promise.
 
 We release all our client libraries (those provided by the [Autobahn project](http://autobahn.ws/) under non-copyleft licenses, which allow their use for closed-source & commercial software. For other client libraries see their respective licenses (these appear to be universally non-copyleft as well).
