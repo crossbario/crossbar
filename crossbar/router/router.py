@@ -17,6 +17,8 @@ from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 from autobahn.wamp.interfaces import ISession
 
+from autobahn.xbr._schema import FbsObject
+
 from crossbar.router import RouterOptions
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
@@ -325,9 +327,9 @@ class Router(object):
             elif isinstance(msg, message.Unsubscribe):
                 self._broker.processUnsubscribe(session, msg)
 
-            elif isinstance(msg, message.EventReceived):
-                # FIXME
-                self._broker.processEventReceived(session, msg)
+            # FIXME: implement EventReceived
+            # elif isinstance(msg, message.EventReceived):
+            #     self._broker.processEventReceived(session, msg)
 
             # Dealer
             #
@@ -525,10 +527,30 @@ class Router(object):
                             uri=hlval(uri),
                             args_len=len(validate_args),
                             validation_types_args_len=len(validation_types_args))
+                        # from autobahn.wamp.exception import ProtocolError, InvalidPayload
+                        # raise InvalidPayload()
                     for vt_arg_idx, vt_arg in enumerate(validation_types_args):
                         self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
                                       vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
                                       vt_arg=hlval(vt_arg, color='green'))
+                        if vt_arg in self._inventory.repo.objs:
+                            vt: FbsObject = self._inventory.repo.objs[vt_arg]
+                            if not vt.is_struct:
+                                if type(args[vt_arg_idx]) == dict:
+                                    print('3' * 100, vt)
+                                else:
+                                    self.log.warn('{vt_arg_idx} has type {arg_type}, not dict',
+                                                  vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
+                                                  arg_type=hlval(type(args[vt_arg_idx])))
+                            else:
+                                self.log.warn(
+                                    'validation type {vt_arg} found in repo, but is a struct, '
+                                    'not a table type',
+                                    vt_arg=hlval(vt_arg, color='red'))
+                        else:
+                            self.log.warn('validation type {vt_arg} not found in repo (within keys {vt_keys})',
+                                          vt_arg=hlval(vt_arg, color='red'),
+                                          vt_keys=list(self._inventory.repo.objs.keys()))
 
                     validate_kwargs = kwargs or {}
                     validation_types_kwargs = validate.get('kwargs', {}) or {}
@@ -643,10 +665,14 @@ class RouterFactory(object):
             psn = self._worker.personality
             inventory = psn.create_realm_inventory(psn, self, realm.config['inventory'])
             assert inventory
-            self.log.info('{func}: initialized realm inventory <{inventory_type}> for realm "{realm}"',
-                          func=hltype(self.start_realm),
-                          inventory_type=hlval(inventory.type, color='green'),
-                          realm=hlval(uri))
+            self.log.info(
+                '{func}: initialized realm inventory <{inventory_type}> for realm "{realm}", '
+                'loaded {total_count} types, from config:\n{config}',
+                func=hltype(self.start_realm),
+                inventory_type=hlval(inventory.type, color='green'),
+                total_count=hlval(inventory.repo.total_count()),
+                realm=hlval(uri),
+                config=pformat(realm.config['inventory']))
 
         # setup realm options
         options = RouterOptions(

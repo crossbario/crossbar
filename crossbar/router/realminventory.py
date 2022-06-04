@@ -9,6 +9,7 @@ from txaio import use_twisted  # noqa
 from txaio import make_logger
 
 from autobahn.util import hltype
+from autobahn.xbr import FbsRepository
 
 from crossbar.interfaces import IRealmInventory
 
@@ -34,6 +35,10 @@ class RealmInventory(IRealmInventory):
         self._type = self._config.get('type', None)
         assert self._type == self.INVENTORY_TYPE
 
+        # FIXME
+        self._basemodule = ''
+        self._repo = FbsRepository(basemodule=self._basemodule)
+
         self._running = False
 
         self.log.debug('{func} realm inventory initialized', func=hltype(self.__init__))
@@ -44,6 +49,13 @@ class RealmInventory(IRealmInventory):
         Implements :meth:`crossbar._interfaces.IRealmInventory.type`
         """
         return self._type
+
+    @property
+    def repo(self) -> FbsRepository:
+        """
+        Implements :meth:`crossbar._interfaces.IRealmInventory.type`
+        """
+        return self._repo
 
     @property
     def is_running(self) -> bool:
@@ -74,3 +86,7 @@ class RealmInventory(IRealmInventory):
             self.log.info('{func} stopping realm inventory', func=hltype(self.start))
 
         self._running = False
+
+    def load(self, filename: str) -> int:
+        self._repo.load(filename)
+        return len(self._repo.objs) + len(self._repo.enums) + len(self._repo.services)

@@ -156,6 +156,31 @@ def create_realm_store(personality, factory, config) -> IRealmStore:
 def create_realm_inventory(personality, factory, config) -> IRealmInventory:
     """
 
+    .. code-block:: json
+
+        {
+            "version": 2,
+            "workers": [
+                {
+                    "type": "router",
+                    "realms": [
+                        {
+                            "name": "realm1",
+                            "inventory": {
+                                "type": "wamp.eth",
+                                "catalogs": [
+                                    {
+                                        "name": "pydefi",
+                                        "filename": "../schema/trading.bfbs"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
     :param personality: Node personality
     :type personality: :class:`crossbar.personality`
 
@@ -163,11 +188,26 @@ def create_realm_inventory(personality, factory, config) -> IRealmInventory:
     :type factory: :class:`crossbar.router.router.RouterFactory`
 
     :param config: FbsRepository configuration
-    :type config: dict
+    :type config: dict, for example:
+        .. code-block:: json
+            {
+                "type": "wamp.eth",
+                "catalogs": [
+                    {
+                        "name": "pydefi",
+                        "filename": "../schema/trading.bfbs"
+                    }
+                ]
+            }
 
     :return: A new realm inventory object.
     """
     inventory = RealmInventory(personality, factory, config)
+    if 'catalogs' in config:
+        for catalog_config in config['catalogs']:
+            if 'filename' in catalog_config:
+                filename = catalog_config['filename']
+                inventory.load(filename)
     return inventory
 
 
