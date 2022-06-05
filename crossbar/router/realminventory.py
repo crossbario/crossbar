@@ -68,19 +68,19 @@ class Catalog(object):
         self._address = address
 
     @property
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         return self._name
 
     @property
-    def schema(self) -> str:
+    def schema(self) -> Optional[str]:
         return self._schema
 
     @property
-    def archive(self) -> str:
+    def archive(self) -> Optional[str]:
         return self._archive
 
     @property
-    def address(self) -> str:
+    def address(self) -> Optional[str]:
         return self._address
 
     @staticmethod
@@ -239,8 +239,6 @@ class RealmInventory(IRealmInventory):
         # the consolidated schema repository with all schemas from catalogs
         self._repo = FbsRepository(basemodule=self._basemodule)
 
-        self.log.debug('{func} realm inventory initialized', func=hltype(self.__init__))
-
     def __len__(self):
         return len(self._catalogs)
 
@@ -252,7 +250,7 @@ class RealmInventory(IRealmInventory):
 
     def add_catalog(self, catalog: Catalog):
         assert catalog.name not in self._catalogs
-        self._catalogs = catalog
+        self._catalogs[catalog.name] = catalog
 
     @property
     def type(self) -> str:
