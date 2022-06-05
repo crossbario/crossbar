@@ -9,7 +9,8 @@ import re
 import os.path
 import zipfile
 from urllib.parse import urlparse
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
+from typing import Optional, Dict
 
 import yaml
 
@@ -27,9 +28,15 @@ __all__ = ('RealmInventory', )
 
 class Catalog(object):
     """
+    - Schema file
+    - Archive file
+    - On-chain address
     """
     __slots__ = (
         '_name',
+        '_schema',
+        '_archive',
+        '_address',
         '_version',
         '_title',
         '_description',
@@ -43,21 +50,48 @@ class Catalog(object):
         '_theme',
     )
 
-    def __init__(self):
-        self._name = ''
+    def __init__(self,
+                 name: Optional[str] = None,
+                 schema: Optional[str] = None,
+                 archive: Optional[str] = None,
+                 address: Optional[str] = None):
+        """
+
+        :param name:
+        :param schema:
+        :param archive:
+        :param address:
+        """
+        self._name = name
+        self._schema = schema
+        self._archive = archive
+        self._address = address
 
     @property
     def name(self) -> str:
         return self._name
 
+    @property
+    def schema(self) -> str:
+        return self._schema
+
+    @property
+    def archive(self) -> str:
+        return self._archive
+
+    @property
+    def address(self) -> str:
+        return self._address
+
     @staticmethod
-    def from_address(address) -> 'Catalog':
+    def from_schema(name, schema) -> 'Catalog':
         """
 
-        :param address:
+        :param name:
+        :param schema:
         :return:
         """
-        catalog = Catalog()
+        catalog = Catalog(name=name, schema=schema)
         return catalog
 
     @staticmethod
@@ -74,6 +108,9 @@ class Catalog(object):
             raise RuntimeError('archive does not seem to be a catalog - missing catalog.yaml')
         data = f.open('catalog.yaml').read()
         obj = yaml.safe_load(data)
+
+        from pprint import pprint
+        pprint(obj)
 
         # {'author': 'typedef int GmbH',
         #  'description': 'Write me.',
@@ -93,20 +130,20 @@ class Catalog(object):
 
         check_dict_args(
             {
+                # mandatory:
                 'name': (True, [str]),
+                'schemas': (True, [Sequence]),
+                # optional:
                 'version': (False, [str]),
                 'title': (False, [str]),
                 'description': (False, [str]),
-                'schemas': (True, [Sequence]),
                 'author': (False, [str]),
                 'publisher': (False, [str]),
-
-                # SPDX license ID (https://spdx.org/licenses/)
-                'license': (True, [str]),
+                'license': (False, [str]),
                 'keywords': (False, [Sequence]),
                 'homepage': (False, [str]),
                 'git': (False, [str]),
-                'theme': (False, [str]),
+                'theme': (False, [Mapping]),
             },
             obj,
             "WAMP API Catalog {} invalid".format(filename))
@@ -146,7 +183,7 @@ class Catalog(object):
 
         if 'theme' in obj:
             theme = obj['theme']
-            assert type(theme) == dict
+            assert isinstance(theme, Mapping)
             for k in theme:
                 if k not in ['background', 'highlight', 'text', 'logo']:
                     raise RuntimeError('invalid theme attribute "{}"'.format(k))
@@ -166,6 +203,16 @@ class Catalog(object):
         catalog = Catalog()
         return catalog
 
+    @staticmethod
+    def from_address(address) -> 'Catalog':
+        """
+
+        :param address:
+        :return:
+        """
+        catalog = Catalog(address=address)
+        return catalog
+
 
 class RealmInventory(IRealmInventory):
     """
@@ -175,33 +222,47 @@ class RealmInventory(IRealmInventory):
 
     log = make_logger()
 
-    def __init__(self, personality, factory, config):
+    def __init__(self, personality, factory, catalogs: Optional[Dict[str, Catalog]] = None):
         from twisted.internet import reactor
 
         self._reactor = reactor
         self._personality = personality
         self._factory = factory
-        self._config = config
+        self._catalogs: Dict[str, Catalog] = catalogs or {}
 
-        self._type = self._config.get('type', None)
-        assert self._type == self.INVENTORY_TYPE
+        # inventories need to be start()'ed
+        self._running = False
 
         # FIXME
         self._basemodule = ''
+
+        # the consolidated schema repository with all schemas from catalogs
         self._repo = FbsRepository(basemodule=self._basemodule)
 
-        self._catalogs = {}
-
-        self._running = False
-
         self.log.debug('{func} realm inventory initialized', func=hltype(self.__init__))
+
+    def __len__(self):
+        return len(self._catalogs)
+
+    def __getitem__(self, name):
+        return self._catalogs[name]
+
+    def __iter__(self):
+        return iter(self._catalogs)
+
+    def add_catalog(self, catalog: Catalog):
+        assert catalog.name not in self._catalogs
+        self._catalogs = catalog
 
     @property
     def type(self) -> str:
         """
         Implements :meth:`crossbar._interfaces.IRealmInventory.type`
         """
-        return self._type
+        return self.INVENTORY_TYPE
+
+    def catalog(self, name: str):
+        return self._catalogs.get(name, None)
 
     @property
     def repo(self) -> FbsRepository:
@@ -240,21 +301,30 @@ class RealmInventory(IRealmInventory):
 
         self._running = False
 
-    def load(self, filename: str) -> int:
+    def load(self, name: str, filename: str) -> int:
+        assert name not in self._catalogs
         self._repo.load(filename)
+        self._catalogs[name] = Catalog(name, filename)
         return len(self._repo.objs) + len(self._repo.enums) + len(self._repo.services)
 
     @staticmethod
-    def from_catalogs(self, personality, factory, config):
-        assert 'type' in config and config['type'] == 'wamp.eth'
+    def from_config(personality, factory, config):
+        assert 'type' in config and config['type'] == RealmInventory.INVENTORY_TYPE
         assert 'catalogs' in config and type(config['catalogs']) == list
 
-        inventory = RealmInventory(personality, factory, config)
+        catalogs = {}
+
         for catalog_config in config['catalogs']:
-            if 'filename' in catalog_config:
-                filename = catalog_config['filename']
-                inventory.load(filename)
+            if 'schema' in catalog_config:
+                catalog = Catalog.from_schema(name=catalog_config['name'], schema=catalog_config['schema'])
             elif 'archive' in catalog_config:
                 catalog = Catalog.from_archive(catalog_config['archive'])
-                self._catalogs[catalog.name] = catalog
+            elif 'address' in catalog_config:
+                catalog = Catalog.from_address(catalog_config['address'])
+            else:
+                assert False, 'neither "schema", "archive" nor "address" field in catalog config'
+            catalogs[catalog.name] = catalog
+
+        inventory = RealmInventory(personality, factory, catalogs)
+
         return inventory

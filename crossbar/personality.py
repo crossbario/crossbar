@@ -202,12 +202,7 @@ def create_realm_inventory(personality, factory, config) -> IRealmInventory:
 
     :return: A new realm inventory object.
     """
-    inventory = RealmInventory(personality, factory, config)
-    if 'catalogs' in config:
-        for catalog_config in config['catalogs']:
-            if 'filename' in catalog_config:
-                filename = catalog_config['filename']
-                inventory.load(filename)
+    inventory = RealmInventory.from_config(personality, factory, config)
     return inventory
 
 
