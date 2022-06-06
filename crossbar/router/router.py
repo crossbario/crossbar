@@ -517,6 +517,9 @@ class Router(object):
             if uri == 'eth.pydefi.replica.ba3b1e9f-3006-4eae-ae88-cf5896b36342.' \
                       'book.a17f0b45-1ed2-4b1a-9a7d-c112e8cd5d9b.get_candle_history':
                 if payload_type == 'call':
+                    #
+                    # validate positional arguments
+                    #
                     validate_args = args or []
                     validation_types_args = validate.get('args', []) or []
                     if len(validate_args) != len(validation_types_args):
@@ -527,6 +530,7 @@ class Router(object):
                                                                                  validation_types_args))
                         self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
                         raise InvalidPayload(msg)
+
                     for vt_arg_idx, vt_arg in enumerate(validation_types_args):
                         self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
                                       vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
@@ -551,16 +555,18 @@ class Router(object):
                                           vt_arg=hlval(vt_arg, color='red'),
                                           vt_keys=list(self._inventory.repo.objs.keys()))
 
+                    #
+                    # validate keyword arguments
+                    #
                     validate_kwargs = kwargs or {}
                     validation_types_kwargs = validate.get('kwargs', {}) or {}
                     if len(validate_kwargs) != len(validation_types_kwargs):
-                        self.log.warn(
-                            'validation error: CALL of "{uri}" with invalid kwargs length (got {kwargs_len}, '
-                            'expected {validation_types_kwargs})',
-                            func=hltype(self.validate),
-                            uri=hlval(uri),
-                            kwargs_len=len(validate_kwargs),
-                            validation_types_kwargs=len(validation_types_kwargs))
+                        msg = 'validation error: CALL of "{uri}" with invalid kwargs length (got {kwargs_len}, ' \
+                              'expected {validation_types_kwargs})'.format(uri=hlval(uri),
+                                                                           kwargs_len=len(validate_kwargs),
+                                                                           validation_types_kwargs=len(validation_types_kwargs))
+                        self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                        raise InvalidPayload(msg)
 
 
 class RouterFactory(object):
