@@ -502,71 +502,81 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
         assert payload_type in ['event', 'call', 'call_result', 'call_error']
+        self.log.info(
+            '{func} validate "{payload_type}" for "{uri}": '
+            'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
+            func=hltype(self.validate),
+            payload_type=hlval(payload_type),
+            uri=hlval(uri),
+            args=hlval(len(args) if args is not None else '-'),
+            kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
+            validate=validate,
+            cb_level="trace")
+
         if self._inventory and validate:
-            self.log.info(
-                '{func} validate "{payload_type}" for "{uri}": '
-                'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
-                func=hltype(self.validate),
-                payload_type=hlval(payload_type),
-                uri=hlval(uri),
-                args=hlval(len(args) if args is not None else '-'),
-                kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
-                validate=validate,
-                cb_level="trace")
 
-            if uri == 'eth.pydefi.replica.ba3b1e9f-3006-4eae-ae88-cf5896b36342.' \
-                      'book.a17f0b45-1ed2-4b1a-9a7d-c112e8cd5d9b.get_candle_history':
-                if payload_type == 'call':
-                    #
-                    # validate positional arguments
-                    #
-                    validate_args = args or []
-                    validation_types_args = validate.get('args', []) or []
-                    if len(validate_args) != len(validation_types_args):
-                        msg = 'validation error: CALL of "{uri}" with invalid args length (got {args_len}, ' \
-                              'expected {validation_types_args_len})'.format(uri=hlval(uri),
-                                                                             args_len=len(validate_args),
-                                                                             validation_types_args_len=len(
-                                                                                 validation_types_args))
-                        self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
-                        raise InvalidPayload(msg)
+            validate_args = args or []
+            validate_kwargs = kwargs or {}
 
-                    for vt_arg_idx, vt_arg in enumerate(validation_types_args):
-                        self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
-                                      vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
-                                      vt_arg=hlval(vt_arg, color='green'))
-                        if vt_arg in self._inventory.repo.objs:
-                            vt: FbsObject = self._inventory.repo.objs[vt_arg]
-                            if not vt.is_struct:
-                                if type(args[vt_arg_idx]) != dict:
-                                    msg = 'validation error: CALL of "{uri}" with invalid arg type - {vt_arg_idx} has ' \
-                                          'type {arg_type}, not dict'.format(uri=hlval(uri),
-                                                                             vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
-                                                                             arg_type=hlval(type(args[vt_arg_idx])))
-                                    self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
-                                    raise InvalidPayload(msg)
-                            else:
-                                self.log.warn(
-                                    'validation type {vt_arg} found in repo, but is a struct, '
-                                    'not a table type',
-                                    vt_arg=hlval(vt_arg, color='red'))
-                        else:
-                            self.log.warn('validation type {vt_arg} not found in repo (within keys {vt_keys})',
-                                          vt_arg=hlval(vt_arg, color='red'),
-                                          vt_keys=list(self._inventory.repo.objs.keys()))
+            if payload_type in ['call', 'event']:
+                validation_types_args = validate.get('args', []) or []
+                validation_types_kwargs = validate.get('kwargs', {}) or {}
+            elif payload_type == 'call_result':
+                validation_types_args = validate.get('results', []) or []
+                validation_types_kwargs = validate.get('kwresults', {}) or {}
+            elif payload_type == 'call_error':
+                validation_types_args = validate.get('errors', []) or []
+                validation_types_kwargs = validate.get('kwerrors', {}) or {}
+            else:
+                assert False, 'should not arrive here'
 
-                    #
-                    # validate keyword arguments
-                    #
-                    validate_kwargs = kwargs or {}
-                    validation_types_kwargs = validate.get('kwargs', {}) or {}
-                    if len(validate_kwargs) != len(validation_types_kwargs):
-                        msg = 'validation error: CALL of "{uri}" with invalid kwargs length (got {kwargs_len}, ' \
-                              'expected {validation_types_kwargs})'.format(uri=hlval(uri),
-                                                                           kwargs_len=len(validate_kwargs),
-                                                                           validation_types_kwargs=len(validation_types_kwargs))
-                        self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
-                        raise InvalidPayload(msg)
+            #
+            # validate positional arguments
+            #
+            if len(validate_args) != len(validation_types_args):
+                msg = 'validation error: {payload_type} of "{uri}" with invalid args length (got {args_len}, ' \
+                      'expected {validation_types_args_len})'.format(payload_type=hlval(payload_type), uri=hlval(uri),
+                                                                     args_len=len(validate_args),
+                                                                     validation_types_args_len=len(
+                                                                         validation_types_args))
+                self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                raise InvalidPayload(msg)
+
+            for vt_arg_idx, vt_arg in enumerate(validation_types_args):
+                self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
+                              vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
+                              vt_arg=hlval(vt_arg, color='green'))
+                if vt_arg in self._inventory.repo.objs:
+                    vt: FbsObject = self._inventory.repo.objs[vt_arg]
+                    print('>' * 100, 'validate', args[vt_arg_idx], vt)
+                    if not vt.is_struct:
+                        if type(args[vt_arg_idx]) != dict:
+                            msg = 'validation error: {payload_type} of "{uri}" with invalid arg type - {vt_arg_idx} has ' \
+                                  'type {arg_type}, not dict'.format(payload_type=hlval(payload_type), uri=hlval(uri),
+                                                                     vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx),
+                                                                                      color='red'),
+                                                                     arg_type=hlval(type(args[vt_arg_idx])))
+                            self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                            raise InvalidPayload(msg)
+                    else:
+                        self.log.warn('validation type {vt_arg} found in repo, but is a struct, '
+                                      'not a table type',
+                                      vt_arg=hlval(vt_arg, color='red'))
+                else:
+                    self.log.warn('validation type {vt_arg} not found in repo (within keys {vt_keys})',
+                                  vt_arg=hlval(vt_arg, color='red'),
+                                  vt_keys=list(self._inventory.repo.objs.keys()))
+
+            #
+            # validate keyword arguments
+            #
+            if len(validate_kwargs) != len(validation_types_kwargs):
+                msg = 'validation error: {payload_type} of "{uri}" with invalid kwargs length (got {kwargs_len}, ' \
+                      'expected {validation_types_kwargs})'.format(payload_type=hlval(payload_type), uri=hlval(uri),
+                                                                   kwargs_len=len(validate_kwargs),
+                                                                   validation_types_kwargs=len(validation_types_kwargs))
+                self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                raise InvalidPayload(msg)
 
 
 class RouterFactory(object):
