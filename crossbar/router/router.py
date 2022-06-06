@@ -534,12 +534,13 @@ class Router(object):
                         if vt_arg in self._inventory.repo.objs:
                             vt: FbsObject = self._inventory.repo.objs[vt_arg]
                             if not vt.is_struct:
-                                if type(args[vt_arg_idx]) == dict:
-                                    print('3' * 100, vt)
-                                else:
-                                    self.log.warn('{vt_arg_idx} has type {arg_type}, not dict',
-                                                  vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
-                                                  arg_type=hlval(type(args[vt_arg_idx])))
+                                if type(args[vt_arg_idx]) != dict:
+                                    msg = 'validation error: CALL of "{uri}" with invalid arg type - {vt_arg_idx} has ' \
+                                          'type {arg_type}, not dict'.format(uri=hlval(uri),
+                                                                             vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
+                                                                             arg_type=hlval(type(args[vt_arg_idx])))
+                                    self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                                    raise InvalidPayload(msg)
                             else:
                                 self.log.warn(
                                     'validation type {vt_arg} found in repo, but is a struct, '
