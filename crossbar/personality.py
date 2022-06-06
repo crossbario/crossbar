@@ -24,9 +24,9 @@ from crossbar.worker.testee import WebSocketTesteeController
 from crossbar.worker.proxy import ProxyController, ProxyWorkerProcess
 from crossbar.webservice import base
 from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static, archive, wap, catalog
-from crossbar.interfaces import IRealmStore, IRealmInventory
+from crossbar.interfaces import IRealmStore, IInventory
 from crossbar.router.realmstore import RealmStoreMemory
-from crossbar.router.realminventory import RealmInventory
+from crossbar.router.inventory import Inventory
 
 
 def do_nothing(*args, **kw):
@@ -153,7 +153,7 @@ def create_realm_store(personality, factory, config) -> IRealmStore:
     return store
 
 
-def create_realm_inventory(personality, factory, config) -> IRealmInventory:
+def create_realm_inventory(personality, factory, config) -> IInventory:
     """
 
     .. code-block:: json
@@ -202,7 +202,7 @@ def create_realm_inventory(personality, factory, config) -> IRealmInventory:
 
     :return: A new realm inventory object.
     """
-    inventory = RealmInventory.from_config(personality, factory, config)
+    inventory = Inventory.from_config(personality, factory, config)
     return inventory
 
 

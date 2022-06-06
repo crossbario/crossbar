@@ -19,12 +19,12 @@ from txaio import use_twisted  # noqa
 from txaio import make_logger
 
 from autobahn.util import hltype
-from autobahn.xbr import FbsRepository
+from autobahn.xbr import FbsRepository, FbsSchema
 
 from crossbar.common.checkconfig import check_dict_args
-from crossbar.interfaces import IRealmInventory
+from crossbar.interfaces import IInventory
 
-__all__ = ('RealmInventory', )
+__all__ = ('Inventory', )
 
 
 class Catalog(object):
@@ -55,6 +55,7 @@ class Catalog(object):
     """
 
     __slots__ = (
+        '_inventory',
         '_ctype',
         '_name',
         '_bfbs',
@@ -75,6 +76,7 @@ class Catalog(object):
 
     def __init__(
         self,
+        inventory: 'Inventory',
         ctype: int,
         name: str,
         bfbs: Optional[str] = None,
@@ -83,7 +85,7 @@ class Catalog(object):
         version: Optional[str] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        schemas: Optional[List[str]] = None,
+        schemas: Optional[Dict[str, FbsSchema]] = None,
         author: Optional[str] = None,
         publisher: Optional[str] = None,
         clicense: Optional[str] = None,
@@ -94,6 +96,7 @@ class Catalog(object):
     ):
         """
 
+        :param inventory:
         :param ctype:
         :param name:
         :param bfbs:
@@ -111,23 +114,27 @@ class Catalog(object):
         :param giturl:
         :param theme:
         """
+        self._inventory = inventory
+
         assert ctype in [Catalog.CATALOG_TYPE_BFBS, Catalog.CATALOG_TYPE_ARCHIVE, Catalog.CATALOG_TYPE_ADDRESS]
+        self._ctype = ctype
+        self._name = name
 
         # only one of the following must be provided for a given ctype
         assert (ctype == Catalog.CATALOG_TYPE_BFBS and bfbs and not archive and not address) or \
                (ctype == Catalog.CATALOG_TYPE_ARCHIVE and not bfbs and archive and not address) or \
                (ctype == Catalog.CATALOG_TYPE_ADDRESS and not bfbs and not archive and address)
-
-        self._ctype = ctype
-        self._name = name
         self._bfbs = bfbs
         self._archive = archive
         self._address = address
 
+        # map of schemas
+        self._schemas = schemas or {}
+
+        # catalog metadata
         self._version = version
         self._title = title
         self._description = description
-        self._schemas = schemas
         self._author = author
         self._publisher = publisher
         self._clicense = clicense
@@ -135,6 +142,19 @@ class Catalog(object):
         self._homepage = homepage
         self._giturl = giturl
         self._theme = theme
+
+    def __len__(self) -> int:
+        return len(self._schemas)
+
+    def __getitem__(self, name: str) -> FbsSchema:
+        return self._schemas[name]
+
+    def __iter__(self):
+        return iter(self._schemas)
+
+    @property
+    def inventory(self) -> 'Inventory':
+        return self._inventory
 
     @property
     def ctype(self) -> int:
@@ -169,10 +189,6 @@ class Catalog(object):
         return self._description
 
     @property
-    def schemas(self) -> Optional[List[str]]:
-        return self._schemas
-
-    @property
     def author(self) -> Optional[str]:
         return self._author
 
@@ -201,52 +217,45 @@ class Catalog(object):
         return self._theme
 
     @staticmethod
-    def from_bfbs(name, filename) -> 'Catalog':
+    def from_bfbs(inventory: 'Inventory', name: str, filename: str) -> 'Catalog':
         """
 
+        :param inventory:
         :param name:
         :param filename:
         :return:
         """
         if not os.path.isfile(filename):
             raise RuntimeError('cannot open catalog from bfbs file "{}" - not a file'.format(filename))
-        catalog = Catalog(ctype=Catalog.CATALOG_TYPE_BFBS, name=name, bfbs=filename)
+        catalog = Catalog(inventory=inventory, ctype=Catalog.CATALOG_TYPE_BFBS, name=name, bfbs=filename)
         return catalog
 
     @staticmethod
-    def from_archive(filename) -> 'Catalog':
+    def from_archive(inventory: 'Inventory', filename: str) -> 'Catalog':
         """
 
+        :param inventory:
         :param filename:
         :return:
         """
         if not os.path.isfile(filename):
-            raise RuntimeError('cannot open catalog from archive "{}" - not a file'.format(filename))
+            raise RuntimeError('cannot open catalog from archive "{}" - path is not a file'.format(filename))
+        if not zipfile.is_zipfile(filename):
+            raise RuntimeError('cannot open catalog from archive "{}" - file is not a ZIP file'.format(filename))
+
         f = zipfile.ZipFile(filename)
+
+        if f.testzip() is not None:
+            raise RuntimeError('cannot open catalog from archive "{}" - ZIP file is corrupt'.format(filename))
+
         if 'catalog.yaml' not in f.namelist():
-            raise RuntimeError('archive does not seem to be a catalog - missing catalog.yaml')
+            raise RuntimeError('archive does not seem to be a catalog - missing catalog.yaml catalog index')
+
+        # open, read and parse catalog metadata file
         data = f.open('catalog.yaml').read()
         obj = yaml.safe_load(data)
 
-        from pprint import pprint
-        pprint(obj)
-
-        # {'author': 'typedef int GmbH',
-        #  'description': 'Write me.',
-        #  'git': 'https://github.com/wamp-proto/wamp-proto.git',
-        #  'homepage': 'https://wamp-proto.org/',
-        #  'keywords': 'trading, defi, analytics',
-        #  'license': 'MIT',
-        #  'name': 'pydefi-trading',
-        #  'publisher': 552618803359027592947966730519406091095802297127,
-        #  'schemas': ['schema/trading.bfbs', 'schema/demo.bfbs'],
-        #  'theme': {'background': '#333333',
-        #            'highlight': '#00ccff',
-        #            'logo': 'img/logo.png',
-        #            'text': '#e0e0e0'},
-        #  'title': 'PyDeFi Trading API Catalog',
-        #  'version': '22.6.1'}
-
+        # check metadata object
         check_dict_args(
             {
                 # mandatory:
@@ -267,18 +276,39 @@ class Catalog(object):
             obj,
             "WAMP API Catalog {} invalid".format(filename))
 
-        schemas = None
+        schemas = {}
         if 'schemas' in obj:
             for schema_path in obj['schemas']:
                 assert type(schema_path) == str, 'invalid type {} for schema path'.format(type(schema_path))
                 assert schema_path in f.namelist(), 'cannot find schema path "{}" in catalog archive'.format(
                     schema_path)
-            schemas = obj['schemas']
+                with f.open(schema_path) as fd:
+                    # load FlatBuffers schema object
+                    _schema: FbsSchema = FbsSchema.load(inventory.repo, fd, schema_path)
 
-        publisher = None
-        if 'publisher' in obj:
-            # FIXME: check publisher address
-            publisher = obj['publisher']
+                    # add enum types to repository by name
+                    for _enum in _schema.enums.values():
+                        if _enum.name in inventory.repo._enums:
+                            print('skipping duplicate enum type for name "{}"'.format(_enum.name))
+                        else:
+                            inventory.repo._enums[_enum.name] = _enum
+
+                    # add object types to repository by name
+                    for _obj in _schema.objs.values():
+                        if _obj.name in inventory.repo._objs:
+                            print('skipping duplicate object (table/struct) type for name "{}"'.format(_obj.name))
+                        else:
+                            inventory.repo._objs[_obj.name] = _obj
+
+                    # add service definitions ("APIs") to repository by name
+                    for _svc in _schema.services.values():
+                        if _svc.name in inventory.repo._services:
+                            print('skipping duplicate service type for name "{}"'.format(_svc.name))
+                        else:
+                            inventory.repo._services[_svc.name] = _svc
+
+                    # remember schema object by schema path
+                    schemas[schema_path] = _schema
 
         clicense = None
         if 'clicense' in obj:
@@ -332,7 +362,8 @@ class Catalog(object):
             # FIXME: check publisher address
             publisher = obj['publisher']
 
-        catalog = Catalog(ctype=Catalog.CATALOG_TYPE_ARCHIVE,
+        catalog = Catalog(inventory=inventory,
+                          ctype=Catalog.CATALOG_TYPE_ARCHIVE,
                           name=obj['name'],
                           archive=filename,
                           version=obj.get('version', None),
@@ -349,19 +380,21 @@ class Catalog(object):
         return catalog
 
     @staticmethod
-    def from_address(address) -> 'Catalog':
+    def from_address(inventory: 'Inventory', address) -> 'Catalog':
         """
 
+        :param inventory:
         :param address:
         :return:
         """
-        catalog = Catalog(ctype=Catalog.CATALOG_TYPE_ADDRESS,
+        catalog = Catalog(inventory=inventory,
+                          ctype=Catalog.CATALOG_TYPE_ADDRESS,
                           name='fixme{}'.format(randint(1, 2**31)),
                           address=address)
         return catalog
 
 
-class RealmInventory(IRealmInventory):
+class Inventory(IInventory):
     """
     Memory-backed realm inventory.
     """
@@ -398,11 +431,13 @@ class RealmInventory(IRealmInventory):
     def add_catalog(self, catalog: Catalog):
         assert catalog.name not in self._catalogs
         self._catalogs[catalog.name] = catalog
+        if catalog.ctype == Catalog.CATALOG_TYPE_BFBS:
+            self._repo.load(catalog.bfbs)
 
     @property
     def type(self) -> str:
         """
-        Implements :meth:`crossbar._interfaces.IRealmInventory.type`
+        Implements :meth:`crossbar._interfaces.IInventory.type`
         """
         return self.INVENTORY_TYPE
 
@@ -412,20 +447,20 @@ class RealmInventory(IRealmInventory):
     @property
     def repo(self) -> FbsRepository:
         """
-        Implements :meth:`crossbar._interfaces.IRealmInventory.type`
+        Implements :meth:`crossbar._interfaces.IInventory.type`
         """
         return self._repo
 
     @property
     def is_running(self) -> bool:
         """
-        Implements :meth:`crossbar._interfaces.IRealmInventory.is_running`
+        Implements :meth:`crossbar._interfaces.IInventory.is_running`
         """
         return self._running
 
     def start(self):
         """
-        Implements :meth:`crossbar._interfaces.IRealmInventory.start`
+        Implements :meth:`crossbar._interfaces.IInventory.start`
         """
         if self._running:
             raise RuntimeError('inventory is already running')
@@ -437,7 +472,7 @@ class RealmInventory(IRealmInventory):
 
     def stop(self):
         """
-        Implements :meth:`crossbar._interfaces.IRealmInventory.stop`
+        Implements :meth:`crossbar._interfaces.IInventory.stop`
         """
         if not self._running:
             raise RuntimeError('inventory is not running')
@@ -449,28 +484,28 @@ class RealmInventory(IRealmInventory):
     def load(self, name: str, filename: str) -> int:
         assert name not in self._catalogs
         self._repo.load(filename)
-        self._catalogs[name] = Catalog(ctype=Catalog.CATALOG_TYPE_BFBS, name=name, bfbs=filename)
+        self._catalogs[name] = Catalog(inventory=self, ctype=Catalog.CATALOG_TYPE_BFBS, name=name, bfbs=filename)
         return len(self._repo.objs) + len(self._repo.enums) + len(self._repo.services)
 
     @staticmethod
     def from_config(personality, factory, config):
-        assert 'type' in config and config['type'] == RealmInventory.INVENTORY_TYPE
+        assert 'type' in config and config['type'] == Inventory.INVENTORY_TYPE
         assert 'catalogs' in config and type(config['catalogs']) == list
 
+        inventory = Inventory(personality, factory)
         catalogs = {}
-
         for idx, catalog_config in enumerate(config['catalogs']):
-            name = catalog_config.get('name', 'catalog{}'.format(idx))
             if 'bfbs' in catalog_config:
-                catalog = Catalog.from_bfbs(name=name, filename=catalog_config['schema'])
+                catalog = Catalog.from_bfbs(inventory=inventory,
+                                            name=catalog_config.get('name', 'catalog{}'.format(idx)),
+                                            filename=catalog_config['bfbs'])
             elif 'archive' in catalog_config:
-                catalog = Catalog.from_archive(filename=catalog_config['archive'])
+                catalog = Catalog.from_archive(inventory=inventory, filename=catalog_config['archive'])
             elif 'address' in catalog_config:
-                catalog = Catalog.from_address(address=catalog_config['address'])
+                catalog = Catalog.from_address(inventory=inventory, address=catalog_config['address'])
             else:
                 assert False, 'neither "bfbs", "archive" nor "address" field in catalog config'
             catalogs[catalog.name] = catalog
 
-        inventory = RealmInventory(personality, factory, catalogs)
-
+        inventory._catalogs = catalogs
         return inventory

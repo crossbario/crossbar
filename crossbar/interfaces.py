@@ -27,7 +27,7 @@ __all__ = (
     'IPendingAuth',
     'IRealmContainer',
     'IRealmStore',
-    'IRealmInventory',
+    'IInventory',
 )
 
 
@@ -274,7 +274,7 @@ class IRealmStore(abc.ABC):
         """
 
 
-class IRealmInventory(abc.ABC):
+class IInventory(abc.ABC):
     """
     Realm inventory interface.
     """

@@ -14,7 +14,7 @@ from txaio import make_logger
 
 from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp import message
-from autobahn.wamp.exception import ProtocolError
+from autobahn.wamp.exception import ProtocolError, InvalidPayload
 from autobahn.wamp.interfaces import ISession
 
 from autobahn.xbr._schema import FbsObject
@@ -25,7 +25,7 @@ from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
-from crossbar.interfaces import IRealmStore, IRealmInventory
+from crossbar.interfaces import IRealmStore, IInventory
 from crossbar.worker.types import RouterRealm
 
 __all__ = (
@@ -63,7 +63,7 @@ class Router(object):
                  realm,
                  options: Optional[RouterOptions] = None,
                  store: Optional[IRealmStore] = None,
-                 inventory: Optional[IRealmInventory] = None):
+                 inventory: Optional[IInventory] = None):
         """
 
         :param factory: The router factory this router was created by.
@@ -79,7 +79,7 @@ class Router(object):
         self._realm = realm
         self._options = options or RouterOptions()
         self._store: Optional[IRealmStore] = store
-        self._inventory: Optional[IRealmInventory] = inventory
+        self._inventory: Optional[IInventory] = inventory
 
         self.realm = realm.config['name']
 
@@ -520,15 +520,13 @@ class Router(object):
                     validate_args = args or []
                     validation_types_args = validate.get('args', []) or []
                     if len(validate_args) != len(validation_types_args):
-                        self.log.warn(
-                            'validation error: CALL of "{uri}" with invalid args length (got {args_len}, '
-                            'expected {validation_types_args_len})',
-                            func=hltype(self.validate),
-                            uri=hlval(uri),
-                            args_len=len(validate_args),
-                            validation_types_args_len=len(validation_types_args))
-                        # from autobahn.wamp.exception import ProtocolError, InvalidPayload
-                        # raise InvalidPayload()
+                        msg = 'validation error: CALL of "{uri}" with invalid args length (got {args_len}, ' \
+                              'expected {validation_types_args_len})'.format(uri=hlval(uri),
+                                                                             args_len=len(validate_args),
+                                                                             validation_types_args_len=len(
+                                                                                 validation_types_args))
+                        self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                        raise InvalidPayload(msg)
                     for vt_arg_idx, vt_arg in enumerate(validation_types_args):
                         self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
                                       vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
@@ -659,7 +657,7 @@ class RouterFactory(object):
                           realm=hlval(uri))
 
         # setup optional inventory for realm API catalogs
-        inventory: Optional[IRealmInventory] = None
+        inventory: Optional[IInventory] = None
         if 'inventory' in realm.config and realm.config['inventory']:
             # the worker's node personality
             psn = self._worker.personality
