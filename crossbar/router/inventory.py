@@ -563,7 +563,7 @@ class Inventory(IInventory):
         if len(args) != len(vt_args):
             msg = 'validation error: invalid args length (got {args_len}, expected {vt_args_len})'.format(
                 args_len=len(args), vt_args_len=len(vt_args))
-            self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+            self.log.warn('{func} {msg}', func=hltype(self.validate), msg=hlval(msg, color='red'))
             raise InvalidPayload(msg)
 
         for vt_arg_idx, vt_arg in enumerate(vt_args):
@@ -573,22 +573,20 @@ class Inventory(IInventory):
                           vt_arg=hlval(vt_arg, color='green'))
             if vt_arg in self.repo.objs:
                 vt: FbsObject = self.repo.objs[vt_arg]
-                # print('1' * 100, 'validate', args[vt_arg_idx], vt)
                 if not vt.is_struct:
                     if type(args[vt_arg_idx]) != dict:
                         msg = 'validation error: invalid arg type, {vt_arg_idx} has type {arg_type}, not dict'.format(
-                            vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
-                            arg_type=hlval(type(args[vt_arg_idx])))
-                        self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                            vt_arg_idx='args[{}]'.format(vt_arg_idx), arg_type=type(args[vt_arg_idx]))
+                        self.log.info('{func} {msg}', func=hltype(self.validate), msg=hlval(msg, color='red'))
                         raise InvalidPayload(msg)
                 else:
-                    self.log.warn(
+                    self.log.info(
                         '{func} validation type {vt_arg} found in repo, but is a struct, '
                         'not a table type',
                         func=hltype(self.validate),
                         vt_arg=hlval(vt_arg, color='red'))
             else:
-                self.log.warn('{func} validation type {vt_arg} not found in repo (within keys {vt_keys})',
+                self.log.info('{func} validation type {vt_arg} not found in repo (within keys {vt_keys})',
                               func=hltype(self.validate),
                               vt_arg=hlval(vt_arg, color='red'),
                               vt_keys=list(self.repo.objs.keys()))
@@ -598,7 +596,7 @@ class Inventory(IInventory):
         if len(kwargs) != len(vt_kwargs):
             msg = 'validation error: invalid kwargs length (got {kwargs_len}, expected {vt_kwargs})'.format(
                 kwargs_len=len(kwargs), vt_kwargs=len(vt_kwargs))
-            self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+            self.log.info('{func} {msg}', func=hltype(self.validate), msg=hlval(msg, color='red'))
             raise InvalidPayload(msg)
 
         for vt_kwarg_key, vt_kwarg in vt_kwargs.items():
@@ -608,22 +606,22 @@ class Inventory(IInventory):
                           vt_kwarg=hlval(vt_kwarg, color='green'))
             if vt_kwarg in self.repo.objs:
                 vt: FbsObject = self.repo.objs[vt_kwarg]
-                # print('2' * 100, 'validate', kwargs[vt_kwarg_key], vt)
                 if not vt.is_struct:
                     if type(kwargs[vt_kwarg_key]) != dict:
                         msg = 'validation error: invalid arg type, {vt_kwarg_key} has type {kwarg_type}, not dict'.format(
-                            vt_kwarg_key=hlval('kwargs[{}]'.format(vt_kwarg_key), color='red'),
-                            kwarg_type=hlval(type(kwargs[vt_kwarg_key])))
-                        self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                            vt_kwarg_key='kwargs[{}]'.format(vt_kwarg_key), kwarg_type=type(kwargs[vt_kwarg_key]))
+                        self.log.info('{func} {msg}', func=hltype(self.validate), msg=hlval(msg, color='red'))
                         raise InvalidPayload(msg)
                 else:
-                    self.log.warn(
+                    self.log.info(
                         '{func} validation type {vt_kwarg} found in repo, but is a struct, '
                         'not a table type',
                         func=hltype(self.validate),
                         vt_kwarg=hlval(vt_kwarg, color='red'))
             else:
-                self.log.warn('{func} validation type {vt_kwarg} not found in repo (within keys {vt_keys})',
+                self.log.info('{func} validation type {vt_kwarg} not found in repo (within keys {vt_keys})',
                               func=hltype(self.validate),
                               vt_kwarg=hlval(vt_kwarg, color='red'),
                               vt_keys=list(self.repo.objs.keys()))
+
+        self.log.info('{func} {msg}', func=hltype(self.validate), msg=hlval('validation success!', color='green'))
