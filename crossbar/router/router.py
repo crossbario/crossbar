@@ -500,18 +500,18 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
         assert payload_type in ['event', 'call', 'call_result', 'call_error']
-        self.log.info(
-            '{func} validate "{payload_type}" for "{uri}": '
-            'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
-            func=hltype(self.validate),
-            payload_type=hlval(payload_type),
-            uri=hlval(uri),
-            args=hlval(len(args) if args is not None else '-'),
-            kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
-            validate=validate,
-            cb_level="trace")
 
         if self._inventory and validate:
+            self.log.info(
+                '{func} validate "{payload_type}" for "{uri}": '
+                'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
+                func=hltype(self.validate),
+                payload_type=hlval(payload_type),
+                uri=hlval(uri),
+                args=hlval(len(args) if args is not None else '-'),
+                kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
+                validate=validate,
+                cb_level="trace")
 
             validate_args = args or []
             validate_kwargs = kwargs or {}

@@ -569,8 +569,8 @@ class Inventory(IInventory):
         for vt_arg_idx, vt_arg in enumerate(vt_args):
             self.log.info('{func} validate {vt_arg_idx} using validation type {vt_arg}',
                           func=hltype(self.validate),
-                          vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
-                          vt_arg=hlval(vt_arg, color='green'))
+                          vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='yellow'),
+                          vt_arg=hlval(vt_arg, color='yellow'))
             if vt_arg in self.repo.objs:
                 vt: FbsObject = self.repo.objs[vt_arg]
                 if not vt.is_struct:
@@ -602,8 +602,8 @@ class Inventory(IInventory):
         for vt_kwarg_key, vt_kwarg in vt_kwargs.items():
             self.log.info('{func} validate {vt_kwarg_key} using validation type {vt_kwarg}',
                           func=hltype(self.validate),
-                          vt_kwarg_key=hlval('kwargs[{}]'.format(vt_kwarg_key), color='red'),
-                          vt_kwarg=hlval(vt_kwarg, color='green'))
+                          vt_kwarg_key=hlval('kwargs[{}]'.format(vt_kwarg_key), color='yellow'),
+                          vt_kwarg=hlval(vt_kwarg, color='yellow'))
             if vt_kwarg in self.repo.objs:
                 vt: FbsObject = self.repo.objs[vt_kwarg]
                 if not vt.is_struct:
