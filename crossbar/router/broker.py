@@ -339,41 +339,14 @@ class Broker(object):
 
         else:
 
-            # validate payload
-            #
-            if publish.payload is None:
-                try:
-                    self._router.validate('event', publish.topic, publish.args, publish.kwargs, validate=None)
-                except Exception as e:
-                    if publish.acknowledge:
-                        if self._router.is_traced:
-                            publish.correlation_is_last = False
-                            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
-
-                        reply = message.Error(
-                            message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [
-                                "publish to topic URI '{0}' with invalid application payload: {1}".format(
-                                    publish.topic, e)
-                            ])
-                        reply.correlation_id = publish.correlation_id
-                        reply.correlation_uri = publish.topic
-                        reply.correlation_is_anchor = False
-                        reply.correlation_is_last = True
-                        self._router.send(session, reply)
-                    else:
-                        if self._router.is_traced:
-                            publish.correlation_is_last = True
-                            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
-
-                    return
-
             # authorize PUBLISH action
             #
             d = self._router.authorize(session, publish.topic, 'publish', options=publish.marshal_options())
 
             def on_authorize_success(authorization):
+                print('%' * 100, authorization)
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
-                # the action was actually authorized or not ..
+                # the action was actually authorized or not
                 if not publish.topic.endswith('.on_log'):
                     self.log.debug(
                         '{func}::on_authorize_success() - permission {result} for PUBLISH to topic "{topic}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
@@ -407,6 +380,38 @@ class Broker(object):
                             self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
                 else:
+                    # validate payload (skip in "payload_transparency" mode)
+                    if publish.payload is None:
+                        try:
+                            from pprint import pprint
+                            pprint(authorization)
+                            self._router.validate('event',
+                                                  publish.topic,
+                                                  publish.args,
+                                                  publish.kwargs,
+                                                  validate=authorization.get('validate', None))
+                        except Exception as e:
+                            if publish.acknowledge:
+                                if self._router.is_traced:
+                                    publish.correlation_is_last = False
+                                    self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
+                                reply = message.Error(
+                                    message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [
+                                        "publish to topic URI '{0}' with invalid application payload: {1}".format(
+                                            publish.topic, e)
+                                    ])
+                                reply.correlation_id = publish.correlation_id
+                                reply.correlation_uri = publish.topic
+                                reply.correlation_is_anchor = False
+                                reply.correlation_is_last = True
+                                self._router.send(session, reply)
+                            else:
+                                if self._router.is_traced:
+                                    publish.correlation_is_last = True
+                                    self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
+                            return
 
                     # new ID for the publication
                     #

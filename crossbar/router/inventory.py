@@ -18,8 +18,10 @@ import yaml
 from txaio import use_twisted  # noqa
 from txaio import make_logger
 
-from autobahn.util import hltype
+from autobahn.util import hltype, hlval
 from autobahn.xbr import FbsRepository, FbsSchema
+from autobahn.wamp.exception import InvalidPayload
+from autobahn.xbr._schema import FbsObject
 
 from crossbar.common.checkconfig import check_dict_args
 from crossbar.interfaces import IInventory
@@ -509,3 +511,43 @@ class Inventory(IInventory):
 
         inventory._catalogs = catalogs
         return inventory
+
+    def validate(self, args, kwargs, vt_args, vt_kwargs):
+        # validate positional arguments
+        #
+        if len(args) != len(vt_args):
+            msg = 'validation error: invalid args length (got {args_len}, expected {vt_args_len})'.format(
+                args_len=len(args), vt_args_len=len(vt_args))
+            self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+            raise InvalidPayload(msg)
+
+        for vt_arg_idx, vt_arg in enumerate(vt_args):
+            self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
+                          vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
+                          vt_arg=hlval(vt_arg, color='green'))
+            if vt_arg in self.repo.objs:
+                vt: FbsObject = self.repo.objs[vt_arg]
+                print('>' * 100, 'validate', args[vt_arg_idx], vt)
+                if not vt.is_struct:
+                    if type(args[vt_arg_idx]) != dict:
+                        msg = 'validation error: invalid arg type, {vt_arg_idx} has type {arg_type}, not dict'.format(
+                            vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
+                            arg_type=hlval(type(args[vt_arg_idx])))
+                        self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                        raise InvalidPayload(msg)
+                else:
+                    self.log.warn('validation type {vt_arg} found in repo, but is a struct, '
+                                  'not a table type',
+                                  vt_arg=hlval(vt_arg, color='red'))
+            else:
+                self.log.warn('validation type {vt_arg} not found in repo (within keys {vt_keys})',
+                              vt_arg=hlval(vt_arg, color='red'),
+                              vt_keys=list(self.repo.objs.keys()))
+
+        # validate keyword arguments
+        #
+        if len(kwargs) != len(vt_kwargs):
+            msg = 'validation error: invalid kwargs length (got {kwargs_len}, expected {vt_kwargs})'.format(
+                kwargs_len=len(kwargs), vt_kwargs=len(vt_kwargs))
+            self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+            raise InvalidPayload(msg)

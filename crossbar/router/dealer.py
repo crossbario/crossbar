@@ -43,18 +43,20 @@ class InvocationRequest(object):
         'call',
         'callee',
         'forward_for',
+        'authorization',
         'canceled',
         'error_msg',
         'timeout_call',
     )
 
-    def __init__(self, id, registration, caller, call, callee, forward_for):
+    def __init__(self, id, registration, caller, call, callee, forward_for, authorization):
         self.id = id
         self.registration = registration
         self.caller = caller
         self.call = call
         self.callee = callee
         self.forward_for = forward_for
+        self.authorization = authorization
         self.canceled = False
         self.error_msg = None
         self.timeout_call = None  # if we have a timeout pending, this is it
@@ -694,7 +696,7 @@ class Dealer(object):
 
         return was_registered, was_last_callee
 
-    def processCall(self, session, call):
+    def processCall(self, session, call: message.Call):
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processCall`
         """
@@ -1042,6 +1044,7 @@ class Dealer(object):
                                  call,
                                  callee,
                                  forward_for,
+                                 authorization,
                                  timeout=call.timeout)
         self._router.send(callee, invocation)
         return True
@@ -1053,12 +1056,14 @@ class Dealer(object):
                             call,
                             callee,
                             forward_for,
+                            authorization,
                             timeout=None):
         """
         Internal helper.  Adds an InvocationRequest to both the
         _callee_to_invocations and _invocations maps.
         """
-        invoke_request = InvocationRequest(invocation_request_id, registration, session, call, callee, forward_for)
+        invoke_request = InvocationRequest(invocation_request_id, registration, session, call, callee, forward_for,
+                                           authorization)
         self._invocations[invocation_request_id] = invoke_request
         self._invocations_by_call[session._session_id, call.request] = invoke_request
         invokes = self._callee_to_invocations.get(callee, [])
@@ -1304,7 +1309,7 @@ class Dealer(object):
                                               invocation_request.call.procedure,
                                               yield_.args,
                                               yield_.kwargs,
-                                              validate=None)
+                                              validate=invocation_request.authorization.get('validate', None))
                     except Exception as e:
                         is_valid = False
                         reply = message.Error(
@@ -1479,7 +1484,7 @@ class Dealer(object):
                                               invocation_request.call.procedure,
                                               error.args,
                                               error.kwargs,
-                                              validate=None)
+                                              validate=invocation_request.authorization.get('validate', None))
                     except Exception as e:
                         reply = message.Error(
                             message.Call.MESSAGE_TYPE,

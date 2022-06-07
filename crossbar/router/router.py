@@ -14,10 +14,8 @@ from txaio import make_logger
 
 from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp import message
-from autobahn.wamp.exception import ProtocolError, InvalidPayload
+from autobahn.wamp.exception import ProtocolError
 from autobahn.wamp.interfaces import ISession
-
-from autobahn.xbr._schema import FbsObject
 
 from crossbar.router import RouterOptions
 from crossbar.router.broker import Broker
@@ -530,53 +528,7 @@ class Router(object):
             else:
                 assert False, 'should not arrive here'
 
-            #
-            # validate positional arguments
-            #
-            if len(validate_args) != len(validation_types_args):
-                msg = 'validation error: {payload_type} of "{uri}" with invalid args length (got {args_len}, ' \
-                      'expected {validation_types_args_len})'.format(payload_type=hlval(payload_type), uri=hlval(uri),
-                                                                     args_len=len(validate_args),
-                                                                     validation_types_args_len=len(
-                                                                         validation_types_args))
-                self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
-                raise InvalidPayload(msg)
-
-            for vt_arg_idx, vt_arg in enumerate(validation_types_args):
-                self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
-                              vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
-                              vt_arg=hlval(vt_arg, color='green'))
-                if vt_arg in self._inventory.repo.objs:
-                    vt: FbsObject = self._inventory.repo.objs[vt_arg]
-                    print('>' * 100, 'validate', args[vt_arg_idx], vt)
-                    if not vt.is_struct:
-                        if type(args[vt_arg_idx]) != dict:
-                            msg = 'validation error: {payload_type} of "{uri}" with invalid arg type - {vt_arg_idx} has ' \
-                                  'type {arg_type}, not dict'.format(payload_type=hlval(payload_type), uri=hlval(uri),
-                                                                     vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx),
-                                                                                      color='red'),
-                                                                     arg_type=hlval(type(args[vt_arg_idx])))
-                            self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
-                            raise InvalidPayload(msg)
-                    else:
-                        self.log.warn('validation type {vt_arg} found in repo, but is a struct, '
-                                      'not a table type',
-                                      vt_arg=hlval(vt_arg, color='red'))
-                else:
-                    self.log.warn('validation type {vt_arg} not found in repo (within keys {vt_keys})',
-                                  vt_arg=hlval(vt_arg, color='red'),
-                                  vt_keys=list(self._inventory.repo.objs.keys()))
-
-            #
-            # validate keyword arguments
-            #
-            if len(validate_kwargs) != len(validation_types_kwargs):
-                msg = 'validation error: {payload_type} of "{uri}" with invalid kwargs length (got {kwargs_len}, ' \
-                      'expected {validation_types_kwargs})'.format(payload_type=hlval(payload_type), uri=hlval(uri),
-                                                                   kwargs_len=len(validate_kwargs),
-                                                                   validation_types_kwargs=len(validation_types_kwargs))
-                self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
-                raise InvalidPayload(msg)
+            self._inventory.validate(validate_args, validate_kwargs, validation_types_args, validation_types_kwargs)
 
 
 class RouterFactory(object):
