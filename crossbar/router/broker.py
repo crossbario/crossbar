@@ -344,7 +344,6 @@ class Broker(object):
             d = self._router.authorize(session, publish.topic, 'publish', options=publish.marshal_options())
 
             def on_authorize_success(authorization):
-                print('%' * 100, authorization)
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not
                 if not publish.topic.endswith('.on_log'):
@@ -383,8 +382,6 @@ class Broker(object):
                     # validate payload (skip in "payload_transparency" mode)
                     if publish.payload is None:
                         try:
-                            from pprint import pprint
-                            pprint(authorization)
                             self._router.validate('event',
                                                   publish.topic,
                                                   publish.args,

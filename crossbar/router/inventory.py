@@ -405,6 +405,12 @@ class Inventory(IInventory):
     log = make_logger()
 
     def __init__(self, personality, factory, catalogs: Optional[Dict[str, Catalog]] = None):
+        """
+
+        :param personality:
+        :param factory:
+        :param catalogs:
+        """
         from twisted.internet import reactor
 
         self._reactor = reactor
@@ -421,16 +427,34 @@ class Inventory(IInventory):
         # the consolidated schema repository with all schemas from catalogs
         self._repo = FbsRepository(basemodule=self._basemodule)
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """
+
+        :return:
+        """
         return len(self._catalogs)
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> Catalog:
+        """
+
+        :param name:
+        :return:
+        """
         return self._catalogs[name]
 
     def __iter__(self):
+        """
+
+        :return:
+        """
         return iter(self._catalogs)
 
     def add_catalog(self, catalog: Catalog):
+        """
+
+        :param catalog:
+        :return:
+        """
         assert catalog.name not in self._catalogs
         self._catalogs[catalog.name] = catalog
         if catalog.ctype == Catalog.CATALOG_TYPE_BFBS:
@@ -484,6 +508,12 @@ class Inventory(IInventory):
         self._running = False
 
     def load(self, name: str, filename: str) -> int:
+        """
+
+        :param name:
+        :param filename:
+        :return:
+        """
         assert name not in self._catalogs
         self._repo.load(filename)
         self._catalogs[name] = Catalog(inventory=self, ctype=Catalog.CATALOG_TYPE_BFBS, name=name, bfbs=filename)
@@ -491,6 +521,13 @@ class Inventory(IInventory):
 
     @staticmethod
     def from_config(personality, factory, config):
+        """
+
+        :param personality:
+        :param factory:
+        :param config:
+        :return:
+        """
         assert 'type' in config and config['type'] == Inventory.INVENTORY_TYPE
         assert 'catalogs' in config and type(config['catalogs']) == list
 
@@ -513,6 +550,14 @@ class Inventory(IInventory):
         return inventory
 
     def validate(self, args, kwargs, vt_args, vt_kwargs):
+        """
+
+        :param args:
+        :param kwargs:
+        :param vt_args:
+        :param vt_kwargs:
+        :return:
+        """
         # validate positional arguments
         #
         if len(args) != len(vt_args):
@@ -522,12 +567,13 @@ class Inventory(IInventory):
             raise InvalidPayload(msg)
 
         for vt_arg_idx, vt_arg in enumerate(vt_args):
-            self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
+            self.log.info('{func} validate {vt_arg_idx} using validation type {vt_arg}',
+                          func=hltype(self.validate),
                           vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
                           vt_arg=hlval(vt_arg, color='green'))
             if vt_arg in self.repo.objs:
                 vt: FbsObject = self.repo.objs[vt_arg]
-                print('>' * 100, 'validate', args[vt_arg_idx], vt)
+                # print('1' * 100, 'validate', args[vt_arg_idx], vt)
                 if not vt.is_struct:
                     if type(args[vt_arg_idx]) != dict:
                         msg = 'validation error: invalid arg type, {vt_arg_idx} has type {arg_type}, not dict'.format(
@@ -536,11 +582,14 @@ class Inventory(IInventory):
                         self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
                         raise InvalidPayload(msg)
                 else:
-                    self.log.warn('validation type {vt_arg} found in repo, but is a struct, '
-                                  'not a table type',
-                                  vt_arg=hlval(vt_arg, color='red'))
+                    self.log.warn(
+                        '{func} validation type {vt_arg} found in repo, but is a struct, '
+                        'not a table type',
+                        func=hltype(self.validate),
+                        vt_arg=hlval(vt_arg, color='red'))
             else:
-                self.log.warn('validation type {vt_arg} not found in repo (within keys {vt_keys})',
+                self.log.warn('{func} validation type {vt_arg} not found in repo (within keys {vt_keys})',
+                              func=hltype(self.validate),
                               vt_arg=hlval(vt_arg, color='red'),
                               vt_keys=list(self.repo.objs.keys()))
 
@@ -551,3 +600,30 @@ class Inventory(IInventory):
                 kwargs_len=len(kwargs), vt_kwargs=len(vt_kwargs))
             self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
             raise InvalidPayload(msg)
+
+        for vt_kwarg_key, vt_kwarg in vt_kwargs.items():
+            self.log.info('{func} validate {vt_kwarg_key} using validation type {vt_kwarg}',
+                          func=hltype(self.validate),
+                          vt_kwarg_key=hlval('kwargs[{}]'.format(vt_kwarg_key), color='red'),
+                          vt_kwarg=hlval(vt_kwarg, color='green'))
+            if vt_kwarg in self.repo.objs:
+                vt: FbsObject = self.repo.objs[vt_kwarg]
+                # print('2' * 100, 'validate', kwargs[vt_kwarg_key], vt)
+                if not vt.is_struct:
+                    if type(kwargs[vt_kwarg_key]) != dict:
+                        msg = 'validation error: invalid arg type, {vt_kwarg_key} has type {kwarg_type}, not dict'.format(
+                            vt_kwarg_key=hlval('kwargs[{}]'.format(vt_kwarg_key), color='red'),
+                            kwarg_type=hlval(type(kwargs[vt_kwarg_key])))
+                        self.log.warn('{func} {msg}', func=hltype(self.validate), msg=msg)
+                        raise InvalidPayload(msg)
+                else:
+                    self.log.warn(
+                        '{func} validation type {vt_kwarg} found in repo, but is a struct, '
+                        'not a table type',
+                        func=hltype(self.validate),
+                        vt_kwarg=hlval(vt_kwarg, color='red'))
+            else:
+                self.log.warn('{func} validation type {vt_kwarg} not found in repo (within keys {vt_keys})',
+                              func=hltype(self.validate),
+                              vt_kwarg=hlval(vt_kwarg, color='red'),
+                              vt_keys=list(self.repo.objs.keys()))
