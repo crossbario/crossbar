@@ -495,9 +495,20 @@ class Router(object):
         d.addCallback(got_authorization)
         return d
 
-    def validate(self, payload_type, uri, args, kwargs, validate=None):
+    def validate(self,
+                 payload_type: str,
+                 uri: str,
+                 args: Optional[List[Any]],
+                 kwargs: Optional[Dict[str, Any]],
+                 validate: Optional[Dict[str, Any]] = None):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
+
+        Called to validate application payloads sent in WAMP calls, call results and errors, as well
+        as events from:
+
+        * :class:`crossbar.router.dealer.Dealer`
+        * :class:`crossbar.router.broker.Broker`
         """
         assert payload_type in ['event', 'call', 'call_result', 'call_error']
 
@@ -513,9 +524,21 @@ class Router(object):
                 validate=validate,
                 cb_level="trace")
 
+            # the args/kwargs from the WAMP operation that gets validated
             validate_args = args or []
             validate_kwargs = kwargs or {}
 
+            # the args/kwargs validation types (str references into the inventory)
+            # against which above is validated:
+            #
+            # validate = {
+            #     "args": List[str],
+            #     "kwargs": Dict[str, str],
+            #     "results": List[str],
+            #     "kwresults": Dict[str, str],
+            #     "errors": List[str],
+            #     "kwerrors": Dict[str, str],
+            # }
             if payload_type in ['call', 'event']:
                 validation_types_args = validate.get('args', []) or []
                 validation_types_kwargs = validate.get('kwargs', {}) or {}
@@ -528,7 +551,8 @@ class Router(object):
             else:
                 assert False, 'should not arrive here'
 
-            self._inventory.validate(validate_args, validate_kwargs, validation_types_args, validation_types_kwargs)
+            self._inventory.repo.validate(validate_args, validate_kwargs, validation_types_args,
+                                          validation_types_kwargs)
 
 
 class RouterFactory(object):
@@ -637,7 +661,7 @@ class RouterFactory(object):
                 'loaded {total_count} types, from config:\n{config}',
                 func=hltype(self.start_realm),
                 inventory_type=hlval(inventory.type, color='green'),
-                total_count=hlval(inventory.repo.total_count()),
+                total_count=hlval(inventory.repo.total_count),
                 realm=hlval(uri),
                 config=pformat(realm.config['inventory']))
 

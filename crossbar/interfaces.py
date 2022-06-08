@@ -323,14 +323,3 @@ class IInventory(abc.ABC):
             This procedure may or may not run asynchronously
             depending on inventory type.
         """
-
-    @abc.abstractmethod
-    def validate(self, args, kwargs, vt_args, vt_kwargs):
-        """
-
-        :param args:
-        :param kwargs:
-        :param vt_args:
-        :param vt_kwargs:
-        :return:
-        """

@@ -18,10 +18,8 @@ import yaml
 from txaio import use_twisted  # noqa
 from txaio import make_logger
 
-from autobahn.util import hltype, hlval
+from autobahn.util import hltype
 from autobahn.xbr import FbsRepository, FbsSchema
-from autobahn.wamp.exception import InvalidPayload
-from autobahn.xbr._schema import FbsObject
 
 from crossbar.common.checkconfig import check_dict_args
 from crossbar.interfaces import IInventory
@@ -280,6 +278,10 @@ class Catalog(object):
 
         schemas = {}
         if 'schemas' in obj:
+            enum_dups = 0
+            obj_dups = 0
+            svc_dups = 0
+
             for schema_path in obj['schemas']:
                 assert type(schema_path) == str, 'invalid type {} for schema path'.format(type(schema_path))
                 assert schema_path in f.namelist(), 'cannot find schema path "{}" in catalog archive'.format(
@@ -291,21 +293,24 @@ class Catalog(object):
                     # add enum types to repository by name
                     for _enum in _schema.enums.values():
                         if _enum.name in inventory.repo._enums:
-                            print('skipping duplicate enum type for name "{}"'.format(_enum.name))
+                            # print('skipping duplicate enum type for name "{}"'.format(_enum.name))
+                            enum_dups += 1
                         else:
                             inventory.repo._enums[_enum.name] = _enum
 
                     # add object types to repository by name
                     for _obj in _schema.objs.values():
                         if _obj.name in inventory.repo._objs:
-                            print('skipping duplicate object (table/struct) type for name "{}"'.format(_obj.name))
+                            # print('skipping duplicate object (table/struct) type for name "{}"'.format(_obj.name))
+                            obj_dups += 1
                         else:
                             inventory.repo._objs[_obj.name] = _obj
 
                     # add service definitions ("APIs") to repository by name
                     for _svc in _schema.services.values():
                         if _svc.name in inventory.repo._services:
-                            print('skipping duplicate service type for name "{}"'.format(_svc.name))
+                            # print('skipping duplicate service type for name "{}"'.format(_svc.name))
+                            svc_dups += 1
                         else:
                             inventory.repo._services[_svc.name] = _svc
 
@@ -548,80 +553,3 @@ class Inventory(IInventory):
 
         inventory._catalogs = catalogs
         return inventory
-
-    def validate(self, args, kwargs, vt_args, vt_kwargs):
-        """
-
-        :param args:
-        :param kwargs:
-        :param vt_args:
-        :param vt_kwargs:
-        :return:
-        """
-        # validate positional arguments
-        #
-        if len(args) != len(vt_args):
-            msg = 'validation error: invalid args length (got {args_len}, expected {vt_args_len})'.format(
-                args_len=len(args), vt_args_len=len(vt_args))
-            self.log.warn('{func} {msg}', func=hltype(self.validate), msg=hlval(msg, color='red'))
-            raise InvalidPayload(msg)
-
-        for vt_arg_idx, vt_arg in enumerate(vt_args):
-            self.log.info('{func} validate {vt_arg_idx} using validation type {vt_arg}',
-                          func=hltype(self.validate),
-                          vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='yellow'),
-                          vt_arg=hlval(vt_arg, color='yellow'))
-            if vt_arg in self.repo.objs:
-                vt: FbsObject = self.repo.objs[vt_arg]
-                if not vt.is_struct:
-                    if type(args[vt_arg_idx]) != dict:
-                        msg = 'validation error: invalid arg type, {vt_arg_idx} has type {arg_type}, not dict'.format(
-                            vt_arg_idx='args[{}]'.format(vt_arg_idx), arg_type=type(args[vt_arg_idx]))
-                        self.log.info('{func} {msg}', func=hltype(self.validate), msg=hlval(msg, color='red'))
-                        raise InvalidPayload(msg)
-                else:
-                    self.log.info(
-                        '{func} validation type {vt_arg} found in repo, but is a struct, '
-                        'not a table type',
-                        func=hltype(self.validate),
-                        vt_arg=hlval(vt_arg, color='red'))
-            else:
-                self.log.info('{func} validation type {vt_arg} not found in repo (within keys {vt_keys})',
-                              func=hltype(self.validate),
-                              vt_arg=hlval(vt_arg, color='red'),
-                              vt_keys=list(self.repo.objs.keys()))
-
-        # validate keyword arguments
-        #
-        if len(kwargs) != len(vt_kwargs):
-            msg = 'validation error: invalid kwargs length (got {kwargs_len}, expected {vt_kwargs})'.format(
-                kwargs_len=len(kwargs), vt_kwargs=len(vt_kwargs))
-            self.log.info('{func} {msg}', func=hltype(self.validate), msg=hlval(msg, color='red'))
-            raise InvalidPayload(msg)
-
-        for vt_kwarg_key, vt_kwarg in vt_kwargs.items():
-            self.log.info('{func} validate {vt_kwarg_key} using validation type {vt_kwarg}',
-                          func=hltype(self.validate),
-                          vt_kwarg_key=hlval('kwargs[{}]'.format(vt_kwarg_key), color='yellow'),
-                          vt_kwarg=hlval(vt_kwarg, color='yellow'))
-            if vt_kwarg in self.repo.objs:
-                vt: FbsObject = self.repo.objs[vt_kwarg]
-                if not vt.is_struct:
-                    if type(kwargs[vt_kwarg_key]) != dict:
-                        msg = 'validation error: invalid arg type, {vt_kwarg_key} has type {kwarg_type}, not dict'.format(
-                            vt_kwarg_key='kwargs[{}]'.format(vt_kwarg_key), kwarg_type=type(kwargs[vt_kwarg_key]))
-                        self.log.info('{func} {msg}', func=hltype(self.validate), msg=hlval(msg, color='red'))
-                        raise InvalidPayload(msg)
-                else:
-                    self.log.info(
-                        '{func} validation type {vt_kwarg} found in repo, but is a struct, '
-                        'not a table type',
-                        func=hltype(self.validate),
-                        vt_kwarg=hlval(vt_kwarg, color='red'))
-            else:
-                self.log.info('{func} validation type {vt_kwarg} not found in repo (within keys {vt_keys})',
-                              func=hltype(self.validate),
-                              vt_kwarg=hlval(vt_kwarg, color='red'),
-                              vt_keys=list(self.repo.objs.keys()))
-
-        self.log.info('{func} {msg}', func=hltype(self.validate), msg=hlval('validation success!', color='green'))

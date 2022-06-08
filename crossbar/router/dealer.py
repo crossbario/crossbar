@@ -732,6 +732,8 @@ class Dealer(object):
         #  - returns an authorization dict
         #  - might use static (aka "permissions") or dynamic authorizers
         #  - might be cached in the router
+        #  - might include a payload validate stanza
+        #  - will be store (later) in InvocationRequest.authorization
         d = self._router.authorize(session, call.procedure, 'call', options=call.marshal_options())
 
         def on_authorize_success(authorization):
