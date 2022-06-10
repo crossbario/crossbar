@@ -389,7 +389,7 @@ class RouterServiceAgent(ApplicationSession):
     @wamp.register('wamp.session.flush_testaments')
     def session_flush_testaments(self, scope="destroyed", details=None):
         """
-        Flush the testaments of a given scope.
+        Flush the testaments of a given scope for the calling session.
 
         :param scope: The scope to flush, either "detached" or "destroyed".
         :type scope: str

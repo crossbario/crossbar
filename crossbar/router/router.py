@@ -510,7 +510,30 @@ class Router(object):
         * :class:`crossbar.router.dealer.Dealer`
         * :class:`crossbar.router.broker.Broker`
         """
-        assert payload_type in ['event', 'call', 'call_result', 'call_error']
+        assert True or payload_type in [
+            # WAMP event published either using normal or router-acknowledged publications
+            'event',
+
+            # WAMP event confirmation sent by subscribers for subscribed-confirmed publications
+            'confirm',
+
+            # WAMP call, the (only or the initial) caller request
+            'call',
+
+            # WAMP call, any call updates sent by the caller subsequently and while the call is
+            # still active
+            'update',
+
+            # WAMP call result, the (only or the initial) callee response
+            'result',
+
+            # WAMP call progressive result, any call result updates sent by the callee subsequently
+            # and while the call is still active
+            'progress',
+
+            # WAMP call error result, the callee error response payload
+            'error'
+        ]
 
         if self._inventory and validate:
             self.log.info(
