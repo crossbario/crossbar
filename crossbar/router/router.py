@@ -14,7 +14,7 @@ from txaio import make_logger
 
 from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp import message
-from autobahn.wamp.exception import ProtocolError
+from autobahn.wamp.exception import ProtocolError, InvalidPayload
 from autobahn.wamp.interfaces import ISession
 
 from crossbar.router import RouterOptions
@@ -510,72 +510,59 @@ class Router(object):
         * :class:`crossbar.router.dealer.Dealer`
         * :class:`crossbar.router.broker.Broker`
         """
-        assert True or payload_type in [
+        assert payload_type in [
+            # meta arguments parsed from URI
+            'meta',
+
+            # rpc_service.RequestType ##############################################################
+
             # WAMP event published either using normal or router-acknowledged publications
             'event',
-
-            # WAMP event confirmation sent by subscribers for subscribed-confirmed publications
-            'confirm',
 
             # WAMP call, the (only or the initial) caller request
             'call',
 
             # WAMP call, any call updates sent by the caller subsequently and while the call is
             # still active
-            'update',
+            'call_progress',
+
+            # rpc_service.ResponseType #############################################################
+
+            # WAMP event confirmation sent by subscribers for subscribed-confirmed publications
+            'event_result',
 
             # WAMP call result, the (only or the initial) callee response
-            'result',
+            'call_result',
 
             # WAMP call progressive result, any call result updates sent by the callee subsequently
             # and while the call is still active
-            'progress',
+            'call_result_progress',
 
             # WAMP call error result, the callee error response payload
-            'error'
+            'call_error',
         ]
 
-        if self._inventory and validate:
+        if self._inventory and validate and payload_type in validate:
+            validation_type = validate[payload_type]
             self.log.info(
-                '{func} validate "{payload_type}" for "{uri}": '
-                'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
+                '{func} validate "{payload_type}" for payload with '
+                'len(args)={args}, len(kwargs)={kwargs} using validation_type="{validation_type}"',
                 func=hltype(self.validate),
-                payload_type=hlval(payload_type),
+                payload_type=hlval(payload_type, color='green'),
                 uri=hlval(uri),
                 args=hlval(len(args) if args is not None else '-'),
                 kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
-                validate=validate,
+                validation_type=hlval(validation_type, color='green'),
                 cb_level="trace")
 
-            # the args/kwargs from the WAMP operation that gets validated
-            validate_args = args or []
-            validate_kwargs = kwargs or {}
-
-            # the args/kwargs validation types (str references into the inventory)
-            # against which above is validated:
-            #
-            # validate = {
-            #     "args": List[str],
-            #     "kwargs": Dict[str, str],
-            #     "results": List[str],
-            #     "kwresults": Dict[str, str],
-            #     "errors": List[str],
-            #     "kwerrors": Dict[str, str],
-            # }
-            if payload_type in ['call', 'event']:
-                validation_types_args = validate.get('args', []) or []
-                validation_types_kwargs = validate.get('kwargs', {}) or {}
-            elif payload_type == 'call_result':
-                validation_types_args = validate.get('results', []) or []
-                validation_types_kwargs = validate.get('kwresults', {}) or {}
-            elif payload_type == 'call_error':
-                validation_types_args = validate.get('errors', []) or []
-                validation_types_kwargs = validate.get('kwerrors', {}) or {}
+            try:
+                self._inventory.repo.validate(validation_type, args, kwargs)
+            except InvalidPayload as e:
+                self.log.warn('{func} {msg}', func=hltype(self.validate), msg=hlval(e, color='red'))
+                raise
             else:
-                assert False, 'should not arrive here'
-
-            self._inventory.repo.validate(validate_args, validate_kwargs, validation_types_args,
-                                          validation_types_kwargs)
+                self.log.info('{func} {msg}', func=hltype(self.validate),
+                              msg=hlval('validation success!', color='green'))
 
 
 class RouterFactory(object):
