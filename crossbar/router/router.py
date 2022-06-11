@@ -543,25 +543,30 @@ class Router(object):
         ]
 
         if self._inventory and validate and payload_type in validate:
+            # type against which we validate the application payload args/kwargs
             validation_type = validate[payload_type]
+
             self.log.info(
-                '{func} validate "{payload_type}" for payload with '
+                '{func} validate "{payload_type}" on URI "{uri}" for payload with '
                 'len(args)={args}, len(kwargs)={kwargs} using validation_type="{validation_type}"',
                 func=hltype(self.validate),
-                payload_type=hlval(payload_type, color='green'),
-                uri=hlval(uri),
+                payload_type=hlval(payload_type.upper(), color='blue'),
+                uri=hlval(uri, color='magenta'),
                 args=hlval(len(args) if args is not None else '-'),
                 kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
-                validation_type=hlval(validation_type, color='green'),
+                validation_type=hlval(validation_type, color='blue'),
                 cb_level="trace")
 
             try:
                 self._inventory.repo.validate(validation_type, args, kwargs)
             except InvalidPayload as e:
-                self.log.warn('{func} {msg}', func=hltype(self.validate), msg=hlval(e, color='red'))
+                self.log.warn('{func} {msg}',
+                              func=hltype(self.validate),
+                              msg=hlval('validation error: {}'.format(e), color='red'))
                 raise
             else:
-                self.log.info('{func} {msg}', func=hltype(self.validate),
+                self.log.info('{func} {msg}',
+                              func=hltype(self.validate),
                               msg=hlval('validation success!', color='green'))
 
 
