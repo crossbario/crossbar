@@ -16,9 +16,10 @@ Interfaces used internally inside Crossbar.io to abstract/decouple different sof
 import abc
 from typing import Union, Dict, List, Any, Optional, Tuple
 
-from autobahn.wamp import ISession
+from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails, SessionDetails
 from autobahn.wamp.message import Publish
+from autobahn.xbr._schema import FbsRepository
 
 from crossbar.router.observation import UriObservationMap
 
@@ -26,7 +27,7 @@ __all__ = (
     'IPendingAuth',
     'IRealmContainer',
     'IRealmStore',
-    'IRealmInventory',
+    'IInventory',
 )
 
 
@@ -273,7 +274,7 @@ class IRealmStore(abc.ABC):
         """
 
 
-class IRealmInventory(abc.ABC):
+class IInventory(abc.ABC):
     """
     Realm inventory interface.
     """
@@ -283,6 +284,14 @@ class IRealmInventory(abc.ABC):
         """
 
         :return: Return type of realm inventory, e.g. ``"wamp.eth"``.
+        """
+
+    @property
+    @abc.abstractmethod
+    def repo(self) -> FbsRepository:
+        """
+
+        :return:
         """
 
     @property

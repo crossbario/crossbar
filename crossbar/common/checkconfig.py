@@ -29,7 +29,7 @@ from yaml.constructor import ConstructorError
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence, Hashable
 
-__all__ = ('check_config', 'check_config_file', 'convert_config_file', 'check_guest')
+__all__ = ('check_dict_args', 'check_config', 'check_config_file', 'convert_config_file', 'check_guest')
 
 LATEST_CONFIG_VERSION = 2
 """

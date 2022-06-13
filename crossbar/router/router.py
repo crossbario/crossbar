@@ -14,7 +14,7 @@ from txaio import make_logger
 
 from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp import message
-from autobahn.wamp.exception import ProtocolError
+from autobahn.wamp.exception import ProtocolError, InvalidPayload
 from autobahn.wamp.interfaces import ISession
 
 from crossbar.router import RouterOptions
@@ -23,7 +23,7 @@ from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
-from crossbar.interfaces import IRealmStore, IRealmInventory
+from crossbar.interfaces import IRealmStore, IInventory
 from crossbar.worker.types import RouterRealm
 
 __all__ = (
@@ -61,7 +61,7 @@ class Router(object):
                  realm,
                  options: Optional[RouterOptions] = None,
                  store: Optional[IRealmStore] = None,
-                 inventory: Optional[IRealmInventory] = None):
+                 inventory: Optional[IInventory] = None):
         """
 
         :param factory: The router factory this router was created by.
@@ -77,7 +77,7 @@ class Router(object):
         self._realm = realm
         self._options = options or RouterOptions()
         self._store: Optional[IRealmStore] = store
-        self._inventory: Optional[IRealmInventory] = inventory
+        self._inventory: Optional[IInventory] = inventory
 
         self.realm = realm.config['name']
 
@@ -325,9 +325,9 @@ class Router(object):
             elif isinstance(msg, message.Unsubscribe):
                 self._broker.processUnsubscribe(session, msg)
 
-            elif isinstance(msg, message.EventReceived):
-                # FIXME
-                self._broker.processEventReceived(session, msg)
+            # FIXME: implement EventReceived
+            # elif isinstance(msg, message.EventReceived):
+            #     self._broker.processEventReceived(session, msg)
 
             # Dealer
             #
@@ -495,51 +495,79 @@ class Router(object):
         d.addCallback(got_authorization)
         return d
 
-    def validate(self, payload_type, uri, args, kwargs, validate=None):
+    def validate(self,
+                 payload_type: str,
+                 uri: str,
+                 args: Optional[List[Any]],
+                 kwargs: Optional[Dict[str, Any]],
+                 validate: Optional[Dict[str, Any]] = None):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
+
+        Called to validate application payloads sent in WAMP calls, call results and errors, as well
+        as events from:
+
+        * :class:`crossbar.router.dealer.Dealer`
+        * :class:`crossbar.router.broker.Broker`
         """
-        assert payload_type in ['event', 'call', 'call_result', 'call_error']
-        if self._inventory and validate:
+        assert payload_type in [
+            # meta arguments parsed from URI
+            'meta',
+
+            # rpc_service.RequestType ##############################################################
+
+            # WAMP event published either using normal or router-acknowledged publications
+            'event',
+
+            # WAMP call, the (only or the initial) caller request
+            'call',
+
+            # WAMP call, any call updates sent by the caller subsequently and while the call is
+            # still active
+            'call_progress',
+
+            # rpc_service.ResponseType #############################################################
+
+            # WAMP event confirmation sent by subscribers for subscribed-confirmed publications
+            'event_result',
+
+            # WAMP call result, the (only or the initial) callee response
+            'call_result',
+
+            # WAMP call progressive result, any call result updates sent by the callee subsequently
+            # and while the call is still active
+            'call_result_progress',
+
+            # WAMP call error result, the callee error response payload
+            'call_error',
+        ]
+
+        if self._inventory and validate and payload_type in validate:
+            # type against which we validate the application payload args/kwargs
+            validation_type = validate[payload_type]
+
             self.log.info(
-                '{func} validate "{payload_type}" for "{uri}": '
-                'len(args)={args}, len(kwargs)={kwargs}, validate={validate}',
+                '{func} validate "{payload_type}" on URI "{uri}" for payload with '
+                'len(args)={args}, len(kwargs)={kwargs} using validation_type="{validation_type}"',
                 func=hltype(self.validate),
-                payload_type=hlval(payload_type),
-                uri=hlval(uri),
+                payload_type=hlval(payload_type.upper(), color='blue'),
+                uri=hlval(uri, color='magenta'),
                 args=hlval(len(args) if args is not None else '-'),
                 kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
-                validate=validate,
+                validation_type=hlval(validation_type, color='blue'),
                 cb_level="trace")
 
-            if uri == 'eth.pydefi.replica.ba3b1e9f-3006-4eae-ae88-cf5896b36342.' \
-                      'book.a17f0b45-1ed2-4b1a-9a7d-c112e8cd5d9b.get_candle_history':
-                if payload_type == 'call':
-                    validate_args = args or []
-                    validation_types_args = validate.get('args', []) or []
-                    if len(validate_args) != len(validation_types_args):
-                        self.log.warn(
-                            'validation error: CALL of "{uri}" with invalid args length (got {args_len}, '
-                            'expected {validation_types_args_len})',
-                            func=hltype(self.validate),
-                            uri=hlval(uri),
-                            args_len=len(validate_args),
-                            validation_types_args_len=len(validation_types_args))
-                    for vt_arg_idx, vt_arg in enumerate(validation_types_args):
-                        self.log.info('validate {vt_arg_idx} using validation type {vt_arg}',
-                                      vt_arg_idx=hlval('args[{}]'.format(vt_arg_idx), color='red'),
-                                      vt_arg=hlval(vt_arg, color='green'))
-
-                    validate_kwargs = kwargs or {}
-                    validation_types_kwargs = validate.get('kwargs', {}) or {}
-                    if len(validate_kwargs) != len(validation_types_kwargs):
-                        self.log.warn(
-                            'validation error: CALL of "{uri}" with invalid kwargs length (got {kwargs_len}, '
-                            'expected {validation_types_kwargs})',
-                            func=hltype(self.validate),
-                            uri=hlval(uri),
-                            kwargs_len=len(validate_kwargs),
-                            validation_types_kwargs=len(validation_types_kwargs))
+            try:
+                self._inventory.repo.validate(validation_type, args, kwargs)
+            except InvalidPayload as e:
+                self.log.warn('{func} {msg}',
+                              func=hltype(self.validate),
+                              msg=hlval('validation error: {}'.format(e), color='red'))
+                raise
+            else:
+                self.log.info('{func} {msg}',
+                              func=hltype(self.validate),
+                              msg=hlval('validation success!', color='green'))
 
 
 class RouterFactory(object):
@@ -637,16 +665,20 @@ class RouterFactory(object):
                           realm=hlval(uri))
 
         # setup optional inventory for realm API catalogs
-        inventory: Optional[IRealmInventory] = None
+        inventory: Optional[IInventory] = None
         if 'inventory' in realm.config and realm.config['inventory']:
             # the worker's node personality
             psn = self._worker.personality
             inventory = psn.create_realm_inventory(psn, self, realm.config['inventory'])
             assert inventory
-            self.log.info('{func}: initialized realm inventory <{inventory_type}> for realm "{realm}"',
-                          func=hltype(self.start_realm),
-                          inventory_type=hlval(inventory.type, color='green'),
-                          realm=hlval(uri))
+            self.log.info(
+                '{func}: initialized realm inventory <{inventory_type}> for realm "{realm}", '
+                'loaded {total_count} types, from config:\n{config}',
+                func=hltype(self.start_realm),
+                inventory_type=hlval(inventory.type, color='green'),
+                total_count=hlval(inventory.repo.total_count),
+                realm=hlval(uri),
+                config=pformat(realm.config['inventory']))
 
         # setup realm options
         options = RouterOptions(
