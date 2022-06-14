@@ -35,6 +35,7 @@ def test_shutdown_failed_component(reactor, request, virtualenv, session_temp):
     """
     crossbar shuts down a container on any component failure
     """
+    raise pytest.skip("FIXME")
 
     crossbar_config = {
         "version": 2,
@@ -176,6 +177,7 @@ def test_restart_failed_component(reactor, request, virtualenv, session_temp):
     """
     crossbar restarts a component on failure
     """
+    raise pytest.skip("FIXME")
 
     crossbar_config = {
         "version": 2,
