@@ -98,6 +98,9 @@ test_all:
 test_fixme:
 	tox -e	py39-automate-1,py39-automate-2,py39-xbrnetwork-1 .
 
+test_cb_apperrors:
+	pytest -sv --no-install test/functests/cbtests/test_cb_apperrors.py
+
 test_cb_proxy:
 	pytest -sv --no-install test/functests/cbtests/test_cb_proxy.py
 
