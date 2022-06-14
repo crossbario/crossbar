@@ -242,15 +242,55 @@ class ProxyFrontendSession(object):
 
             # https://wamp-proto.org/_static/gen/wamp_latest.html#session-closing
             elif isinstance(msg, message.Goodbye):
-                print('8' * 100, msg)
+
+                # compare this code here for proxies to :meth:`RouterSession.onLeave` for routers
+
+                # 1) if asked to explicitly close the session
+                if msg.reason == "wamp.close.logout":
+                    cookie_deleted = None
+                    cnt_kicked = 0
+
+                    # if cookie was set on transport
+                    if self.transport and hasattr(
+                            self.transport,
+                            '_cbtid') and self.transport._cbtid and self.transport.factory._cookiestore:
+                        cbtid = self.transport._cbtid
+                        cs = self.transport.factory._cookiestore
+
+                        # set cookie to "not authenticated"
+                        # cs.setAuth(cbtid, None, None, None, None, None)
+                        cs.delAuth(cbtid)
+                        cookie_deleted = cbtid
+
+                        # kick all transport protos (e.g. WampWebSocketServerProtocol) for the same auth cookie
+                        for proto in cs.getProtos(cbtid):
+                            # but don't kick ourselves
+                            if proto != self.transport:
+                                proto.sendClose()
+                                cnt_kicked += 1
+
+                    self.log.info(
+                        '{func} {action} completed for session {session_id} (cookie authentication deleted: '
+                        '"{cookie_deleted}", pro-actively kicked (other) sessions: {cnt_kicked})',
+                        action=hlval('wamp.close.logout', color='red'),
+                        session_id=hlid(self._session_id),
+                        cookie_deleted=hlval(cookie_deleted, color='red') if cookie_deleted else 'none',
+                        cnt_kicked=hlval(cnt_kicked, color='red') if cnt_kicked else 'none',
+                        func=hltype(self.onMessage))
+
+                # 2) if we currently have a session from proxy to backend router (as normally the case),
+                # disconnect and unmap that session as well
                 if self._backend_session:
-                    self._controller.unmap_backend(self, self._backend_session)
+                    self._controller.unmap_backend(self,
+                                                   self._backend_session,
+                                                   leave_reason=msg.reason,
+                                                   leave_message=msg.message)
                     self._backend_session = None
                 else:
                     self.log.warn('{func} frontend session left, but no active backend session to close!',
                                   func=hltype(self.onMessage))
 
-                # complete the closing handshake (initiated by the client in this case) by replying with GOODBYE
+                # 3) complete the closing handshake (initiated by the client in this case) by replying with GOODBYE
                 self.transport.send(message.Goodbye(message="Proxy session closing"))
             else:
                 if self._backend_session is None or self._backend_session._transport is None:
@@ -258,7 +298,7 @@ class ProxyFrontendSession(object):
                         "Expected to relay {} message, but proxy backend session or transport is gone".format(
                             msg.__class__.__name__, ))
                 else:
-                    # if we have an active backend connection, forward the WAMP message ..
+                    # if we have an active backend connection, forward the WAMP message
                     self._backend_session._transport.send(msg)
 
     def frontend_accepted(self, accept):
@@ -1620,7 +1660,7 @@ class ProxyController(TransportController):
 
         returnValue(backend_proto)
 
-    def unmap_backend(self, frontend, backend):
+    def unmap_backend(self, frontend, backend, leave_reason=None, leave_message=None):
         """
         Unmap the backend session from the given frontend session it is currently mapped to.
         """
@@ -1632,7 +1672,7 @@ class ProxyController(TransportController):
             if self._backends_by_frontend[frontend] == backend:
                 # alright, the given frontend is indeed currently mapped to the given backend session: close the
                 # session and delete it
-                backend.leave()
+                backend.leave(reason=leave_reason, message=leave_message)
                 del self._backends_by_frontend[frontend]
                 self.log.debug(
                     '{func} unmapped frontend session {frontend_session_id} from backend session {backend_session_id}',

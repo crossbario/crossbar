@@ -278,7 +278,7 @@ class PendingAuth:
         :param details: The details of the client provided for HELLO.
         :returns: Either return a challenge, or immediately accept or deny session.
         """
-        raise Exception("not implemented {})".format(self.__class__.__name__))
+        raise NotImplementedError('{}(realm="{}", details={})'.format(hltype(self.hello), realm, details))
 
     def authenticate(self, signature: str) -> Union[Accept, Deny]:
         """
@@ -287,7 +287,7 @@ class PendingAuth:
         :param signature: Signature over the challenge as received from the authenticating session.
         :returns: Either accept or deny the session.
         """
-        raise Exception("not implemented")
+        raise NotImplementedError('{}(signature="{}")'.format(hltype(self.hello), signature))
 
 
 def _authenticator_for_name(config, controller=None):

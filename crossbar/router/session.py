@@ -1225,7 +1225,7 @@ class RouterSession(BaseSession):
 
                 # kick all transport protos (eg WampWebSocketServerProtocol) for the same auth cookie
                 for proto in cs.getProtos(cbtid):
-                    # but don't kick ourself
+                    # but don't kick ourselves
                     if proto != self._transport:
                         proto.sendClose()
                         cnt_kicked += 1
