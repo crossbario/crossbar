@@ -431,6 +431,7 @@ class RouterSession(BaseSession):
 
         # basic session information
         self._pending_session_id = None
+        self._previous_session_id = None
         self._realm = None
         self._session_id = None
         self._session_roles = None
@@ -634,6 +635,7 @@ class RouterSession(BaseSession):
                 self.onLeave(CloseDetails(msg.reason, msg.message))
 
                 self._session_id = None
+                self._previous_session_id = None
                 self._pending_session_id = None
 
                 # self._transport.close()
@@ -670,7 +672,7 @@ class RouterSession(BaseSession):
 
                 # In order to send wamp.session.on_leave properly
                 # (i.e. *with* the proper session_id) we save it
-                previous_session_id = self._session_id
+                self._previous_session_id = self._session_id
 
                 # At this point, we've either sent GOODBYE already earlier,
                 # or we have just responded with GOODBYE. In any case, we MUST NOT
@@ -689,7 +691,7 @@ class RouterSession(BaseSession):
                 if self._service_session:
                     self._service_session.publish(
                         'wamp.session.on_leave',
-                        previous_session_id,
+                        self._previous_session_id,
                     )
 
                 # fire callback and close the transport
@@ -743,6 +745,7 @@ class RouterSession(BaseSession):
 
             self._session_id = None
 
+        self._previous_session_id = None
         self._pending_session_id = None
 
         self._authid = None
@@ -786,6 +789,7 @@ class RouterSession(BaseSession):
             except Exception:
                 pass
         self._session_id = None
+        self._previous_session_id = None
         self._pending_session_id = None
         return None  # we've handled the error; don't propagate
 
@@ -1151,6 +1155,8 @@ class RouterSession(BaseSession):
 
     def onLeave(self, details: CloseDetails):
 
+        session_id = self._session_id or self._previous_session_id
+
         # _router can be None when, e.g., authentication fails hard
         # (e.g. the client aborts the connection during auth challenge
         # because they hit a syntax error)
@@ -1203,6 +1209,9 @@ class RouterSession(BaseSession):
         # if asked to explicitly close the session
         if details.reason == "wamp.close.logout":
 
+            cookie_deleted = None
+            cnt_kicked = 0
+
             # if cookie was set on transport
             if self._transport and hasattr(
                     self._transport, '_cbtid') and self._transport._cbtid and self._transport.factory._cookiestore:
@@ -1210,11 +1219,25 @@ class RouterSession(BaseSession):
                 cs = self._transport.factory._cookiestore
 
                 # set cookie to "not authenticated"
-                cs.setAuth(cbtid, None, None, None, None, None)
+                # cs.setAuth(cbtid, None, None, None, None, None)
+                cs.delAuth(cbtid)
+                cookie_deleted = cbtid
 
-                # kick all session for the same auth cookie
+                # kick all transport protos (eg WampWebSocketServerProtocol) for the same auth cookie
                 for proto in cs.getProtos(cbtid):
-                    proto.sendClose()
+                    # but don't kick ourself
+                    if proto != self._transport:
+                        proto.sendClose()
+                        cnt_kicked += 1
+
+            self.log.info(
+                '{func} {action} completed for session {session_id} (cookie authentication deleted: '
+                '"{cookie_deleted}", pro-actively kicked (other) sessions: {cnt_kicked})',
+                action=hlval('wamp.close.logout', color='red'),
+                session_id=hlid(session_id),
+                cookie_deleted=hlval(cookie_deleted, color='red') if cookie_deleted else 'none',
+                cnt_kicked=hlval(cnt_kicked, color='red') if cnt_kicked else 'none',
+                func=hltype(self.onLeave))
 
 
 ITransportHandler.register(RouterSession)

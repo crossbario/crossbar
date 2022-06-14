@@ -260,6 +260,27 @@ class CookieStoreMemoryBacked(CookieStore):
             c['authmethod'] = authmethod
             c['authextra'] = authextra
 
+    def delAuth(self, cbtid: str) -> bool:
+        """
+        Delete an existing cookie (if any), including any authentication info and the cookie itself.
+
+        :param cbtid: Cookie value (ID)  of cookie to delete.
+        :return: Flag indicating an existing cookie was deleted.
+        """
+        was_existing = False
+        if cbtid in self._cookies:
+            del self._cookies[cbtid]
+            was_existing = True
+
+        if was_existing:
+            self.log.info('{func} cookie with cbtid="{cbtid}" did exist and was deleted',
+                          func=hltype(self.setAuth),
+                          cbtid=hlid(cbtid))
+        else:
+            self.log.info('{func} no cookie with cbtid="{cbtid}" exists', func=hltype(self.setAuth), cbtid=hlid(cbtid))
+
+        return was_existing
+
 
 class CookieStoreFileBacked(CookieStoreMemoryBacked):
     """
@@ -302,12 +323,16 @@ class CookieStoreFileBacked(CookieStoreMemoryBacked):
 
                 yield d
 
-    def _persist(self, cbtid, c, status='created'):
+    def _persist(self, cbtid, c, status):
 
         self._cookie_file.write(
             json.dumps({
                 'cbtid': cbtid,
-                status: c['created'],
+                'status': status,
+                # created, modified and deleted are set depending on status:
+                'created': c.get('created', None),
+                'modified': c.get('modified', None),
+                'deleted': c.get('deleted', None),
                 'max_age': c['max_age'],
                 'authid': c['authid'],
                 'authrole': c['authrole'],
@@ -321,11 +346,13 @@ class CookieStoreFileBacked(CookieStoreMemoryBacked):
     def _init_store(self):
         n = 0
         for cookie in self._iter_persisted():
-            cbtid = cookie.pop('cbtid')
-            if cbtid not in self._cookies:
-                self._cookies[cbtid] = {}
-            self._cookies[cbtid].update(cookie)
-            n += 1
+            # only load records in status == "created" | "modified", that is deleted == None
+            if not cookie.get('deleted', None):
+                cbtid = cookie.pop('cbtid')
+                if cbtid not in self._cookies:
+                    self._cookies[cbtid] = {}
+                self._cookies[cbtid].update(cookie)
+                n += 1
 
         self.log.info("Loaded {cnt_cookie_records} cookie records from file. Cookie store has {cnt_cookies} entries.",
                       cnt_cookie_records=n,
@@ -333,26 +360,43 @@ class CookieStoreFileBacked(CookieStoreMemoryBacked):
 
     def create(self):
         cbtid, header = CookieStoreMemoryBacked.create(self)
-
-        c = self._cookies[cbtid]
-
-        self._persist(cbtid, c)
-
+        cookie = self._cookies[cbtid]
+        self._persist(cbtid, cookie, status='created')
         self.log.debug("Cookie {cbtid} stored", cbtid=cbtid)
-
         return cbtid, header
 
     def setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm):
 
         if self.exists(cbtid):
-
             cookie = self._cookies[cbtid]
 
             # only set the changes and write them to the file if any of the values changed
             if (authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']
                     or authrealm != cookie['authrealm'] or authextra != cookie['authextra']):
                 CookieStoreMemoryBacked.setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm)
+                cookie['modified'] = util.utcnow()
                 self._persist(cbtid, cookie, status='modified')
+                return True
+
+    def delAuth(self, cbtid: str) -> bool:
+        """
+        Delete an existing cookie (if any), including any authentication info and the cookie itself.
+
+        :param cbtid: Cookie value (ID)  of cookie to delete.
+        :return: Flag indicating an existing cookie was deleted.
+        """
+        if self.exists(cbtid):
+            cookie = self._cookies[cbtid]
+            cookie['deleted'] = util.utcnow()
+            del self._cookies[cbtid]
+            self._persist(cbtid, cookie, status='deleted')
+            self.log.info('{func} cookie with cbtid="{cbtid}" did exist and was deleted',
+                          func=hltype(self.delAuth),
+                          cbtid=hlid(cbtid))
+            return True
+        else:
+            self.log.info('{func} no cookie with cbtid="{cbtid}" exists', func=hltype(self.delAuth), cbtid=hlid(cbtid))
+            return False
 
     def _clean_cookie_file(self):
         with open(self._cookie_file_name, 'w') as cookie_file:
@@ -567,3 +611,26 @@ class CookieStoreDatabaseBacked(CookieStore):
                           cbtid=hlid(cbtid))
 
         return was_modified
+
+    def delAuth(self, cbtid: str) -> bool:
+        """
+        Delete an existing cookie (if any), including any authentication info and the cookie itself.
+
+        :param cbtid: Cookie value (ID)  of cookie to delete.
+        :return: Flag indicating an existing cookie was deleted.
+        """
+        was_existing = False
+        with self._db.begin(write=True) as txn:
+            cookie_oid = self._schema.idx_cookies_by_value[txn, cbtid]
+            if cookie_oid:
+                del self._schema.cookies[txn, cookie_oid]
+                was_existing = True
+
+        if was_existing:
+            self.log.info('{func} cookie with cbtid="{cbtid}" did exist and was deleted',
+                          func=hltype(self.delAuth),
+                          cbtid=hlid(cbtid))
+        else:
+            self.log.info('{func} no cookie with cbtid="{cbtid}" exists', func=hltype(self.delAuth), cbtid=hlid(cbtid))
+
+        return was_existing

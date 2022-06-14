@@ -242,6 +242,7 @@ class ProxyFrontendSession(object):
 
             # https://wamp-proto.org/_static/gen/wamp_latest.html#session-closing
             elif isinstance(msg, message.Goodbye):
+                print('8' * 100, msg)
                 if self._backend_session:
                     self._controller.unmap_backend(self, self._backend_session)
                     self._backend_session = None

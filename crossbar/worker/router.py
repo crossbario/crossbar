@@ -238,7 +238,39 @@ class RouterController(TransportController):
     @inlineCallbacks
     def start_router_realm(self, realm_id, realm_config, details=None):
         """
-        Starts a realm on this router worker.
+        Starts a realm on this router worker. The minimum configuration must contain the realm name:
+
+        .. code-block:: python
+
+            {
+                "name": "realm1"
+            }
+
+        The configuration can also configure one or more roles, including configuration of role permissions:
+
+        .. code-block:: python
+
+            {
+                "name": "realm1",
+                "roles": [{
+                    "name": "anonymous",
+                    "permissions": [{
+                        "uri": "",
+                        "match": "prefix",
+                        "allow": {
+                            "call": True,
+                            "register": True,
+                            "publish": True,
+                            "subscribe": True
+                        },
+                        "disclose": {
+                            "caller": True,
+                            "publisher": True
+                        },
+                        "cache": True
+                    }]
+                }]
+            }
 
         :param realm_id: The ID of the realm to start.
         :type realm_id: str
