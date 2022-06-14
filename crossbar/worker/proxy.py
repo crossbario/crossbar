@@ -9,6 +9,8 @@ import os
 from pprint import pformat
 from typing import Dict, Any, Optional, Tuple, Set
 
+import werkzeug
+
 from twisted.internet.base import ReactorBase
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 from twisted.internet.error import DNSLookupError
@@ -473,7 +475,7 @@ class ProxyFrontendSession(object):
             else:
                 pass  # TLS authentication is not revoked here
 
-        # already authenticated, eg via HTTP-cookie or TLS-client-certificate authentication
+        # already authenticated, e.g. via HTTP-cookie or TLS-client-certificate authentication
         if self.transport._authid is not None and (self.transport._authmethod == 'trusted'
                                                    or self.transport._authprovider in authmethods):
             msg.realm = realm
@@ -489,6 +491,8 @@ class ProxyFrontendSession(object):
                                      session_roles=msg.roles,
                                      pending_session=self._pending_session_id)
 
+        # start authentication based on configuration, compare/sync with code here:
+        # https://github.com/crossbario/crossbar/blob/6b6e25b1356b0641eff5dc5086d3971ecfb9a421/crossbar/router/session.py#L861
         auth_config = self._transport_config.get('auth', None)
 
         # if authentication is _not_ configured, allow anyone to join as "anonymous"!
@@ -517,7 +521,9 @@ class ProxyFrontendSession(object):
                 'access policy)',
                 func=hltype(self._process_Hello))
 
+        # iterate over authentication methods announced by client ..
         for authmethod in authmethods:
+
             # invalid authmethod
             if authmethod not in AUTHMETHOD_MAP and authmethod not in extra_auth_methods:
                 self.transport.send(
@@ -536,18 +542,47 @@ class ProxyFrontendSession(object):
                                authmethod=authmethod)
                 continue
 
-            if authmethod == 'cookie' and hasattr(self.transport,
-                                                  "_cbtid") and self.transport._cbtid and self.transport._authid:
-                hello_result = types.Accept(realm=realm,
-                                            authid=self.transport._authid,
-                                            authrole=self.transport._authrole,
-                                            authmethod=self.transport._authmethod,
-                                            authprovider='cookie',
-                                            authextra=self.transport._authextra)
-                self.log.debug(
-                    '{func}: authenticating client using cookie-authentication, hello_result={hello_result}',
-                    func=hltype(self._process_Hello),
-                    hello_result=hello_result)
+            # WAMP-Cookie authentication
+            if authmethod == 'cookie':
+                cbtid = self.transport._cbtid
+                if cbtid:
+                    if self.transport.factory._cookiestore.exists(cbtid):
+                        _cookie_authid, _cookie_authrole, _cookie_authmethod, _cookie_authrealm, _cookie_authextra = self.transport.factory._cookiestore.getAuth(
+                            cbtid)
+                        if _cookie_authid is None:
+                            self.log.info('{func}: received cookie for cbtid={cbtid} not authenticated before [2]',
+                                          func=hltype(self._process_Hello),
+                                          cbtid=hlid(cbtid))
+                            continue
+                        else:
+                            self.log.info(
+                                '{func}: authentication for received cookie {cbtid} found: authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}, authextra={authextra}',
+                                func=hltype(self._process_Hello),
+                                cbtid=hlid(cbtid),
+                                authid=hlid(_cookie_authid),
+                                authrole=hlid(_cookie_authrole),
+                                authmethod=hlid(_cookie_authmethod),
+                                authrealm=hlid(_cookie_authrealm),
+                                authextra=_cookie_authextra)
+                            hello_result = types.Accept(realm=_cookie_authrealm,
+                                                        authid=_cookie_authid,
+                                                        authrole=_cookie_authrole,
+                                                        authmethod=_cookie_authmethod,
+                                                        authprovider='cookie',
+                                                        authextra=_cookie_authextra)
+                    else:
+                        self.log.info('{func}: received cookie for cbtid={cbtid} not authenticated before [1]',
+                                      func=hltype(self._process_Hello),
+                                      cbtid=hlid(cbtid))
+                        continue
+                else:
+                    # the client requested cookie authentication, but there is 1) no cookie set,
+                    # or 2) a cookie set, but that cookie wasn't authenticated before using
+                    # a different auth method (if it had been, we would never have entered here, since then
+                    # auth info would already have been extracted from the transport)
+                    # consequently, we skip this auth method and move on to next auth method.
+                    self.log.info('{func}: no cookie set for cbtid', func=hltype(self._process_Hello))
+                    continue
 
             else:
                 # create instance of authenticator using authenticator class for the respective authmethod
@@ -561,10 +596,10 @@ class ProxyFrontendSession(object):
                     self.log.warn()
                     continue
 
-                self.log.debug('{func}: instantiating authenticator class {authklass} for authmethod "{authmethod}"',
-                               func=hltype(self._process_Hello),
-                               authklass=hltype(authklass),
-                               authmethod=hlval(authmethod))
+                self.log.info('{func}: instantiating authenticator class {authklass} for authmethod "{authmethod}"',
+                              func=hltype(self._process_Hello),
+                              authklass=hltype(authklass),
+                              authmethod=hlval(authmethod))
                 self._pending_auth = authklass(
                     self._pending_session_id,
                     self.transport.transport_details,

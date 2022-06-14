@@ -862,10 +862,12 @@ class RouterSession(BaseSession):
                         'exists on realm "{}"'.format(self._transport._authrole, realm))
 
             else:
+                # start authentication based on configuration, compare/sync with code here:
+                # https://github.com/crossbario/crossbar/blob/6b6e25b1356b0641eff5dc5086d3971ecfb9a421/crossbar/worker/proxy.py#L451
                 auth_config = self._transport_config.get('auth', None)
 
+                # if authentication is _not_ configured, allow anyone to join as "anonymous"!
                 if not auth_config:
-                    # if authentication is _not_ configured, allow anyone to join as "anonymous"!
 
                     # but don't if the client isn't ready/willing to go on "anonymous"
                     if 'anonymous' not in authmethods:
@@ -974,7 +976,7 @@ class RouterSession(BaseSession):
                                 if self._transport.factory._cookiestore.exists(cbtid):
                                     _cookie_authid, _cookie_authrole, _cookie_authmethod, _cookie_authrealm, _cookie_authextra = self._transport.factory._cookiestore.getAuth(
                                         cbtid)
-                                    self.log.debug(
+                                    self.log.info(
                                         '{func}: authentication for received cookie {cbtid} found: authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}, authextra={authextra}',
                                         func=hltype(self.onHello),
                                         cbtid=hlid(cbtid),
