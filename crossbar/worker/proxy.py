@@ -9,8 +9,6 @@ import os
 from pprint import pformat
 from typing import Dict, Any, Optional, Tuple, Set
 
-import werkzeug
-
 from twisted.internet.base import ReactorBase
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 from twisted.internet.error import DNSLookupError
@@ -555,7 +553,7 @@ class ProxyFrontendSession(object):
                                           cbtid=hlid(cbtid))
                             continue
                         else:
-                            self.log.info(
+                            self.log.debug(
                                 '{func}: authentication for received cookie {cbtid} found: authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}, authextra={authextra}',
                                 func=hltype(self._process_Hello),
                                 cbtid=hlid(cbtid),
@@ -571,7 +569,7 @@ class ProxyFrontendSession(object):
                                                         authprovider='cookie',
                                                         authextra=_cookie_authextra)
                     else:
-                        self.log.info('{func}: received cookie for cbtid={cbtid} not authenticated before [1]',
+                        self.log.debug('{func}: received cookie for cbtid={cbtid} not authenticated before [1]',
                                       func=hltype(self._process_Hello),
                                       cbtid=hlid(cbtid))
                         continue
@@ -581,7 +579,7 @@ class ProxyFrontendSession(object):
                     # a different auth method (if it had been, we would never have entered here, since then
                     # auth info would already have been extracted from the transport)
                     # consequently, we skip this auth method and move on to next auth method.
-                    self.log.info('{func}: no cookie set for cbtid', func=hltype(self._process_Hello))
+                    self.log.debug('{func}: no cookie set for cbtid', func=hltype(self._process_Hello))
                     continue
 
             else:
