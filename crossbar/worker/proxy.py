@@ -570,8 +570,8 @@ class ProxyFrontendSession(object):
                                                         authextra=_cookie_authextra)
                     else:
                         self.log.debug('{func}: received cookie for cbtid={cbtid} not authenticated before [1]',
-                                      func=hltype(self._process_Hello),
-                                      cbtid=hlid(cbtid))
+                                       func=hltype(self._process_Hello),
+                                       cbtid=hlid(cbtid))
                         continue
                 else:
                     # the client requested cookie authentication, but there is 1) no cookie set,
