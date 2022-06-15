@@ -242,14 +242,55 @@ class ProxyFrontendSession(object):
 
             # https://wamp-proto.org/_static/gen/wamp_latest.html#session-closing
             elif isinstance(msg, message.Goodbye):
+
+                # compare this code here for proxies to :meth:`RouterSession.onLeave` for routers
+
+                # 1) if asked to explicitly close the session
+                if msg.reason == "wamp.close.logout":
+                    cookie_deleted = None
+                    cnt_kicked = 0
+
+                    # if cookie was set on transport
+                    if self.transport and hasattr(
+                            self.transport,
+                            '_cbtid') and self.transport._cbtid and self.transport.factory._cookiestore:
+                        cbtid = self.transport._cbtid
+                        cs = self.transport.factory._cookiestore
+
+                        # set cookie to "not authenticated"
+                        # cs.setAuth(cbtid, None, None, None, None, None)
+                        cs.delAuth(cbtid)
+                        cookie_deleted = cbtid
+
+                        # kick all transport protos (e.g. WampWebSocketServerProtocol) for the same auth cookie
+                        for proto in cs.getProtos(cbtid):
+                            # but don't kick ourselves
+                            if proto != self.transport:
+                                proto.sendClose()
+                                cnt_kicked += 1
+
+                    self.log.info(
+                        '{func} {action} completed for session {session_id} (cookie authentication deleted: '
+                        '"{cookie_deleted}", pro-actively kicked (other) sessions: {cnt_kicked})',
+                        action=hlval('wamp.close.logout', color='red'),
+                        session_id=hlid(self._session_id),
+                        cookie_deleted=hlval(cookie_deleted, color='red') if cookie_deleted else 'none',
+                        cnt_kicked=hlval(cnt_kicked, color='red') if cnt_kicked else 'none',
+                        func=hltype(self.onMessage))
+
+                # 2) if we currently have a session from proxy to backend router (as normally the case),
+                # disconnect and unmap that session as well
                 if self._backend_session:
-                    self._controller.unmap_backend(self, self._backend_session)
+                    self._controller.unmap_backend(self,
+                                                   self._backend_session,
+                                                   leave_reason=msg.reason,
+                                                   leave_message=msg.message)
                     self._backend_session = None
                 else:
                     self.log.warn('{func} frontend session left, but no active backend session to close!',
                                   func=hltype(self.onMessage))
 
-                # complete the closing handshake (initiated by the client in this case) by replying with GOODBYE
+                # 3) complete the closing handshake (initiated by the client in this case) by replying with GOODBYE
                 self.transport.send(message.Goodbye(message="Proxy session closing"))
             else:
                 if self._backend_session is None or self._backend_session._transport is None:
@@ -257,7 +298,7 @@ class ProxyFrontendSession(object):
                         "Expected to relay {} message, but proxy backend session or transport is gone".format(
                             msg.__class__.__name__, ))
                 else:
-                    # if we have an active backend connection, forward the WAMP message ..
+                    # if we have an active backend connection, forward the WAMP message
                     self._backend_session._transport.send(msg)
 
     def frontend_accepted(self, accept):
@@ -432,7 +473,7 @@ class ProxyFrontendSession(object):
             else:
                 pass  # TLS authentication is not revoked here
 
-        # already authenticated, eg via HTTP-cookie or TLS-client-certificate authentication
+        # already authenticated, e.g. via HTTP-cookie or TLS-client-certificate authentication
         if self.transport._authid is not None and (self.transport._authmethod == 'trusted'
                                                    or self.transport._authprovider in authmethods):
             msg.realm = realm
@@ -448,6 +489,8 @@ class ProxyFrontendSession(object):
                                      session_roles=msg.roles,
                                      pending_session=self._pending_session_id)
 
+        # start authentication based on configuration, compare/sync with code here:
+        # https://github.com/crossbario/crossbar/blob/6b6e25b1356b0641eff5dc5086d3971ecfb9a421/crossbar/router/session.py#L861
         auth_config = self._transport_config.get('auth', None)
 
         # if authentication is _not_ configured, allow anyone to join as "anonymous"!
@@ -476,7 +519,9 @@ class ProxyFrontendSession(object):
                 'access policy)',
                 func=hltype(self._process_Hello))
 
+        # iterate over authentication methods announced by client ..
         for authmethod in authmethods:
+
             # invalid authmethod
             if authmethod not in AUTHMETHOD_MAP and authmethod not in extra_auth_methods:
                 self.transport.send(
@@ -495,18 +540,47 @@ class ProxyFrontendSession(object):
                                authmethod=authmethod)
                 continue
 
-            if authmethod == 'cookie' and hasattr(self.transport,
-                                                  "_cbtid") and self.transport._cbtid and self.transport._authid:
-                hello_result = types.Accept(realm=realm,
-                                            authid=self.transport._authid,
-                                            authrole=self.transport._authrole,
-                                            authmethod=self.transport._authmethod,
-                                            authprovider='cookie',
-                                            authextra=self.transport._authextra)
-                self.log.debug(
-                    '{func}: authenticating client using cookie-authentication, hello_result={hello_result}',
-                    func=hltype(self._process_Hello),
-                    hello_result=hello_result)
+            # WAMP-Cookie authentication
+            if authmethod == 'cookie':
+                cbtid = self.transport._cbtid
+                if cbtid:
+                    if self.transport.factory._cookiestore.exists(cbtid):
+                        _cookie_authid, _cookie_authrole, _cookie_authmethod, _cookie_authrealm, _cookie_authextra = self.transport.factory._cookiestore.getAuth(
+                            cbtid)
+                        if _cookie_authid is None:
+                            self.log.info('{func}: received cookie for cbtid={cbtid} not authenticated before [2]',
+                                          func=hltype(self._process_Hello),
+                                          cbtid=hlid(cbtid))
+                            continue
+                        else:
+                            self.log.debug(
+                                '{func}: authentication for received cookie {cbtid} found: authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}, authextra={authextra}',
+                                func=hltype(self._process_Hello),
+                                cbtid=hlid(cbtid),
+                                authid=hlid(_cookie_authid),
+                                authrole=hlid(_cookie_authrole),
+                                authmethod=hlid(_cookie_authmethod),
+                                authrealm=hlid(_cookie_authrealm),
+                                authextra=_cookie_authextra)
+                            hello_result = types.Accept(realm=_cookie_authrealm,
+                                                        authid=_cookie_authid,
+                                                        authrole=_cookie_authrole,
+                                                        authmethod=_cookie_authmethod,
+                                                        authprovider='cookie',
+                                                        authextra=_cookie_authextra)
+                    else:
+                        self.log.debug('{func}: received cookie for cbtid={cbtid} not authenticated before [1]',
+                                       func=hltype(self._process_Hello),
+                                       cbtid=hlid(cbtid))
+                        continue
+                else:
+                    # the client requested cookie authentication, but there is 1) no cookie set,
+                    # or 2) a cookie set, but that cookie wasn't authenticated before using
+                    # a different auth method (if it had been, we would never have entered here, since then
+                    # auth info would already have been extracted from the transport)
+                    # consequently, we skip this auth method and move on to next auth method.
+                    self.log.debug('{func}: no cookie set for cbtid', func=hltype(self._process_Hello))
+                    continue
 
             else:
                 # create instance of authenticator using authenticator class for the respective authmethod
@@ -520,10 +594,10 @@ class ProxyFrontendSession(object):
                     self.log.warn()
                     continue
 
-                self.log.debug('{func}: instantiating authenticator class {authklass} for authmethod "{authmethod}"',
-                               func=hltype(self._process_Hello),
-                               authklass=hltype(authklass),
-                               authmethod=hlval(authmethod))
+                self.log.info('{func}: instantiating authenticator class {authklass} for authmethod "{authmethod}"',
+                              func=hltype(self._process_Hello),
+                              authklass=hltype(authklass),
+                              authmethod=hlval(authmethod))
                 self._pending_auth = authklass(
                     self._pending_session_id,
                     self.transport.transport_details,
@@ -1619,7 +1693,7 @@ class ProxyController(TransportController):
 
         returnValue(backend_proto)
 
-    def unmap_backend(self, frontend, backend):
+    def unmap_backend(self, frontend, backend, leave_reason=None, leave_message=None):
         """
         Unmap the backend session from the given frontend session it is currently mapped to.
         """
@@ -1631,7 +1705,7 @@ class ProxyController(TransportController):
             if self._backends_by_frontend[frontend] == backend:
                 # alright, the given frontend is indeed currently mapped to the given backend session: close the
                 # session and delete it
-                backend.leave()
+                backend.leave(reason=leave_reason, message=leave_message)
                 del self._backends_by_frontend[frontend]
                 self.log.debug(
                     '{func} unmapped frontend session {frontend_session_id} from backend session {backend_session_id}',

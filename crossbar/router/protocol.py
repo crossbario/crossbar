@@ -259,7 +259,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
                     self.log.info('{func}: setting new cookie {cookie}',
                                   func=hltype(self.onConnect),
-                                  cookie=hlval(headers['Set-Cookie']))
+                                  cookie=hlval(headers['Set-Cookie'], color='yellow'))
                 else:
                     self.log.info('{func}: tracking/authentication cookie cbtid "{cbtid}" already set and stored',
                                   func=hltype(self.onConnect),
@@ -286,7 +286,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                             '{func} authenticated client via cookie {cookiename}={cbtid} as authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}", authrealm="{authrealm}"',
                             func=hltype(self.onConnect),
                             cookiename=self.factory._cookiestore._cookie_id_field,
-                            cbtid=hlid(self._cbtid),
+                            cbtid=hlval(self._cbtid, color='green'),
                             authid=hlid(self._authid),
                             authrole=hlid(self._authrole),
                             authmethod=hlval(self._authmethod),
@@ -295,7 +295,8 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
                         self.log.info(
-                            '{func} cookie-based authentication enabled, but cookie is not authenticated yet',
+                            '{func} cookie-based authentication enabled, but cookie {cbtid} is not authenticated yet',
+                            cbtid=hlval(self._cbtid, color='blue'),
                             func=hltype(self.onConnect))
                 else:
                     self.log.info('{func} cookie-based authentication disabled on connection',
