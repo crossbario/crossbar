@@ -2884,6 +2884,7 @@ def check_router_realm_role(personality, role):
                     'match': (False, [str]),
                     'allow': (False, [Mapping]),
                     'disclose': (False, [Mapping]),
+                    'validate': (False, [Mapping]),
                     'cache': (False, [bool]),
                 }, role, "invalid grant in role permissions")
 
@@ -2892,9 +2893,9 @@ def check_router_realm_role(personality, role):
                     raise InvalidConfigException("invalid value '{}' for 'match' attribute in role permissions".format(
                         role['match']))
 
-            if not _URI_PAT_STRICT_LAST_EMPTY.match(role_uri):
+            if False and not _URI_PAT_STRICT_LAST_EMPTY.match(role_uri):
                 if role.get('match', None) != 'wildcard':
-                    raise InvalidConfigException("invalid role URI '{}' in role permissions".format(role['uri']), )
+                    raise InvalidConfigException("invalid URI '{}' in role permissions".format(role['uri']), )
 
             if 'allow' in role:
                 check_dict_args(
@@ -2910,6 +2911,25 @@ def check_router_realm_role(personality, role):
                     'caller': (False, [bool]),
                     'publisher': (False, [bool]),
                 }, role['disclose'], "invalid disclose in role permissions")
+
+            if 'validate' in role:
+                check_dict_args(
+                    {
+                        # each value is the (fully qualified) name of a validation type in
+                        # the type inventory of this realm, e.g. "uint160_t" or "trading.Period"
+                        'call': (False, [str]),
+                        'call_progress': (False, [str]),
+                        'call_result': (False, [str]),
+                        'call_result_progress': (False, [str]),
+                        'call_error': (False, [str]),
+                        'event': (False, [str]),
+                        'event_confirmation': (False, [str]),
+
+                        # must be a Dict[str, str]
+                        'extra': (False, [Mapping]),
+                    },
+                    role['validate'],
+                    "invalid validate in role permissions")
 
 
 def check_router_components(personality, components):
