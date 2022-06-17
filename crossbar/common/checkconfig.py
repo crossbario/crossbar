@@ -2893,6 +2893,7 @@ def check_router_realm_role(personality, role):
                     raise InvalidConfigException("invalid value '{}' for 'match' attribute in role permissions".format(
                         role['match']))
 
+            # FIXME
             if False and not _URI_PAT_STRICT_LAST_EMPTY.match(role_uri):
                 if role.get('match', None) != 'wildcard':
                     raise InvalidConfigException("invalid URI '{}' in role permissions".format(role['uri']), )

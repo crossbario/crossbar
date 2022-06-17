@@ -7,6 +7,7 @@
 
 from uuid import uuid4
 from typing import Dict
+from pprint import pformat
 
 from twisted.internet.defer import Deferred, DeferredList, maybeDeferred, returnValue
 from twisted.internet.defer import inlineCallbacks
@@ -597,11 +598,14 @@ class RouterController(TransportController):
         caller = details.caller if details else None
         self.publish(topic, event, options=PublishOptions(exclude=caller))
 
-        self.log.info('Role {role_id} named "{role_name}" started on realm "{realm}"',
-                      role_id=hlid(role_id),
-                      role_name=hlid(role_name),
-                      realm=hlid(realm),
-                      func=hltype(self.start_router_realm_role))
+        self.log.debug(
+            'Role {role_id} named "{role_name}" started on realm "{realm}" '
+            'with configuration=\n{role_config}',
+            role_id=hlid(role_id),
+            role_name=hlid(role_name),
+            realm=hlid(realm),
+            role_config=pformat(role_config),
+            func=hltype(self.start_router_realm_role))
         return event
 
     @wamp.register(None)
