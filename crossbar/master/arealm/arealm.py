@@ -610,7 +610,8 @@ class ApplicationRealmMonitor(object):
                                     'path': transport_path
                                 },
                                 'options': {
-                                    "max_message_size": 1048576
+                                    # FIXME: must be >= max_message_size on proxy transport
+                                    # "max_message_size": 1048576
                                 },
                                 'serializers': ['cbor'],
                                 'auth': {
@@ -640,7 +641,8 @@ class ApplicationRealmMonitor(object):
                                     'portrange': [10000, 10100]
                                 },
                                 'options': {
-                                    "max_message_size": 1048576
+                                    # FIXME: must be >= max_message_size on proxy transport
+                                    # "max_message_size": 1048576
                                 },
                                 'serializers': ['cbor'],
                                 'auth': {
