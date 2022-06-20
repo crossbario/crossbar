@@ -20,7 +20,7 @@ txaio.use_twisted()
 
 from autobahn.websocket.util import parse_url
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, _URI_PAT_STRICT_LAST_EMPTY, \
-    _URI_PAT_REALM_NAME
+    _URI_PAT_REALM_NAME, _URI_PAT_LOOSE_EMPTY
 from autobahn.wamp.uri import convert_starred_uri
 
 from yaml import Loader, SafeLoader, Dumper, SafeDumper
@@ -2874,6 +2874,9 @@ def check_router_realm_role(personality, role):
             role_uri = role['uri']
             if not isinstance(role_uri, str):
                 raise InvalidConfigException("'uri' must be a string")
+            if not _URI_PAT_LOOSE_EMPTY.match(role_uri):
+                raise InvalidConfigException('invalid uri "{}" - must match regular expression {}'.format(
+                    role_uri, _URI_PAT_LOOSE_EMPTY.pattern))
 
             if role_uri.endswith('*'):
                 role_uri = role_uri[:-1]

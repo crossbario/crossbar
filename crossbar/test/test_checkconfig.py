@@ -253,7 +253,7 @@ class CheckRealmTests(TestCase):
                 "name":
                 "backend",
                 "permissions": [{
-                    "uri": "*foo",
+                    "uri": "foo bar 666",
                     "allow": {
                         "publish": True,
                         "subscribe": True,
