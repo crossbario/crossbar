@@ -5,8 +5,11 @@
 #
 #####################################################################################
 
+from pprint import pformat
+from collections.abc import Mapping
 from pytrie import StringTrie
 
+from autobahn.util import hltype, hlval
 from autobahn.wamp.uri import convert_starred_uri, Pattern
 from autobahn.wamp.exception import ApplicationError
 from twisted.python.failure import Failure
@@ -19,7 +22,7 @@ __all__ = ('RouterRole', 'RouterTrustedRole', 'RouterRoleStaticAuth', 'RouterRol
 class RouterPermissions(object):
 
     __slots__ = ('uri', 'match', 'call', 'register', 'publish', 'subscribe', 'disclose_caller', 'disclose_publisher',
-                 'cache')
+                 'cache', 'validate')
 
     def __init__(self,
                  uri,
@@ -30,7 +33,8 @@ class RouterPermissions(object):
                  subscribe=False,
                  disclose_caller=False,
                  disclose_publisher=False,
-                 cache=True):
+                 cache=True,
+                 validate=None):
         """
 
         :param uri: The URI to match.
@@ -44,6 +48,7 @@ class RouterPermissions(object):
         assert (isinstance(disclose_caller, bool))
         assert (isinstance(disclose_publisher, bool))
         assert (isinstance(cache, bool))
+        assert (validate is None or isinstance(validate, dict))
 
         self.uri = uri
         self.match = match
@@ -54,11 +59,12 @@ class RouterPermissions(object):
         self.disclose_caller = disclose_caller
         self.disclose_publisher = disclose_publisher
         self.cache = cache
+        self.validate = validate
 
     def __repr__(self):
-        return 'RouterPermissions(uri="{}", match="{}", call={}, register={}, publish={}, subscribe={}, disclose_caller={}, disclose_publisher={}, cache={})'.format(
+        return 'RouterPermissions(uri="{}", match="{}", call={}, register={}, publish={}, subscribe={}, disclose_caller={}, disclose_publisher={}, cache={}, validate={})'.format(
             self.uri, self.match, self.call, self.register, self.publish, self.subscribe, self.disclose_caller,
-            self.disclose_publisher, self.cache)
+            self.disclose_publisher, self.cache, self.validate)
 
     def to_dict(self):
         return {
@@ -74,6 +80,7 @@ class RouterPermissions(object):
                 'caller': self.disclose_caller,
                 'publisher': self.disclose_publisher
             },
+            'validate': self.validate,
             'cache': self.cache
         }
 
@@ -108,6 +115,20 @@ class RouterPermissions(object):
 
         cache = obj.get('cache', False)
 
+        validate = obj.get('validate', None)
+        if validate:
+            for k in validate:
+                if k not in [
+                        'extra', 'event', 'call', 'call_progress', 'event_result', 'call_result',
+                        'call_result_progress', 'call_error'
+                ]:
+                    raise RuntimeError('invalid key "{}" in role-permissions configuration'.format(k))
+                if (k == 'extra' and not isinstance(validate[k], Mapping)) or (k != 'extra'
+                                                                               and type(validate[k]) != str):
+                    print(type(k), type(validate[k]), k, validate[k])
+                    raise RuntimeError('invalid value type "{}" for key "{}" in role-permissions configuration'.format(
+                        type(validate[k]), k))
+
         return RouterPermissions(uri,
                                  match,
                                  call=allow_call,
@@ -116,7 +137,8 @@ class RouterPermissions(object):
                                  subscribe=allow_subscribe,
                                  disclose_caller=disclose_caller,
                                  disclose_publisher=disclose_publisher,
-                                 cache=cache)
+                                 cache=cache,
+                                 validate=validate)
 
 
 class RouterRole(object):
@@ -238,11 +260,6 @@ class RouterRoleStaticAuth(RouterRole):
 
         :return: bool -- Flag indicating whether session is authorized or not.
         """
-        self.log.debug("CrossbarRouterRoleStaticAuth.authorize {myuri} {uri} {action}",
-                       myuri=self.uri,
-                       uri=uri,
-                       action=action)
-
         try:
             # longest prefix match of the URI to be authorized against our Trie
             # of configured URIs for permissions
@@ -273,24 +290,41 @@ class RouterRoleStaticAuth(RouterRole):
         # or via self._default
 
         if action == 'publish':
-            return {
+            authorization = {
                 'allow': permissions.publish,
                 'disclose': permissions.disclose_publisher,
                 'cache': permissions.cache
             }
 
         elif action == 'subscribe':
-            return {'allow': permissions.subscribe, 'cache': permissions.cache}
+            authorization = {'allow': permissions.subscribe, 'cache': permissions.cache}
 
         elif action == 'call':
-            return {'allow': permissions.call, 'disclose': permissions.disclose_caller, 'cache': permissions.cache}
+            authorization = {
+                'allow': permissions.call,
+                'disclose': permissions.disclose_caller,
+                'cache': permissions.cache
+            }
 
         elif action == 'register':
-            return {'allow': permissions.register, 'cache': permissions.cache}
+            authorization = {'allow': permissions.register, 'cache': permissions.cache}
 
         else:
             # should not arrive here
             raise Exception('logic error')
+
+        # if the action is allowed, add any application payload validation configuration
+        if authorization['allow']:
+            authorization['validate'] = permissions.validate
+
+        self.log.debug('{func} uri="{uri}", action="{action}", options={options} => authorization=\n{authorization}',
+                       func=hltype(self.authorize),
+                       uri=hlval(uri),
+                       action=hlval(action),
+                       options=options,
+                       authorization=pformat(authorization))
+
+        return authorization
 
 
 class RouterRoleDynamicAuth(RouterRole):
@@ -398,7 +432,7 @@ class RouterRoleDynamicAuth(RouterRole):
             if isinstance(authorization, dict):
                 # check keys
                 for key in authorization.keys():
-                    if key not in ['allow', 'cache', 'disclose', 'validate', 'meta']:
+                    if key not in ['allow', 'cache', 'disclose', 'validate']:
                         return Failure(ValueError("Authorizer returned unknown key '{key}'".format(key=key, )))
                 # must have "allow" key
                 if 'allow' not in authorization:
@@ -410,10 +444,10 @@ class RouterRoleDynamicAuth(RouterRole):
                         if not isinstance(value, bool):
                             return Failure(ValueError("Authorizer must have bool for '{}'".format(key)))
                 # check dict-valued keys
-                for key in ['validate', 'meta']:
+                for key in ['validate']:
                     if key in authorization:
                         value = authorization[key]
-                        if value is not None and not isinstance(value, dict):
+                        if value is not None and not isinstance(value, Mapping):
                             return Failure(
                                 ValueError("Authorizer must have dict for '{}' (if present and not null)".format(key)))
                 return authorization
