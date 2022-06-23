@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -34,9 +11,11 @@ from binascii import unhexlify
 
 from crossbar.bridge.mqtt.protocol import (
     MQTTParser,
-    Failure, PROTOCOL_VIOLATION,
+    Failure,
+    PROTOCOL_VIOLATION,
     Connect,
-    Subscribe, Unsubscribe,
+    Subscribe,
+    Unsubscribe,
     PingREQ,
 )
 from crossbar.bridge.mqtt._utils import iterbytes
@@ -45,7 +24,6 @@ from twisted.trial.unittest import TestCase
 
 
 class MQTTEventTestBase(object):
-
     def _assert_event(self, event, eventType, contents):
         self.assertIsInstance(event, eventType)
         self.assertEqual(attr.asdict(event), contents)
@@ -70,8 +48,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
 
         self.assertEqual(len(events), 1)
         self.assertEqual(
-            attr.asdict(events[0]),
-            {
+            attr.asdict(events[0]), {
                 'username': None,
                 'password': None,
                 'will_message': None,
@@ -87,8 +64,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                     'clean_session': True,
                     'reserved': False
                 }
-            }
-        )
+            })
 
     def test_malformed_packet(self):
         """
@@ -104,13 +80,9 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
             events.extend(p.data_received(x))
 
         self.assertEqual(len(events), 1)
-        self.assertEqual(
-            attr.asdict(events[0]),
-            {
-                'reason': ("Corrupt data, fell off the end: Cannot read 72 "
-                           "bits, only 56 available.")
-            }
-        )
+        self.assertEqual(attr.asdict(events[0]),
+                         {'reason': ("Corrupt data, fell off the end: Cannot read 72 "
+                                     "bits, only 56 available.")})
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
 
     def test_quirks_mode_connect(self):
@@ -129,8 +101,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
 
         self.assertEqual(len(events), 1)
         self.assertEqual(
-            attr.asdict(events[0]),
-            {
+            attr.asdict(events[0]), {
                 'username': None,
                 'password': None,
                 'will_message': None,
@@ -146,13 +117,11 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                     'clean_session': True,
                     'reserved': False
                 }
-            }
-        )
+            })
         warnings = self.flushWarnings()
         self.assertEqual(len(warnings), 1)
-        self.assertEqual(warnings[0]["message"],
-                         ("Quirky client CONNECT -- packet length was 152 "
-                          "bytes but only had 168 bytes of useful data"))
+        self.assertEqual(warnings[0]["message"], ("Quirky client CONNECT -- packet length was 152 "
+                                                  "bytes but only had 168 bytes of useful data"))
 
     def test_connect_ping(self):
         """
@@ -165,8 +134,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
             # CONNECT
             b"101300044d51545404020002000774657374313233"
             # PINGREQ
-            b"c000"
-        )
+            b"c000")
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -174,8 +142,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 2)
 
         self._assert_event(
-            events.pop(0), Connect,
-            {
+            events.pop(0), Connect, {
                 'username': None,
                 'password': None,
                 'will_message': None,
@@ -191,8 +158,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                     'clean_session': True,
                     'reserved': False
                 }
-            }
-        )
+            })
 
         self._assert_event(events.pop(0), PingREQ, {})
 
@@ -212,8 +178,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
             # SUBSCRIBE
             b"820d00010008746573742f31323300"
             # UNSUBSCRIBE
-            b"a20c00030008746573742f313233"
-        )
+            b"a20c00030008746573742f313233")
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -221,8 +186,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 3)
 
         self._assert_event(
-            events.pop(0), Connect,
-            {
+            events.pop(0), Connect, {
                 'username': None,
                 'password': None,
                 'will_message': None,
@@ -238,29 +202,20 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                     'clean_session': True,
                     'reserved': False
                 }
-            }
-        )
+            })
 
-        self._assert_event(
-            events.pop(0), Subscribe,
-            {
-                'packet_identifier': 1,
-                'topic_requests': [
-                    {
-                        'topic_filter': 'test/123',
-                        'max_qos': 0,
-                    }
-                ]
-            }
-        )
+        self._assert_event(events.pop(0), Subscribe, {
+            'packet_identifier': 1,
+            'topic_requests': [{
+                'topic_filter': 'test/123',
+                'max_qos': 0,
+            }]
+        })
 
-        self._assert_event(
-            events.pop(0), Unsubscribe,
-            {
-                'packet_identifier': 3,
-                'topics': ['test/123'],
-            }
-        )
+        self._assert_event(events.pop(0), Unsubscribe, {
+            'packet_identifier': 3,
+            'topics': ['test/123'],
+        })
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -270,7 +225,6 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
     """
     Tests for MQTT conformance.
     """
-
     def test_connect_not_first(self):
         """
         Sending a packet that is not a CONNECT as the first packet is a
@@ -283,8 +237,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
 
         data = (
             # SUBSCRIBE
-            b"820d00010008746573742f31323300"
-        )
+            b"820d00010008746573742f31323300")
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -292,9 +245,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 1)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {
-            'reason': "Connect packet was not first"
-        })
+        self._assert_event(events.pop(0), Failure, {'reason': "Connect packet was not first"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -313,8 +264,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             # CONNECT
             b"101300044d51545404020002000774657374313233"
             # CONNECT
-            b"101300044d51545404020002000774657374313233"
-        )
+            b"101300044d51545404020002000774657374313233")
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -325,9 +275,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertIsInstance(events.pop(0), Connect)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {
-            'reason': "Multiple Connect packets"
-        })
+        self._assert_event(events.pop(0), Failure, {'reason': "Multiple Connect packets"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -344,8 +292,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
 
         data = (
             # CONNECT using the second nibble
-            b"111300044d51545404020002000774657374313233"
-        )
+            b"111300044d51545404020002000774657374313233")
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -353,9 +300,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 1)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {
-            'reason': "Bad flags in Connect"
-        })
+        self._assert_event(events.pop(0), Failure, {'reason': "Bad flags in Connect"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -372,8 +317,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
 
         data = (
             # CONNECT using the second nibble, plus junk we should never read
-            b"10ffffffff000000000000000000"
-        )
+            b"10ffffffff000000000000000000")
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -381,9 +325,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 1)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {
-            'reason': "Too big packet size"
-        })
+        self._assert_event(events.pop(0), Failure, {'reason': "Too big packet size"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -405,12 +347,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             events.extend(p.data_received(x))
 
         self.assertEqual(len(events), 1)
-        self.assertEqual(
-            attr.asdict(events[0]),
-            {
-                'reason': ("Invalid UTF-8 string (contains surrogates)")
-            }
-        )
+        self.assertEqual(attr.asdict(events[0]), {'reason': ("Invalid UTF-8 string (contains surrogates)")})
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
 
     def test_invalid_utf8_null(self):
@@ -428,12 +365,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             events.extend(p.data_received(x))
 
         self.assertEqual(len(events), 1)
-        self.assertEqual(
-            attr.asdict(events[0]),
-            {
-                'reason': ("Invalid UTF-8 string (contains nulls)")
-            }
-        )
+        self.assertEqual(attr.asdict(events[0]), {'reason': ("Invalid UTF-8 string (contains nulls)")})
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
 
     def test_utf8_zwnbsp(self):
@@ -453,8 +385,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
 
         self.assertEqual(len(events), 1)
         self.assertEqual(
-            attr.asdict(events[0]),
-            {
+            attr.asdict(events[0]), {
                 'username': None,
                 'password': None,
                 'will_message': None,
@@ -470,8 +401,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
                     'clean_session': True,
                     'reserved': False
                 }
-            }
-        )
+            })
 
     def test_reserved_packet_15(self):
         """
@@ -486,8 +416,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             # CONNECT
             b"101300044d51545404020002000774657374313233"
             # Reserved packet #15
-            b"f01300044d51545404020002000774657374313233"
-        )
+            b"f01300044d51545404020002000774657374313233")
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -498,9 +427,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertIsInstance(events.pop(0), Connect)
 
         # Reserved packet type
-        self._assert_event(events.pop(0), Failure, {
-            'reason': "Unimplemented packet type 15"
-        })
+        self._assert_event(events.pop(0), Failure, {'reason': "Unimplemented packet type 15"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -519,8 +446,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             # CONNECT
             b"101300044d51545404020002000774657374313233"
             # Reserved packet #15
-            b"001300044d51545404020002000774657374313233"
-        )
+            b"001300044d51545404020002000774657374313233")
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -531,9 +457,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertIsInstance(events.pop(0), Connect)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {
-            'reason': "Unimplemented packet type 0"
-        })
+        self._assert_event(events.pop(0), Failure, {'reason': "Unimplemented packet type 0"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)

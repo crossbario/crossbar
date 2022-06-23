@@ -1,0 +1,87 @@
+<html>
+   <meta charset="UTF-8">
+   <body>
+      <h1>Crossbar.io Event History</h1>
+      <p>Open JavaScript console to watch output.</p>
+      <script>AUTOBAHN_DEBUG = false;</script>
+      <script src="/shared/autobahn/autobahn.min.js"></script>
+      <script>
+         var wsuri;
+         if (document.location.origin == "file://") {
+            wsuri = "ws://127.0.0.1:8080/ws";
+
+         } else {
+            wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
+                        document.location.host + "/ws";
+         }
+
+         var connection = new autobahn.Connection({
+            url: wsuri,
+            realm: "realm1"
+         });
+
+         var session = null;
+         var publisher = null;
+
+         connection.onopen = function (new_session, details) {
+            console.log("Connected", details);
+            session = new_session;
+
+            // periodically publish an event
+            //
+            var counter = 0;
+            publisher = setInterval(function () {
+               if (session) {
+                  session.publish('com.example.oncounter', [counter], null, {exclude_me: false});
+                  counter += 1;
+               }
+            }, 1000);
+
+            // subscribe to a topic ..
+            //
+            session.subscribe('com.example.oncounter',
+               function (args, kwargs, details) {
+                  console.log('com.example.oncounter', details.publication, args[0]);
+               },
+               {
+                  'match': 'exact'
+               }
+            ).then(
+               // .. when subscription is successful, we get back a subscription object
+               function (sub) {
+                  console.log("subscribed with subscription ID " + sub.id);
+
+                  // get event history of length 20 on given subscription
+                  //
+                  session.call('wamp.subscription.get_events', [sub.id, 20]).then(
+                     function (history) {
+                        console.log("got history for " + history.length + " events");
+                        for (var i = 0; i < history.length; ++i) {
+                           var evt = history[i];
+                           console.log(evt.timestamp, evt.publication, evt.args[0]);
+                        }
+                     },
+                     function (err) {
+                        console.log("could not retrieve event history", err);
+                     }
+                  );
+               },
+               function (err) {
+                  console.log("could not subscribe", err);
+               }
+            );
+         };
+
+         connection.onclose = function (reason, details) {
+            console.log("Connection lost: " + reason, details);
+            session = null;
+            if (publisher) {
+               clearTimeout(publisher);
+               publisher = null;
+            }
+         }
+
+         connection.open();
+      </script>
+   </body>
+</html>

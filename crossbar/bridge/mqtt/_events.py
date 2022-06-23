@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -34,8 +11,7 @@ import attr
 from attr.validators import instance_of, optional
 from bitstring import pack
 
-from ._utils import (read_prefixed_data, read_string, build_string,
-                     build_header, ParseFailure, SerialisationFailure)
+from ._utils import (read_prefixed_data, read_string, build_string, build_header, ParseFailure, SerialisationFailure)
 
 unicode = type("")
 
@@ -313,8 +289,7 @@ class Publish(object):
     retain = attr.ib(validator=instance_of(bool))
     topic_name = attr.ib(validator=instance_of(unicode))
     payload = attr.ib(validator=instance_of(bytes))
-    packet_identifier = attr.ib(validator=optional(instance_of(int)),
-                                default=None)
+    packet_identifier = attr.ib(validator=optional(instance_of(int)), default=None)
 
     def serialise(self):
         """
@@ -387,8 +362,11 @@ class Publish(object):
 
         payload = data.read(total_length - data.bitpos).bytes
 
-        return cls(duplicate=duplicate, qos_level=qos_level, retain=retain,
-                   topic_name=topic_name, packet_identifier=packet_identifier,
+        return cls(duplicate=duplicate,
+                   qos_level=qos_level,
+                   retain=retain,
+                   topic_name=topic_name,
+                   packet_identifier=packet_identifier,
                    payload=payload)
 
 
@@ -432,8 +410,7 @@ class SubACK(object):
             return_code = data.read('uint:8')
             return_codes.append(return_code)
 
-        return cls(packet_identifier=packet_identifier,
-                   return_codes=return_codes)
+        return cls(packet_identifier=packet_identifier, return_codes=return_codes)
 
 
 @attr.s
@@ -504,8 +481,7 @@ class Subscribe(object):
             if max_qos not in [0, 1, 2]:
                 raise ParseFailure(cls, "Invalid QoS")
 
-            pairs.append(SubscriptionTopicRequest(topic_filter=topic_filter,
-                                                  max_qos=max_qos))
+            pairs.append(SubscriptionTopicRequest(topic_filter=topic_filter, max_qos=max_qos))
 
         parse_pair()
 
@@ -556,8 +532,7 @@ class ConnACK(object):
         if reserved:
             raise ParseFailure(cls, "Reserved flag used.")
 
-        built = cls(session_present=data.read(1).bool,
-                    return_code=data.read(8).uint)
+        built = cls(session_present=data.read(1).bool, return_code=data.read(8).uint)
 
         # XXX: Do some more verification, re conn flags
 
@@ -565,8 +540,7 @@ class ConnACK(object):
             # There's some wacky stuff going on here -- data they included, but
             # didn't put flags for, maybe?
             warnings.warn(("Quirky server CONNACK -- packet length was "
-                           "%d bytes but only had %d bytes of useful data") % (
-                               data.bitpos, len(data)))
+                           "%d bytes but only had %d bytes of useful data") % (data.bitpos, len(data)))
 
         return built
 
@@ -577,7 +551,7 @@ class ConnectFlags(object):
     password = attr.ib(validator=instance_of(bool), default=False)
     will = attr.ib(validator=instance_of(bool), default=False)
     will_retain = attr.ib(validator=instance_of(bool), default=False)
-    will_qos = attr.ib(validator=instance_of(int), default=False)
+    will_qos = attr.ib(validator=instance_of(int), default=0)
     clean_session = attr.ib(validator=instance_of(bool), default=False)
     reserved = attr.ib(validator=instance_of(bool), default=False)
 
@@ -585,22 +559,18 @@ class ConnectFlags(object):
         """
         Assemble this into an on-wire message portion.
         """
-        return pack(
-            'bool, bool, bool, uint:2, bool, bool, bool',
-            self.username, self.password, self.will_retain, self.will_qos,
-            self.will, self.clean_session, self.reserved).bytes
+        return pack('bool, bool, bool, uint:2, bool, bool, bool', self.username, self.password, self.will_retain,
+                    self.will_qos, self.will, self.clean_session, self.reserved).bytes
 
     @classmethod
     def deserialise(cls, data):
-        built = cls(
-            username=data.read(1).bool,
-            password=data.read(1).bool,
-            will_retain=data.read(1).bool,
-            will_qos=data.read(2).uint,
-            will=data.read(1).bool,
-            clean_session=data.read(1).bool,
-            reserved=data.read(1).bool
-        )
+        built = cls(username=data.read(1).bool,
+                    password=data.read(1).bool,
+                    will_retain=data.read(1).bool,
+                    will_qos=data.read(2).uint,
+                    will=data.read(1).bool,
+                    clean_session=data.read(1).bool,
+                    reserved=data.read(1).bool)
 
         # XXX: Do some more conformance checking here
         # Need to worry about invalid flag combinations
@@ -618,14 +588,10 @@ class Connect(object):
     client_id = attr.ib(validator=instance_of(unicode))
     flags = attr.ib(validator=instance_of(ConnectFlags))
     keep_alive = attr.ib(validator=instance_of(int), default=0)
-    will_topic = attr.ib(validator=optional(instance_of(unicode)),
-                         default=None)
-    will_message = attr.ib(validator=optional(instance_of(bytes)),
-                           default=None)
-    username = attr.ib(validator=optional(instance_of(unicode)),
-                       default=None)
-    password = attr.ib(validator=optional(instance_of(unicode)),
-                       default=None)
+    will_topic = attr.ib(validator=optional(instance_of(unicode)), default=None)
+    will_message = attr.ib(validator=optional(instance_of(bytes)), default=None)
+    username = attr.ib(validator=optional(instance_of(unicode)), default=None)
+    password = attr.ib(validator=optional(instance_of(unicode)), default=None)
 
     def serialise(self):
         """
@@ -724,10 +690,13 @@ class Connect(object):
             # There's some wacky stuff going on here -- data they included, but
             # didn't put flags for, maybe?
             warnings.warn(("Quirky client CONNECT -- packet length was "
-                           "%d bytes but only had %d bytes of useful data") % (
-                               data.bitpos, len(data)))
+                           "%d bytes but only had %d bytes of useful data") % (data.bitpos, len(data)))
 
         # The event
-        return cls(flags=flags, keep_alive=keep_alive, client_id=client_id,
-                   will_topic=will_topic, will_message=will_message,
-                   username=username, password=password)
+        return cls(flags=flags,
+                   keep_alive=keep_alive,
+                   client_id=client_id,
+                   will_topic=will_topic,
+                   will_message=will_message,
+                   username=username,
+                   password=password)

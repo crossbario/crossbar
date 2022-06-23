@@ -20,6 +20,9 @@ Unix-like operating systems:
 systemd
 -------
 
+Crossbar supports systemd notify mechanism. Normally systemd just starts the process and assumes that's enough, but in the case of Crossbar and a client Autobahn application this isn't good enough, at least not on all systems.
+Simple service type is still supported.
+
 Create a systemd service file ``/etc/systemd/system/crossbar.service``
 
 ::
@@ -29,7 +32,7 @@ Create a systemd service file ``/etc/systemd/system/crossbar.service``
     After=network.target
 
     [Service]
-    Type=simple
+    Type=notify
     User=ubuntu
     Group=ubuntu
     StandardInput=null

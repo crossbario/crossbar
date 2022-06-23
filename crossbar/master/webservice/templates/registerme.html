@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block header %}
+   <style>
+      .register_url {
+         font-size: 24px;
+         color: #0aa20a;
+      }
+
+      .register_url a:visited {
+         color: #0aa20a;
+      }
+
+      td.col1 {
+         font-weight: bold;
+         font-size: 13px;
+         width: 200px;
+      }
+
+      td.col2 {
+         font-family: monospace;
+         font-size: 11px;
+      }
+   </style>
+{% endblock %}
+
+{% block content %}
+   <div id="register">
+      <hr><br>
+      <center>
+         <span style="font-size: 24px; font-weight: bold;">Crossbar.io (Master) v{{ cb_version }}</span>
+      </center>
+      <br>
+      {% if not is_registered %}
+      <p>
+          This is your Crossbar.io <b>Master Node</b> for hosting your own clusters based on <a href="https://crossbario.com/">Crossbar.io</a>.
+          Please register the node for free on the <a href="https://xbr.network">XBR network</a> to enable all features of the free-tier!</a>
+      </p>
+      <br>
+      <p style="width: 280px; margin: auto;">
+         <a href="{{ register_url }}" class="register_url">Register this node</a>
+      </p>
+      <br>
+      {% else %}
+      <br>
+      <p>
+          This is your Crossbar.io <b>Master Node</b> for hosting your own clusters based on <a href="https://crossbario.com/">Crossbar.io</a>.
+          The node is already registered on the <a href="https://xbr.network">XBR network</a>.
+      </p>
+      <br>
+      {% endif %}
+      <br>
+      <hr>
+      <br>
+      <b>Node information:</b>
+      <br><br>
+      <table class="detail" id="node_info">
+         <tr>
+            <td class="col1">Release</td>
+            <td class="col2">{{ cb_version }}</td>
+         </tr>
+         <tr>
+            <td class="col1">Node Type</td>
+            <td class="col2">{{ node_type }}</td>
+         </tr>
+         <tr>
+            <td class="col1">Node started</td>
+            <td class="col2">{{ node_status['started'] }}</td>
+         </tr>
+         <tr>
+            <td class="col1">Node worker PID</td>
+            <td class="col2">{{ worker_pid }}</td>
+         </tr>
+         <tr>
+            <td class="col1">Node public key</td>
+            <td class="col2">{{ node_status['pubkey'] }}</td>
+         </tr>
+      </table>
+      <br><br>
+      <b>Software license:</b>
+      <br><br>
+      <table class="detail" id="master_license">
+      {% for key in master_license %}
+          <tr>
+              <td class="col1">{{ key }}</td>
+              <td class="col2">{{ master_license[key] }}</td>
+          </tr>
+      {% endfor %}
+      </table>
+      <br><br>
+      <b>Release versions:</b>
+      <br><br>
+      <table class="detail" id="master_version">
+      {% for key in master_version %}
+          <tr>
+              <td class="col1">{{ key }}</td>
+              <td class="col2">{{ master_version[key] }}</td>
+          </tr>
+      {% endfor %}
+      </table>
+      <br><br>
+   </div>
+{% endblock %}

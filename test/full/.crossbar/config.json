@@ -7,27 +7,6 @@
             "title": "Kernreaktor 7",
             "shutdown": ["shutdown_on_last_worker_exit"]
         },
-        "manhole": {
-            "endpoint": {
-                "type": "tcp",
-                "port": 6022,
-                "tls": {
-                    "certificate": "server.crt",
-                    "key": "server.key",
-                    "dhparam": "dhparam.pem",
-                    "ca_certificates": [
-                        "intermediate.cert.pem",
-                        "ca.cert.pem"
-                    ]
-                }
-            },
-            "users": [
-                {
-                    "user": "crossbar",
-                    "password": "crossbar"
-                }
-            ]
-        },
         "connections": [
             {
                 "type": "postgres",
@@ -80,7 +59,7 @@
                 "endpoint": {
                     "type": "tcp",
                     "interface": "127.0.0.1",
-                    "port": 9000,
+                    "port": 8999,
                     "shared": true,
                     "backlog": 500
                 }

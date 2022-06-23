@@ -1,0 +1,135 @@
+version: '3'
+services:
+    master:
+        container_name: master
+        restart: always
+        image: crossbario/crossbarfx:pypy-slim-amd64
+        ports:
+            # TCP port mapping (HOST:CONTAINER port):
+            - "9000:9000"
+        tty: true
+        environment:
+            # requires symlink on host:
+            # ln -s ${HOME}/.crossbarfx/default.pub .nodes/default.pub
+            - CROSSBAR_FABRIC_SUPERUSER=../default.pub
+
+            # both of these are required for auto-discovery & pairing of nodes
+            - CROSSBAR_FABRIC_URL=ws://master:9000/ws
+            - CROSSBAR_NODE_ID=master
+            - CROSSBAR_WATCH_TO_PAIR=/nodes
+        volumes:
+            # superuser public key
+            - "${HOME}/.crossbarfx/default.pub:/default.pub:ro"
+
+            # nodes parent directory (of all nodes) is mapped from host:
+            - "${PWD}/.test/nodes:/nodes:rw"
+
+            # node directory of master node
+            - "${PWD}/.test/master:/master:rw"
+        command:
+            - master
+            - start
+            - --cbdir=/master
+
+    node1:
+        container_name: node1
+        depends_on:
+            - master
+        restart: always
+        image: crossbario/crossbarfx:pypy-slim-amd64
+        ports:
+            # TCP port mapping (HOST:CONTAINER port):
+            - "8081:8080"
+        tty: true
+        environment:
+            # auto-pairing configuration
+            - CROSSBAR_FABRIC_URL=ws://master:9000/ws
+            - CROSSBAR_NODE_ID=node1
+        volumes:
+            # node directory (of this node only!) is mapped from host:
+            - "${PWD}/.test/nodes/node1:/node:rw"
+        command:
+            - edge
+            - start
+            - --cbdir=/node
+
+    node2:
+        container_name: node2
+        depends_on:
+            - master
+        restart: always
+        image: crossbario/crossbarfx:pypy-slim-amd64
+        ports:
+            # TCP port mapping (HOST:CONTAINER port):
+            - "8082:8080"
+        tty: true
+        environment:
+            # auto-pairing configuration
+            - CROSSBAR_FABRIC_URL=ws://master:9000/ws
+            - CROSSBAR_NODE_ID=node2
+        volumes:
+            # node directory (of this node only!) is mapped from host:
+            - "${PWD}/.test/nodes/node2:/node:rw"
+        command:
+            - edge
+            - start
+            - --cbdir=/node
+
+    node3:
+        container_name: node3
+        depends_on:
+            - master
+        restart: always
+        image: crossbario/crossbarfx:pypy-slim-amd64
+        ports:
+            # TCP port mapping (HOST:CONTAINER port):
+            - "8083:8080"
+        tty: true
+        environment:
+            # auto-pairing configuration
+            - CROSSBAR_FABRIC_URL=ws://master:9000/ws
+            - CROSSBAR_NODE_ID=node3
+        volumes:
+            # node directory (of this node only!) is mapped from host:
+            - "${PWD}/.test/nodes/node3:/node:rw"
+        command:
+            - edge
+            - start
+            - --cbdir=/node
+
+    node4:
+        container_name: node4
+        depends_on:
+            - master
+        restart: always
+        image: crossbario/crossbarfx:pypy-slim-amd64
+        ports:
+            # TCP port mapping (HOST:CONTAINER port):
+            - "8084:8080"
+        tty: true
+        environment:
+            # auto-pairing configuration
+            - CROSSBAR_FABRIC_URL=ws://master:9000/ws
+            - CROSSBAR_NODE_ID=node4
+        volumes:
+            # node directory (of this node only!) is mapped from host:
+            - "${PWD}/.test/nodes/node4:/node:rw"
+        command:
+            - edge
+            - start
+            - --cbdir=/node
+
+    haproxy:
+        container_name: haproxy
+        depends_on:
+            - node1
+            - node2
+            - node3
+            - node4
+        restart: always
+        image: haproxy
+        ports:
+            - "8080:8080"
+            - "1936:1936"
+        volumes:
+            - "${PWD}/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"

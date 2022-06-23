@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -32,16 +9,10 @@ import attr
 
 from binascii import unhexlify
 
-from crossbar.bridge.mqtt.tx import (
-    MQTTServerTwistedProtocol, Session)
+from crossbar.bridge.mqtt.tx import (MQTTServerTwistedProtocol, Session)
 from crossbar.bridge.mqtt.protocol import MQTTClientParser
-from crossbar.bridge.mqtt._events import (
-    Connect, ConnectFlags, ConnACK,
-    SubACK, Subscribe,
-    Publish, PubACK, PubREC, PubREL, PubCOMP,
-    Unsubscribe, UnsubACK,
-    SubscriptionTopicRequest
-)
+from crossbar.bridge.mqtt._events import (Connect, ConnectFlags, ConnACK, SubACK, Subscribe, Publish, PubACK, PubREC,
+                                          PubREL, PubCOMP, Unsubscribe, UnsubACK, SubscriptionTopicRequest)
 from crossbar.bridge.mqtt._utils import iterbytes
 from crossbar._logging import LogCapturer, LogLevel
 
@@ -98,7 +69,6 @@ class TwistedProtocolLoggingTests(TestCase):
     """
     Tests for the logging functionality of the Twisted MQTT protocol.
     """
-
     def test_send_packet(self):
         """
         On sending a packet, a trace log message is emitted with details of the
@@ -109,8 +79,7 @@ class TwistedProtocolLoggingTests(TestCase):
 
         data = (
             # CONNECT
-            b"101300044d51545404020002000774657374313233"
-        )
+            b"101300044d51545404020002000774657374313233")
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(unhexlify(data)):
@@ -136,8 +105,7 @@ class TwistedProtocolLoggingTests(TestCase):
 
         data = (
             # CONNECT
-            b"101300044d51545404020002000774657374313233"
-        )
+            b"101300044d51545404020002000774657374313233")
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(unhexlify(data)):
@@ -151,7 +119,6 @@ class TwistedProtocolLoggingTests(TestCase):
 
 
 class TwistedProtocolTests(TestCase):
-
     def test_keepalive(self):
         """
         If a client connects with a timeout, and sends no data in keep_alive *
@@ -164,8 +131,7 @@ class TwistedProtocolTests(TestCase):
 
         data = (
             # CONNECT, with keepalive of 2
-            b"101300044d51545404020002000774657374313233"
-        )
+            b"101300044d51545404020002000774657374313233")
 
         for x in iterbytes(unhexlify(data)):
             p.dataReceived(x)
@@ -192,8 +158,7 @@ class TwistedProtocolTests(TestCase):
 
         data = (
             # CONNECT, with keepalive of 2
-            b"101300044d51545404020002000774657374313233"
-        )
+            b"101300044d51545404020002000774657374313233")
 
         for x in iterbytes(unhexlify(data)):
             p.dataReceived(x)
@@ -221,8 +186,7 @@ class TwistedProtocolTests(TestCase):
 
         data = (
             # CONNECT, with keepalive of 2
-            b"101300044d51545404020002000774657374313233"
-        )
+            b"101300044d51545404020002000774657374313233")
 
         for x in iterbytes(unhexlify(data)):
             p.dataReceived(x)
@@ -238,8 +202,7 @@ class TwistedProtocolTests(TestCase):
 
         data = (
             # PINGREQ header, no body (incomplete packet)
-            b"c0"
-        )
+            b"c0")
 
         for x in iterbytes(unhexlify(data)):
             p.dataReceived(x)
@@ -264,8 +227,7 @@ class TwistedProtocolTests(TestCase):
 
         data = (
             # CONNECT, with keepalive of 2
-            b"101300044d51545404020002000774657374313233"
-        )
+            b"101300044d51545404020002000774657374313233")
 
         for x in iterbytes(unhexlify(data)):
             p.dataReceived(x)
@@ -281,8 +243,7 @@ class TwistedProtocolTests(TestCase):
 
         data = (
             # Full PINGREQ packet
-            b"c000"
-        )
+            b"c000")
 
         for x in iterbytes(unhexlify(data)):
             p.dataReceived(x)
@@ -305,10 +266,7 @@ class TwistedProtocolTests(TestCase):
         h.process_connect = lambda x: d
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
 
         self.assertEqual(t.producerState, 'producing')
 
@@ -329,10 +287,7 @@ class TwistedProtocolTests(TestCase):
         h = BasicHandler(6)
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -352,8 +307,7 @@ class TwistedProtocolTests(TestCase):
 
         data = (
             # Invalid CONNECT
-            b"111300044d51545404020002000774657374313233"
-        )
+            b"111300044d51545404020002000774657374313233")
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(unhexlify(data)):
@@ -378,15 +332,13 @@ class TwistedProtocolTests(TestCase):
         # This shouldn't normally happen, but just in case.
         from crossbar.bridge.mqtt import protocol
         protocol.server_packet_handlers[protocol.P_SUBACK] = SubACK
-        self.addCleanup(
-            lambda: protocol.server_packet_handlers.pop(protocol.P_SUBACK))
+        self.addCleanup(lambda: protocol.server_packet_handlers.pop(protocol.P_SUBACK))
 
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise() + SubACK(1, [1]).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise() +
+                SubACK(1, [1]).serialise())
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -410,8 +362,12 @@ class TwistedProtocolTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         conn = Connect(client_id="test123", flags=ConnectFlags(clean_session=False))
-        pub = Publish(duplicate=False, qos_level=3, retain=False,
-                      topic_name="foo", packet_identifier=1, payload=b"bar")
+        pub = Publish(duplicate=False,
+                      qos_level=3,
+                      retain=False,
+                      topic_name="foo",
+                      packet_identifier=1,
+                      payload=b"bar")
 
         with LogCapturer("trace") as logs:
             p._handle_events([conn, pub])
@@ -449,22 +405,17 @@ class NonZeroConnACKTests(object):
         h = BasicHandler(self.connect_code)
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
 
         events = cp.data_received(t.value())
         self.assertEqual(len(events), 1)
-        self.assertEqual(
-            attr.asdict(events[0]),
-            {
-                'return_code': self.connect_code,
-                'session_present': False,
-            })
+        self.assertEqual(attr.asdict(events[0]), {
+            'return_code': self.connect_code,
+            'session_present': False,
+        })
 
 
 for x in [1, 2, 3, 4, 5]:
@@ -484,7 +435,6 @@ for x in [1, 2, 3, 4, 5]:
 
 
 class SubscribeHandlingTests(TestCase):
-
     def test_exception_in_subscribe_drops_connection(self):
         """
         Transient failures (like an exception from handler.process_subscribe)
@@ -500,9 +450,8 @@ class SubscribeHandlingTests(TestCase):
         h = SubHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Subscribe(packet_identifier=1234, topic_requests=[SubscriptionTopicRequest("a", 0)]).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() +
+                Subscribe(packet_identifier=1234, topic_requests=[SubscriptionTopicRequest("a", 0)]).serialise())
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -523,7 +472,6 @@ class SubscribeHandlingTests(TestCase):
 
 
 class ConnectHandlingTests(TestCase):
-
     def test_got_sent_packet(self):
         """
         `process_connect` on the handler will get the correct Connect packet.
@@ -538,10 +486,7 @@ class ConnectHandlingTests(TestCase):
         h = SubHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -565,10 +510,7 @@ class ConnectHandlingTests(TestCase):
         h = SubHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise())
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -589,7 +531,6 @@ class ConnectHandlingTests(TestCase):
 
 
 class UnsubscribeHandlingTests(TestCase):
-
     def test_exception_in_connect_drops_connection(self):
         """
         Transient failures (like an exception from handler.process_connect)
@@ -604,9 +545,8 @@ class UnsubscribeHandlingTests(TestCase):
         h = SubHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Unsubscribe(packet_identifier=1234, topics=["foo"]).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() +
+                Unsubscribe(packet_identifier=1234, topics=["foo"]).serialise())
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -642,13 +582,9 @@ class UnsubscribeHandlingTests(TestCase):
         h = SubHandler()
         r, t, p, cp = make_test_items(h)
 
-        unsub = Unsubscribe(packet_identifier=1234,
-                            topics=["foo"]).serialise()
+        unsub = Unsubscribe(packet_identifier=1234, topics=["foo"]).serialise()
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() + unsub
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + unsub)
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -667,7 +603,6 @@ class UnsubscribeHandlingTests(TestCase):
 
 
 class PublishHandlingTests(TestCase):
-
     def test_qos_0_sends_no_ack(self):
         """
         When a QoS 0 Publish packet is recieved, we don't send back a PubACK.
@@ -682,14 +617,14 @@ class PublishHandlingTests(TestCase):
         h = PubHandler()
         r, t, p, cp = make_test_items(h)
 
-        pub = Publish(duplicate=False, qos_level=0, retain=False,
-                      topic_name="foo", packet_identifier=None,
+        pub = Publish(duplicate=False,
+                      qos_level=0,
+                      retain=False,
+                      topic_name="foo",
+                      packet_identifier=None,
                       payload=b"bar").serialise()
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() + pub
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + pub)
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -725,9 +660,9 @@ class PublishHandlingTests(TestCase):
         h = PubHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=0, retain=False, topic_name="foo", packet_identifier=None, payload=b"bar").serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(
+            duplicate=False, qos_level=0, retain=False, topic_name="foo", packet_identifier=None,
+            payload=b"bar").serialise())
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -764,14 +699,14 @@ class PublishHandlingTests(TestCase):
         h = PubHandler()
         r, t, p, cp = make_test_items(h)
 
-        pub = Publish(duplicate=False, qos_level=1, retain=False,
-                      topic_name="foo", packet_identifier=1,
+        pub = Publish(duplicate=False,
+                      qos_level=1,
+                      retain=False,
+                      topic_name="foo",
+                      packet_identifier=1,
                       payload=b"bar").serialise()
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() + pub
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + pub)
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -809,8 +744,9 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=1, retain=False, topic_name="foo", packet_identifier=1, payload=b"bar").serialise()
-        )
+            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() +
+            Publish(duplicate=False, qos_level=1, retain=False, topic_name="foo", packet_identifier=1,
+                    payload=b"bar").serialise())
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -848,14 +784,14 @@ class PublishHandlingTests(TestCase):
         h = PubHandler()
         r, t, p, cp = make_test_items(h)
 
-        pub = Publish(duplicate=False, qos_level=2, retain=False,
-                      topic_name="foo", packet_identifier=1,
+        pub = Publish(duplicate=False,
+                      qos_level=2,
+                      retain=False,
+                      topic_name="foo",
+                      packet_identifier=1,
                       payload=b"bar").serialise()
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() + pub
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + pub)
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -908,8 +844,9 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=2, retain=False, topic_name="foo", packet_identifier=1, payload=b"bar").serialise()
-        )
+            Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise() +
+            Publish(duplicate=False, qos_level=2, retain=False, topic_name="foo", packet_identifier=1,
+                    payload=b"bar").serialise())
 
         with LogCapturer("trace") as logs:
             for x in iterbytes(data):
@@ -933,7 +870,6 @@ class SendPublishTests(TestCase):
     """
     Tests for the WAMP layer sending messages to MQTT clients.
     """
-
     def test_qos_0_queues_message(self):
         """
         The WAMP layer calling send_publish will queue a message up for
@@ -942,10 +878,7 @@ class SendPublishTests(TestCase):
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -970,8 +903,11 @@ class SendPublishTests(TestCase):
         self.assertEqual(len(events), 1)
         self.assertEqual(
             events[0],
-            Publish(duplicate=False, qos_level=0, retain=False,
-                    packet_identifier=None, topic_name="hello",
+            Publish(duplicate=False,
+                    qos_level=0,
+                    retain=False,
+                    packet_identifier=None,
+                    topic_name="hello",
                     payload=b"some bytes"))
 
     def test_qos_1_queues_message(self):
@@ -982,10 +918,7 @@ class SendPublishTests(TestCase):
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -1006,9 +939,12 @@ class SendPublishTests(TestCase):
         r.advance(0.1)
 
         # We should now get the sent Publish
-        expected_publish = Publish(
-            duplicate=False, qos_level=1, retain=False, packet_identifier=1,
-            topic_name="hello", payload=b"some bytes")
+        expected_publish = Publish(duplicate=False,
+                                   qos_level=1,
+                                   retain=False,
+                                   packet_identifier=1,
+                                   topic_name="hello",
+                                   payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
         self.assertEqual(len(events), 1)
@@ -1033,10 +969,7 @@ class SendPublishTests(TestCase):
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -1057,8 +990,11 @@ class SendPublishTests(TestCase):
         r.advance(0.1)
 
         # We should now get the sent Publish
-        expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
-                                   packet_identifier=1, topic_name="hello",
+        expected_publish = Publish(duplicate=False,
+                                   qos_level=2,
+                                   retain=False,
+                                   packet_identifier=1,
+                                   topic_name="hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1095,10 +1031,7 @@ class SendPublishTests(TestCase):
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -1110,8 +1043,11 @@ class SendPublishTests(TestCase):
         r.advance(0.1)
 
         # We should now get the sent Publish
-        expected_publish = Publish(duplicate=False, qos_level=1, retain=False,
-                                   packet_identifier=1, topic_name="hello",
+        expected_publish = Publish(duplicate=False,
+                                   qos_level=1,
+                                   retain=False,
+                                   packet_identifier=1,
+                                   topic_name="hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1126,10 +1062,7 @@ class SendPublishTests(TestCase):
         r2, t2, p2, cp2 = make_test_items(h)
 
         # We must NOT have a clean session
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
 
         for x in iterbytes(data):
             p2.dataReceived(x)
@@ -1146,8 +1079,11 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[1], Publish)
 
         # The Publish packet must have DUP set to True.
-        resent_publish = Publish(duplicate=True, qos_level=1, retain=False,
-                                 packet_identifier=1, topic_name="hello",
+        resent_publish = Publish(duplicate=True,
+                                 qos_level=1,
+                                 retain=False,
+                                 packet_identifier=1,
+                                 topic_name="hello",
                                  payload=b"some bytes")
         self.assertEqual(events[1], resent_publish)
 
@@ -1173,10 +1109,7 @@ class SendPublishTests(TestCase):
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -1188,8 +1121,11 @@ class SendPublishTests(TestCase):
         r.advance(0.1)
 
         # We should now get the sent Publish
-        expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
-                                   packet_identifier=1, topic_name="hello",
+        expected_publish = Publish(duplicate=False,
+                                   qos_level=2,
+                                   retain=False,
+                                   packet_identifier=1,
+                                   topic_name="hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1204,10 +1140,7 @@ class SendPublishTests(TestCase):
         r2, t2, p2, cp2 = make_test_items(h)
 
         # We must NOT have a clean session
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
 
         for x in iterbytes(data):
             p2.dataReceived(x)
@@ -1224,8 +1157,11 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[1], Publish)
 
         # The Publish packet must have DUP set to True.
-        resent_publish = Publish(duplicate=True, qos_level=2, retain=False,
-                                 packet_identifier=1, topic_name="hello",
+        resent_publish = Publish(duplicate=True,
+                                 qos_level=2,
+                                 retain=False,
+                                 packet_identifier=1,
+                                 topic_name="hello",
                                  payload=b"some bytes")
         self.assertEqual(events[1], resent_publish)
 
@@ -1264,10 +1200,7 @@ class SendPublishTests(TestCase):
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -1279,8 +1212,11 @@ class SendPublishTests(TestCase):
         r.advance(0.1)
 
         # We should now get the sent Publish
-        expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
-                                   packet_identifier=1, topic_name="hello",
+        expected_publish = Publish(duplicate=False,
+                                   qos_level=2,
+                                   retain=False,
+                                   packet_identifier=1,
+                                   topic_name="hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1307,10 +1243,7 @@ class SendPublishTests(TestCase):
         r2, t2, p2, cp2 = make_test_items(h)
 
         # We must NOT have a clean session
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
 
         for x in iterbytes(data):
             p2.dataReceived(x)
@@ -1346,10 +1279,7 @@ class SendPublishTests(TestCase):
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        data = (
-            Connect(client_id="test123",
-                    flags=ConnectFlags(clean_session=True)).serialise()
-        )
+        data = (Connect(client_id="test123", flags=ConnectFlags(clean_session=True)).serialise())
 
         for x in iterbytes(data):
             p.dataReceived(x)
@@ -1373,8 +1303,8 @@ class SendPublishTests(TestCase):
         # Still nothing
         self.assertEqual(t.value(), b'')
 
-    for x in [test_qos_1_resent_on_disconnect,
-              test_qos_2_resent_on_disconnect_pubcomp,
-              test_qos_2_resent_on_disconnect_pubrel]:
-        x.todo = ("Needs WAMP-level implementation first, and the WAMP router "
-                  "to resend ACKs/messages")
+    for x in [
+            test_qos_1_resent_on_disconnect, test_qos_2_resent_on_disconnect_pubcomp,
+            test_qos_2_resent_on_disconnect_pubrel
+    ]:
+        x.todo = ("Needs WAMP-level implementation first, and the WAMP router " "to resend ACKs/messages")

@@ -1,48 +1,26 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
 import os
 import sys
 import pkg_resources
-import jinja2
 import signal
+from typing import Optional, List
 
-import nacl
+import jinja2
+from jinja2.sandbox import SandboxedEnvironment
+from jinja2 import Environment
 
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import inlineCallbacks
 
-from autobahn.util import utcnow
+from autobahn.util import utcnow, hltype
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions
-from autobahn.wamp import cryptosign
+from autobahn.wamp.types import PublishOptions, Challenge
 from autobahn import wamp
 
 from txaio import make_logger
@@ -50,14 +28,13 @@ from txaio import make_logger
 from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcess
 from crossbar.common.profiler import PROFILERS
-from crossbar.common.key import _read_node_key, _read_release_key
+from crossbar.common.key import _read_release_key
 from crossbar._util import term_print
 
-__all__ = ('WorkerController',)
+__all__ = ('WorkerController', )
 
 
 class WorkerController(NativeProcess):
-
     """
     A native Crossbar.io worker process. The worker will be connected
     to the node's management router running inside the node controller
@@ -75,13 +52,6 @@ class WorkerController(NativeProcess):
         # Release (public) key
         self._release_pubkey = _read_release_key()
 
-        # Node (private) key (as a string, in hex)
-        node_key_hex = _read_node_key(self.config.extra.cbdir, private=True)['hex']
-        privkey = nacl.signing.SigningKey(node_key_hex, encoder=nacl.encoding.HexEncoder)
-
-        # WAMP-cryptosign signing key
-        self._node_key = cryptosign.SigningKey(privkey)
-
     def onConnect(self):
         """
         Called when the worker has connected to the node's management router.
@@ -97,20 +67,38 @@ class WorkerController(NativeProcess):
 
         # Jinja2 templates for Web (like WS status page et al)
         #
-        template_dirs = []
+        self._templates_dir = []
         for package, directory in self.personality.TEMPLATE_DIRS:
             dir_path = os.path.abspath(pkg_resources.resource_filename(package, directory))
-            template_dirs.append(dir_path)
-        self.log.debug("Using Web templates from {template_dirs}",
-                       template_dirs=template_dirs)
-        self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs), autoescape=True)
+            self._templates_dir.append(dir_path)
+        self.log.debug("Using Web templates from {template_dirs}", template_dirs=self._templates_dir)
+
+        # FIXME: make configurable, but default should remain SandboxedEnvironment for security
+        if True:
+            # The sandboxed environment. It works like the regular environment but tells the compiler to
+            # generate sandboxed code.
+            # https://jinja.palletsprojects.com/en/2.11.x/sandbox/#jinja2.sandbox.SandboxedEnvironment
+            self._templates = SandboxedEnvironment(loader=jinja2.FileSystemLoader(self._templates_dir),
+                                                   autoescape=True)
+        else:
+            self._templates = Environment(loader=jinja2.FileSystemLoader(self._templates_dir), autoescape=True)
 
         self.join(self.config.realm)
 
-    def templates(self):
+    @property
+    def templates_dir(self) -> List[str]:
         """
+        Template directories used in the Jinja2 rendering environment.
 
-        :return: jinja2.Environment for the built in templates from personality.TEMPLATE_DIRS
+        :return:
+        """
+        return self._templates_dir
+
+    def templates(self) -> Environment:
+        """
+        Jinja2 rendering environment.
+
+        :return: jinja2.Environment for the built-in templates from personality.TEMPLATE_DIRS
         """
         return self._templates
 
@@ -120,12 +108,14 @@ class WorkerController(NativeProcess):
         Called when worker process has joined the node management realm.
         """
         yield NativeProcess.onJoin(self, details)
+
         # above upcall registers all our "@wamp.register(None)" methods
 
         # setup SIGTERM handler to orderly shutdown the worker
         def shutdown(sig, frame):
             self.log.warn("Native worker received SIGTERM - shutting down ..")
             self.shutdown()
+
         signal.signal(signal.SIGTERM, shutdown)
 
         # the worker is ready for work!
@@ -150,18 +140,14 @@ class WorkerController(NativeProcess):
         # signal that this worker is ready for setup. the actual setup procedure
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
-        yield self.publish(
-            '{}.on_worker_ready'.format(self._uri_prefix),
-            {
-                'type': self.WORKER_TYPE,
-                'id': self.config.extra.worker,
-                'pid': os.getpid(),
-            },
-            options=PublishOptions(acknowledge=True)
-        )
+        yield self.publish('{}.on_worker_ready'.format(self._uri_prefix), {
+            'type': self.WORKER_TYPE,
+            'id': self.config.extra.worker,
+            'pid': os.getpid(),
+        },
+                           options=PublishOptions(acknowledge=True))
 
-        self.log.debug("Worker '{worker}' running as PID {pid}",
-                       worker=self.config.extra.worker, pid=os.getpid())
+        self.log.debug("Worker '{worker}' running as PID {pid}", worker=self.config.extra.worker, pid=os.getpid())
         term_print('CROSSBAR[{}]:WORKER_STARTED'.format(self.config.extra.worker))
 
     @wamp.register(None)
@@ -182,14 +168,11 @@ class WorkerController(NativeProcess):
 
         # publish management API event
         #
-        yield self.publish(
-            '{}.on_shutdown_requested'.format(self._uri_prefix),
-            {
-                'who': details.caller if details else None,
-                'when': utcnow()
-            },
-            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
-        )
+        yield self.publish('{}.on_shutdown_requested'.format(self._uri_prefix), {
+            'who': details.caller if details else None,
+            'when': utcnow()
+        },
+                           options=PublishOptions(exclude=details.caller if details else None, acknowledge=True))
 
         # we now call self.leave() to initiate the clean, orderly shutdown of the native worker.
         # the call is scheduled to run on the next reactor iteration only, because we want to first
@@ -271,11 +254,7 @@ class WorkerController(NativeProcess):
             'async': start_async,
         }
 
-        self.publish(
-            on_profile_started,
-            profile_started,
-            options=publish_options
-        )
+        self.publish(on_profile_started, profile_started, options=publish_options)
 
         def on_profile_success(profile_result):
             self._profiles[profile_id] = {
@@ -285,30 +264,24 @@ class WorkerController(NativeProcess):
                 'profile': profile_result
             }
 
-            self.publish(
-                on_profile_finished,
-                {
-                    'id': profile_id,
-                    'error': None,
-                    'profile': profile_result
-                },
-                options=publish_options
-            )
+            self.publish(on_profile_finished, {
+                'id': profile_id,
+                'error': None,
+                'profile': profile_result
+            },
+                         options=publish_options)
 
             return profile_result
 
         def on_profile_failed(error):
             self.log.warn('profiling failed: {error}', error=error)
 
-            self.publish(
-                on_profile_finished,
-                {
-                    'id': profile_id,
-                    'error': '{0}'.format(error),
-                    'profile': None
-                },
-                options=publish_options
-            )
+            self.publish(on_profile_finished, {
+                'id': profile_id,
+                'error': '{0}'.format(error),
+                'profile': None
+            },
+                         options=publish_options)
 
             return error
 
@@ -378,7 +351,8 @@ class WorkerController(NativeProcess):
             if os.path.isdir(path_to_add):
                 paths_added.append({'requested': p, 'resolved': path_to_add})
             else:
-                emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(p, path_to_add)
+                emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(
+                    p, path_to_add)
                 self.log.error(emsg)
                 raise ApplicationError('crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
 
@@ -403,12 +377,35 @@ class WorkerController(NativeProcess):
         # publish event "on_pythonpath_add" to all but the caller
         #
         topic = '{}.on_pythonpath_add'.format(self._uri_prefix)
-        res = {
-            'paths': sys.path,
-            'paths_added': paths_added,
-            'prepend': prepend,
-            'who': details.caller
-        }
+        res = {'paths': sys.path, 'paths_added': paths_added, 'prepend': prepend, 'who': details.caller}
         self.publish(topic, res, options=PublishOptions(exclude=details.caller))
 
         return res
+
+    @inlineCallbacks
+    def sign_challenge(self, challenge: Challenge, channel_id: Optional[bytes], channel_id_type=Optional[str]):
+        """
+        Call into node controller (over secure controller-worker pipe) to sign challenge with node key.
+
+        :param challenge:
+        :param channel_id:
+        :param channel_id_type:
+        :return:
+        """
+        self.log.info('{func}() ...', func=hltype(self.sign_challenge))
+        result = yield self.call("crossbar.sign_challenge", challenge.method, challenge.extra, channel_id,
+                                 channel_id_type)
+        self.log.info('{func}(): {result}', func=hltype(self.sign_challenge), result=result)
+        return result
+
+    @inlineCallbacks
+    def get_public_key(self):
+        """
+        Call into node controller (over secure controller-worker pipe) to get the node's public key.
+
+        :return:
+        """
+        self.log.info('{func}() ...', func=hltype(self.get_public_key))
+        result = yield self.call("crossbar.get_public_key")
+        self.log.info('{func}(): {result}', func=hltype(self.get_public_key), result=result)
+        return result

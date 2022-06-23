@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -46,8 +23,9 @@ from twisted.internet.error import ProcessExitedAlready
 from twisted.python.runtime import platform
 
 from autobahn.util import utcnow, utcstr
+from autobahn.wamp.cryptosign import format_challenge, sign_challenge
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, ComponentConfig
+from autobahn.wamp.types import PublishOptions, ComponentConfig, Challenge
 from autobahn import wamp
 
 import crossbar
@@ -64,6 +42,7 @@ from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
 
 import txaio
 from txaio import make_logger, get_global_log_level
+
 txaio.use_twisted()
 from txaio import time_ns  # noqa
 
@@ -134,8 +113,12 @@ class NodeController(NativeProcess):
 
         from autobahn.wamp.types import SubscribeOptions
 
-        self.log.info('{func}: joined realm="{realm}" on local node management router [authid="{authid}", authrole="{authrole}"]',
-                      func=hltype(self.onJoin), authid=hlid(details.authid), authrole=hlid(details.authrole), realm=hlid(details.realm))
+        self.log.info(
+            '{func}: joined realm="{realm}" on local node management router [authid="{authid}", authrole="{authrole}"]',
+            func=hltype(self.onJoin),
+            authid=hlid(details.authid),
+            authrole=hlid(details.authrole),
+            realm=hlid(details.realm))
 
         # When a (native) worker process has connected back to the router of
         # the node controller, the worker will publish this event
@@ -150,15 +133,18 @@ class NodeController(NativeProcess):
                     # signaling "worker ready"
                     ready.callback(worker_id)
                 else:
-                    self.log.error("Internal error: on_worker_ready() fired for process {process}, but already called earlier",
-                                   process=worker_id)
+                    self.log.error(
+                        "Internal error: on_worker_ready() fired for process {process}, but already called earlier",
+                        process=worker_id)
             else:
-                self.log.error("Internal error: on_worker_ready() fired for process {process}, but no process with that ID",
-                               process=worker_id)
+                self.log.error(
+                    "Internal error: on_worker_ready() fired for process {process}, but no process with that ID",
+                    process=worker_id)
 
         self.subscribe(on_worker_ready, 'crossbar.worker..on_worker_ready', SubscribeOptions(match='wildcard'))
 
         yield NativeProcess.onJoin(self, details)
+
         # above upcall registers procedures we have marked with @wamp.register(None)
 
         # we need to catch SIGINT here to properly shutdown the
@@ -174,13 +160,18 @@ class NodeController(NativeProcess):
                 # FIXME: can we run into others here?
                 self._shutdown_was_clean = False
 
-            self.log.warn('Controller received SIGINT [signal={signal}]: shutting down node [shutdown_was_clean={shutdown_was_clean}] ..', signal=_signal, shutdown_was_clean=self._shutdown_was_clean)
+            self.log.warn(
+                'Controller received SIGINT [signal={signal}]: shutting down node [shutdown_was_clean={shutdown_was_clean}] ..',
+                signal=_signal,
+                shutdown_was_clean=self._shutdown_was_clean)
 
             # the following will shutdown the Twisted reactor in the end
             self.shutdown()
 
         signal.signal(signal.SIGINT, signal_handler)
-        self.log.info('Signal handler installed on process {pid} thread {tid}', pid=os.getpid(), tid=threading.get_ident())
+        self.log.info('Signal handler installed on process {pid} thread {tid}',
+                      pid=os.getpid(),
+                      tid=threading.get_ident())
 
         self._started = utcnow()
 
@@ -232,11 +223,13 @@ class NodeController(NativeProcess):
 
         if us > 5000:
             self.log.warn("{cls}.get_system_stats()->{mcls} excessive run-time of {duration}us!",
-                          cls=self.__class__.__name__, mcls=self._smonitor.__class__.__name__,
+                          cls=self.__class__.__name__,
+                          mcls=self._smonitor.__class__.__name__,
                           duration=us)
         else:
             self.log.debug("{cls}.get_system_stats()->{mcls} ran in {duration}us",
-                           cls=self.__class__.__name__, mcls=self._smonitor.__class__.__name__,
+                           cls=self.__class__.__name__,
+                           mcls=self._smonitor.__class__.__name__,
                            duration=us)
         return res
 
@@ -252,7 +245,7 @@ class NodeController(NativeProcess):
 
         self._shutdown_requested = True
         self.log.info('Node shutdown requested (restart={}, mode={}, reactor.running={}) ..'.format(
-                      restart, mode, self._reactor.running))
+            restart, mode, self._reactor.running))
 
         term_print('CROSSBAR:NODE_SHUTDOWN_REQUESTED')
 
@@ -274,11 +267,9 @@ class NodeController(NativeProcess):
                 self._node._shutdown_complete.callback(shutdown_info)
 
             # publish management API event
-            yield self.publish(
-                '{}.on_shutdown'.format(self._uri_prefix),
-                shutdown_info,
-                options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
-            )
+            yield self.publish('{}.on_shutdown'.format(self._uri_prefix),
+                               shutdown_info,
+                               options=PublishOptions(exclude=details.caller if details else None, acknowledge=True))
 
             def stop_reactor():
                 try:
@@ -350,9 +341,7 @@ class NodeController(NativeProcess):
         }
 
         if include_stats:
-            stats = {
-                'controller_traffic': worker.get_stats()
-            }
+            stats = {'controller_traffic': worker.get_stats()}
             worker_info['stats'] = stats
 
         return worker_info
@@ -429,6 +418,21 @@ class NodeController(NativeProcess):
 
         return self._workers[worker_id].getlog(limit)
 
+    @wamp.register(None)
+    def sign_challenge(self,
+                       challenge_method,
+                       challenge_extra,
+                       channel_id_raw,
+                       channel_id_type='tls-unique',
+                       details=None):
+        challenge = Challenge(challenge_method, challenge_extra)
+        data = format_challenge(challenge, channel_id_raw, channel_id_type)
+        return sign_challenge(data, self._node._node_key.sign)
+
+    @wamp.register(None)
+    def get_public_key(self, details=None):
+        return self._node._node_key.public_key()
+
     def _start_native_worker(self, worker_type, worker_id, worker_options=None, details=None):
 
         # prohibit starting a worker twice
@@ -451,7 +455,8 @@ class NodeController(NativeProcess):
                 if self._node._native_workers[worker_type]['checkconfig_options']:
                     self._node._native_workers[worker_type]['checkconfig_options'](self.personality, options)
                 else:
-                    raise Exception('No checkconfig_options for worker type "{worker_type}" implemented!'.format(worker_type=worker_type))
+                    raise Exception('No checkconfig_options for worker type "{worker_type}" implemented!'.format(
+                        worker_type=worker_type))
             else:
                 raise Exception('invalid worker type "{}"'.format(worker_type))
         except Exception as e:
@@ -477,7 +482,8 @@ class NodeController(NativeProcess):
             # of course the path must exist and actually be executable
             #
             if not (os.path.isfile(exe) and os.access(exe, os.X_OK)):
-                emsg = "Invalid worker configuration: python executable '{}' does not exist or isn't an executable".format(exe)
+                emsg = "Invalid worker configuration: python executable '{}' does not exist or isn't an executable".format(
+                    exe)
                 self.log.error(emsg)
                 raise ApplicationError('crossbar.error.invalid_configuration', emsg)
         else:
@@ -486,7 +492,9 @@ class NodeController(NativeProcess):
         # allow override default Python module search paths from options
         #
         if 'pythonpath' in options:
-            pythonpaths_to_add = [os.path.abspath(os.path.join(self._node._cbdir, p)) for p in options.get('pythonpath', [])]
+            pythonpaths_to_add = [
+                os.path.abspath(os.path.join(self._node._cbdir, p)) for p in options.get('pythonpath', [])
+            ]
         else:
             pythonpaths_to_add = []
 
@@ -586,19 +594,22 @@ class NodeController(NativeProcess):
             # interfere with the container-controller communication.
             childFDs = {0: "w", 1: "r", 2: "r", 3: "r"}
 
-        ep = WorkerProcessEndpoint(
-            self._node._reactor, exe, args, env=worker_env, worker=worker,
-            childFDs=childFDs)
+        ep = WorkerProcessEndpoint(self._node._reactor, exe, args, env=worker_env, worker=worker, childFDs=childFDs)
 
         # ready handling
         #
         def on_ready_success(worker_id):
             self.log.debug('{worker_type} worker "{worker_id}" process {pid} started',
-                           worker_type=worker_logname, worker_id=worker.id, pid=worker.pid)
+                           worker_type=worker_logname,
+                           worker_id=worker.id,
+                           pid=worker.pid)
 
             self._node._reactor.addSystemEventTrigger(
-                'before', 'shutdown',
-                self._cleanup_worker, self._node._reactor, worker,
+                'before',
+                'shutdown',
+                self._cleanup_worker,
+                self._node._reactor,
+                worker,
             )
 
             worker.on_worker_started()
@@ -661,28 +672,35 @@ class NodeController(NativeProcess):
             return False
 
         def check_for_shutdown(was_successful):
-            self.log.info('Checking for node shutdown: worker_exit_success={worker_exit_success}, shutdown_requested={shutdown_requested}, node_shutdown_triggers={node_shutdown_triggers}', worker_exit_success=was_successful, shutdown_requested=self._shutdown_requested, node_shutdown_triggers=self._node._node_shutdown_triggers)
+            self.log.info(
+                'Checking for node shutdown: worker_exit_success={worker_exit_success}, shutdown_requested={shutdown_requested}, node_shutdown_triggers={node_shutdown_triggers}',
+                worker_exit_success=was_successful,
+                shutdown_requested=self._shutdown_requested,
+                node_shutdown_triggers=self._node._node_shutdown_triggers)
 
             shutdown = self._shutdown_requested
 
             # automatically shutdown node whenever a worker ended (successfully, or with error)
             #
             if NODE_SHUTDOWN_ON_WORKER_EXIT in self._node._node_shutdown_triggers:
-                self.log.info("Node worker ended, and trigger '{trigger}' is active: will shutdown node ..", trigger=NODE_SHUTDOWN_ON_WORKER_EXIT)
+                self.log.info("Node worker ended, and trigger '{trigger}' is active: will shutdown node ..",
+                              trigger=NODE_SHUTDOWN_ON_WORKER_EXIT)
                 term_print('CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT')
                 shutdown = True
 
             # automatically shutdown node when worker ended with error
             #
             elif not was_successful and NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR in self._node._node_shutdown_triggers:
-                self.log.info("Node worker ended with error, and trigger '{trigger}' is active: will shutdown node ..", trigger=NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR)
+                self.log.info("Node worker ended with error, and trigger '{trigger}' is active: will shutdown node ..",
+                              trigger=NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR)
                 term_print('CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR')
                 shutdown = True
 
             # automatically shutdown node when no more workers are left
             #
             elif len(self._workers) == 0 and NODE_SHUTDOWN_ON_LAST_WORKER_EXIT in self._node._node_shutdown_triggers:
-                self.log.info("No more node workers running, and trigger '{trigger}' is active: will shutdown node ..", trigger=NODE_SHUTDOWN_ON_LAST_WORKER_EXIT)
+                self.log.info("No more node workers running, and trigger '{trigger}' is active: will shutdown node ..",
+                              trigger=NODE_SHUTDOWN_ON_LAST_WORKER_EXIT)
                 term_print('CROSSBAR:NODE_SHUTDOWN_ON_LAST_WORKER_EXIT')
                 shutdown = True
 
@@ -698,7 +716,8 @@ class NodeController(NativeProcess):
 
         # create a transport factory for talking WAMP to the native worker
         #
-        transport_factory = create_native_worker_client_factory(self._node._router_session_factory, worker_auth_role, worker.ready, worker.exit)
+        transport_factory = create_native_worker_client_factory(self._node._router_session_factory, worker_auth_role,
+                                                                worker.ready, worker.exit)
         transport_factory.noisy = False
         self._workers[worker_id].factory = transport_factory
 
@@ -720,8 +739,12 @@ class NodeController(NativeProcess):
 
         # only the following line will actually exec a new worker process - everything before is just setup
         # for this moment:
-        self.log.debug('Starting new managed worker process for {worker_logname} worker "{worker_id}" using {exe} with args {args}',
-                       worker_id=worker_id, worker_logname=worker_logname, exe=exe, args=args)
+        self.log.debug(
+            'Starting new managed worker process for {worker_logname} worker "{worker_id}" using {exe} with args {args}',
+            worker_id=worker_id,
+            worker_logname=worker_logname,
+            exe=exe,
+            args=args)
         d = ep.connect(transport_factory)
 
         def on_connect_success(proto):
@@ -731,8 +754,7 @@ class NodeController(NativeProcess):
             # e.g. the executable doesn't even exist. in other words,
             # I'm not sure under what conditions the deferred will errback ..
 
-            self.log.debug('Native worker "{worker_id}" connected',
-                           worker_id=worker_id)
+            self.log.debug('Native worker "{worker_id}" connected', worker_id=worker_id)
 
             worker.on_worker_connected(proto)
 
@@ -785,6 +807,7 @@ class NodeController(NativeProcess):
                     except ProcessExitedAlready:
                         pass  # ignore; it's already dead
                     d.callback(None)  # or recurse more?
+
             timeout(0)
             return d
         except ProcessExitedAlready:
@@ -800,7 +823,8 @@ class NodeController(NativeProcess):
         worker = self._workers[worker_id]
 
         if worker.status != 'started':
-            emsg = "Could not stop native worker: worker with ID '{}' is not in status 'started', but status: '{}')".format(worker_id, worker.status)
+            emsg = "Could not stop native worker: worker with ID '{}' is not in status 'started', but status: '{}')".format(
+                worker_id, worker.status)
             raise ApplicationError('crossbar.error.worker_not_running', emsg)
 
         stop_info = {
@@ -813,21 +837,21 @@ class NodeController(NativeProcess):
 
         # publish management API event
         #
-        yield self.publish(
-            '{}.on_stop_requested'.format(self._uri_prefix),
-            stop_info,
-            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
-        )
+        yield self.publish('{}.on_stop_requested'.format(self._uri_prefix),
+                           stop_info,
+                           options=PublishOptions(exclude=details.caller if details else None, acknowledge=True))
 
         # send SIGKILL or SIGTERM to worker
         #
         if kill:
             self.log.info("Killing {worker_type} worker with ID '{worker_id}'",
-                          worker_type=worker.TYPE, worker_id=worker_id)
+                          worker_type=worker.TYPE,
+                          worker_id=worker_id)
             self._workers[worker_id].proto.transport.signalProcess("KILL")
         else:
             self.log.info("Stopping {worker_type} worker with ID '{worker_id}'",
-                          worker_type=worker.TYPE, worker_id=worker_id)
+                          worker_type=worker.TYPE,
+                          worker_id=worker_id)
             self._workers[worker_id].factory.stopFactory()
             self._workers[worker_id].proto.transport.signalProcess('TERM')
 
@@ -856,7 +880,8 @@ class NodeController(NativeProcess):
         try:
             self.personality.check_guest(self.personality, worker_config)
         except Exception as e:
-            raise ApplicationError('crossbar.error.invalid_configuration', 'invalid guest worker configuration: {}'.format(e))
+            raise ApplicationError('crossbar.error.invalid_configuration',
+                                   'invalid guest worker configuration: {}'.format(e))
 
         options = worker_config.get('options', {})
 
@@ -875,8 +900,7 @@ class NodeController(NativeProcess):
         exe = os.path.abspath(os.path.join(workdir, worker_config['executable']))
 
         if check_executable(exe):
-            self.log.info("Using guest worker executable '{exe}' (executable path taken from configuration)",
-                          exe=exe)
+            self.log.info("Using guest worker executable '{exe}' (executable path taken from configuration)", exe=exe)
         else:
             # try to detect the fully qualified path for the guest
             # executable by doing a "which" on the configured executable name
@@ -885,7 +909,8 @@ class NodeController(NativeProcess):
                 self.log.info("Using guest worker executable '{exe}' (executable path detected from environment)",
                               exe=exe)
             else:
-                emsg = "Could not start worker: could not find and executable for '{}'".format(worker_config['executable'])
+                emsg = "Could not start worker: could not find and executable for '{}'".format(
+                    worker_config['executable'])
                 self.log.error(emsg)
                 raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
@@ -922,13 +947,17 @@ class NodeController(NativeProcess):
         def on_ready_success(proto):
 
             self.log.info('{worker_logname} worker "{worker_id}" started',
-                          worker_logname=worker_logname, worker_id=worker.id)
+                          worker_logname=worker_logname,
+                          worker_id=worker.id)
 
             worker.on_worker_started(proto)
 
             self._node._reactor.addSystemEventTrigger(
-                'before', 'shutdown',
-                self._cleanup_worker, self._node._reactor, worker,
+                'before',
+                'shutdown',
+                self._cleanup_worker,
+                self._node._reactor,
+                worker,
             )
 
             # directory watcher
@@ -959,15 +988,20 @@ class NodeController(NativeProcess):
                         proto.signal('TERM')
 
                         if options['watch'].get('action', None) == 'restart':
-                            self.log.info("Filesystem watcher detected change {fs_event} - restarting guest in {watch_timeout} seconds ..", fs_event=fs_event, watch_timeout=worker.watch_timeout)
+                            self.log.info(
+                                "Filesystem watcher detected change {fs_event} - restarting guest in {watch_timeout} seconds ..",
+                                fs_event=fs_event,
+                                watch_timeout=worker.watch_timeout)
                             # Add a timeout large enough (perhaps add a config option later)
-                            self._node._reactor.callLater(worker.watch_timeout, self.start_worker, worker_id, worker_config, details)
+                            self._node._reactor.callLater(worker.watch_timeout, self.start_worker, worker_id,
+                                                          worker_config, details)
                             # Shut the worker down, after the restart event is scheduled
                             # FIXME: all workers should have a stop() method ..
                             # -> 'GuestWorkerProcess' object has no attribute 'stop'
                             # worker.stop()
                         else:
-                            self.log.info("Filesystem watcher detected change {fs_event} - no action taken!", fs_event=fs_event)
+                            self.log.info("Filesystem watcher detected change {fs_event} - no action taken!",
+                                          fs_event=fs_event)
 
                     # now start watching ..
                     worker.watcher.start(on_filesystem_change)
@@ -1002,8 +1036,7 @@ class NodeController(NativeProcess):
             del self._workers[worker.id]
 
         def on_exit_error(err):
-            self.log.error("Guest {worker_id} exited with error {err.value}",
-                           worker_id=worker.id, err=err)
+            self.log.error("Guest {worker_id} exited with error {err.value}", worker_id=worker.id, err=err)
             del self._workers[worker.id]
 
         worker.exit.addCallbacks(on_exit_success, on_exit_error)
@@ -1033,9 +1066,12 @@ class NodeController(NativeProcess):
         # now actually fork the worker ..
         #
         self.log.info('{worker_logname} "{worker_id}" process starting ..',
-                      worker_logname=worker_logname, worker_id=worker_id)
+                      worker_logname=worker_logname,
+                      worker_id=worker_id)
         self.log.debug('{worker_logname} "{worker_id}" process using command line "{cli}" ..',
-                       worker_logname=worker_logname, worker_id=worker_id, cli=' '.join(args))
+                       worker_logname=worker_logname,
+                       worker_id=worker_id,
+                       cli=' '.join(args))
 
         d = ep.connect(transport_factory)
 
@@ -1048,7 +1084,8 @@ class NodeController(NativeProcess):
             # errback - probably only if the forking of a new process fails
             # at OS level due to out of memory conditions or such.
             self.log.debug('{worker_logname} "{worker_id}" connected',
-                           worker_logname=worker_logname, worker_id=worker_id)
+                           worker_logname=worker_logname,
+                           worker_id=worker_id)
 
             # do not comment this: it will lead to on_worker_started being called
             # _before_ on_worker_connected, and we don't need it!
@@ -1057,9 +1094,7 @@ class NodeController(NativeProcess):
         def on_connect_error(err):
 
             # not sure when this errback is triggered at all .. see above.
-            self.log.failure(
-                "Internal error: connection to forked guest worker failed ({log_failure.value})",
-            )
+            self.log.failure("Internal error: connection to forked guest worker failed ({log_failure.value})", )
 
             # in any case, forward the error ..
             worker.ready.errback(err)
@@ -1075,8 +1110,7 @@ class NodeController(NativeProcess):
         :param worker_id: The ID of the guest worker to stop.
         :type worker_id: str
         """
-        self.log.debug("stop_guest({worker_id}, kill={kill})",
-                       worker_id=worker_id, kill=kill)
+        self.log.debug("stop_guest({worker_id}, kill={kill})", worker_id=worker_id, kill=kill)
 
         if worker_id not in self._workers or self._workers[worker_id].TYPE != 'guest':
             emsg = "Could not stop guest worker: no guest worker with ID '{}' currently running".format(worker_id)

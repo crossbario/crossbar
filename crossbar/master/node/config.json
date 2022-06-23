@@ -1,0 +1,313 @@
+{
+    "version": 2,
+    "controller": {
+        "id": "center1",
+        "blockchain": {
+          "type": "ethereum",
+          "gateway": {
+            "type": "infura",
+            "network": "rinkeby",
+            "key": "${INFURA_PROJECT_ID}",
+            "secret": "${INFURA_PROJECT_SECRET}"
+          },
+          "from_block": 10475442,
+          "chain_id": 4
+        },
+        "ipfs": {
+          "gateway_url": "https://ipfs.infura.io:5001",
+          "cache_dir": ".ipfs"
+        }
+    },
+    "workers": [
+        {
+            "id": "cfrouter1",
+            "type": "router",
+            "options": {
+                "expose_controller": true
+            },
+            "realms": [
+                {
+                    "name": "com.crossbario.fabric",
+                    "roles": [
+                        {
+                            "name": "public",
+                            "permissions": [
+                                {
+                                    "uri": "crossbarfabriccenter.public.",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": false,
+                                        "publish": false,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "user",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "user-backend",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "authenticator",
+                            "permissions": [
+                                {
+                                    "uri": "com.crossbario.fabric.authenticate",
+                                    "match": "exact",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true
+                                    },
+                                    "cache": true
+                                },
+                                {
+                                    "uri": "crossbarfabriccenter.node.",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "subscribe": true
+                                    },
+                                    "cache": true
+                                },
+                                {
+                                    "uri": "crossbarfabriccenter.mrealm.",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "subscribe": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "rawsocket",
+                    "serializers": ["cbor"],
+                    "endpoint": {
+                        "type": "unix",
+                        "path": "sock1"
+                    },
+                    "options": {
+                        "max_message_size": 1048576
+                    },
+                    "auth": {
+                        "anonymous": {
+                            "type": "static",
+                            "role": "trusted"
+                        }
+                    }
+                },
+                {
+                    "type": "rawsocket",
+                    "serializers": ["cbor"],
+                    "endpoint": {
+                        "type": "unix",
+                        "path": "sock2"
+                    },
+                    "options": {
+                        "max_message_size": 1048576
+                    },
+                    "auth": {
+                        "anonymous": {
+                            "type": "static",
+                            "role": "user",
+                            "authid": "superuser"
+                        }
+                    }
+                },
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 9000
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "registerme"
+                        },
+                        "info": {
+                            "type": "nodeinfo"
+                        },
+                        "autobahn": {
+                           "type": "archive",
+                           "archive": "autobahn-v20.2.1.zip",
+                           "origin": "https://github.com/crossbario/autobahn-js-browser/archive/v20.2.1.zip",
+                           "object_prefix": "autobahn-js-browser-20.2.1",
+                           "default_object": "autobahn.min.js",
+                           "download": true,
+                           "cache": true,
+                           "hashes": [
+                              "b69cd17ac043cceceea8ed589a09a2555b5c39e32c2fea18ecc26dc5baf67de8"
+                           ],
+                           "mime_types": {
+                              ".min.js": "text/javascript",
+                              ".jgz": "text/javascript"
+                           }
+                        },
+                        "ws": {
+                            "type": "websocket",
+                            "serializers": [
+                                "cbor", "msgpack", "json"
+                            ],
+                            "options": {
+                                "allowed_origins": ["*"],
+                                "allow_null_origin": true,
+                                "enable_webstatus": true,
+                                "max_frame_size": 1048576,
+                                "max_message_size": 1048576,
+                                "auto_fragment_size": 65536,
+                                "fail_by_drop": true,
+                                "open_handshake_timeout": 2500,
+                                "close_handshake_timeout": 1000,
+                                "auto_ping_interval": 10000,
+                                "auto_ping_timeout": 5000,
+                                "auto_ping_size": 12,
+                                "compression": {
+                                    "deflate": {
+                                        "request_no_context_takeover": false,
+                                        "request_max_window_bits": 13,
+                                        "no_context_takeover": false,
+                                        "max_window_bits": 13,
+                                        "memory_level": 5
+                                    }
+                                }
+                            },
+                            "auth": {
+                                "anonymous": {
+                                    "type": "static",
+                                    "role": "public"
+                                },
+                                "cryptosign": {
+                                    "type": "dynamic",
+                                    "authenticator": "com.crossbario.fabric.authenticate",
+                                    "authenticator-realm": "com.crossbario.fabric",
+                                    "authenticator-role": "authenticator"
+                                }
+                           }
+                        }
+                    }
+                }
+            ],
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "crossbar.master.node.authenticator.Authenticator",
+                    "realm": "com.crossbario.fabric",
+                    "role": "authenticator",
+                    "extra": {
+                        "mailgun": {
+                            "submit_url": "https://api.mailgun.net/v3/mailing.crossbar.io/messages",
+                            "access_key": null
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "cfrealmmanager1",
+            "type": "container",
+            "options": {
+                "pythonpath": [".."],
+                "expose_shared": true,
+                "expose_controller": true,
+                "restart": "restart-always",
+                "shutdown": "shutdown-manual"
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "crossbar.master.node.DomainController",
+                    "realm": "com.crossbario.fabric",
+                    "extra": {
+                        "metering": {
+                            "period": 300,
+                            "submit": {
+                                "period": 300,
+                                "url": "${CROSSBAR_METERING_URL}",
+                                "timeout": 5,
+                                "maxerrors": 10
+                            }
+                        },
+                        "auto_default_mrealm": {
+                            "enabled": true,
+                            "watch_to_pair": "${CROSSBAR_WATCH_TO_PAIR}",
+                            "watch_to_pair_pattern": null,
+                            "write_pairing_file": true,
+                            "management_url": "${CROSSBAR_FABRIC_URL}",
+                            "include_activation_code": true
+                        },
+                        "blockchain": {
+                          "type": "ethereum",
+                          "gateway": {
+                            "type": "infura",
+                            "network": "rinkeby",
+                            "key": "${INFURA_PROJECT_ID}",
+                            "secret": "${INFURA_PROJECT_SECRET}"
+                          },
+                          "from_block": 10475442,
+                          "chain_id": 4
+                        },
+                        "ipfs": {
+                          "gateway_url": "https://ipfs.infura.io:5001",
+                          "cache_dir": ".ipfs"
+                        }
+                    },
+                    "transport": {
+                        "type": "rawsocket",
+                        "serializer": "cbor",
+                        "endpoint": {
+                           "type": "unix",
+                           "path": "sock1"
+                        },
+                        "options": {
+                            "max_message_size": 1048576
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

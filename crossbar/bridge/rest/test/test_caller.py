@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -120,21 +97,18 @@ class CallerTestCase(TestCase):
         # allow everything
         self.router = self.router_factory.get('realm1')
         self.router.add_role(
-            RouterRoleStaticAuth(
-                self.router,
-                'test_role',
-                default_permissions={
-                    'uri': 'com.myapp.',
-                    'match': 'prefix',
-                    'allow': {
-                        'call': True,
-                        'register': True,
-                        'publish': True,
-                        'subscribe': True,
-                    }
-                }
-            )
-        )
+            RouterRoleStaticAuth(self.router,
+                                 'test_role',
+                                 default_permissions={
+                                     'uri': 'com.myapp.',
+                                     'match': 'prefix',
+                                     'allow': {
+                                         'call': True,
+                                         'register': True,
+                                         'publish': True,
+                                         'subscribe': True,
+                                     }
+                                 }))
 
         # create a router session factory
         self.session_factory = RouterSessionFactory(self.router_factory)
@@ -153,15 +127,14 @@ class CallerTestCase(TestCase):
         resource = CallerResource({}, session2)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/",
-                method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=b'{"procedure": "com.myapp.sqrt", "args": [2]}')
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=b'{"procedure": "com.myapp.sqrt", "args": [2]}')
 
         self.assertEqual(request.code, 200)
-        self.assertEqual(json.loads(native_string(request.get_written_data())),
-                         {"args": [1.4142135623730951]})
+        self.assertEqual(json.loads(native_string(request.get_written_data())), {"args": [1.4142135623730951]})
 
         logs = l.get_category("AR202")
         self.assertEqual(len(logs), 1)
@@ -180,29 +153,49 @@ class CallerTestCase(TestCase):
         resource = CallerResource({}, session2)
 
         tests = [
-            ("com.myapp.sqrt", (0,),
-             {"error": "wamp.error.runtime_error", "args": ["don't ask foolish questions ;)"], "kwargs": {}}),
-            ("com.myapp.checkname", ("foo",),
-             {"error": "com.myapp.error.reserved", "args": [], "kwargs": {}}),
-            ("com.myapp.checkname", ("*",),
-             {"error": "com.myapp.error.invalid_length", "args": [], "kwargs": {"min": 3, "max": 10}}),
-            ("com.myapp.checkname", ("hello",),
-             {"error": "com.myapp.error.mixed_case", "args": ["hello", "HELLO"], "kwargs": {}}),
-            ("com.myapp.compare", (1, 10),
-             {"error": "com.myapp.error1", "args": [9], "kwargs": {}}),
+            ("com.myapp.sqrt", (0, ), {
+                "error": "wamp.error.runtime_error",
+                "args": ["don't ask foolish questions ;)"],
+                "kwargs": {}
+            }),
+            ("com.myapp.checkname", ("foo", ), {
+                "error": "com.myapp.error.reserved",
+                "args": [],
+                "kwargs": {}
+            }),
+            ("com.myapp.checkname", ("*", ), {
+                "error": "com.myapp.error.invalid_length",
+                "args": [],
+                "kwargs": {
+                    "min": 3,
+                    "max": 10
+                }
+            }),
+            ("com.myapp.checkname", ("hello", ), {
+                "error": "com.myapp.error.mixed_case",
+                "args": ["hello", "HELLO"],
+                "kwargs": {}
+            }),
+            ("com.myapp.compare", (1, 10), {
+                "error": "com.myapp.error1",
+                "args": [9],
+                "kwargs": {}
+            }),
         ]
 
         for procedure, args, err in tests:
             with LogCapturer() as l:
-                request = yield renderResource(
-                    resource, b"/",
-                    method=b"POST",
-                    headers={b"Content-Type": [b"application/json"]},
-                    body=dump_json({"procedure": procedure, "args": args}).encode('utf8'))
+                request = yield renderResource(resource,
+                                               b"/",
+                                               method=b"POST",
+                                               headers={b"Content-Type": [b"application/json"]},
+                                               body=dump_json({
+                                                   "procedure": procedure,
+                                                   "args": args
+                                               }).encode('utf8'))
 
             self.assertEqual(request.code, 200)
-            self.assertEqual(json.loads(native_string(request.get_written_data())),
-                             err)
+            self.assertEqual(json.loads(native_string(request.get_written_data())), err)
 
             logs = l.get_category("AR458")
             self.assertEqual(len(logs), 1)
@@ -219,15 +212,18 @@ class CallerTestCase(TestCase):
         resource = CallerResource({}, None)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/",
-                method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=b'{"procedure": "foo"}')
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=b'{"procedure": "foo"}')
 
         self.assertEqual(request.code, 500)
-        self.assertEqual(json.loads(native_string(request.get_written_data())),
-                         {"error": "wamp.error.runtime_error", "args": ["Sorry, Crossbar.io has encountered a problem."], "kwargs": {}})
+        self.assertEqual(json.loads(native_string(request.get_written_data())), {
+            "error": "wamp.error.runtime_error",
+            "args": ["Sorry, Crossbar.io has encountered a problem."],
+            "kwargs": {}
+        })
 
         errors = l.get_category("AR500")
         self.assertEqual(len(errors), 1)
@@ -243,11 +239,11 @@ class CallerTestCase(TestCase):
         resource = CallerResource({}, None)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/",
-                method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=b"{}")
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]},
+                                           body=b"{}")
 
         self.assertEqual(request.code, 400)
 
@@ -263,10 +259,10 @@ class CallerTestCase(TestCase):
         resource = CallerResource({}, None)
 
         with LogCapturer() as l:
-            request = yield renderResource(
-                resource, b"/",
-                method=b"POST",
-                headers={b"Content-Type": [b"application/json"]})
+            request = yield renderResource(resource,
+                                           b"/",
+                                           method=b"POST",
+                                           headers={b"Content-Type": [b"application/json"]})
 
         self.assertEqual(request.code, 400)
 

@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -44,10 +21,8 @@ else:
 
 __all__ = ('SystemInfo', 'ProcessInfo')
 
-
 # http://pythonhosted.org/psutil/
 # http://linux.die.net/man/5/proc
-
 
 if _HAS_PSUTIL:
 
@@ -57,20 +32,15 @@ if _HAS_PSUTIL:
         _HAS_AF_UNIX = True
 
     class SystemInfo:
-
         """
         Access system global information and statistics.
         """
-
         def __init__(self):
             """
             """
 
         def cpu(self):
-            return {
-                'physical_count': psutil.cpu_count(logical=False),
-                'logical_count': psutil.cpu_count(logical=True)
-            }
+            return {'physical_count': psutil.cpu_count(logical=False), 'logical_count': psutil.cpu_count(logical=True)}
 
         def stats(self):
             """
@@ -90,11 +60,7 @@ if _HAS_PSUTIL:
             res = {}
             i = 0
             for c in psutil.cpu_times(percpu=True):
-                res[i] = {
-                    'user': c.user,
-                    'system': c.system,
-                    'idle': c.idle
-                }
+                res[i] = {'user': c.user, 'system': c.system, 'idle': c.idle}
                 i += 1
             return res
 
@@ -152,7 +118,6 @@ if _HAS_PSUTIL:
             return res
 
     class ProcessInfo(object):
-
         """
         Access process related information and statistics
         """
@@ -283,10 +248,5 @@ if _HAS_PSUTIL:
                     else:
                         raddr = ""
                 status = str(c.status)
-                res.append({
-                    'type': socket_type,
-                    'local': laddr,
-                    'remote': raddr,
-                    'status': status
-                })
+                res.append({'type': socket_type, 'local': laddr, 'remote': raddr, 'status': status})
             return res

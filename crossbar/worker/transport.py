@@ -1,33 +1,9 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-
 
 from datetime import datetime
 
@@ -101,8 +77,10 @@ class RouterTransport(object):
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
-            self.log.debug("Router transport parsed successfully (transport_id={transport_id}, transport_type={transport_type})",
-                           transport_id=transport_id, transport_type=config['type'])
+            self.log.debug(
+                "Router transport parsed successfully (transport_id={transport_id}, transport_type={transport_type})",
+                transport_id=transport_id,
+                transport_type=config['type'])
 
         self._config = config
         self._type = config['type']
@@ -265,8 +243,8 @@ class RouterTransport(object):
         #
         elif self._config['type'] == 'websocket':
             assert (self._templates)
-            transport_factory = WampWebSocketServerFactory(self._worker._router_session_factory, self._cbdir, self._config,
-                                                           self._templates)
+            transport_factory = WampWebSocketServerFactory(self._worker._router_session_factory, self._cbdir,
+                                                           self._config, self._templates)
             transport_factory.noisy = False
 
         # Flash-policy file server pseudo transport
@@ -289,8 +267,8 @@ class RouterTransport(object):
         # MQTT legacy adapter transport
         #
         elif self._config['type'] == 'mqtt':
-            transport_factory = WampMQTTServerFactory(
-                self._worker._router_session_factory, self._config, self._worker._reactor)
+            transport_factory = WampMQTTServerFactory(self._worker._router_session_factory, self._config,
+                                                      self._worker._reactor)
             transport_factory.noisy = False
 
         # Twisted Web based transport
@@ -309,14 +287,15 @@ class RouterTransport(object):
                 web_factory, root_webservice = None, None
 
             if 'rawsocket' in self._config:
-                rawsocket_factory = WampRawSocketServerFactory(self._worker._router_session_factory, self._config['rawsocket'])
+                rawsocket_factory = WampRawSocketServerFactory(self._worker._router_session_factory,
+                                                               self._config['rawsocket'])
                 rawsocket_factory.noisy = False
             else:
                 rawsocket_factory = None
 
             if 'mqtt' in self._config:
-                mqtt_factory = WampMQTTServerFactory(
-                    self._worker._router_session_factory, self._config['mqtt'], self._worker._reactor)
+                mqtt_factory = WampMQTTServerFactory(self._worker._router_session_factory, self._config['mqtt'],
+                                                     self._worker._reactor)
                 mqtt_factory.noisy = False
             else:
                 mqtt_factory = None
@@ -325,8 +304,9 @@ class RouterTransport(object):
                 assert (self._templates)
                 websocket_factory_map = {}
                 for websocket_url_first_component, websocket_config in self._config['websocket'].items():
-                    websocket_transport_factory = WampWebSocketServerFactory(self._worker._router_session_factory, self._cbdir,
-                                                                             websocket_config, self._templates)
+                    websocket_transport_factory = WampWebSocketServerFactory(self._worker._router_session_factory,
+                                                                             self._cbdir, websocket_config,
+                                                                             self._templates)
                     websocket_transport_factory.noisy = False
                     websocket_factory_map[websocket_url_first_component] = websocket_transport_factory
                     self.log.debug('hooked up websocket factory on request URI {request_uri}',
@@ -334,9 +314,7 @@ class RouterTransport(object):
             else:
                 websocket_factory_map = None
 
-            transport_factory = UniSocketServerFactory(web_factory,
-                                                       websocket_factory_map,
-                                                       rawsocket_factory,
+            transport_factory = UniSocketServerFactory(web_factory, websocket_factory_map, rawsocket_factory,
                                                        mqtt_factory)
 
         # this is to allow subclasses to reuse this method
@@ -405,17 +383,16 @@ class RouterWebTransport(RouterTransport):
 
         root_webservice = yield maybeDeferred(root_factory.create, self, '/', root_config)
         self.log.info('Created "{root_type}" Web service on root path "/" of Web transport "{transport_id}"',
-                      root_type=root_config['type'], transport_id=self.id)
+                      root_type=root_config['type'],
+                      transport_id=self.id)
 
         # create the actual transport factory
-        transport_factory = Site(
-            root_webservice._resource,
-            client_timeout=options.get('client_timeout', None),
-            access_log=options.get('access_log', False),
-            display_tracebacks=options.get('display_tracebacks', False),
-            hsts=options.get('hsts', False),
-            hsts_max_age=int(options.get('hsts_max_age', 31536000))
-        )
+        transport_factory = Site(root_webservice._resource,
+                                 client_timeout=options.get('client_timeout', None),
+                                 access_log=options.get('access_log', False),
+                                 display_tracebacks=options.get('display_tracebacks', False),
+                                 hsts=options.get('hsts', False),
+                                 hsts_max_age=int(options.get('hsts_max_age', 31536000)))
 
         returnValue((transport_factory, root_webservice))
 
@@ -429,8 +406,7 @@ def create_router_transport(worker, transport_id, config):
     :param config:
     :return:
     """
-    worker.log.info('Creating router transport for "{transport_id}" ..',
-                    transport_id=transport_id)
+    worker.log.info('Creating router transport for "{transport_id}" ..', transport_id=transport_id)
 
     if config['type'] == 'web' or (config['type'] == 'universal' and config.get('web', {})):
         transport = RouterWebTransport(worker, transport_id, config)
@@ -490,18 +466,20 @@ class TransportController(WorkerController):
             raise ApplicationError('crossbar.error.not_running', emsg)
 
         if not isinstance(transport, self.personality.RouterWebTransport):
-            emsg = 'Cannot start service on transport: transport is not a Web transport (transport_type={})'.format(hltype(transport.__class__))
+            emsg = 'Cannot start service on transport: transport is not a Web transport (transport_type={})'.format(
+                hltype(transport.__class__))
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.not_running', emsg)
 
         if transport.state != self.personality.RouterTransport.STATE_STARTED:
-            emsg = 'Cannot start service on Web transport service: transport is not running (transport_state={})'.format(
+            emsg = 'Cannot start service on Web transport service: transport {} is not running (transport_state={})'.format(
                 transport_id, self.personality.RouterWebTransport.STATES.get(transport.state, None))
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.not_running', emsg)
 
         if path in transport.root:
-            emsg = 'Cannot start service on Web transport "{}": a service is already running on path "{}"'.format(transport_id, path)
+            emsg = 'Cannot start service on Web transport "{}": a service is already running on path "{}"'.format(
+                transport_id, path)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
@@ -518,11 +496,7 @@ class TransportController(WorkerController):
         webservice = yield maybeDeferred(webservice_factory.create, transport, path, config)
         transport.root[path] = webservice
 
-        on_web_transport_service_started = {
-            'transport_id': transport_id,
-            'path': path,
-            'config': config
-        }
+        on_web_transport_service_started = {'transport_id': transport_id, 'path': path, 'config': config}
         caller = details.caller if details else None
         self.publish(self._uri_prefix + '.on_web_transport_service_started',
                      transport_id,
@@ -555,12 +529,14 @@ class TransportController(WorkerController):
         if not transport or \
            not isinstance(transport, self.personality.RouterWebTransport) or \
            transport.state != self.personality.RouterTransport.STATE_STARTED:
-            emsg = "Cannot stop service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
+            emsg = "Cannot stop service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(
+                transport_id)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.not_running', emsg)
 
         if path not in transport.root:
-            emsg = "Cannot stop service on Web transport {}: no service running on path '{}'".format(transport_id, path)
+            emsg = "Cannot stop service on Web transport {}: no service running on path '{}'".format(
+                transport_id, path)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.not_running', emsg)
 

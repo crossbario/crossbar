@@ -5,10 +5,68 @@
 Changelog
 =========
 
-master
+21.11.1
+-------
+
+* fix: subscription forwarding (#1915)
+* fix: RLink fixes (#1913)
+* fix: make standalone the default personality (#1900)
+* new: implement dynamic node key (#1906)
+* fix: Python 3.10 compatibility issues (#1897)
+* fix: add systemd-notify support to docs (#1883)
+* fix: assign authid to router components to work with rlinks (#1893)
+* fix: install from source (#1884)
+* new: depend on Autobahn v21.11.1
+* new: expand WAP web service (#1878)
+* fix: various adjustments and fixes after integration of FX code base
+* new: open-source code for "Crossbar.io" (~26k LOC), incl. router-to-router links
+* new: changed license from AGPLv3 to [EUPLv1.2](https://eupl.eu/1.2/en) (under IP ownership of Crossbar.io Technologies GmbH)
+
+21.3.1
 ------
 
-* ...
+* fix: depend on hotfix in Autobahn for Twisted v21.2.0 (see: https://github.com/crossbario/autobahn-python/issues/1470)
+
+21.2.1
+------
+
+* new: minimum supported Python version now is 3.7
+* new: output more version infos on "crossbar(fx) version"
+* fix: pin to pip v19.3.1 because of "new resolver" and confluent dependencies with conflicts
+* fix: do _not_ use wsaccel on PyPy (the JIT is faster)
+* fix: Docker image baking scripts and CI automation for PyPy 3
+
+21.1.1
+------
+
+* new: callback user component function "check_config" on container/router components
+* fix: support Docker images for ARM (32 bit and 64 bit)
+* fix: bake Docker multi-arch images
+* fix: PyPy3 CI
+* new: enable autobahn client unit tests
+
+20.12.3
+-------
+
+* fix: update and migrate CI/CD pipeline to GitHub issues
+* fix: depend on Autobahn v20.12.3 - this fixes a potential security issue when enabling the Web status page (`enable_webstatus`) on WebSocket-WAMP listening transports-
+
+20.12.2
+-------
+
+* fix: depend on Autobahn v20.12.2
+* fix: CI/CD - disable MacOS CI, update Docker imaging scripts
+
+20.12.1
+-------
+
+* new: bump dependencies
+* new: CI use newer ubuntu and newer pypy
+* fix: copy license file to root folder (#1825)
+* fix: check for io_counters feature - macos (#1826)
+* new: proxy improvements (maintain and RR multiple backend connections)
+* new: function-based custom authenticators (for more authmethods)
+* fix: proxy/rlink management API
 
 20.8.1
 ------

@@ -1,0 +1,25 @@
+{
+    "workers": [
+        {
+            "transports": [
+                "COPY",
+                {
+                    "endpoint": {
+                        "port": 443,
+                        "backlog": 500,
+                        "tls": {
+                            "certificate": "server.crt",
+                            "key": "server.key",
+                            "dhparam": "dhparam.pem",
+                            "ca_certificates": [
+                                "intermediate.cert.pem",
+                                "ca.cert.pem"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        "COPY"
+    ]
+}

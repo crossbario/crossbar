@@ -1,0 +1,42 @@
+version: '3'
+services:
+
+  etcd1:
+    image: quay.io/coreos/etcd:latest
+    ports:
+      - 2379
+      - 2380
+    volumes:
+      - /usr/share/ca-certificates/:/etc/ssl/certs
+      - ${PWD}/.etcd:/etcd-data
+    network_mode: host
+    command:
+      - /usr/local/bin/etcd
+      - --data-dir=/etcd-data
+      - --advertise-client-urls
+      - http://0.0.0.0:2379
+      - --listen-client-urls
+      - http://0.0.0.0:2379
+      - --name
+      - etcd1
+
+  cfc1:
+    depends_on:
+      - etcd1
+    image: crossbario/crossbar-fabric-center:latest
+    environment:
+      - MAILGUN_KEY
+    ports:
+      - 9000
+    volumes:
+      - ${PWD}/.cfc:/node
+    network_mode: host
+    entrypoint: /usr/local/bin/crossbar
+    command:
+      - start
+      - --personality
+      - fabriccenter
+      - --loglevel
+      - info
+      - --cbdir
+      - /node/.crossbar/

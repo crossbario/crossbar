@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+   <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>WAMP API Catalog</title>
+      <style>
+         html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+         }
+
+         body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            color: #444;
+            background-color: #ececec;
+            font-family: 'Open Sans', 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.6em;
+         }
+
+         a {
+            color: #b59f00;
+         }
+
+         a:visited {
+            color: #b59f00;
+         }
+
+         a:hover {
+            color: #E4C904;
+         }
+
+         pre {
+            color: #080;
+            font-family: 'Consolas', monospace;
+            font-size: 1.4em;
+         }
+
+         #content {
+            width: 680px;
+            margin: 80px auto 0 auto;
+         }
+
+         #logo {
+            width: 474px;
+            height: 80px;
+            margin: 0 auto 40px auto;
+         }
+      </style>
+      {% block header %}{% endblock %}
+   </head>
+   <body>
+      <div id="content">
+         {% block content %}{% endblock %}
+      </div>
+   </body>
+</html>

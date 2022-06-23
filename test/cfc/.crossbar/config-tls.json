@@ -1,0 +1,58 @@
+{
+    "version": 2,
+    "controller": {
+        "id": "cfc666",
+        "fabric-center": {
+        }
+    },
+    "workers": [
+        {
+            "transports": [
+                "COPY",
+                "COPY",
+                {
+                    "endpoint": {
+                        "port": 9000,
+                        "tls": {
+                            "certificate": "server.crt",
+                            "key": "server.key",
+                            "dhparam": "dhparam.pem",
+                            "chain_certificates": [
+                                "intermediate.cert.pem",
+                                "ca.cert.pem"
+                            ],
+                            "ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256"
+                        }
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "static",
+                            "directory": "../web",
+                            "options": {
+                                "enable_directory_listing": true,
+                                "default_file": null
+                            },
+                            "archive": null,
+                            "origin": null,
+                            "cache": null,
+                            "download": null,
+			                "mime_types": null,
+                            "default_object": null
+                        },
+                        "settings": {
+                            "type": "json",
+                            "value": {
+                                "XBR_DEBUG_TOKEN_ADDR": "0xcfeb869f69431e42cdb54a4f4f105c19c080a601",
+                                "XBR_DEBUG_NETWORK_ADDR": "0x254dffcd3277c0b1660f6d42efbb754edababc2b",
+                                "CROSSBAR_URL": "wss://continental2.crossbario.com/ws",
+                                "CROSSBAR_REALM": "realm1"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "COPY",
+        "COPY"
+    ]
+}

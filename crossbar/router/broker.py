@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -48,7 +25,7 @@ from crossbar._util import hlid, hltype, hlflag
 
 from txaio import make_logger
 
-__all__ = ('Broker',)
+__all__ = ('Broker', )
 
 
 class RetainedEvent(object):
@@ -60,11 +37,7 @@ class RetainedEvent(object):
         'publisher_authrole',
     )
 
-    def __init__(self,
-                 publish,
-                 publisher=None,
-                 publisher_authid=None,
-                 publisher_authrole=None):
+    def __init__(self, publish, publisher=None, publisher_authid=None, publisher_authrole=None):
         self.publish = publish
         self.publisher = publisher
         self.publisher_authid = publisher_authid
@@ -73,7 +46,7 @@ class RetainedEvent(object):
 
 class SubscriptionExtra(object):
 
-    __slots__ = ('retained_events',)
+    __slots__ = ('retained_events', )
 
     def __init__(self, retained_events=None):
         self.retained_events = retained_events or []
@@ -125,7 +98,7 @@ class Broker(object):
 
         # store for event history
         if self._router._store:
-            self._event_store = self._router._store.event_store
+            self._event_store = self._router._store
         else:
             self._event_store = None
 
@@ -171,11 +144,9 @@ class Broker(object):
                         service_session = self._router._realm.session
 
                         # FIXME: what about exclude_authid as colleced from forward_for? like we do elsewhere in this file!
-                        options = types.PublishOptions(
-                            correlation_id=None,
-                            correlation_is_anchor=True,
-                            correlation_is_last=False
-                        )
+                        options = types.PublishOptions(correlation_id=None,
+                                                       correlation_is_anchor=True,
+                                                       correlation_is_last=False)
 
                         if was_subscribed:
                             service_session.publish(
@@ -193,6 +164,7 @@ class Broker(object):
                                 subscription.id,
                                 options=options,
                             )
+
                     # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish, subscription)
 
@@ -285,7 +257,10 @@ class Broker(object):
                     publish.correlation_is_last = False
                     self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
-                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with invalid topic URI '{0}' (URI strict checking {1})".format(publish.topic, self._option_uri_strict)])
+                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [
+                    "publish with invalid topic URI '{0}' (URI strict checking {1})".format(
+                        publish.topic, self._option_uri_strict)
+                ])
                 reply.correlation_id = publish.correlation_id
                 reply.correlation_uri = publish.topic
                 reply.correlation_is_anchor = False
@@ -309,7 +284,8 @@ class Broker(object):
                         publish.correlation_is_last = False
                         self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
-                    reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with restricted topic URI '{0}'".format(publish.topic)])
+                    reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI,
+                                          ["publish with restricted topic URI '{0}'".format(publish.topic)])
                     reply.correlation_id = publish.correlation_id
                     reply.correlation_uri = publish.topic
                     reply.correlation_is_anchor = False
@@ -363,37 +339,13 @@ class Broker(object):
 
         else:
 
-            # validate payload
-            #
-            if publish.payload is None:
-                try:
-                    self._router.validate('event', publish.topic, publish.args, publish.kwargs)
-                except Exception as e:
-                    if publish.acknowledge:
-                        if self._router.is_traced:
-                            publish.correlation_is_last = False
-                            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
-
-                        reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, ["publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
-                        reply.correlation_id = publish.correlation_id
-                        reply.correlation_uri = publish.topic
-                        reply.correlation_is_anchor = False
-                        reply.correlation_is_last = True
-                        self._router.send(session, reply)
-                    else:
-                        if self._router.is_traced:
-                            publish.correlation_is_last = True
-                            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
-
-                    return
-
             # authorize PUBLISH action
             #
             d = self._router.authorize(session, publish.topic, 'publish', options=publish.marshal_options())
 
             def on_authorize_success(authorization):
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
-                # the action was actually authorized or not ..
+                # the action was actually authorized or not
                 if not publish.topic.endswith('.on_log'):
                     self.log.debug(
                         '{func}::on_authorize_success() - permission {result} for PUBLISH to topic "{topic}" [realm="{realm}", session_id={session_id}, authid="{authid}", authrole="{authrole}"]',
@@ -412,7 +364,9 @@ class Broker(object):
                             publish.correlation_is_last = False
                             self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
-                        reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, ["session not authorized to publish to topic '{0}'".format(publish.topic)])
+                        reply = message.Error(
+                            message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED,
+                            ["session not authorized to publish to topic '{0}'".format(publish.topic)])
                         reply.correlation_id = publish.correlation_id
                         reply.correlation_uri = publish.topic
                         reply.correlation_is_anchor = False
@@ -425,6 +379,36 @@ class Broker(object):
                             self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
                 else:
+                    # validate payload (skip in "payload_transparency" mode)
+                    if publish.payload is None:
+                        try:
+                            self._router.validate('event',
+                                                  publish.topic,
+                                                  publish.args,
+                                                  publish.kwargs,
+                                                  validate=authorization.get('validate', None))
+                        except Exception as e:
+                            if publish.acknowledge:
+                                if self._router.is_traced:
+                                    publish.correlation_is_last = False
+                                    self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
+                                reply = message.Error(
+                                    message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [
+                                        "publish to topic URI '{0}' with invalid application payload: {1}".format(
+                                            publish.topic, e)
+                                    ])
+                                reply.correlation_id = publish.correlation_id
+                                reply.correlation_uri = publish.topic
+                                reply.correlation_is_anchor = False
+                                reply.correlation_is_last = True
+                                self._router.send(session, reply)
+                            else:
+                                if self._router.is_traced:
+                                    publish.correlation_is_last = True
+                                    self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
+                            return
 
                     # new ID for the publication
                     #
@@ -446,13 +430,11 @@ class Broker(object):
                             publisher_authid = publish.forward_for[0]['authid']
                             publisher_authrole = publish.forward_for[0]['authrole']
                             assert session._session_id is not None
-                            forward_for = publish.forward_for + [
-                                {
-                                    'session': session._session_id,
-                                    'authid': session._authid,
-                                    'authrole': session._authrole,
-                                }
-                            ]
+                            forward_for = publish.forward_for + [{
+                                'session': session._session_id,
+                                'authid': session._authid,
+                                'authrole': session._authrole,
+                            }]
                         else:
                             publisher = session._session_id
                             publisher_authid = session._authid
@@ -484,7 +466,8 @@ class Broker(object):
 
                         if not observation:
                             # No observation, lets make a new one
-                            observation = self._subscription_map.create_observation(publish.topic, extra=SubscriptionExtra())
+                            observation = self._subscription_map.create_observation(publish.topic,
+                                                                                    extra=SubscriptionExtra())
                         else:
                             # this can happen if event-history is
                             # enabled on the topic: the event-store
@@ -493,9 +476,7 @@ class Broker(object):
                             if observation.extra is None:
                                 observation.extra = SubscriptionExtra()
                             elif not isinstance(observation.extra, SubscriptionExtra):
-                                raise Exception(
-                                    "incorrect 'extra' for '{}'".format(publish.topic)
-                                )
+                                raise Exception("incorrect 'extra' for '{}'".format(publish.topic))
 
                         if observation.extra.retained_events:
                             if not publish.eligible and not publish.exclude:
@@ -563,8 +544,10 @@ class Broker(object):
 
                             storing_event = store_event and self._event_store in subscription.observers
 
-                            self.log.debug('dispatching for subscription={subscription}, storing_event={storing_event}',
-                                           subscription=subscription, storing_event=storing_event)
+                            self.log.debug(
+                                'dispatching for subscription={subscription}, storing_event={storing_event}',
+                                subscription=subscription,
+                                storing_event=storing_event)
 
                             # for pattern-based subscriptions, the EVENT must contain
                             # the actual topic being published to
@@ -582,6 +565,7 @@ class Broker(object):
                                                     publisher_authid=publisher_authid,
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic,
+                                                    transaction_hash=publish.transaction_hash,
                                                     enc_algo=publish.enc_algo,
                                                     enc_key=publish.enc_key,
                                                     enc_serializer=publish.enc_serializer,
@@ -595,6 +579,7 @@ class Broker(object):
                                                     publisher_authid=publisher_authid,
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic,
+                                                    transaction_hash=publish.transaction_hash,
                                                     forward_for=forward_for)
 
                             # if the publish message had a correlation ID, this will also be the
@@ -613,7 +598,8 @@ class Broker(object):
 
                             if chunk_size and len(receivers) > chunk_size:
                                 self.log.debug('chunked dispatching to {receivers_size} with chunk_size={chunk_size}',
-                                               receivers_size=len(receivers), chunk_size=chunk_size)
+                                               receivers_size=len(receivers),
+                                               chunk_size=chunk_size)
                             else:
                                 self.log.debug('unchunked dispatching to {receivers_size} receivers',
                                                receivers_size=len(receivers))
@@ -667,26 +653,30 @@ class Broker(object):
                                         try:
                                             self._router.send(receiver, msg)
                                         except PayloadExceededError as e:
-                                            self.log.warn('could not dispatch event to receiver {receiver} (subscription_id={subscription_id}, publication_id={publication_id}): {err}',
-                                                          receiver=receiver._session_id,
-                                                          subscription_id=subscription.id,
-                                                          publication_id=publication,
-                                                          err=str(e))
+                                            self.log.warn(
+                                                'could not dispatch event to receiver {receiver} (subscription_id={subscription_id}, publication_id={publication_id}): {err}',
+                                                receiver=receiver._session_id,
+                                                subscription_id=subscription.id,
+                                                publication_id=publication,
+                                                err=str(e))
                                         if self._event_store or storing_event:
-                                            self._event_store.store_event_history(publication, subscription.id, receiver)
+                                            self._event_store.store_event_history(publication, subscription.id,
+                                                                                  receiver)
                                 else:
                                     # last chunk, so last receiver gets the different message
                                     for receiver in receivers_this_chunk[:-1]:
                                         try:
                                             self._router.send(receiver, msg)
                                         except PayloadExceededError as e:
-                                            self.log.warn('could not dispatch event to receiver {receiver} (subscription_id={subscription_id}, publication_id={publication_id}): {err}',
-                                                          receiver=receiver._session_id,
-                                                          subscription_id=subscription.id,
-                                                          publication_id=publication,
-                                                          err=str(e))
+                                            self.log.warn(
+                                                'could not dispatch event to receiver {receiver} (subscription_id={subscription_id}, publication_id={publication_id}): {err}',
+                                                receiver=receiver._session_id,
+                                                subscription_id=subscription.id,
+                                                publication_id=publication,
+                                                err=str(e))
                                         if self._event_store or storing_event:
-                                            self._event_store.store_event_history(publication, subscription.id, receiver)
+                                            self._event_store.store_event_history(publication, subscription.id,
+                                                                                  receiver)
 
                                     # send last receiver a different message (and guard: we might have zero valid receivers in the last chunk!)
                                     if receivers_this_chunk:
@@ -694,11 +684,12 @@ class Broker(object):
                                         try:
                                             self._router.send(receiver, last_msg)
                                         except PayloadExceededError as e:
-                                            self.log.warn('could not dispatch event to receiver {receiver} (subscription_id={subscription_id}, publication_id={publication_id}): {err}',
-                                                          receiver=receiver._session_id,
-                                                          subscription_id=subscription.id,
-                                                          publication_id=publication,
-                                                          err=str(e))
+                                            self.log.warn(
+                                                'could not dispatch event to receiver {receiver} (subscription_id={subscription_id}, publication_id={publication_id}): {err}',
+                                                receiver=receiver._session_id,
+                                                subscription_id=subscription.id,
+                                                publication_id=publication,
+                                                err=str(e))
                                         if self._event_store or storing_event:
                                             self._event_store.store_event_history(publication, subscription.id,
                                                                                   receiver)
@@ -732,11 +723,10 @@ class Broker(object):
                         self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
                     reply = message.Error(
-                        message.Publish.MESSAGE_TYPE,
-                        publish.request,
-                        ApplicationError.AUTHORIZATION_FAILED,
-                        ["failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)]
-                    )
+                        message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.AUTHORIZATION_FAILED, [
+                            "failed to authorize session for publishing to topic URI '{0}': {1}".format(
+                                publish.topic, err.value)
+                        ])
                     reply.correlation_id = publish.correlation_id
                     reply.correlation_uri = publish.topic
                     reply.correlation_is_anchor = False
@@ -782,7 +772,8 @@ class Broker(object):
                 uri_is_valid = _URI_PAT_LOOSE_NON_EMPTY.match(subscribe.topic)
 
         if not uri_is_valid:
-            reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, ["subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
+            reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI,
+                                  ["subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
             reply.correlation_id = subscribe.correlation_id
             reply.correlation_uri = subscribe.topic
             reply.correlation_is_anchor = False
@@ -809,12 +800,11 @@ class Broker(object):
             if not authorization['allow']:
                 # error reply since session is not authorized to subscribe
                 replies = [
-                    message.Error(
-                        message.Subscribe.MESSAGE_TYPE,
-                        subscribe.request,
-                        ApplicationError.NOT_AUTHORIZED,
-                        ['session (session_id={}, authid="{}", authrole="{}") is not authorized to subscribe to topic "{}" on realm "{}"'.format(
-                            session._session_id, session._authid, session._authrole, subscribe.topic, session._realm)])
+                    message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [
+                        'session (session_id={}, authid="{}", authrole="{}") is not authorized to subscribe to topic "{}" on realm "{}"'
+                        .format(session._session_id, session._authid, session._authrole, subscribe.topic,
+                                session._realm)
+                    ])
                 ]
                 replies[0].correlation_id = subscribe.correlation_id
                 replies[0].correlation_uri = subscribe.topic
@@ -840,7 +830,8 @@ class Broker(object):
 
                 # ok, session authorized to subscribe. now get the subscription
                 #
-                subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_observer(session, subscribe.topic, subscribe.match, extra=SubscriptionExtra())
+                subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_observer(
+                    session, subscribe.topic, subscribe.match, extra=SubscriptionExtra())
 
                 if not was_already_subscribed:
                     self._session_to_subscriptions[session].add(subscription)
@@ -896,6 +887,7 @@ class Broker(object):
                                 subscription.id,
                                 options=options,
                             )
+
                     # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish)
 
@@ -972,14 +964,12 @@ class Broker(object):
             different from the call to authorize succeed, but the
             authorization being denied)
             """
-            self.log.failure("Authorization of 'subscribe' for '{uri}' failed",
-                             uri=subscribe.topic, failure=err)
-            reply = message.Error(
-                message.Subscribe.MESSAGE_TYPE,
-                subscribe.request,
-                ApplicationError.AUTHORIZATION_FAILED,
-                ["failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)]
-            )
+            self.log.failure("Authorization of 'subscribe' for '{uri}' failed", uri=subscribe.topic, failure=err)
+            reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request,
+                                  ApplicationError.AUTHORIZATION_FAILED, [
+                                      "failed to authorize session for subscribing to topic URI '{0}': {1}".format(
+                                          subscribe.topic, err.value)
+                                  ])
             reply.correlation_id = subscribe.correlation_id
             reply.correlation_uri = subscribe.topic
             reply.correlation_is_anchor = False
@@ -1009,7 +999,8 @@ class Broker(object):
 
             if session in subscription.observers:
 
-                was_subscribed, was_last_subscriber, has_follow_up_messages = self._unsubscribe(subscription, session, unsubscribe)
+                was_subscribed, was_last_subscriber, has_follow_up_messages = self._unsubscribe(
+                    subscription, session, unsubscribe)
 
                 reply = message.Unsubscribed(unsubscribe.request)
 
@@ -1019,7 +1010,8 @@ class Broker(object):
             else:
                 # subscription exists on this broker, but the session that wanted to unsubscribe wasn't subscribed
                 #
-                reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
+                reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request,
+                                      ApplicationError.NO_SUCH_SUBSCRIPTION)
                 if self._router.is_traced:
                     reply.correlation_uri = reply.error
                     reply.correlation_is_last = True
@@ -1027,7 +1019,8 @@ class Broker(object):
         else:
             # subscription doesn't even exist on this broker
             #
-            reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
+            reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request,
+                                  ApplicationError.NO_SUCH_SUBSCRIPTION)
             if self._router.is_traced:
                 reply.correlation_uri = reply.error
                 reply.correlation_is_last = True
@@ -1117,7 +1110,8 @@ class Broker(object):
         """
         was_subscribed, was_last_subscriber, _ = self._unsubscribe(subscription, session)
 
-        if 'subscriber' in session._session_roles and session._session_roles['subscriber'] and session._session_roles['subscriber'].subscription_revocation:
+        if 'subscriber' in session._session_roles and session._session_roles['subscriber'] and session._session_roles[
+                'subscriber'].subscription_revocation:
             reply = message.Unsubscribed(0, subscription=subscription.id, reason=reason)
             reply.correlation_uri = subscription.uri
             self._router.send(session, reply)

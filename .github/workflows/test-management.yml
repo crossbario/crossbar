@@ -1,0 +1,107 @@
+name: test-management
+
+on:
+  # Trigger this workflow when the "main" workflow has completed successfully
+  # https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows#workflow_run
+  workflow_run:
+    workflows:
+      - main
+    branches:
+      - master
+    types:
+      - completed
+
+jobs:
+  test-amd64:
+    # runs-on: ubuntu-20.04 # means github.com
+    runs-on: [self-hosted, linux, X64] # means matterhorn
+
+    env:
+      CB_FULLTESTS: 1
+      CROSSBAR_FABRIC_URL: ws://localhost:9000/ws
+      CROSSBAR_FABRIC_SUPERUSER: ${{ github.workspace }}/.crossbar/default.pub
+      # CROSSBAR_FABRIC_SUPERUSER: ${{ env.GITHUB_WORKSPACE }}/.crossbar/default.pub
+
+    # Test on specific CPython & PyPy versions
+    strategy:
+      matrix:
+        # https://github.com/actions/setup-python#specifying-a-pypy-version
+        python-version: ['3.9']
+
+    # https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
+    # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepscontinue-on-error
+    continue-on-error: false
+
+    steps:
+    # Checkout sources
+    - uses: actions/checkout@v2
+
+    # must be skipped on self-hosted build slaves (eg matterhorn)
+    #
+    # Install OS packages, as we install Python packages from source:
+    # libenchant-dev: needed for pyenchant, needed for sphinx-spellcheck
+    # libbz2-dev, libsnappy-dev: needed for compression
+    # libunwind-dev: needed for vmprof
+    # - name: Install OS package dependencies
+    #   run: |
+    #     sudo apt update
+    #     sudo apt install build-essential libssl-dev libffi-dev libunwind-dev \
+    #       libreadline-dev zlib1g-dev libbz2-dev libsqlite3-dev libncurses5-dev \
+    #       libsnappy-dev
+
+    # Use this Python
+    # https://github.com/actions/setup-python/blob/main/README.md
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Python package dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools
+        pip install -r requirements-dev.txt
+
+    - name: Install Crossbar.io package dependencies & Crossbar.io
+      run: |
+        pip install -U -r requirements-latest.txt
+        pip install .
+
+    - name: Display Crossbar.io version
+      run: |
+        python -c "import crossbar; print(crossbar.__version__)"
+        crossbar version
+
+    - name: Run functional tests using master node management APIs
+      run: |
+        ./test/test_setup.sh
+        pytest -sv --no-install ./test/functests/cfctests
+
+    # FIXME:
+
+    # - name: Run management API test client (api-1)
+    #   run: |
+    #     ./test/management/run.sh
+
+    # - name: Run command line tests (cli-1)
+    #   run: |
+    #     ./test/test_cli_1.sh
+
+    # - name: Run command line tests (cli-2)
+    #   run: |
+    #     ./test/test_cli_2.sh
+
+    # - name: Run command line tests (cli-3)
+    #   run: |
+    #     ./test/test_cli_3.sh
+
+    # - name: Run CLI-based cluster automation tests 1 (automate-1)
+    #   run: |
+    #     cd ./test/test_automated && ./test_prepare_host.sh && ./test_setup1.sh && ./test_host1.sh 1
+
+    # - name: Run CLI-based cluster automation tests 2 (automate-2)
+    #   run: |
+    #     cd ./test/test_automated && ./test_prepare_host.sh && ./test_setup2.sh && ./test_host2.sh 1
+
+    # - name: Run XBR CLI tests (xbrnetwork-1)
+    #   run: |
+    #     cd ./test/test_xbr_network && ./test_xbr_network.sh 1

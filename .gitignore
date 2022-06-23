@@ -51,3 +51,8 @@ pip-wheel-metadata
 !.vscode/launch.json
 !.vscode/extensions.json
 .vscode
+get-pip.py
+.db-controller
+.db-mrealm-*
+.xbrnetwork
+test/test_automated/.test/

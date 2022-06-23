@@ -1,0 +1,25 @@
+apiVersion: v1
+entries:
+  edge:
+  - apiVersion: v1
+    appVersion: "1.0"
+    created: 2018-08-07T17:38:10.169741336+01:00
+    description: A Helm chart to provision a Crossbar Edge Node
+    digest: 986b9e7e98de9ddb80780fb5c48de6a2d40d06daf19e54abd56ce7f0144f2f1b
+    home: https://github.com/crossbario/crossbarfx
+    name: edge
+    urls:
+    - edge-0.1.0.tgz
+    version: 0.1.0
+  master:
+  - apiVersion: v1
+    appVersion: "1.0"
+    created: 2018-08-07T17:38:10.170435076+01:00
+    description: A Helm chart to provision Crossbar Fabric Controller
+    digest: 8f71c6679fb4e4a98ea7a857b28ac2e4ea63483a97444608197d94362a89c83b
+    home: https://github.com/crossbario/crossbarfx
+    name: master
+    urls:
+    - master-0.1.0.tgz
+    version: 0.1.0
+generated: 2018-08-07T17:38:10.168751756+01:00

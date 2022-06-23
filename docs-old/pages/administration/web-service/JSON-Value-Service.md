@@ -21,7 +21,8 @@ where `options` is a dictionary:
 
 attribute | description
 ---|---
-**`prettify`**| a boolean that controls when to prettify the rendered JSON (default: `true`)
+**`prettify`**| prettify the rendered JSON (default: `true`)
+**`sort_keys`**| sort the dictionary output by key during JSON serialization (default: `false`)
 **`allow_cross_origin`** | a boolean, allow cross-origin requests (CORS) (default: `false`)
 **`discourage_caching`** | a boolean, set headers to discourage caching of the response (default: `false`)
 

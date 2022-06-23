@@ -1,0 +1,2 @@
+deb [signed-by=/usr/share/keyrings/red-data-tools-keyring.gpg] https://packages.red-data-tools.org/ubuntu/ bionic universe
+deb-src [signed-by=/usr/share/keyrings/red-data-tools-keyring.gpg] https://packages.red-data-tools.org/ubuntu/ bionic universe

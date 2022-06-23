@@ -1,50 +1,28 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
 import os
-import traceback
 import crossbar
 import binascii
 
 from twisted import internet
+# from twisted.protocols.tls import TLSMemoryBIOProtocol
 
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
-# from autobahn.websocket.types import ConnectionAccept
+from autobahn.wamp.types import TransportDetails
 from autobahn.websocket.types import ConnectionDeny
+from autobahn.util import hlval, hltype, hlid
 
 from txaio import make_logger
 
-from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked
+from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked, CookieStoreDatabaseBacked
 
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
@@ -131,12 +109,14 @@ def set_websocket_options(factory, options):
                     if isinstance(offer, PerMessageDeflateOffer):
                         if (request_max_window_bits == 0 or offer.accept_max_window_bits) and \
                            (not request_no_context_takeover or offer.accept_no_context_takeover):
-                            return PerMessageDeflateOfferAccept(offer,
-                                                                request_max_window_bits=request_max_window_bits,
-                                                                request_no_context_takeover=request_no_context_takeover,
-                                                                no_context_takeover=no_context_takeover,
-                                                                window_bits=window_bits,
-                                                                mem_level=mem_level)
+                            return PerMessageDeflateOfferAccept(
+                                offer,
+                                request_max_window_bits=request_max_window_bits,
+                                request_no_context_takeover=request_no_context_takeover,
+                                no_context_takeover=no_context_takeover,
+                                window_bits=window_bits,
+                                mem_level=mem_level)
+
             per_msg_compression = accept
 
     if factory.isServer:
@@ -158,6 +138,7 @@ def set_websocket_options(factory, options):
             autoPingInterval=autoPingInterval,
             autoPingTimeout=autoPingTimeout,
             autoPingSize=c.get("auto_ping_size", None),
+            autoPingRestartOnAnyTraffic=c.get("auto_ping_restart_on_any_traffic", None),
             serveFlashSocketPolicy=c.get("enable_flash_policy", None),
             flashSocketPolicy=c.get("flash_policy", None),
             allowedOrigins=c.get("allowed_origins", ["*"]),
@@ -182,13 +163,13 @@ def set_websocket_options(factory, options):
             autoPingInterval=autoPingInterval,
             autoPingTimeout=autoPingTimeout,
             autoPingSize=c.get("auto_ping_size", None),
+            autoPingRestartOnAnyTraffic=c.get("auto_ping_restart_on_any_traffic", None),
             perMessageCompressionOffers=None,
             perMessageCompressionAccept=None,
         )
 
 
 class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
-
     """
     Crossbar.io WAMP-over-WebSocket server protocol.
     """
@@ -199,6 +180,8 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
         self._cbtid = None
 
     def onConnect(self, request):
+
+        self.log.debug('{func}(request={request})', func=hltype(self.onConnect), request=request)
 
         if self.factory.debug_traffic:
             from twisted.internet import reactor
@@ -224,6 +207,10 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
         #
         protocol, headers = websocket.WampWebSocketServerProtocol.onConnect(self, request)
 
+        self.log.debug('{func}: proceed with WebSocket opening handshake for WebSocket subprotocol "{protocol}"',
+                       func=hltype(self.onConnect),
+                       protocol=hlval(protocol))
+
         try:
 
             self._origin = request.origin
@@ -246,23 +233,37 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # try to parse an already set cookie from HTTP request headers
                 self._cbtid = self.factory._cookiestore.parse(request.headers)
 
-                # if no cookie is set, create a new one ..
-                if self._cbtid is None:
+                if self._cbtid:
+                    self.log.info(
+                        '{func}: parsed tracking/authentication cookie cbtid "{cbtid}" from HTTP request headers',
+                        func=hltype(self.onConnect),
+                        cbtid=hlval(self._cbtid))
+                else:
+                    self.log.info('{func}: no tracking/authentication cookie cbtid found in HTTP request headers!',
+                                  func=hltype(self.onConnect))
+
+                # if no cookie is set, or it doesn't exist in our database, create a new cookie
+                if self._cbtid is None or not self.factory._cookiestore.exists(self._cbtid):
 
                     self._cbtid, headers['Set-Cookie'] = self.factory._cookiestore.create()
 
                     if 'cookie' in self.factory._config:
-                        if 'secure' in self.factory._config['cookie'] and self.factory._config['cookie']['secure'] is True:
+                        if 'secure' in self.factory._config[
+                                'cookie'] and self.factory._config['cookie']['secure'] is True:
                             headers['Set-Cookie'] += ';Secure'
-                        if 'http_strict' in self.factory._config['cookie'] and self.factory._config['cookie']['http_strict'] is True:
+                        if 'http_strict' in self.factory._config[
+                                'cookie'] and self.factory._config['cookie']['http_strict'] is True:
                             headers['Set-Cookie'] += ';HttpOnly'
                         if 'same_site' in self.factory._config['cookie']:
                             headers['Set-Cookie'] += ';SameSite=' + self.factory._config['cookie']['same_site']
 
-                    self.log.debug("Setting new cookie: {cookie}",
-                                   cookie=headers['Set-Cookie'])
+                    self.log.info('{func}: setting new cookie {cookie}',
+                                  func=hltype(self.onConnect),
+                                  cookie=hlval(headers['Set-Cookie'], color='yellow'))
                 else:
-                    self.log.debug("Cookie already set")
+                    self.log.info('{func}: tracking/authentication cookie cbtid "{cbtid}" already set and stored',
+                                  func=hltype(self.onConnect),
+                                  cbtid=hlval(self._cbtid))
 
                 # add this WebSocket connection to the set of connections
                 # associated with the same cookie
@@ -274,69 +275,60 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 #
                 if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
 
-                    self._authid, self._authrole, self._authmethod, self._authrealm, self._authextra = self.factory._cookiestore.getAuth(self._cbtid)
+                    self._authid, self._authrole, self._authmethod, self._authrealm, self._authextra = self.factory._cookiestore.getAuth(
+                        self._cbtid)
 
                     if self._authid:
                         # there is a cookie set, and the cookie was previously successfully authenticated,
                         # so immediately authenticate the client using that information
                         self._authprovider = 'cookie'
-                        self.log.debug("Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
-                                       cookiename=self.factory._cookiestore._cookie_id_field, cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod, authrealm=self._authrealm)
+                        self.log.info(
+                            '{func} authenticated client via cookie {cookiename}={cbtid} as authid="{authid}", authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}", authrealm="{authrealm}"',
+                            func=hltype(self.onConnect),
+                            cookiename=self.factory._cookiestore._cookie_id_field,
+                            cbtid=hlval(self._cbtid, color='green'),
+                            authid=hlid(self._authid),
+                            authrole=hlid(self._authrole),
+                            authmethod=hlval(self._authmethod),
+                            authprovider=hlval(self._authprovider),
+                            authrealm=hlid(self._authrealm))
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
-                        self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")
+                        self.log.info(
+                            '{func} cookie-based authentication enabled, but cookie {cbtid} is not authenticated yet',
+                            cbtid=hlval(self._cbtid, color='blue'),
+                            func=hltype(self.onConnect))
                 else:
-                    self.log.debug("Cookie-based authentication disabled")
+                    self.log.info('{func} cookie-based authentication disabled on connection',
+                                  func=hltype(self.onConnect))
             else:
-                self.log.debug("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
+                self.log.info('{func} cookie tracking disabled on WebSocket connection', func=hltype(self.onConnect))
 
-            # remember transport level info for later forwarding in
-            # WAMP meta event "wamp.session.on_join"
-            #
-            self._transport_info = {
-                'type': 'websocket',
-                'protocol': protocol,
-                'peer': self.peer,
+            # negotiated WebSocket subprotocol in use, e.g. "wamp.2.cbor.batched"
+            self._transport_details.websocket_protocol = protocol
 
-                # all HTTP headers as received by the WebSocket client
-                'http_headers_received': request.headers,
+            # WebSocket extensions in use. will be filled in onOpen(), see below
+            self._transport_details.websocket_extensions_in_use = None
 
-                # only customer user headers (such as cookie)
-                'http_headers_sent': headers,
+            # Crossbar.io tracking ID (for cookie tracking)
+            self._transport_details.http_cbtid = self._cbtid
 
-                # all HTTP response lines sent (verbatim, in order as sent)
-                # this will get filled in onOpen() from the HTTP response
-                # data that will be stored by AutobahnPython at the WebSocket
-                # protocol level (WebSocketServerProtocol)
-                # 'http_response_lines': None,
+            # all HTTP headers as received by the WebSocket client
+            self._transport_details.http_headers_received = request.headers
 
-                # WebSocket extensions in use .. will be filled in onOpen() - see below
-                'websocket_extensions_in_use': None,
-
-                # Crossbar.io tracking ID (for cookie tracking)
-                'cbtid': self._cbtid
-            }
+            # only customer user headers (such as cookie)
+            self._transport_details.http_headers_sent = headers
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
             # and setting HTTP headers `headers`
-            #
-            return (protocol, headers)
+            return protocol, headers
 
-        except Exception:
-            traceback.print_exc()
+        except:
+            self.log.failure()
 
     def onOpen(self):
-        if False:
-            # this is little bit silly, we parse the complete response data into lines again
-            http_response_lines = []
-            for line in self.http_response_data.split('\r\n'):
-                line = line.strip()
-                if line:
-                    http_response_lines.append(line)
-            self._transport_info['http_response_lines'] = http_response_lines
-
         # note the WebSocket extensions negotiated
-        self._transport_info['websocket_extensions_in_use'] = [e.__json__() for e in self.websocket_extensions_in_use]
+        self._transport_details.websocket_extensions_in_use = [e.__json__() for e in self.websocket_extensions_in_use]
 
         return super(WampWebSocketServerProtocol, self).onOpen()
 
@@ -347,12 +339,13 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
         """
         try:
             page = self.factory._templates.get_template('cb_ws_status.html')
-            self.sendHtml(page.render(redirectUrl=redirectUrl,
-                                      redirectAfter=redirectAfter,
-                                      cbVersion=crossbar.__version__,
-                                      wsUri=self.factory.url,
-                                      peer=self.peer,
-                                      workerPid=os.getpid()))
+            self.sendHtml(
+                page.render(redirectUrl=redirectUrl,
+                            redirectAfter=redirectAfter,
+                            cbVersion=crossbar.__version__,
+                            wsUri=self.factory.url,
+                            peer=self.peer,
+                            workerPid=os.getpid()))
         except Exception:
             self.log.failure("Error rendering WebSocket status page template: {log_failure.value}")
 
@@ -366,7 +359,6 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
 
 class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
-
     """
     Crossbar.io WAMP-over-WebSocket server factory.
     """
@@ -419,7 +411,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import FlatBuffersSerializer
                     serializers.append(FlatBuffersSerializer(batched=True))
                     serializers.append(FlatBuffersSerializer())
-                except ImportError:
+                except ImportError('FlatBuffersSerializer'):
                     self.log.warn("Warning: could not load WAMP-FlatBuffers serializer")
                 else:
                     sers.discard('flatbuffers')
@@ -430,7 +422,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import CBORSerializer
                     serializers.append(CBORSerializer(batched=True))
                     serializers.append(CBORSerializer())
-                except ImportError:
+                except ImportError('CBORSerializer'):
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
                     sers.discard('cbor')
@@ -441,7 +433,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import MsgPackSerializer
                     serializers.append(MsgPackSerializer(batched=True))
                     serializers.append(MsgPackSerializer())
-                except ImportError:
+                except ImportError('MsgPackSerializer'):
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
                     sers.discard('msgpack')
@@ -452,7 +444,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import UBJSONSerializer
                     serializers.append(UBJSONSerializer(batched=True))
                     serializers.append(UBJSONSerializer())
-                except ImportError:
+                except ImportError('UBJSONSerializer'):
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
                 else:
                     sers.discard('ubjson')
@@ -463,7 +455,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import JsonSerializer
                     serializers.append(JsonSerializer(batched=True))
                     serializers.append(JsonSerializer())
-                except ImportError:
+                except ImportError('JsonSerializer'):
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
                     sers.discard('json')
@@ -493,25 +485,40 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         # Jinja2 templates for 404 etc
         self._templates = templates
 
-        # cookie tracking
+        # enable cookie tracking if a cookie store is configured
         if 'cookie' in config:
-            cookie_store_type = config['cookie']['store']['type']
+            # cookie store configuration item
+            cookie_config = config['cookie']
 
-            # ephemeral, memory-backed cookie store
+            # cookie store
+            cookie_store_config = cookie_config['store']
+            cookie_store_type = cookie_store_config['type']
+
+            # setup ephemeral, memory-backed cookie store
             if cookie_store_type == 'memory':
-                self._cookiestore = CookieStoreMemoryBacked(config['cookie'])
+                self._cookiestore = CookieStoreMemoryBacked(cookie_config)
                 self.log.info("Memory-backed cookie store active.")
 
-            # persistent, file-backed cookie store
+            # setup persistent, file-backed cookie store
             elif cookie_store_type == 'file':
-                cookie_store_file = os.path.abspath(os.path.join(self._cbdir, config['cookie']['store']['filename']))
-                self._cookiestore = CookieStoreFileBacked(cookie_store_file, config['cookie'])
-                self.log.info("File-backed cookie store active {cookie_store_file}", cookie_store_file=cookie_store_file)
+                cookie_store_file = os.path.abspath(os.path.join(self._cbdir, cookie_store_config['filename']))
+                self._cookiestore = CookieStoreFileBacked(cookie_store_file, cookie_config)
+                self.log.info("File-backed cookie store active {cookie_store_file}",
+                              cookie_store_file=hlval(cookie_store_file))
+
+            # setup persistent, database-backed cookie store
+            elif cookie_store_type == 'database':
+                cookie_dbpath = os.path.abspath(os.path.join(self._cbdir, cookie_store_config['path']))
+                self._cookiestore = CookieStoreDatabaseBacked(cookie_dbpath, cookie_config)
+                self.log.info("Database-backed cookie store active! [cookiestore={cookiestore}]",
+                              cookiestore=hltype(CookieStoreDatabaseBacked))
 
             else:
                 # should not arrive here as the config should have been checked before
-                raise Exception("logic error")
+                raise NotImplementedError('{}: implementation of cookiestore of type "{}" missing'.format(
+                    self.__class__.__name__, cookie_store_type))
         else:
+            # this disables cookie tracking (both with or without WAMP-cookie authentication)
             self._cookiestore = None
 
         # set WebSocket options
@@ -533,7 +540,6 @@ def set_rawsocket_options(factory, options):
 
 
 class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
-
     """
     Crossbar.io WAMP-over-RawSocket server protocol.
     """
@@ -555,22 +561,14 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         #
         self._cbtid = None
 
-        # remember transport level info for later forwarding in
-        # WAMP meta event "wamp.session.on_join"
-        #
-        self._transport_info = {
-            'type': 'rawsocket',
-            'protocol': None,
-            'peer': self.peer
-        }
-
     def _on_handshake_complete(self):
-        self._transport_info['protocol'] = 'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
+        self._transport_details.channel_serializer = TransportDetails.CHANNEL_SERIALIZER_FROM_STR[
+            self._serializer.SERIALIZER_ID]
+        self._transport_details.websocket_protocol = 'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
         return rawsocket.WampRawSocketServerProtocol._on_handshake_complete(self)
 
 
 class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
-
     """
     Crossbar.io WAMP-over-RawSocket server factory.
     """
@@ -657,19 +655,19 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
         if 'options' in config:
             set_rawsocket_options(self, config['options'])
 
-        self.log.debug("RawSocket transport factory created using {serializers} serializers, max. message size {maxsize}",
-                       serializers=serializers, maxsize=self._max_message_size)
+        self.log.debug(
+            "RawSocket transport factory created using {serializers} serializers, max. message size {maxsize}",
+            serializers=serializers,
+            maxsize=self._max_message_size)
 
 
 class WampWebSocketClientProtocol(websocket.WampWebSocketClientProtocol):
-
     """
     Crossbar.io WAMP-over-WebSocket client protocol.
     """
 
 
 class WampWebSocketClientFactory(websocket.WampWebSocketClientFactory):
-
     """
     Crossbar.io WAMP-over-WebSocket client factory.
     """
@@ -682,14 +680,12 @@ class WampWebSocketClientFactory(websocket.WampWebSocketClientFactory):
 
 
 class WampRawSocketClientProtocol(rawsocket.WampRawSocketClientProtocol):
-
     """
     Crossbar.io WAMP-over-RawSocket client protocol.
     """
 
 
 class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
-
     """
     Crossbar.io WAMP-over-RawSocket client factory.
     """
@@ -741,8 +737,7 @@ class WebSocketReverseProxyClientProtocol(websocket.WebSocketClientProtocol):
     log = make_logger()
 
     def onConnect(self, response):
-        self.log.debug('WebSocketReverseProxyClientProtocol.onConnect(response={response})',
-                       response=response)
+        self.log.debug('WebSocketReverseProxyClientProtocol.onConnect(response={response})', response=response)
         # response={"peer": "tcp4:127.0.0.1:9000", "headers": {"server": "AutobahnPython/17.10.1", "upgrade": "WebSocket", "connection": "Upgrade", "sec-websocket-accept": "tJFVMTSzGypbxQb8GW1dK/QLMZQ="}, "version": 18, "protocol": null, "extensions": []}
         try:
             # accept = ConnectionAccept(subprotocol=response.protocol, headers=None)
@@ -758,13 +753,17 @@ class WebSocketReverseProxyClientProtocol(websocket.WebSocketClientProtocol):
 
     def onMessage(self, payload, isBinary):
         self.log.debug('WebSocketReverseProxyClientProtocol.onMessage(payload={payload}, isBinary={isBinary})',
-                       payload='{}..'.format((binascii.b2a_hex(payload).decode() if isBinary else payload.decode('utf8'))[:16]),
+                       payload='{}..'.format(
+                           (binascii.b2a_hex(payload).decode() if isBinary else payload.decode('utf8'))[:16]),
                        isBinary=isBinary)
         self.factory.frontend_protocol.sendMessage(payload, isBinary)
 
     def onClose(self, wasClean, code, reason):
-        self.log.debug('WebSocketReverseProxyClientProtocol.onClose(wasClean={wasClean}, code={code}, reason={reason})',
-                       wasClean=wasClean, code=code, reason=reason)
+        self.log.debug(
+            'WebSocketReverseProxyClientProtocol.onClose(wasClean={wasClean}, code={code}, reason={reason})',
+            wasClean=wasClean,
+            code=code,
+            reason=reason)
         code = 1000
         self.factory.frontend_protocol.sendClose(code, reason)
 
@@ -777,7 +776,7 @@ class WebSocketReverseProxyClientFactory(websocket.WebSocketClientFactory):
 
     def __init__(self, *args, **kwargs):
         self.frontend_protocol = kwargs.pop('frontend_protocol', None)
-        assert(self.frontend_protocol is not None)
+        assert (self.frontend_protocol is not None)
 
         frontend_request = kwargs.pop('frontend_request', None)
         if frontend_request:
@@ -826,9 +825,7 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
 
         # create and connect client endpoint
         #
-        endpoint = create_connecting_endpoint_from_config(self.backend_config['endpoint'],
-                                                          None,
-                                                          self.factory.reactor,
+        endpoint = create_connecting_endpoint_from_config(self.backend_config['endpoint'], None, self.factory.reactor,
                                                           self.log)
 
         backend_on_connect = internet.defer.Deferred()
@@ -855,22 +852,28 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
 
     def onMessage(self, payload, isBinary):
         if self.backend_protocol:
-            self.log.debug('WebSocketReverseProxyServerProtocol: forwarding WebSocket message from frontend connection to backend connection')
+            self.log.debug(
+                'WebSocketReverseProxyServerProtocol: forwarding WebSocket message from frontend connection to backend connection'
+            )
             self.backend_protocol.sendMessage(payload, isBinary)
         else:
-            self.log.warn('WebSocketReverseProxyServerProtocol: received WebSocket message on frontend connection while there is no backend connection! dropping WebSocket message')
+            self.log.warn(
+                'WebSocketReverseProxyServerProtocol: received WebSocket message on frontend connection while there is no backend connection! dropping WebSocket message'
+            )
 
     def onClose(self, wasClean, code, reason):
         if self.backend_protocol:
-            self.log.debug('WebSocketReverseProxyServerProtocol: forwarding close from frontend connection to backend connection')
+            self.log.debug(
+                'WebSocketReverseProxyServerProtocol: forwarding close from frontend connection to backend connection')
             code = 1000
             self.backend_protocol.sendClose(code, reason)
         else:
-            self.log.warn('WebSocketReverseProxyServerProtocol: received WebSocket close on frontend connection while there is no backend connection! dropping WebSocket close')
+            self.log.warn(
+                'WebSocketReverseProxyServerProtocol: received WebSocket close on frontend connection while there is no backend connection! dropping WebSocket close'
+            )
 
 
 class WebSocketReverseProxyServerFactory(websocket.WebSocketServerFactory):
-
     """
     Reverse WebSocket proxy factory.
 

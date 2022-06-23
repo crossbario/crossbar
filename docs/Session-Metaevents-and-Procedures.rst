@@ -87,7 +87,9 @@ Example code for **killing a session**:
 
     session.call("wamp.session.kill", [23560753], {reason: "because", message: "foobar"}).then(session.log, session.log)
 
-    Note: the above examples are for Autobahn\|JS since we also maintain
+.. note::
+
+    The above examples are for Autobahn\|JS since we also maintain
     and use this WAMP client library, and JavaScript is the closest
     there is to a lingua franca in programming. Users of other WAMP
     client libraries should feel free to add code examples for these!

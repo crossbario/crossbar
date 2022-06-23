@@ -61,7 +61,9 @@ component, e.g.
 
     {"allow": true, "disclose": true}
 
-    Note: This is a change to the previous behavior, where the caller or
+.. note::
+
+    This is a change to the previous behavior, where the caller or
     publisher needed to request the disclosure of its identity on each
     call or publication. This was not ideal in that it led to the
     possibility of a callee receiving caller identity or not based on a

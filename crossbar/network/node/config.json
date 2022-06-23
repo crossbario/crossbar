@@ -1,0 +1,366 @@
+{
+  "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
+  "version": 2,
+  "controller": {
+    "enable_docker": false
+  },
+  "workers": [
+    {
+      "type": "router",
+      "options": {
+        "env": {
+          "inherit": true
+        }
+      },
+      "realms": [
+        {
+          "name": "xbrnetwork",
+          "roles": [
+            {
+              "name": "backend",
+              "permissions": [
+                {
+                  "uri": "xbr.network.",
+                  "match": "prefix",
+                  "allow": {
+                    "call": true,
+                    "register": true,
+                    "publish": true,
+                    "subscribe": true
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "wamp.session.get",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "wamp.session.kill_by_authid",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "xbr.network.authenticator.pubkey_by_session",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "cache": true
+                }
+              ]
+            },
+            {
+              "name": "authenticator",
+              "permissions": [
+                {
+                  "uri": "xbr.network.authenticator.",
+                  "match": "prefix",
+                  "allow": {
+                    "call": false,
+                    "register": true,
+                    "publish": true,
+                    "subscribe": false
+                  },
+                  "cache": true
+                }
+              ]
+            },
+            {
+              "name": "anonymous",
+              "permissions": [
+                {
+                  "uri": "xbr.network.echo",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "xbr.network.get_config",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "xbr.network.get_status",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "xbr.network.is_member",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "xbr.network.onboard_member",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "xbr.network.verify_onboard_member",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "xbr.network.login_member",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "xbr.network.verify_login_member",
+                  "match": "exact",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": false
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                }
+              ]
+            },
+            {
+              "name": "member",
+              "permissions": [
+                {
+                  "uri": "xbr.network.test.",
+                  "match": "prefix",
+                  "allow": {
+                    "call": true,
+                    "register": true,
+                    "publish": true,
+                    "subscribe": true
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                },
+                {
+                  "uri": "xbr.network.",
+                  "match": "prefix",
+                  "allow": {
+                    "call": true,
+                    "register": false,
+                    "publish": false,
+                    "subscribe": true
+                  },
+                  "disclose": {
+                    "caller": true,
+                    "publisher": true
+                  },
+                  "cache": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "type": "universal",
+          "endpoint": {
+            "type": "tcp",
+            "port": 8080,
+            "shared": true,
+            "backlog": 1024
+          },
+          "rawsocket": {
+            "auth": {
+              "cryptosign": {
+                "type": "dynamic",
+                "authenticator": "xbr.network.authenticator.authenticate",
+                "authenticator-realm": "xbrnetwork"
+              }
+            },
+            "serializers": [
+              "cbor"
+            ],
+            "options": {
+              "max_message_size": 1048576
+            }
+          },
+          "websocket": {
+            "ws": {
+              "type": "websocket",
+              "auth": {
+                "cryptosign": {
+                  "type": "dynamic",
+                  "authenticator": "xbr.network.authenticator.authenticate",
+                  "authenticator-realm": "xbrnetwork"
+                }
+              },
+              "serializers": [
+                "cbor",
+                "msgpack",
+                "json"
+              ],
+              "options": {
+                "allowed_origins": [
+                  "*"
+                ],
+                "allow_null_origin": true,
+                "enable_webstatus": true,
+                "max_frame_size": 1048576,
+                "max_message_size": 1048576,
+                "auto_fragment_size": 65536,
+                "fail_by_drop": true,
+                "open_handshake_timeout": 2500,
+                "close_handshake_timeout": 1000,
+                "auto_ping_interval": 10000,
+                "auto_ping_timeout": 5000,
+                "auto_ping_size": 12,
+                "compression": {
+                  "deflate": {
+                    "request_no_context_takeover": false,
+                    "request_max_window_bits": 13,
+                    "no_context_takeover": false,
+                    "max_window_bits": 13,
+                    "memory_level": 5
+                  }
+                }
+              }
+            }
+          },
+          "web": {
+            "paths": {
+              "/": {
+                "type": "nodeinfo"
+              }
+            }
+          }
+        }
+      ],
+      "components": [
+        {
+          "type": "class",
+          "classname": "crossbar.network._authenticator.Authenticator",
+          "realm": "xbrnetwork",
+          "role": "authenticator",
+          "extra": {
+            "siteurl": "${XBR_NETWORK_URL}",
+            "database": {
+              "type": "cfxdb",
+              "path": ".cfxdb/xbr-network",
+              "maxsize": 1073741824
+            }
+          }
+        },
+        {
+          "type": "class",
+          "classname": "crossbar.network._api.Network",
+          "realm": "xbrnetwork",
+          "role": "backend",
+          "extra": {
+            "siteurl": "${XBR_NETWORK_URL}",
+            "database": {
+              "type": "cfxdb",
+              "path": ".cfxdb/xbr-network",
+              "maxsize": 1073741824
+            },
+            "blockchain": {
+              "type": "ethereum",
+              "key": "xbrnetwork-eth.key",
+              "gateway": {
+                "type": "infura",
+                "network": "rinkeby",
+                "key": "${INFURA_PROJECT_ID}",
+                "secret": "${INFURA_PROJECT_SECRET}"
+              },
+              "from_block": 7905706,
+              "chain_id": 4
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

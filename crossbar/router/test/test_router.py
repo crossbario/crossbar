@@ -1,30 +1,7 @@
 #####################################################################################
 #
 #  Copyright (c) Crossbar.io Technologies GmbH
-#
-#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
-#  you have purchased a commercial license), the license terms below apply.
-#
-#  Should you enter into a separate license agreement after having received a copy of
-#  this software, then the terms of such license agreement replace the terms below at
-#  the time at which such license agreement becomes effective.
-#
-#  In case a separate license agreement ends, and such agreement ends without being
-#  replaced by another separate license agreement, the license terms below apply
-#  from the time at which said agreement ends.
-#
-#  LICENSE TERMS
-#
-#  This program is free software: you can redistribute it and/or modify it under the
-#  terms of the GNU Affero General Public License, version 3, as published by the
-#  Free Software Foundation. This program is distributed in the hope that it will be
-#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#  See the GNU Affero General Public License Version 3 for more details.
-#
-#  You should have received a copy of the GNU Affero General Public license along
-#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
@@ -36,6 +13,7 @@ import mock
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp import role
+from autobahn.wamp.types import TransportDetails
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.router import RouterFactory
@@ -48,7 +26,6 @@ class TestEmbeddedSessions(unittest.TestCase):
     """
     Test cases for application session running embedded in router.
     """
-
     def setUp(self):
         """
         Setup router and router session factories.
@@ -92,6 +69,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         def boom(*args, **kw):
             raise the_exception
+
         self.router._roles['test_role'].authorize = boom
 
         class TestSession(ApplicationSession):
@@ -99,6 +77,7 @@ class TestEmbeddedSessions(unittest.TestCase):
                 super(TestSession, self).__init__(*args, **kw)
                 self._authrole = 'test_role'
                 self._transport = mock.MagicMock()
+
         session0 = TestSession()
         self.router._dealer._registration_map.add_observer(session0, 'test.proc')
 
@@ -138,6 +117,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         def boom(*args, **kw):
             raise the_exception
+
         self.router._roles['test_role'].authorize = boom
 
         class TestSession(ApplicationSession):
@@ -145,6 +125,7 @@ class TestEmbeddedSessions(unittest.TestCase):
                 super(TestSession, self).__init__(*args, **kw)
                 self._authrole = 'test_role'
                 self._transport = mock.MagicMock()
+
         session0 = TestSession()
 
         call = message.Register(
@@ -173,7 +154,6 @@ class TestEmbeddedSessions(unittest.TestCase):
         d = txaio.create_future()
 
         class TestSession(ApplicationSession):
-
             def onJoin(self, details):
                 txaio.resolve(d, None)
 
@@ -198,6 +178,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
             def onUserError(self, *args, **kw):
                 errors.append((args, kw))
+
         session = TestSession(types.ComponentConfig('realm1'))
 
         # in this test, we are just looking for onUserError to get
@@ -219,11 +200,12 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
             raise the_exception
+
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onHello = boom
         session.onOpen(transport)
@@ -253,11 +235,12 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
             raise the_exception
+
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onAuthenticate = boom
         session.onOpen(transport)

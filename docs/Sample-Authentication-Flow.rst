@@ -37,7 +37,7 @@ To enable this you need to configure WAMP-CRA in the Crossbar.io config.
 A simple version, using static authentication (i.e. the user credentials
 stored in the config file) would look like this:
 
-.. code:: json
+.. code:: javascript
 
     "transports": [
        {
@@ -73,7 +73,7 @@ secret, making it possible to use any external store for credentials
 that you want. For dynamic authentication, you'd change the above
 configuration to something like
 
-.. code:: json
+.. code:: javascript
 
     "transports": [
        {
@@ -164,7 +164,7 @@ authentication), and the cookie authentication itself for the transport.
 An example for setting up cookie tracking on our above dynamic
 authentication path would be
 
-.. code:: json
+.. code:: javascript
 
     "dynamic": {
        "type": "websocket",
@@ -187,7 +187,7 @@ authentication path would be
 and enabling cookie authentication for our transport from before just
 requires extending the authentication methods dictionary:
 
-.. code:: json
+.. code:: javascript
 
     "auth": {
        "wampcra": {

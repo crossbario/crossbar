@@ -1,0 +1,117 @@
+{
+    "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
+    "version": 2,
+    "controller": {
+        "id": "cfxedge_ctr"
+    },
+    "workers": [
+        {
+            "id": "cfxedge_rtr1",
+            "type": "router",
+            "realms": [
+                {
+                    "name": "realm1",
+                    "roles": [
+                        {
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "rawsocket",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8081,
+                        "backlog": 1024
+                    },
+                    "max_message_size": 1048576,
+                    "serializers": ["cbor", "msgpack", "json"]
+                },
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080,
+                        "backlog": 1024
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "static",
+                            "directory": "../web",
+                            "options": {
+                                "enable_directory_listing": true
+                            }
+                        },
+                        "autobahn": {
+                            "type": "archive",
+                            "archive": "autobahn-v20.2.1.zip",
+                            "origin": "https://github.com/crossbario/autobahn-js-browser/archive/v20.2.1.zip",
+                            "object_prefix": "autobahn-js-browser-20.2.1",
+                            "default_object": "autobahn.min.js",
+                            "download": true,
+                            "cache": true,
+                            "hashes": [
+                               "b69cd17ac043cceceea8ed589a09a2555b5c39e32c2fea18ecc26dc5baf67de8"
+                            ],
+                            "mime_types": {
+                               ".min.js": "text/javascript",
+                               ".jgz": "text/javascript"
+                            }
+                        },
+                        "ws": {
+                            "type": "websocket",
+                            "serializers": [
+                                "cbor", "msgpack", "json"
+                            ],
+                            "options": {
+                                "allowed_origins": ["*"],
+                                "allow_null_origin": true,
+                                "enable_webstatus": false,
+                                "max_frame_size": 1048576,
+                                "max_message_size": 1048576,
+                                "auto_fragment_size": 65536,
+                                "fail_by_drop": true,
+                                "open_handshake_timeout": 2500,
+                                "close_handshake_timeout": 1000,
+                                "auto_ping_interval": 10000,
+                                "auto_ping_timeout": 5000,
+                                "auto_ping_size": 12,
+                                "compression": {
+                                    "deflate": {
+                                        "request_no_context_takeover": false,
+                                        "request_max_window_bits": 13,
+                                        "no_context_takeover": false,
+                                        "max_window_bits": 13,
+                                        "memory_level": 5
+                                    }
+                                }
+                            }
+                        },
+                        "info": {
+                            "type": "nodeinfo"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

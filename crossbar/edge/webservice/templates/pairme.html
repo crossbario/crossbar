@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block header %}
+   <style>
+      .pairing_url {
+         font-size: 24px;
+         color: #0aa20a;
+      }
+
+      .pairing_url a:visited {
+         color: #0aa20a;
+      }
+
+      td.col1 {
+         font-weight: bold;
+         font-size: 13px;
+         width: 200px;
+      }
+
+      td.col2 {
+         font-family: monospace;
+         font-size: 11px;
+      }
+   </style>
+{% endblock %}
+
+{% block content %}
+   <div id="paired">
+      <hr><br>
+      <center>
+         <span style="font-size: 24px; font-weight: bold;">Crossbar.io v{{ cb_version }}</span>
+      </center>
+      {% if not is_paired %}
+      <p>
+         This node is running in managed mode, but is not yet connected to and paired with a management server.
+         Please connect the node with a Crossbar.io master node first to continue.</a>
+      </p>
+      <br>
+      <p style="width: 280px; margin: auto;">
+         <a href="{{ pairing_url }}" class="pairing_url">Pair this node</a>
+      </p>
+      <br>
+      {% else %}
+      <p>
+         Node is already paired!
+      </p>
+      {% endif %}
+      <br>
+      <hr>
+      <br>
+      <b>Node information:</b>
+      <br><br>
+      <table class="detail" id="node_info">
+         <tr>
+            <td class="col1">Release</td>
+            <td class="col2">{{ cb_version }}</td>
+         </tr>
+         <tr>
+            <td class="col1">Node Type</td>
+            <td class="col2">{{ node_type }}</td>
+         </tr>
+         <tr>
+            <td class="col1">Node started</td>
+            <td class="col2">{{ node_status['started'] }}</td>
+         </tr>
+         <tr>
+            <td class="col1">Node worker PID</td>
+            <td class="col2">{{ worker_pid }}</td>
+         </tr>
+         <tr>
+            <td class="col1">Node public key</td>
+            <td class="col2">{{ node_status['pubkey'] }}</td>
+         </tr>
+      </table>
+      <br><br>
+   </div>
+{% endblock %}
