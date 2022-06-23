@@ -29,7 +29,14 @@ class PublisherResource(_CommonResource):
         options = event['options'] if 'options' in event and event['options'] else {}
 
         publish_options = PublishOptions(acknowledge=True,
+                                         forward_for=options.get('forward_for', None),
+                                         retain=options.get('retain', None),
+                                         exclude_me=options.get('exclude_me', None),
+                                         exclude_authid=options.get('exclude_authid', None),
+                                         exclude_authrole=options.get('exclude_authrole', None),
                                          exclude=options.get('exclude', None),
+                                         eligible_authid=options.get('eligible_authid', None),
+                                         eligible_authrole=options.get('eligible_authrole', None),
                                          eligible=options.get('eligible', None))
 
         kwargs['options'] = publish_options
