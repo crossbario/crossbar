@@ -16,6 +16,7 @@ from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError, InvalidPayload
 from autobahn.wamp.interfaces import ISession
+from autobahn.xbr import FbsObject
 
 from crossbar.router import RouterOptions
 from crossbar.router.broker import Broker
@@ -509,11 +510,23 @@ class Router(object):
 
         * :class:`crossbar.router.dealer.Dealer`
         * :class:`crossbar.router.broker.Broker`
+
+        When the application payload cannot be validated successfully against the respective validation type,
+        this method will raise a :class:`InvalidPayload` exception.
+
+        :param payload_type: The type of WAMP action/payload, that is one of
+            ``"call", "call_progress", "call_result", "call_result_progress, "call_error"`` for RPC or one of
+            ``"event", "event_result"`` for PubSub (Note: ``"call_progress"`` and ``"event_result"``
+            are for future use).
+        :param uri: The WAMP URI (e.g. procedure or topic URI) on which to
+            validate the given application payload.
+        :param args: The WAMP application payload, positional arguments to validate.
+        :param kwargs: The WAMP application payload, keyword-based arguments to validate.
+        :param validate: A mapping from ``payload_type`` to validation type (name of a FlatBuffers
+            table in the inventory).
+        :return:
         """
         assert payload_type in [
-            # meta arguments parsed from URI
-            'meta',
-
             # rpc_service.RequestType ##############################################################
 
             # WAMP event published either using normal or router-acknowledged publications
@@ -560,16 +573,23 @@ class Router(object):
                         cb_level="trace")
 
                     try:
-                        self._inventory.repo.validate(validation_type, args, kwargs)
+                        vt: FbsObject = self._inventory.repo.validate(validation_type, args, kwargs)
                     except InvalidPayload as e:
                         self.log.warn('{func} {msg}',
                                       func=hltype(self.validate),
                                       msg=hlval('validation error: {}'.format(e), color='red'))
                         raise
                     else:
-                        self.log.info('{func} {msg}',
+                        self.log.info('{func} {msg} (used validation type "{vt_name}" from "{vt_decl_fn}")',
                                       func=hltype(self.validate),
-                                      msg=hlval('validation success!', color='green'))
+                                      msg=hlval('validation success!', color='green'),
+                                      vt_name=hlval(vt.name),
+                                      vt_decl_fn=hlval(vt.declaration_file))
+                        self.log.info('validated args={args}\nand kwargs={kwargs}\nagainst vt({vt_name})={vt}',
+                                      args=pformat(args),
+                                      kwargs=pformat(kwargs),
+                                      vt_name=vt.name,
+                                      vt=pformat(vt.marshal()))
                 else:
                     self.log.warn(
                         '{func} {msg} (type inventory active, but no payload configuration for payload_type "{payload_type}" in validate for URI "{uri}"',
