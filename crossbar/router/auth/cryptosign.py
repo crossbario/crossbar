@@ -14,7 +14,7 @@ import nacl
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 import txaio
 
@@ -22,6 +22,7 @@ from autobahn import util
 from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
 from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.message import identity_realm_name_category
 
 from crossbar.router.auth.pending import PendingAuth
 from crossbar.interfaces import IRealmContainer, IPendingAuth
@@ -59,13 +60,29 @@ class PendingAuthCryptosign(PendingAuth):
         self._challenge: Optional[bytes] = None
         self._expected_signed_message: Optional[bytes] = None
 
-        # create a map: pubkey -> authid
-        # this is to allow clients to authenticate without specifying an authid
-        if config['type'] == 'static':
+        self._trustroot = None
+        if self._config['type'] == 'static' and 'trustroot' in self._config:
+            self._trustroot = self._config['trustroot']
+            self._trustroot_name_category = identity_realm_name_category(self._trustroot)
+
+            # this is already checked in checkconfig
+            assert self._trustroot_name_category in ['eth', 'ens', 'reverse_ens']
+            self.log.info('{func} using trustroot {trustroot_name_category} "{trustroot}" from static config',
+                          trustroot=hlid(self._trustroot),
+                          trustroot_name_category=hlval(self._trustroot_name_category, color='green'),
+                          func=hltype(self))
+
+        # create a map `pubkey -> authid` from `config['principals']`, this is to allow clients to
+        # authenticate without specifying an authid
+        self._pubkey_to_authid = None
+        if self._config['type'] == 'static' and 'principals' in self._config:
             self._pubkey_to_authid = {}
             for authid, principal in self._config.get('principals', {}).items():
                 for pubkey in principal['authorized_keys']:
                     self._pubkey_to_authid[pubkey] = authid
+            self.log.info('{func} using principals ({pubkeys_cnt} pubkeys loaded)',
+                          pubkeys_cnt=hlval(len(self._pubkey_to_authid), color='green'),
+                          func=hltype(self))
 
     def _compute_challenge(self, requested_channel_binding: Optional[str]) -> Dict[str, Any]:
         self._challenge = os.urandom(32)
@@ -87,6 +104,7 @@ class PendingAuthCryptosign(PendingAuth):
             extra=pformat(extra))
         return extra
 
+    @inlineCallbacks
     def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
         self.log.info('{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}")',
                       func=hltype(self.hello),
@@ -165,6 +183,27 @@ class PendingAuthCryptosign(PendingAuth):
                 self._verify_key = VerifyKey(pubkey, encoder=nacl.encoding.HexEncoder)
 
                 extra = self._compute_challenge(requested_channel_binding)
+
+                if 'challenge' in details.authextra:
+                    challenge_raw = binascii.a2b_hex(details.authextra['challenge'])
+                    if requested_channel_binding == 'tls-unique':
+                        data = util.xor(challenge_raw, self._channel_id)
+                    else:
+                        data = challenge_raw
+
+                    # sign the client challenge with our node private Ed25519 key
+                    # FIXME: crossbar/router/auth/cryptosign.py:195: error: "IRealmContainer" has no attribute "_node_key"
+                    signature = yield self._realm_container._node_key.sign(data)  # type: ignore
+
+                    # return the concatenation of the signature and the message signed (96 bytes)
+                    extra['signature'] = binascii.b2a_hex(signature).decode() + binascii.b2a_hex(data).decode()
+
+                    # return router public key
+                    extra['pubkey'] = self._realm_container._node_key.public_key()  # type: ignore
+
+                    # FIXME: add router certificate
+                    # FIXME: add router trustroot
+
                 return Challenge(self._authmethod, extra)
 
             else:

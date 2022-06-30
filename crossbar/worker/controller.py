@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-
+import binascii
 import os
 import sys
 import pkg_resources
@@ -18,9 +18,10 @@ from jinja2 import Environment
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import inlineCallbacks
 
-from autobahn.util import utcnow, hltype
+from autobahn.util import utcnow, hltype, hlid
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, Challenge
+from autobahn.wamp import cryptosign
 from autobahn import wamp
 
 from txaio import make_logger
@@ -28,7 +29,7 @@ from txaio import make_logger
 from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcess
 from crossbar.common.profiler import PROFILERS
-from crossbar.common.key import _read_release_key
+from crossbar.common.key import _read_release_key, _read_node_key
 from crossbar._util import term_print
 
 __all__ = ('WorkerController', )
@@ -51,6 +52,14 @@ class WorkerController(NativeProcess):
 
         # Release (public) key
         self._release_pubkey = _read_release_key()
+
+        # Node Ed25519 private key
+        node_key_raw = binascii.a2b_hex(_read_node_key(self.config.extra.cbdir, private=True)['hex'])
+        self._node_key = cryptosign.CryptosignKey.from_bytes(node_key_raw)
+        assert self._node_key.can_sign
+        self.log.info('{func} worker loaded node key {public_key}',
+                      func=hltype(self.__init__),
+                      public_key=hlid(self._node_key.public_key))
 
     def onConnect(self):
         """
