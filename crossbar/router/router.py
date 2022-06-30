@@ -585,11 +585,11 @@ class Router(object):
                                       msg=hlval('validation success!', color='green'),
                                       vt_name=hlval(vt.name),
                                       vt_decl_fn=hlval(vt.declaration_file))
-                        self.log.info('validated args={args}\nand kwargs={kwargs}\nagainst vt({vt_name})={vt}',
-                                      args=pformat(args),
-                                      kwargs=pformat(kwargs),
-                                      vt_name=vt.name,
-                                      vt=pformat(vt.marshal()))
+                        self.log.debug('validated args={args}\nand kwargs={kwargs}\nagainst vt({vt_name})={vt}',
+                                       args=pformat(args),
+                                       kwargs=pformat(kwargs),
+                                       vt_name=vt.name,
+                                       vt=pformat(vt.marshal()))
                 else:
                     self.log.warn(
                         '{func} {msg} (type inventory active, but no payload configuration for payload_type "{payload_type}" in validate for URI "{uri}"',

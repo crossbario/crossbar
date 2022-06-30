@@ -20,7 +20,7 @@ txaio.use_twisted()
 
 from autobahn.websocket.util import parse_url
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, _URI_PAT_STRICT_LAST_EMPTY, \
-    _URI_PAT_REALM_NAME, _URI_PAT_LOOSE_EMPTY
+    _URI_PAT_REALM_NAME, _URI_PAT_LOOSE_EMPTY, identity_realm_name_category
 from autobahn.wamp.uri import convert_starred_uri
 
 from yaml import Loader, SafeLoader, Dumper, SafeDumper
@@ -518,23 +518,39 @@ def check_transport_auth_cryptosign(config):
         ))
 
     if config['type'] == 'static':
-        if 'principals' not in config:
-            raise InvalidConfigException(
-                "missing mandatory attribute 'principals' in static WAMP-Cryptosign configuration")
-        if not isinstance(config['principals'], Mapping):
-            raise InvalidConfigException(
-                "invalid type for attribute 'principals' in static WAMP-Cryptosign configuration - expected dict, got {}"
-                .format(type(config['principals'])))
-        for authid, principal in config['principals'].items():
-            check_dict_args({
-                'authorized_keys': (True, [Sequence]),
-                'role': (False, [str]),
-                'realm': (False, [str]),
-            }, principal, "WAMP-Cryptosign - principal '{}' configuration".format(authid))
-            for pubkey in principal['authorized_keys']:
-                if not isinstance(pubkey, str):
-                    raise InvalidConfigException("invalid type {} for pubkey in authorized_keys of principal".format(
-                        type(pubkey)))
+        if 'principals' in config and 'trustroot' in config:
+            raise InvalidConfigException("cannot specify both 'principals' and 'trustroot' attributes "
+                                         "(only one is allowed) in static WAMP-Cryptosign configuration")
+
+        if 'principals' in config:
+            if not isinstance(config['principals'], Mapping):
+                raise InvalidConfigException(
+                    "invalid type for attribute 'principals' in static WAMP-Cryptosign configuration - expected dict, got {}"
+                    .format(type(config['principals'])))
+            for authid, principal in config['principals'].items():
+                check_dict_args({
+                    'authorized_keys': (True, [Sequence]),
+                    'role': (False, [str]),
+                    'realm': (False, [str]),
+                }, principal, "WAMP-Cryptosign - principal '{}' configuration".format(authid))
+                for pubkey in principal['authorized_keys']:
+                    if not isinstance(pubkey, str):
+                        raise InvalidConfigException("invalid type {} for pubkey "
+                                                     "in authorized_keys of principal".format(type(pubkey)))
+
+        elif 'trustroot' in config:
+            if not isinstance(config['trustroot'], str):
+                raise InvalidConfigException('invalid type for "trustroot" attribute in static WAMP-Cryptosign '
+                                             'configuration - expected str, got {}'.format(type(config['trustroot'])))
+            name_category = identity_realm_name_category(config['trustroot'])
+            if name_category not in ['eth', 'ens', 'reverse_ens']:
+                raise InvalidConfigException('invalid value for "trustroot" attribute in static WAMP-Cryptosign '
+                                             'configuration - expected an Ethereum address, ENS name or reverse '
+                                             'ENS name, got "{}"'.format(config['trustroot']))
+
+        else:
+            raise InvalidConfigException("missing mandatory attribute: neither 'principals' nor 'trustroot' attribute "
+                                         "found in static WAMP-Cryptosign configuration")
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
