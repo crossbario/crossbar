@@ -97,7 +97,7 @@ class NodeManagementSession(ApplicationSession):
             # is fine - the router is authentic wrt our trustroot.
 
             # sign the challenge with our private key.
-            signed_challenge = self.config.extra['node_key'].sign_challenge(self, challenge)
+            signed_challenge = self.config.extra['node_key']._sign_challenge(self, challenge)
 
             # send back the signed challenge for verification
             return signed_challenge
@@ -210,7 +210,6 @@ class NodeManagementBridgeSession(ApplicationSession):
         self._manager = manager
         self._management_realm = management_realm
         self._node_id = node_id
-        self._node_key = self.config.extra['node_key']
         self._controller_config = self.config.extra['controller_config']
 
         fabric = self._controller_config.get('fabric', {})
@@ -229,11 +228,10 @@ class NodeManagementBridgeSession(ApplicationSession):
         reactor.callLater(self._heartbeat_startup_delay, self._start_cfc_heartbeat)
 
         self.log.info(
-            '{klass}.attach_manager: manager attached as node "{node_id}" on management realm "{management_realm}") with public key "{public_key}"',
+            '{klass}.attach_manager: manager attached as node "{node_id}" on management realm "{management_realm}")',
             klass=self.__class__.__name__,
             node_id=self._node_id,
-            management_realm=self._management_realm,
-            public_key=self._node_key.public_key())
+            management_realm=self._management_realm)
         self.log.info('Controller configuration: {controller_config}', controller_config=self._controller_config)
 
     @inlineCallbacks
@@ -309,14 +307,12 @@ class NodeManagementBridgeSession(ApplicationSession):
                     del status[k]
 
         if self._manager and self._manager.is_attached():
-            node_pubkey = str(self._node_key.public_key())
 
             # get basic status
             status = yield self.call('crossbar.get_status')
             obj = {
                 'timestamp': self._heartbeat_time_ns,
                 'period': self._heartbeat_heartbeat_period,
-                'pubkey': node_pubkey,
                 'mrealm_id': self._management_realm,
                 'seq': self._heartbeat,
                 'workers': status.get('workers_by_type', {}),
@@ -394,7 +390,6 @@ class NodeManagementBridgeSession(ApplicationSession):
                         _drop_attr(worker_status)
                         worker_status['timestamp'] = self._heartbeat_time_ns
                         worker_status['period'] = self._heartbeat_heartbeat_period
-                        worker_status['pubkey'] = node_pubkey
                         worker_status['mrealm_id'] = self._management_realm
                         worker_status['seq'] = self._heartbeat
                         worker_status['type'] = worker_status['process']['type']

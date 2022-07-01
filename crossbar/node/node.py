@@ -13,8 +13,8 @@ from twisted.internet.defer import succeed
 from txaio import make_logger
 
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.cryptosign import CryptosignKey
 from autobahn.wamp.types import CallOptions, ComponentConfig
+from autobahn.xbr._secmod import SecurityModuleMemory
 
 from crossbar._util import hltype, hlid, hluserid, hl
 
@@ -101,8 +101,9 @@ class Node(object):
         # source(s) of the config of this node
         self._config_source = 0
 
-        # node private key :class:`autobahn.wamp.cryptosign.CryptosignKey`
-        self._node_key = None
+        # node security module autobahn.xbr._secmod.SecurityModuleMemory, this allows
+        # access to node private key :class:`autobahn.wamp.cryptosign.CryptosignKey`
+        self._node_secmod = None
 
         # when running in managed mode, this will hold the session to CFC
         self._manager = None
@@ -148,16 +149,16 @@ class Node(object):
         return self._realm
 
     @property
-    def key(self):
+    def secmod(self):
         """
-        Returns the node (private signing) key pair.
+        Returns the node security module, which provides access to node key signing.
 
-        :return: The node key.
-        :rtype: :class:`autobahn.wamp.cryptosign.CryptosignKey`
+        :return: The node security module.
+        :rtype: :class:`autobahn.xbr._secmod.SecurityModuleMemory`
         """
-        return self._node_key
+        return self._node_secmod
 
-    def load_keys(self, cbdir):
+    def load_keys(self, cbdir, privfile='key.priv', pubfile='key.pub'):
         """
         Load node public-private key pair from key files, possibly generating a new key pair if
         none exists.
@@ -166,7 +167,9 @@ class Node(object):
 
         IMPORTANT: this function is run _before_ start of Twisted reactor!
         """
-        was_new, self._node_key = _maybe_generate_node_key(cbdir)
+        assert self._node_secmod is None
+        was_new, _ = _maybe_generate_node_key(cbdir, privfile=privfile, pubfile=pubfile)
+        self._node_secmod = SecurityModuleMemory.from_keyfile(os.path.join(cbdir, privfile))
         return was_new
 
     def load_config(self, configfile=None, default=None):
@@ -203,18 +206,7 @@ class Node(object):
 
             self.personality.check_config(self.personality, self._config)
 
-        if 'controller' in self._config and 'keyring' in self._config['controller']:
-            keyring_type = self._config['controller']['keyring']['type']
-            if keyring_type == 'file':
-                key_path = self._config['controller']['keyring']['path']
-                self._node_key = CryptosignKey.from_file(key_path)
-            else:
-                raise RuntimeError("NotImplemented: hsm authentication is currently not implemented.")
-
         return config_source, config_path
-
-    def is_key_loaded(self):
-        return self._node_key is not None
 
     def _add_global_roles(self):
         controller_role_config = {

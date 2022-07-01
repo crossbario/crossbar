@@ -72,7 +72,7 @@ class ShellClient(ApplicationSession):
 
         # sign and send back the challenge with our private key.
         try:
-            sig = self._key.sign_challenge(self, challenge)
+            sig = self._key._sign_challenge(self, challenge)
         except Exception as e:
             self.log.failure()
             self.leave(ApplicationError.AUTHENTICATION_FAILED, str(e))
@@ -170,7 +170,7 @@ class ManagementClientSession(ApplicationSession):
                   authextra=extra)
 
     def onChallenge(self, challenge):
-        return self._key.sign_challenge(self, challenge)
+        return self._key._sign_challenge(self, challenge)
 
     def onJoin(self, details):
         if 'ready' in self.config.extra:

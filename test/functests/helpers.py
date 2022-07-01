@@ -451,7 +451,7 @@ class ManagementClientSession(ApplicationSession):
             authextra=extra)
 
     def onChallenge(self, challenge):
-        return self._key.sign_challenge(self, challenge)
+        return self._key._sign_challenge(self, challenge)
 
     def onJoin(self, details):
         print(hl('ManagementClientSession.onJoin: {}'.format(details), bold=True))

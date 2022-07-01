@@ -94,6 +94,19 @@ class IRealmContainer(abc.ABC):
         :returns: A service session joined on the given realm and role.
         """
 
+    @abc.abstractmethod
+    def get_controller_session(self) -> ISession:
+        """
+        Returns a control session connected to the local node management router.
+        Control sessions are used for:
+
+        * registering the realm container control interface
+        * access the node security module
+
+        :returns: A control session joined on the local node controller
+            management realm, named `"crossbar"`.
+        """
+
 
 class IRealmStore(abc.ABC):
     """

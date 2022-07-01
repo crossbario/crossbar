@@ -719,7 +719,6 @@ class FabricNode(node.Node):
                     'node': self,
                     'on_ready': Deferred(),
                     'on_exit': Deferred(),
-                    'node_key': self._node_key,
                 }
 
                 @inlineCallbacks
@@ -870,7 +869,7 @@ class FabricNode(node.Node):
 
     def _add_extra_controller_components(self, controller_config):
         extra = {
-            'node_key': self._node_key,
+            'node': self,
             'controller_config': controller_config,
         }
         cfg = ComponentConfig(self._realm, extra=extra)

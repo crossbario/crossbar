@@ -23,7 +23,6 @@ from twisted.internet.error import ProcessExitedAlready
 from twisted.python.runtime import platform
 
 from autobahn.util import utcnow, utcstr
-from autobahn.wamp.cryptosign import format_challenge, sign_challenge
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, ComponentConfig, Challenge
 from autobahn import wamp
@@ -203,7 +202,8 @@ class NodeController(NativeProcess):
             'running_workers': len(self._workers),
             'workers_by_type': workers_by_type,
             'directory': self.cbdir,
-            'pubkey': self._node._node_key.public_key(),
+            'ethadr': self._node.secmod[0].address(binary=False),
+            'pubkey': self._node.secmod[1].public_key(binary=False),
         }
 
     @wamp.register(None)
@@ -419,19 +419,42 @@ class NodeController(NativeProcess):
         return self._workers[worker_id].getlog(limit)
 
     @wamp.register(None)
+    def sign(self, data: bytes, details=None):
+        """
+
+        :param data:
+        :param details:
+        :return:
+        """
+        return self._node.secmod[1].sign(data)
+
+    @wamp.register(None)
     def sign_challenge(self,
                        challenge_method,
                        challenge_extra,
                        channel_id_raw,
                        channel_id_type='tls-unique',
                        details=None):
+        """
+
+        :param challenge_method:
+        :param challenge_extra:
+        :param channel_id_raw:
+        :param channel_id_type:
+        :param details:
+        :return:
+        """
         challenge = Challenge(challenge_method, challenge_extra)
-        data = format_challenge(challenge, channel_id_raw, channel_id_type)
-        return sign_challenge(data, self._node._node_key.sign)
+        return self._node.secmod[1].sign_challenge(challenge, channel_id_raw, channel_id_type)
 
     @wamp.register(None)
     def get_public_key(self, details=None):
-        return self._node._node_key.public_key()
+        """
+
+        :param details:
+        :return:
+        """
+        return self._node.secmod[1].public_key(binary=False)
 
     def _start_native_worker(self, worker_type, worker_id, worker_options=None, details=None):
 

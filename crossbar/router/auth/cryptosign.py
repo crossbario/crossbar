@@ -192,14 +192,14 @@ class PendingAuthCryptosign(PendingAuth):
                         data = challenge_raw
 
                     # sign the client challenge with our node private Ed25519 key
-                    # FIXME: crossbar/router/auth/cryptosign.py:195: error: "IRealmContainer" has no attribute "_node_key"
-                    signature = yield self._realm_container._node_key.sign(data)  # type: ignore
+                    signature = yield self._realm_container.get_controller_session().call('crossbar.sign', data)
 
                     # return the concatenation of the signature and the message signed (96 bytes)
                     extra['signature'] = binascii.b2a_hex(signature).decode() + binascii.b2a_hex(data).decode()
 
                     # return router public key
-                    extra['pubkey'] = self._realm_container._node_key.public_key()  # type: ignore
+                    extra['pubkey'] = yield self._realm_container.get_controller_session().call(
+                        'crossbar.get_public_key')
 
                     # FIXME: add router certificate
                     # FIXME: add router trustroot
