@@ -184,7 +184,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 extra = self._compute_challenge(requested_channel_binding)
 
-                if 'challenge' in details.authextra:
+                if 'challenge' in details.authextra and details.authextra['challenge']:
                     challenge_raw = binascii.a2b_hex(details.authextra['challenge'])
                     if requested_channel_binding == 'tls-unique':
                         data = util.xor(challenge_raw, self._channel_id)
