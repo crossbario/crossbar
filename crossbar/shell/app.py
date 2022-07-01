@@ -30,11 +30,12 @@ from autobahn.websocket.util import parse_url
 from autobahn.wamp.types import ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationRunner
+from autobahn.xbr import UserKey
 
 from crossbar.common.twisted.endpoint import _create_tls_client_context
 
 from crossbar.shell.util import (style_crossbar, style_finished_line, style_error, style_ok, localnow)
-from crossbar.shell import (client, config, userkey, __version__)
+from crossbar.shell import (client, config, __version__)
 
 if 'CROSSBAR_FABRIC_URL' in os.environ:
     _DEFAULT_CFC_URL = os.environ['CROSSBAR_FABRIC_URL']
@@ -199,7 +200,7 @@ class Application(object):
 
         privkey_path = os.path.join(cbf_dir, profile_obj.privkey or '{}.priv'.format(profile))  # noqa: W503
         pubkey_path = os.path.join(cbf_dir, profile_obj.pubkey or '{}.pub'.format(profile))  # noqa: W503
-        key_obj = userkey.UserKey(privkey_path, pubkey_path, yes_to_all=yes_to_all)
+        key_obj = UserKey(privkey_path, pubkey_path, yes_to_all=yes_to_all)
 
         return key_obj, profile_obj
 
