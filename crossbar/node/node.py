@@ -368,6 +368,12 @@ class Node(object):
                       note=hl('Starting node ..', color='green', bold=True),
                       method=hltype(Node.start))
 
+        # open and unlock node security module
+        if not self._node_secmod.is_open:
+            yield self._node_secmod.open()
+        if self._node_secmod.is_locked:
+            yield self._node_secmod.unlock()
+
         # a configuration must have been loaded before
         if not self._config:
             self.log.warn('no node configuration set - will use empty node configuration!')
