@@ -13,7 +13,7 @@ import binascii
 from datetime import datetime
 from shutil import which
 from collections import namedtuple
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
 import cbor2
 
@@ -420,32 +420,29 @@ class NodeController(NativeProcess):
         return self._workers[worker_id].getlog(limit)
 
     @wamp.register(None)
-    def sign(self, data: bytes, details: Optional[CallDetails] = None):
+    def sign(self, data: bytes, details: CallDetails):
         """
 
         :param data:
         :param details:
         :return:
         """
-        self.log.info('{func}: signing data of length {data_len} for realm="{realm}", '
-                      'session={session}, authid="{authid}", authrole="{authrole}"',
-                      data_len=hlval(len(data)),
-                      realm=hlval(self.realm),
-                      session=hlid(details.caller),
-                      authid=hlid(details.caller_authid),
-                      authrole=hlid(details.caller_authrole),
-                      func=hltype(self.sign))
+        self.log.info(
+            '{func}: signing data of length {data_len} for realm="{realm}", '
+            'session={session}, authid="{authid}", authrole="{authrole}"',
+            data_len=hlval(len(data)),
+            realm=hlval(self.realm),
+            session=hlid(details.caller),
+            authid=hlid(details.caller_authid),
+            authrole=hlid(details.caller_authrole),
+            func=hltype(self.sign))
 
         # key 1 is the WAMP-Cryptosign node key
         return self._node.secmod[1].sign(data)
 
     @wamp.register(None)
-    def sign_challenge(self,
-                       challenge_method: str,
-                       challenge_extra: Dict[str, Any],
-                       channel_id_raw: bytes,
-                       channel_id_type: str,
-                       details: Optional[CallDetails] = None):
+    def sign_challenge(self, challenge_method: str, challenge_extra: Dict[str, Any], channel_id_raw: bytes,
+                       channel_id_type: str, details: CallDetails):
         """
 
         :param challenge_method:
@@ -455,14 +452,15 @@ class NodeController(NativeProcess):
         :param details:
         :return:
         """
-        self.log.info('{func}: signing challenge "{challenge_method}" for realm="{realm}", '
-                      'session={session}, authid="{authid}", authrole="{authrole}"',
-                      challenge_method=hlval(len(challenge_method)),
-                      realm=hlval(self.realm),
-                      session=hlid(details.caller),
-                      authid=hlid(details.caller_authid),
-                      authrole=hlid(details.caller_authrole),
-                      func=hltype(self.sign_challenge))
+        self.log.info(
+            '{func}: signing challenge "{challenge_method}" for realm="{realm}", '
+            'session={session}, authid="{authid}", authrole="{authrole}"',
+            challenge_method=hlval(len(challenge_method)),
+            realm=hlval(self.realm),
+            session=hlid(details.caller),
+            authid=hlid(details.caller_authid),
+            authrole=hlid(details.caller_authrole),
+            func=hltype(self.sign_challenge))
 
         challenge = Challenge(challenge_method, challenge_extra)
 
@@ -470,19 +468,20 @@ class NodeController(NativeProcess):
         return self._node.secmod[1].sign_challenge(challenge, channel_id_raw, channel_id_type)
 
     @wamp.register(None)
-    def get_public_key(self, details=None):
+    def get_public_key(self, details: CallDetails):
         """
 
         :param details:
         :return:
         """
-        self.log.info('{func}: return node public key for realm="{realm}", '
-                      'session={session}, authid="{authid}", authrole="{authrole}"',
-                      realm=hlval(self.realm),
-                      session=hlid(details.caller),
-                      authid=hlid(details.caller_authid),
-                      authrole=hlid(details.caller_authrole),
-                      func=hltype(self.get_public_key))
+        self.log.info(
+            '{func}: return node public key for realm="{realm}", '
+            'session={session}, authid="{authid}", authrole="{authrole}"',
+            realm=hlval(self.realm),
+            session=hlid(details.caller),
+            authid=hlid(details.caller_authid),
+            authrole=hlid(details.caller_authrole),
+            func=hltype(self.get_public_key))
 
         # key 1 is the WAMP-Cryptosign node key
         return self._node.secmod[1].public_key(binary=False)
