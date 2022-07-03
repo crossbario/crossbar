@@ -59,7 +59,12 @@ class XbrDelegate(ApplicationSession):
         self.log.info('{klass}.onChallenge(challenge={challenge})', klass=self.__class__.__name__, challenge=challenge)
 
         if challenge.method == 'cryptosign':
-            signed_challenge = self._key.sign_challenge(self, challenge)
+            # sign the challenge with our private key.
+            channel_id_type = self.config.extra.get('channel_binding', None)
+            channel_id = self.transport.transport_details.channel_id.get(self.CHANNEL_BINDING, None)
+            signed_challenge = self._key.sign_challenge(challenge,
+                                                        channel_id=channel_id,
+                                                        channel_id_type=channel_id_type)
             return signed_challenge
         else:
             raise RuntimeError('unable to process authentication method {}'.format(challenge.method))

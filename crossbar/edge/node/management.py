@@ -60,7 +60,7 @@ class NodeManagementSession(ApplicationSession):
         extra = {
             # forward the client pubkey: this allows us to omit authid as
             # the router can identify us with the pubkey already
-            'pubkey': self.config.extra['node_key'].public_key(),
+            'pubkey': self.config.extra['node'].secmod[1].public_key(binary=False),
 
             # not yet implemented. a public key the router should provide
             # a trustchain for it's public key. the trustroot can eg be
@@ -97,11 +97,14 @@ class NodeManagementSession(ApplicationSession):
             # is fine - the router is authentic wrt our trustroot.
 
             # sign the challenge with our private key.
-            signed_challenge = self.config.extra['node_key']._sign_challenge(self, challenge)
+            channel_id_type = self.config.extra.get('channel_binding', None)
+            channel_id = self.transport.transport_details.channel_id.get(self.CHANNEL_BINDING, None)
+            signed_challenge = self._key.sign_challenge(challenge,
+                                                        channel_id=channel_id,
+                                                        channel_id_type=channel_id_type)
 
             # send back the signed challenge for verification
             return signed_challenge
-
         else:
             raise Exception(
                 'internal error: we asked to authenticate using wamp-cryptosign, but now received a challenge for {}'.

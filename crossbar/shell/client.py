@@ -72,7 +72,9 @@ class ShellClient(ApplicationSession):
 
         # sign and send back the challenge with our private key.
         try:
-            sig = self._key._sign_challenge(self, challenge)
+            channel_id_type = self.config.extra.get('channel_binding', None)
+            channel_id = self.transport.transport_details.channel_id.get(channel_id_type, None)
+            sig = self._key.sign_challenge(challenge, channel_id=channel_id, channel_id_type=channel_id_type)
         except Exception as e:
             self.log.failure()
             self.leave(ApplicationError.AUTHENTICATION_FAILED, str(e))
@@ -170,7 +172,10 @@ class ManagementClientSession(ApplicationSession):
                   authextra=extra)
 
     def onChallenge(self, challenge):
-        return self._key._sign_challenge(self, challenge)
+        channel_id_type = self.config.extra.get('channel_binding', None)
+        channel_id = self.transport.transport_details.channel_id.get(channel_id_type, None)
+        sig = self._key.sign_challenge(challenge, channel_id=channel_id, channel_id_type=channel_id_type)
+        return sig
 
     def onJoin(self, details):
         if 'ready' in self.config.extra:

@@ -16,10 +16,6 @@ import six
 
 import zlmdb
 
-import nacl
-import nacl.signing
-import nacl.encoding
-
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredList, Deferred
 from twisted.internet.task import LoopingCall
@@ -35,7 +31,7 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar._util import hl, hlid, hlval, hltype
-from crossbar.common.key import _read_node_key, _read_release_key
+from crossbar.common.key import _read_release_key
 
 from cfxdb.mrealmschema import MrealmSchema
 from cfxdb.globalschema import GlobalSchema
@@ -167,10 +163,6 @@ class MrealmController(ApplicationSession):
 
         # Release (public) key
         self._release_pubkey_hex = _read_release_key()['hex']
-
-        # Node key
-        self._node_key_hex = _read_node_key('.', private=True)['hex']
-        self._node_key = nacl.signing.SigningKey(self._node_key_hex, encoder=nacl.encoding.HexEncoder)
 
         assert 'mrealm' in config.extra and type(config.extra['mrealm'] == str)
         self._mrealm_oid = uuid.UUID(config.extra['mrealm'])
