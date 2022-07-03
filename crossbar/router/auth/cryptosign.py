@@ -14,7 +14,7 @@ import nacl
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 
-from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.defer import Deferred
 
 import txaio
 
@@ -104,7 +104,6 @@ class PendingAuthCryptosign(PendingAuth):
             extra=pformat(extra))
         return extra
 
-    @inlineCallbacks
     def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
         self.log.info('{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}")',
                       func=hltype(self.hello),
@@ -191,20 +190,37 @@ class PendingAuthCryptosign(PendingAuth):
                     else:
                         data = challenge_raw
 
-                    # sign the client challenge with our node private Ed25519 key
-                    signature = yield self._realm_container.get_controller_session().call('crossbar.sign', data)
+                    # sign the client challenge with our node private Ed25519 key on node controller
+                    signature_d = self._realm_container.get_controller_session().call('crossbar.sign', data)
 
-                    # return the concatenation of the signature and the message signed (96 bytes)
-                    extra['signature'] = binascii.b2a_hex(signature).decode() + binascii.b2a_hex(data).decode()
+                    def _on_sign_ok(signature):
+                        # return the concatenation of the signature and the message signed (96 bytes)
+                        extra['signature'] = binascii.b2a_hex(signature).decode() + binascii.b2a_hex(data).decode()
 
-                    # return router public key
-                    extra['pubkey'] = yield self._realm_container.get_controller_session().call(
-                        'crossbar.get_public_key')
+                    signature_d.addCallback(_on_sign_ok)
+
+                    # get node public key from node controller
+                    pubkey_d = self._realm_container.get_controller_session().call('crossbar.get_public_key')
+
+                    def _on_pubkey_ok(pubkey):
+                        # return router public key
+                        extra['pubkey'] = pubkey
+
+                    pubkey_d.addCallback(_on_pubkey_ok)
 
                     # FIXME: add router certificate
                     # FIXME: add router trustroot
 
-                return Challenge(self._authmethod, extra)
+                    d = txaio.gather([signature_d, pubkey_d])
+
+                    def _on_final(_):
+                        return Challenge(self._authmethod, extra)
+
+                    d.addCallback(_on_final)
+                    return d
+
+                else:
+                    return Challenge(self._authmethod, extra)
 
             else:
                 self.log.warn(
@@ -259,7 +275,8 @@ class PendingAuthCryptosign(PendingAuth):
                     self._verify_key = VerifyKey(principal['pubkey'], encoder=nacl.encoding.HexEncoder)
 
                     extra = self._compute_challenge(requested_channel_binding)
-                    d.callback(Challenge(self._authmethod, extra))
+                    challenge = Challenge(self._authmethod, extra)
+                    d.callback(challenge)
 
                 def on_authenticate_error(_error):
                     self.log.debug(
