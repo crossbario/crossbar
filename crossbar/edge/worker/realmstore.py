@@ -79,7 +79,7 @@ class RealmStoreDatabase(object):
         self._type = self._config.get('type', None)
         assert self._type == self.STORE_TYPE
 
-        self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync)
+        self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
         self._db.__enter__()
         self._schema = RealmStore.attach(self._db)
 

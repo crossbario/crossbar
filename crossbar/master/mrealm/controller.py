@@ -179,7 +179,7 @@ class MrealmController(ApplicationSession):
         assert maxsize and type(maxsize) in six.integer_types
         assert maxsize >= 2**20 and maxsize < 2**30 * 10  # 1 MB - 10 GB maximum size
 
-        self.gdb = zlmdb.Database(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True)
+        self.gdb = zlmdb.Database(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True, context=self)
         self.gdb.__enter__()
         self.gschema: GlobalSchema = GlobalSchema.attach(self.gdb)
 
@@ -199,7 +199,7 @@ class MrealmController(ApplicationSession):
         assert maxsize and type(maxsize) in six.integer_types
         assert maxsize >= 2**20 and maxsize < 2**30 * 10  # 1 MB - 10 GB maximum size
 
-        self.db = zlmdb.Database(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True)
+        self.db = zlmdb.Database(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True, context=self)
         self.db.__enter__()
         self.schema = MrealmSchema.attach(self.db)
 

@@ -33,7 +33,7 @@ class Authenticator(ApplicationSession):
         # ZLMDB database configuration
         #
         self._dbpath = os.path.abspath(config.extra.get('dbpath', './.xbrnetwork'))
-        self._db = zlmdb.Database(dbpath=self._dbpath, maxsize=2**30, readonly=False, sync=True)
+        self._db = zlmdb.Database(dbpath=self._dbpath, maxsize=2**30, readonly=False, sync=True, context=self)
         self._db.__enter__()
         self._schema = Schema.attach(self._db)
 

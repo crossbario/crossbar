@@ -82,7 +82,8 @@ class MarketplaceController(WorkerController):
         self._db = zlmdb.Database(dbpath=self._dbpath,
                                   maxsize=self._database_config.get('maxsize', 2**30),
                                   readonly=False,
-                                  sync=True)
+                                  sync=True,
+                                  context=self)
         self._db.__enter__()
 
         # generic database object metadata

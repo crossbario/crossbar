@@ -34,7 +34,7 @@ import treq
 import zlmdb
 from txaio import time_ns
 
-from crossbar._util import hlid, hl, hlval
+from crossbar._util import hlid, hl, hlval, hltype
 from crossbar.node.main import _get_versions
 from crossbar.common import checkconfig
 from crossbar.common.key import _read_release_key, _write_node_key, _parse_node_key
@@ -204,16 +204,15 @@ class DomainController(ApplicationSession):
         # allow maxsize 128kiB to 128GiB
         assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
 
-        # create database and attach tables to database slots
-        #
-        self.db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True)
+        # setup global database and schema
+        self.db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True, context=self)
         self.db.__enter__()
         self.schema = GlobalSchema.attach(self.db)
-
-        self.log.debug('{klass} global database opened [dbpath={dbpath}, maxsize={maxsize}]',
-                       klass=self.__class__.__name__,
-                       dbpath=hlid(dbpath),
-                       maxsize=hlid(maxsize))
+        self.log.info('{func} {action} [dbpath={dbpath}, maxsize={maxsize}]',
+                      func=hltype(self._initialize),
+                      action=hlval('global database newly opened', color='green'),
+                      dbpath=hlid(dbpath),
+                      maxsize=hlid(maxsize))
 
     async def onJoin(self, details):
 
@@ -529,23 +528,25 @@ class DomainController(ApplicationSession):
 
             # >>> BEGIN of master heartbeat loop tasks
 
-            # 1) aggregate and store usage metering records
-            cnt_new = None
-            if True:
-                try:
-                    cnt_new = yield self._do_metering(started)
-                except:
-                    self.log.failure()
-
-            # 2) submit usage meterings records to metering service
-            if self._meterurl:
-                if cnt_new:
+            # FIXME: tried to open same dbpath "/home/oberstet/scm/typedefint/crossbar-cluster/.recordevolution/master/.crossbar/.db-mrealm-659f476d-c320-48c7-825b-d27efdfde8e8" twice within same process: cannot open database for <zlmdb._database.Database object at 0x7ffa474cf8b0> (PID 98672, Context <crossbar.master.node.controller.DomainController object at 0x7ffa47511f70>), already opened in <zlmdb._database.Database object at 0x7ffa474b6af0> (PID 98672, Context <crossbar.master.node.controller.DomainController object at 0x7ffa47511f70>)
+            if False:
+                # 1) aggregate and store usage metering records
+                cnt_new = None
+                if True:
                     try:
-                        yield self._submit_metering(started)
+                        cnt_new = yield self._do_metering(started)
                     except:
                         self.log.failure()
-            else:
-                self.log.warn('Skipping to submit metering records - no metering URL set!')
+
+                # 2) submit usage metering records to metering service
+                if self._meterurl:
+                    if cnt_new:
+                        try:
+                            yield self._submit_metering(started)
+                        except:
+                            self.log.failure()
+                else:
+                    self.log.warn('Skipping to submit metering records - no metering URL set!')
 
             # >>> END of master heartbeat loop tasks
 
@@ -588,8 +589,9 @@ class DomainController(ApplicationSession):
         :return:
         """
         dbpath = os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm_id))
-        db = zlmdb.Database(dbpath=dbpath, readonly=False)
+        db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
         schema = MrealmSchema.attach(db)
+
         with self.db.begin() as txn:
             with db.begin() as txn2:
                 for (ts, node_id) in schema.mnode_logs.select(txn2, reverse=False, return_values=False):
@@ -611,7 +613,7 @@ class DomainController(ApplicationSession):
         """
 
         dbpath = os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm_id))
-        db = zlmdb.Database(dbpath=dbpath, readonly=False)
+        db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
         schema = MrealmSchema.attach(db)
 
         if by_node:
@@ -709,7 +711,7 @@ class DomainController(ApplicationSession):
         """
 
         dbpath = os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm_id))
-        db = zlmdb.Database(dbpath=dbpath, readonly=False)
+        db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
         schema = MrealmSchema.attach(db)
 
         # compute aggregate sum
@@ -1070,7 +1072,6 @@ class DomainController(ApplicationSession):
             # verify_key = self._node_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)
             #
             # # sign metering data with master node (private) key
-            # signed_msg = self._node_key.sign(data)
             #
             # # POST message body is concatenation of verify key and signed message:
             # data = verify_key + signed_msg
