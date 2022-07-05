@@ -18,7 +18,7 @@
  arrow                 1.2.2      Apache Software License                                                                              Chris Smith                                                    
  async-timeout         4.0.2      Apache Software License                                                                              Andrew Svetlov <andrew.svetlov@gmail.com>                      
  attrs                 21.4.0     MIT License                                                                                          Hynek Schlawack                                                
- autobahn              22.5.1     MIT License                                                                                          Crossbar.io Technologies GmbH                                  
+ autobahn              22.6.1     MIT License                                                                                          Crossbar.io Technologies GmbH                                  
  base58                2.1.1      MIT License                                                                                          David Keijser                                                  
  bcrypt                3.2.2      Apache Software License                                                                              The Python Cryptographic Authority developers                  
  binaryornot           0.4.4      BSD License                                                                                          Audrey Roy Greenfeld                                           

@@ -6,7 +6,7 @@ argon2-cffi-bindings==21.2.0
 arrow==1.2.2
 async-timeout==4.0.2
 attrs==21.4.0
-autobahn==22.5.1
+autobahn==22.6.1
 Automat==20.2.0
 base58==2.1.1
 bcrypt==3.2.2
