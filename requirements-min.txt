@@ -4,7 +4,7 @@ base58>=2.1.0
 bcrypt>=3.1.6
 bitstring>=3.1.5
 cbor2>=5.2.0
-cfxdb>=22.5.1
+cfxdb>=22.6.1
 click>=7.0
 colorama>=0.4.3
 constantly>=15.1.0
@@ -79,5 +79,5 @@ web3>=5.13.1
 werkzeug>=0.14.1,<2
 wsaccel>=0.6.2; platform_python_implementation=='CPython'
 xbr>=21.2.1
-zlmdb>=22.5.1
+zlmdb>=22.6.1
 zope.interface>=4.4.2
