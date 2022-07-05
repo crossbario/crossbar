@@ -179,7 +179,8 @@ class MrealmController(ApplicationSession):
         assert maxsize and type(maxsize) in six.integer_types
         assert maxsize >= 2**20 and maxsize < 2**30 * 10  # 1 MB - 10 GB maximum size
 
-        self.gdb = zlmdb.Database(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True, context=self)
+        # self.gdb = zlmdb.Database(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True, context=self)
+        self.gdb = zlmdb.Database.open(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True, context=self)
         self.gdb.__enter__()
         self.gschema: GlobalSchema = GlobalSchema.attach(self.gdb)
 
@@ -199,7 +200,8 @@ class MrealmController(ApplicationSession):
         assert maxsize and type(maxsize) in six.integer_types
         assert maxsize >= 2**20 and maxsize < 2**30 * 10  # 1 MB - 10 GB maximum size
 
-        self.db = zlmdb.Database(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True, context=self)
+        # self.db = zlmdb.Database(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True, context=self)
+        self.db = zlmdb.Database.open(dbpath=dbfile, maxsize=maxsize, readonly=False, sync=True, context=self)
         self.db.__enter__()
         self.schema = MrealmSchema.attach(self.db)
 
@@ -735,7 +737,7 @@ class MrealmController(ApplicationSession):
         assert type(heartbeat_seq) == int
 
         heartbeat_pubkey = heartbeat.get('pubkey', None)
-        assert type(heartbeat_pubkey) == str and len(heartbeat_pubkey) == 64
+        assert heartbeat_pubkey is None or (type(heartbeat_pubkey) == str and len(heartbeat_pubkey) == 64)
 
         heartbeat_workers = heartbeat.get('workers', {})
         assert type(heartbeat_workers) == dict

@@ -174,7 +174,8 @@ class MarketMaker(object):
         sync = cfg.get('sync', True)
         assert type(sync) == bool, "sync must be a bool, was {}".format(type(sync))
 
-        self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
+        # self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
+        self._db = zlmdb.Database.open(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
         self._db.__enter__()
         self._schema = cfxdb.xbr.Schema.attach(self._db)
 

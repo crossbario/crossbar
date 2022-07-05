@@ -95,7 +95,8 @@ class Network(ApplicationSession):
         self.log.info('{klass}[{ident}].__init__()', klass=hl(self.__class__.__name__), ident=hlid(self.ident))
 
         self._dbpath = os.path.abspath(config.extra.get('dbpath', './.xbrnetwork'))
-        self._db = zlmdb.Database(dbpath=self._dbpath, maxsize=2**30, readonly=False, sync=True, context=self)
+        # self._db = zlmdb.Database(dbpath=self._dbpath, maxsize=2**30, readonly=False, sync=True, context=self)
+        self._db = zlmdb.Database.open(dbpath=self._dbpath, maxsize=2**30, readonly=False, sync=True, context=self)
         self._db.__enter__()
         self._meta = cfxdb.meta.Schema.attach(self._db)
         self._xbr = cfxdb.xbr.Schema.attach(self._db)

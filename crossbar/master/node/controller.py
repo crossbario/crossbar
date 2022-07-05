@@ -205,7 +205,8 @@ class DomainController(ApplicationSession):
         assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
 
         # setup global database and schema
-        self.db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True, context=self)
+        # self.db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True, context=self)
+        self.db = zlmdb.Database.open(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True, context=self)
         self.db.__enter__()
         self.schema = GlobalSchema.attach(self.db)
         self.log.info('{func} {action} [dbpath={dbpath}, maxsize={maxsize}]',
@@ -589,7 +590,8 @@ class DomainController(ApplicationSession):
         :return:
         """
         dbpath = os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm_id))
-        db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
+        # db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
+        db = zlmdb.Database.open(dbpath=dbpath, readonly=False, context=self)
         schema = MrealmSchema.attach(db)
 
         with self.db.begin() as txn:
@@ -613,7 +615,8 @@ class DomainController(ApplicationSession):
         """
 
         dbpath = os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm_id))
-        db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
+        # db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
+        db = zlmdb.Database.open(dbpath=dbpath, readonly=False, context=self)
         schema = MrealmSchema.attach(db)
 
         if by_node:
@@ -711,7 +714,8 @@ class DomainController(ApplicationSession):
         """
 
         dbpath = os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm_id))
-        db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
+        # db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
+        db = zlmdb.Database.open(dbpath=dbpath, readonly=False, context=self)
         schema = MrealmSchema.attach(db)
 
         # compute aggregate sum
