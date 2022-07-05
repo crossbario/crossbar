@@ -985,7 +985,11 @@ class AuthenticatorSession(ApplicationSession):
 
     async def onChallenge(self, challenge):
         try:
-            signed_challenge = await self._key.sign_challenge(self, challenge, channel_id_type=self.CHANNEL_BINDING)
+            channel_id_type = self.CHANNEL_BINDING
+            channel_id = self.transport.transport_details.channel_id.get(self.CHANNEL_BINDING, None)
+            signed_challenge = await self._key.sign_challenge(challenge,
+                                                              channel_id=channel_id,
+                                                              channel_id_type=channel_id_type)
             return signed_challenge
         except:
             self.log.failure()

@@ -79,10 +79,12 @@ class MarketplaceController(WorkerController):
         # channels, which are market specific and stored in the market maker database of the maker of that market)
         self._dbpath = os.path.abspath(
             self._database_config.get('dbpath', './.xbrmm-{}-db'.format(config.extra.worker)))
-        self._db = zlmdb.Database(dbpath=self._dbpath,
-                                  maxsize=self._database_config.get('maxsize', 2**30),
-                                  readonly=False,
-                                  sync=True)
+        # self._db = zlmdb.Database(dbpath=self._dbpath, maxsize=self._database_config.get('maxsize', 2**30), readonly=False, sync=True, context=self)
+        self._db = zlmdb.Database.open(dbpath=self._dbpath,
+                                       maxsize=self._database_config.get('maxsize', 2**30),
+                                       readonly=False,
+                                       sync=True,
+                                       context=self)
         self._db.__enter__()
 
         # generic database object metadata

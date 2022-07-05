@@ -301,6 +301,7 @@ creator: integration-test
 created-at: 2020-05-14T00:00:00.000Z
 machine-id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 public-key-ed25519: 97474dca6e3d1bccf2ab0dea030bde7799c4cbdb6e6f73304b33bfbf0d6a147f
+public-adr-eth: 0x1d6BbB05ab6cDb8CaA68C7F462321e49D27225F6
 """
 
 node0_privkey = """
@@ -308,7 +309,9 @@ creator: integration-test
 created-at: 2020-05-14T00:00:00.00Z
 machine-id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 public-key-ed25519: 97474dca6e3d1bccf2ab0dea030bde7799c4cbdb6e6f73304b33bfbf0d6a147f
+public-adr-eth: 0x1d6BbB05ab6cDb8CaA68C7F462321e49D27225F6
 private-key-ed25519: a13a0850e231e9e350aac1ad22a691becbfd3afd74b913a33f6a840322d75677
+private-key-eth: a640ff23c9392dc1c43c440d70f1a6bff9562eef948def31ca4a28ac2de05c79
 """
 
 node1_pubkey = """
@@ -316,6 +319,7 @@ creator: integration-test
 created-at: 2020-05-14T00:00:00.00Z
 machine-id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 public-key-ed25519: 2ecd87909589f02938bd0d9e3a57489339c17509b13d8044974a7f47ba99f355
+public-adr-eth: 0x656215F3966FBe27E1CA2Cb04308fDB0db7002Fa
 """
 
 node1_privkey = """
@@ -323,7 +327,9 @@ creator: integration-test
 created-at: 2020-05-14T00:00:00.00Z
 machine-id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 public-key-ed25519: 2ecd87909589f02938bd0d9e3a57489339c17509b13d8044974a7f47ba99f355
+public-adr-eth: 0x656215F3966FBe27E1CA2Cb04308fDB0db7002Fa
 private-key-ed25519: 54f3758b91a2bd55a026f36a0a3f76b6507797c71595c088ac5d1418ddaded48
+private-key-eth: 9467229e53579a46a781c447b1a0a8de22d177b20a1c4dbfe9e9e22bc8761337
 """
 
 node2_pubkey = """
@@ -331,6 +337,7 @@ creator: integration-test
 created-at: 2020-05-14T00:00:00.00Z
 machine-id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 public-key-ed25519: 298209e5752fa70b722ed40d97b623d2ba07558b4400fd20a2b876ce52b41987
+public-adr-eth: 0x7b95025BBB4909ec2fD902e5685aAcd44FBe1b11
 """
 
 node2_privkey = """
@@ -339,6 +346,7 @@ created-at: 2020-05-14T00:00:00.00Z
 machine-id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 public-key-ed25519: 298209e5752fa70b722ed40d97b623d2ba07558b4400fd20a2b876ce52b41987
 private-key-ed25519: c30233a6f289cba27d903cabaf06e4ae8d2b9be9f582c604dc43d6fc260d50dd
+private-key-eth: 3b4a6651f350fd1e41f0f11e28a365db758c519455fe7ab28188973713972d94
 """
 
 node3_pubkey = """
@@ -346,6 +354,7 @@ creator: integration-test
 created-at: 2020-05-14T00:00:00.00Z
 machine-id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 public-key-ed25519: 11a4107b9bfb96fe192efa5f2747a248d9e70853249a6bb61698ecb107582465
+public-adr-eth: 0xcd7CD8f1B886e821Cb42Ad0c9EE6773b24fac8d9
 """
 
 node3_privkey = """
@@ -354,6 +363,7 @@ created-at: 2020-05-14T00:00:00.00Z
 machine-id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 public-key-ed25519: 11a4107b9bfb96fe192efa5f2747a248d9e70853249a6bb61698ecb107582465
 private-key-ed25519: aba9c04669c1359bf4fd6049503130cd7e54897261f4a7aa0dadbdfbb5bc0ed5
+private-key-eth: 89e20d4f352f114d84e669dfe1fc4c4210261d3dbce7153ade84f766a2d6087c
 """
 
 node0_config = {

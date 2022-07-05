@@ -152,7 +152,8 @@ class FabricServiceNodeManager(ApplicationSession):
                       dbpath=hlid(dbpath),
                       maxsize=hlid(maxsize))
 
-        self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True)
+        # self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True, context=self)
+        self._db = zlmdb.Database.open(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True, context=self)
         self._db.__enter__()
         self._schema = GlobalSchema.attach(self._db)
 

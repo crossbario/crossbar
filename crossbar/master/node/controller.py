@@ -17,7 +17,6 @@ from collections import OrderedDict
 from pathlib import Path
 
 import cbor2
-import nacl
 import numpy as np
 
 from autobahn import wamp, util
@@ -35,10 +34,10 @@ import treq
 import zlmdb
 from txaio import time_ns
 
-from crossbar._util import hlid, hl, hlval
+from crossbar._util import hlid, hl, hlval, hltype
 from crossbar.node.main import _get_versions
 from crossbar.common import checkconfig
-from crossbar.common.key import _read_node_key, _read_release_key, _write_node_key, _parse_node_key
+from crossbar.common.key import _read_release_key, _write_node_key, _parse_node_key
 
 from cfxdb.globalschema import GlobalSchema
 from cfxdb.mrealmschema import MrealmSchema
@@ -171,20 +170,15 @@ class DomainController(ApplicationSession):
         # Release (public) key
         self._release_pubkey_hex = _read_release_key()['hex']
 
-        # Node key
-        self._node_key_hex = _read_node_key(cbdir, private=True)['hex']
-        self._node_key = nacl.signing.SigningKey(self._node_key_hex, encoder=nacl.encoding.HexEncoder)
+        # FIXME: Node key
+        self._node_key = None
+        # self._node_key = nacl.signing.SigningKey(self._node_key_hex, encoder=nacl.encoding.HexEncoder)
+        # self.config.controller.secmod[1]
+        # self.config.controller.call()
 
         # Metering knobs - FIXME: read and honor all knobs
-        self._meterurl = self.config.extra.get('metering', {}).get('submit', {}).get('url', '${CROSSBAR_METERING_URL}')
-
-        self._meterurl = checkconfig.maybe_from_env('metering.submit.url', self._meterurl)
-
-        self.log.debug(
-            'Initialized {klass} from ComponentConfig.extra [node_key="{node_key}", meter_url="{meter_url}"]',
-            klass=self.__class__.__name__,
-            meter_url=self._meterurl,
-            node_key=self._node_key_hex)
+        meterurl = self.config.extra.get('metering', {}).get('submit', {}).get('url', '${CROSSBAR_METERING_URL}')
+        self._meterurl = checkconfig.maybe_from_env('metering.submit.url', meterurl)
 
         # auto-create default management realm, auto-pair nodes to default mrealm from watching directories
         # for new node public keys. configuration example:
@@ -210,16 +204,16 @@ class DomainController(ApplicationSession):
         # allow maxsize 128kiB to 128GiB
         assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
 
-        # create database and attach tables to database slots
-        #
-        self.db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True)
+        # setup global database and schema
+        # self.db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True, context=self)
+        self.db = zlmdb.Database.open(dbpath=dbpath, maxsize=maxsize, readonly=False, sync=True, context=self)
         self.db.__enter__()
         self.schema = GlobalSchema.attach(self.db)
-
-        self.log.debug('{klass} global database opened [dbpath={dbpath}, maxsize={maxsize}]',
-                       klass=self.__class__.__name__,
-                       dbpath=hlid(dbpath),
-                       maxsize=hlid(maxsize))
+        self.log.info('{func} {action} [dbpath={dbpath}, maxsize={maxsize}]',
+                      func=hltype(self._initialize),
+                      action=hlval('global database newly opened', color='green'),
+                      dbpath=hlid(dbpath),
+                      maxsize=hlid(maxsize))
 
     async def onJoin(self, details):
 
@@ -535,23 +529,25 @@ class DomainController(ApplicationSession):
 
             # >>> BEGIN of master heartbeat loop tasks
 
-            # 1) aggregate and store usage metering records
-            cnt_new = None
-            if True:
-                try:
-                    cnt_new = yield self._do_metering(started)
-                except:
-                    self.log.failure()
-
-            # 2) submit usage meterings records to metering service
-            if self._meterurl:
-                if cnt_new:
+            # FIXME: tried to open same dbpath "/home/oberstet/scm/typedefint/crossbar-cluster/.recordevolution/master/.crossbar/.db-mrealm-659f476d-c320-48c7-825b-d27efdfde8e8" twice within same process: cannot open database for <zlmdb._database.Database object at 0x7ffa474cf8b0> (PID 98672, Context <crossbar.master.node.controller.DomainController object at 0x7ffa47511f70>), already opened in <zlmdb._database.Database object at 0x7ffa474b6af0> (PID 98672, Context <crossbar.master.node.controller.DomainController object at 0x7ffa47511f70>)
+            if False:
+                # 1) aggregate and store usage metering records
+                cnt_new = None
+                if True:
                     try:
-                        yield self._submit_metering(started)
+                        cnt_new = yield self._do_metering(started)
                     except:
                         self.log.failure()
-            else:
-                self.log.warn('Skipping to submit metering records - no metering URL set!')
+
+                # 2) submit usage metering records to metering service
+                if self._meterurl:
+                    if cnt_new:
+                        try:
+                            yield self._submit_metering(started)
+                        except:
+                            self.log.failure()
+                else:
+                    self.log.warn('Skipping to submit metering records - no metering URL set!')
 
             # >>> END of master heartbeat loop tasks
 
@@ -594,8 +590,10 @@ class DomainController(ApplicationSession):
         :return:
         """
         dbpath = os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm_id))
-        db = zlmdb.Database(dbpath=dbpath, readonly=False)
+        # db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
+        db = zlmdb.Database.open(dbpath=dbpath, readonly=False, context=self)
         schema = MrealmSchema.attach(db)
+
         with self.db.begin() as txn:
             with db.begin() as txn2:
                 for (ts, node_id) in schema.mnode_logs.select(txn2, reverse=False, return_values=False):
@@ -617,7 +615,8 @@ class DomainController(ApplicationSession):
         """
 
         dbpath = os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm_id))
-        db = zlmdb.Database(dbpath=dbpath, readonly=False)
+        # db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
+        db = zlmdb.Database.open(dbpath=dbpath, readonly=False, context=self)
         schema = MrealmSchema.attach(db)
 
         if by_node:
@@ -715,7 +714,8 @@ class DomainController(ApplicationSession):
         """
 
         dbpath = os.path.join(self.config.extra['cbdir'], '.db-mrealm-{}'.format(mrealm_id))
-        db = zlmdb.Database(dbpath=dbpath, readonly=False)
+        # db = zlmdb.Database(dbpath=dbpath, readonly=False, context=self)
+        db = zlmdb.Database.open(dbpath=dbpath, readonly=False, context=self)
         schema = MrealmSchema.attach(db)
 
         # compute aggregate sum
@@ -995,8 +995,8 @@ class DomainController(ApplicationSession):
                         mrealm_res['mrealm_id'] = str(mrealm_id)
                         mrealm_res['seq'] = self._tick
 
-                        # set master (!) node public key
-                        mrealm_res['pubkey'] = self._node_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)
+                        # FIXME: set master (!) node public key
+                        # mrealm_res['pubkey'] = self._node_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)
 
                         # usage records start in status "RECEIVED"
                         mrealm_res['status'] = 1
@@ -1069,23 +1069,22 @@ class DomainController(ApplicationSession):
                            rec=pprint.pformat(rec.marshal()),
                            url=self._meterurl)
 
-            # the master node public key
-            verify_key = self._node_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)
-
             # serialize metering data
-            raw_data = cbor2.dumps(rec.marshal())
+            data = cbor2.dumps(rec.marshal())
 
-            # sign metering data with master node (private) key
-            signed_msg = self._node_key.sign(raw_data)
-
-            # POST message body is concatenation of verify key and signed message:
-            data = verify_key + signed_msg
-
-            self.log.debug('HTTP/POST: verify_key={lvk} data={ld} raw_data={lrd} signed_msg={lsm}',
-                           lvk=len(verify_key),
-                           ld=len(data),
-                           lrd=len(raw_data),
-                           lsm=len(signed_msg))
+            # FIXME: the master node public key
+            # verify_key = self._node_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)
+            #
+            # # sign metering data with master node (private) key
+            #
+            # # POST message body is concatenation of verify key and signed message:
+            # data = verify_key + signed_msg
+            #
+            # self.log.debug('HTTP/POST: verify_key={lvk} data={ld} raw_data={lrd} signed_msg={lsm}',
+            #                lvk=len(verify_key),
+            #                ld=len(data),
+            #                lrd=len(raw_data),
+            #                lsm=len(signed_msg))
 
             tried += 1
             metering_id = None

@@ -451,7 +451,16 @@ class ManagementClientSession(ApplicationSession):
             authextra=extra)
 
     def onChallenge(self, challenge):
-        return self._key.sign_challenge(self, challenge)
+        if challenge.method == 'cryptosign':
+            # sign the challenge with our private key.
+            channel_id_type = self.config.extra.get('channel_binding', None)
+            channel_id = self.transport.transport_details.channel_id.get(channel_id_type, None)
+            signed_challenge = self._key.sign_challenge(challenge,
+                                                        channel_id=channel_id,
+                                                        channel_id_type=channel_id_type)
+            return signed_challenge
+        else:
+            raise RuntimeError('unable to process authentication method {}'.format(challenge.method))
 
     def onJoin(self, details):
         print(hl('ManagementClientSession.onJoin: {}'.format(details), bold=True))

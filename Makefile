@@ -104,6 +104,9 @@ test_cb_apperrors:
 test_cb_proxy:
 	pytest -sv --no-install test/functests/cbtests/test_cb_proxy.py
 
+test_cb_authorize:
+	pytest -sv crossbar/router/test/test_authorize.py::TestDynamicAuth::test_authextra_wampcryptosign
+
 test_cb_cookie:
 	trial crossbar.router.test.test_cookiestore
 

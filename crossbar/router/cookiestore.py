@@ -468,7 +468,8 @@ class CookieStoreDatabaseBacked(CookieStore):
             self.log.warn('{func}: scratched embedded database (purge_on_startup is enabled)!',
                           func=hltype(CookieStoreDatabaseBacked.__init__))
 
-        self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync)
+        # self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
+        self._db = zlmdb.Database.open(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
         # self._db.__enter__()
         self._schema = cookiestore.CookieStoreSchema.attach(self._db)
 
