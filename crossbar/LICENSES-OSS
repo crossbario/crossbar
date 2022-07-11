@@ -113,7 +113,6 @@
  urllib3              1.24.3     MIT License                                                                                          Andrey Petrov                                                  
  validate-email       1.3        UNKNOWN                                                                                              Syrus Akbary                                                   
  varint               1.0.2      MIT License                                                                                          Peter Ruibal                                                   
- vmprof               0.4.15     MIT License                                                                                          vmprof team                                                    
  watchdog             2.0.2      Apache Software License                                                                              Yesudeep Mangalapilly                                          
  wcwidth              0.2.5      MIT License                                                                                          Jeff Quast                                                     
  web3                 5.17.0     MIT License                                                                                          Piper Merriam                                                  
