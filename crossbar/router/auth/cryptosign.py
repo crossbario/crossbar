@@ -105,11 +105,14 @@ class PendingAuthCryptosign(PendingAuth):
         return extra
 
     def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
-        self.log.info('{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}")',
-                      func=hltype(self.hello),
-                      realm=hlid(realm),
-                      authid=hlid(details.authid),
-                      authrole=hlid(details.authrole))
+        self.log.info(
+            '{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}", '
+            'details.authextra="{authextra}")',
+            func=hltype(self.hello),
+            realm=hlid(realm),
+            authid=hlid(details.authid),
+            authrole=hlid(details.authrole),
+            authextra=details.authextra)
 
         # the channel binding requested by the client authenticating
         requested_channel_binding = details.authextra.get('channel_binding', None) if details.authextra else None
