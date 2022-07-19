@@ -518,8 +518,8 @@ def check_transport_auth_cryptosign(config):
         ))
 
     if config['type'] == 'static':
-        if 'principals' in config and 'trustroot' in config:
-            raise InvalidConfigException("cannot specify both 'principals' and 'trustroot' attributes "
+        if 'principals' in config and 'trustroots' in config:
+            raise InvalidConfigException("cannot specify both 'principals' and 'trustroots' attributes "
                                          "(only one is allowed) in static WAMP-Cryptosign configuration")
 
         if 'principals' in config:
@@ -539,19 +539,29 @@ def check_transport_auth_cryptosign(config):
                         raise InvalidConfigException("invalid type {} for pubkey "
                                                      "in authorized_keys of principal".format(type(pubkey)))
 
-        elif 'trustroot' in config:
-            if not isinstance(config['trustroot'], str):
-                raise InvalidConfigException('invalid type for "trustroot" attribute in static WAMP-Cryptosign '
-                                             'configuration - expected str, got {}'.format(type(config['trustroot'])))
-            name_category = identity_realm_name_category(config['trustroot'])
-            if name_category not in ['eth', 'ens', 'reverse_ens']:
-                raise InvalidConfigException('invalid value for "trustroot" attribute in static WAMP-Cryptosign '
-                                             'configuration - expected an Ethereum address, ENS name or reverse '
-                                             'ENS name, got "{}"'.format(config['trustroot']))
+        elif 'trustroots' in config:
+            if not isinstance(config['trustroots'], Mapping):
+                raise InvalidConfigException(
+                    "invalid type for attribute 'trustroots' in static WAMP-Cryptosign configuration - expected dict, got {}"
+                    .format(type(config['trustroots'])))
+            for trustroot, principal in config['trustroots'].items():
+                if not isinstance(trustroot, str):
+                    raise InvalidConfigException('invalid type for "trustroot" key in static WAMP-Cryptosign '
+                                                 'configuration - expected str, got {}'.format(type(trustroot)))
+                name_category = identity_realm_name_category(trustroot)
+                if name_category not in ['eth', 'ens', 'reverse_ens']:
+                    raise InvalidConfigException('invalid value for "trustroot" key in static WAMP-Cryptosign '
+                                                 'configuration - expected an Ethereum address, ENS name or reverse '
+                                                 'ENS name, got "{}"'.format(trustroot))
+                check_dict_args({
+                    'role': (False, [str]),
+                    'realm': (False, [str]),
+                }, principal, "WAMP-Cryptosign - principal '{}' configuration".format(principal))
 
         else:
-            raise InvalidConfigException("missing mandatory attribute: neither 'principals' nor 'trustroot' attribute "
-                                         "found in static WAMP-Cryptosign configuration")
+            raise InvalidConfigException(
+                "missing mandatory attribute: neither 'principals' nor 'trustroots' attribute "
+                "found in static WAMP-Cryptosign configuration")
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
