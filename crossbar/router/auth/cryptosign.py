@@ -148,7 +148,6 @@ class PendingAuthCryptosign(PendingAuth):
                           client_certificates=client_certificates,
                           func=hltype(self.hello))
 
-        # use static principal database from configuration
         if self._config['type'] == 'static':
 
             self._authprovider = 'static'
@@ -158,16 +157,28 @@ class PendingAuthCryptosign(PendingAuth):
             if details.authextra and 'pubkey' in details.authextra:
                 pubkey = details.authextra['pubkey']
 
+            # use trustroots configured (if trustroots are indeed configured and the client provided
+            # a certificate chain to verify)
             if 'trustroots' in self._config and client_certificates:
+                # trustroot to consider is the issuer of the last certificate (the root CA cert) in
+                # the certificate chain provided by the client
                 trustroot = web3.Web3.toChecksumAddress(client_certificates[-1].issuer)
+
+                # if we don't have the given trustroot configured, bail out
                 if trustroot not in self._config['trustroots']:
                     return Deny(
                         message=
                         'certificate chain trustroot address {} does not match any of our configured trustroots {}'.
                         format(trustroot, self._config['trustroots'].keys()))
+
+                # map the trustroot to a principal: realm and authrole to use for the client
                 principal = self._config['trustroots'][trustroot]
+
+                # we always use the client's delegate address, which is in the first certificate
+                # of the certificate chain provided by the client
                 principal['authid'] = web3.Web3.toChecksumAddress(client_certificates[0].delegate)
 
+            # use static principal database from configuration
             elif 'principals' in self._config:
                 # if the client provides its public key, that's enough to identify,
                 # and we can infer the authid from that. BUT: that requires that
@@ -213,6 +224,8 @@ class PendingAuthCryptosign(PendingAuth):
                         authid=hlid(self._authid),
                         principals=pformat(principals))
                     return Deny(message='no principal with authid "{}" exists'.format(self._authid))
+
+            # neither "principals" nor "trustroots" configured
             else:
                 return Deny(
                     message='neither "principals", nor "trustroots" configured (and client certificates provided)')
