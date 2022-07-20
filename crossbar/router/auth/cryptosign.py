@@ -14,6 +14,8 @@ import nacl
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 
+import web3
+
 from twisted.internet.defer import Deferred
 
 import txaio
@@ -23,6 +25,7 @@ from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.message import identity_realm_name_category
+from autobahn.xbr import parse_certificate_chain
 
 from crossbar.router.auth.pending import PendingAuth
 from crossbar.interfaces import IRealmContainer, IPendingAuth
@@ -60,18 +63,6 @@ class PendingAuthCryptosign(PendingAuth):
         self._challenge: Optional[bytes] = None
         self._expected_signed_message: Optional[bytes] = None
 
-        self._trustroot = None
-        if self._config['type'] == 'static' and 'trustroot' in self._config:
-            self._trustroot = self._config['trustroot']
-            self._trustroot_name_category = identity_realm_name_category(self._trustroot)
-
-            # this is already checked in checkconfig
-            assert self._trustroot_name_category in ['eth', 'ens', 'reverse_ens']
-            self.log.info('{func} using trustroot {trustroot_name_category} "{trustroot}" from static config',
-                          trustroot=hlid(self._trustroot),
-                          trustroot_name_category=hlval(self._trustroot_name_category, color='green'),
-                          func=hltype(self))
-
         # create a map `pubkey -> authid` from `config['principals']`, this is to allow clients to
         # authenticate without specifying an authid
         self._pubkey_to_authid = None
@@ -82,7 +73,7 @@ class PendingAuthCryptosign(PendingAuth):
                     self._pubkey_to_authid[pubkey] = authid
             self.log.info('{func} using principals ({pubkeys_cnt} pubkeys loaded)',
                           pubkeys_cnt=hlval(len(self._pubkey_to_authid), color='green'),
-                          func=hltype(self))
+                          func=hltype(PendingAuthCryptosign.__init__))
 
     def _compute_challenge(self, requested_channel_binding: Optional[str]) -> Dict[str, Any]:
         self._challenge = os.urandom(32)
@@ -105,11 +96,14 @@ class PendingAuthCryptosign(PendingAuth):
         return extra
 
     def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
-        self.log.info('{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}")',
-                      func=hltype(self.hello),
-                      realm=hlid(realm),
-                      authid=hlid(details.authid),
-                      authrole=hlid(details.authrole))
+        self.log.info(
+            '{func}::hello(realm="{realm}", details.authid="{authid}", details.authrole="{authrole}", '
+            'details.authextra="{authextra}")',
+            func=hltype(self.hello),
+            realm=hlid(realm),
+            authid=hlid(details.authid),
+            authrole=hlid(details.authrole),
+            authextra=details.authextra)
 
         # the channel binding requested by the client authenticating
         requested_channel_binding = details.authextra.get('channel_binding', None) if details.authextra else None
@@ -127,7 +121,33 @@ class PendingAuthCryptosign(PendingAuth):
         # remember the authid the client wants to identify as (if any)
         self._authid = details.authid
 
-        # use static principal database from configuration
+        # get trustroot presented by the client
+        client_trustroot = details.authextra.get('trustroot', None) if details.authextra else None
+        if client_trustroot:
+            client_trustroot_name_category = identity_realm_name_category(client_trustroot)
+            if client_trustroot_name_category not in ['eth', 'ens', 'reverse_ens']:
+                return Deny(message='invalid client trustroot "{}" provided'.format(client_trustroot))
+            self.log.info('{func} using client trustroot {trustroot_name_category} "{trustroot}" from client HELLO',
+                          trustroot=hlid(client_trustroot),
+                          trustroot_name_category=hlval(client_trustroot_name_category, color='green'),
+                          func=hltype(self.hello))
+
+        # get certificates presented by the client
+        client_certificates = details.authextra.get('certificates', None) if details.authextra else None
+        if client_certificates:
+            if type(client_certificates) != list:
+                return Deny(message='invalid type {} for client certificates'.format(type(client_certificates)))
+            for cc_i, cc_and_sig in enumerate(client_certificates):
+                cc, cc_sig = cc_and_sig
+                if type(cc) != dict:
+                    return Deny(
+                        message='invalid type {} for certificate {} in client certificates'.format(type(cc), cc_i))
+            client_certificates = parse_certificate_chain(client_certificates)
+            self.log.info('{func} using {cnt_cc} client certificates from client HELLO:\n{client_certificates}',
+                          cnt_cc=hlval(len(client_certificates), color='green'),
+                          client_certificates=client_certificates,
+                          func=hltype(self.hello))
+
         if self._config['type'] == 'static':
 
             self._authprovider = 'static'
@@ -137,99 +157,125 @@ class PendingAuthCryptosign(PendingAuth):
             if details.authextra and 'pubkey' in details.authextra:
                 pubkey = details.authextra['pubkey']
 
-            # if the client provides it's public key, that's enough to identify,
-            # and we can infer the authid from that. BUT: that requires that
-            # there is a 1:1 relation between authid's and pubkey's !! see below (*)
-            if self._authid is None:
-                if pubkey:
-                    # we do a naive search, but that is ok, since "static mode" is from
-                    # node configuration, and won't contain a lot principals anyway
-                    for _authid, _principal in self._config.get('principals', {}).items():
-                        if pubkey in _principal['authorized_keys']:
-                            # (*): this is necessary to detect multiple authid's having the same pubkey
-                            # in which case we couldn't reliably map the authid from the pubkey
-                            if self._authid is None:
-                                self._authid = _authid
-                            else:
-                                return Deny(message='cannot infer client identity from pubkey: multiple authids '
-                                            'in principal database have this pubkey')
-                    if self._authid is None:
-                        return Deny(message='cannot identify client: no authid requested and no principal found '
-                                    'for provided extra.pubkey')
+            # use trustroots configured (if trustroots are indeed configured and the client provided
+            # a certificate chain to verify)
+            if 'trustroots' in self._config and client_certificates:
+                # trustroot to consider is the issuer of the last certificate (the root CA cert) in
+                # the certificate chain provided by the client
+                trustroot = web3.Web3.toChecksumAddress(client_certificates[-1].issuer)
+
+                # if we don't have the given trustroot configured, bail out
+                if trustroot not in self._config['trustroots']:
+                    return Deny(
+                        message=
+                        'certificate chain trustroot address {} does not match any of our configured trustroots {}'.
+                        format(trustroot, self._config['trustroots'].keys()))
+
+                # map the trustroot to a principal: realm and authrole to use for the client
+                principal = self._config['trustroots'][trustroot]
+
+                # we always use the client's delegate address, which is in the first certificate
+                # of the certificate chain provided by the client
+                principal['authid'] = web3.Web3.toChecksumAddress(client_certificates[0].delegate)
+
+            # use static principal database from configuration
+            elif 'principals' in self._config:
+                # if the client provides its public key, that's enough to identify,
+                # and we can infer the authid from that. BUT: that requires that
+                # there is a 1:1 relation between authids and pubkeys !! see below (*)
+                if self._authid is None:
+                    if pubkey:
+                        # we do a naive search, but that is ok, since "static mode" is from
+                        # node configuration, and won't contain a lot principals anyway
+                        for _authid, _principal in self._config.get('principals', {}).items():
+                            if pubkey in _principal['authorized_keys']:
+                                # (*): this is necessary to detect multiple authid's having the same pubkey
+                                # in which case we couldn't reliably map the authid from the pubkey
+                                if self._authid is None:
+                                    self._authid = _authid
+                                else:
+                                    return Deny(message='cannot infer client identity from pubkey: multiple authids '
+                                                'in principal database have this pubkey')
+                        if self._authid is None:
+                            return Deny(message='cannot identify client: no authid requested and no principal found '
+                                        'for provided extra.pubkey')
+                    else:
+                        return Deny(message='cannot identify client: no authid requested and no extra.pubkey provided')
+
+                principals = self._config.get('principals', {})
+                if self._authid in principals:
+                    principal = principals[self._authid]
+                    if pubkey and (pubkey not in principal['authorized_keys']):
+                        self.log.warn(
+                            'extra.pubkey {pubkey} provided does not match any one of authorized_keys for the principal [func="{func}"]:\n{principals}',
+                            func=hltype(self.hello),
+                            realm=hlid(realm),
+                            authid=hlid(details.authid),
+                            pubkey=hlval(pubkey),
+                            principals=pformat(principals))
+                        return Deny(
+                            message='extra.pubkey provided does not match any one of authorized_keys for the principal'
+                        )
                 else:
-                    return Deny(message='cannot identify client: no authid requested and no extra.pubkey provided')
-
-            principals = self._config.get('principals', {})
-            if self._authid in principals:
-
-                principal = principals[self._authid]
-
-                if pubkey and (pubkey not in principal['authorized_keys']):
                     self.log.warn(
-                        'extra.pubkey {pubkey} provided does not match any one of authorized_keys for the principal [func="{func}"]:\n{principals}',
+                        'no principal with authid "{authid}" exists in principals for realm "{realm}" [func="{func}"]:\n{principals}',
                         func=hltype(self.hello),
                         realm=hlid(realm),
-                        authid=hlid(details.authid),
-                        pubkey=hlval(pubkey),
+                        authid=hlid(self._authid),
                         principals=pformat(principals))
-                    return Deny(
-                        message='extra.pubkey provided does not match any one of authorized_keys for the principal')
+                    return Deny(message='no principal with authid "{}" exists'.format(self._authid))
 
-                error = self._assign_principal(principal)
-                if error:
-                    return error
+            # neither "principals" nor "trustroots" configured
+            else:
+                return Deny(
+                    message='neither "principals", nor "trustroots" configured (and client certificates provided)')
 
-                self._verify_key = VerifyKey(pubkey, encoder=nacl.encoding.HexEncoder)
+            error = self._assign_principal(principal)
+            if error:
+                return error
 
-                extra = self._compute_challenge(requested_channel_binding)
+            self._verify_key = VerifyKey(pubkey, encoder=nacl.encoding.HexEncoder)
 
-                if 'challenge' in details.authextra and details.authextra['challenge']:
-                    challenge_raw = binascii.a2b_hex(details.authextra['challenge'])
-                    if requested_channel_binding == 'tls-unique':
-                        data = util.xor(challenge_raw, self._channel_id)
-                    else:
-                        data = challenge_raw
+            extra = self._compute_challenge(requested_channel_binding)
 
-                    # sign the client challenge with our node private Ed25519 key on node controller
-                    signature_d = self._realm_container.get_controller_session().call('crossbar.sign', data)
-
-                    def _on_sign_ok(signature):
-                        # return the concatenation of the signature and the message signed (96 bytes)
-                        extra['signature'] = binascii.b2a_hex(signature).decode() + binascii.b2a_hex(data).decode()
-
-                    signature_d.addCallback(_on_sign_ok)
-
-                    # get node public key from node controller
-                    pubkey_d = self._realm_container.get_controller_session().call('crossbar.get_public_key')
-
-                    def _on_pubkey_ok(pubkey):
-                        # return router public key
-                        extra['pubkey'] = pubkey
-
-                    pubkey_d.addCallback(_on_pubkey_ok)
-
-                    # FIXME: add router certificate
-                    # FIXME: add router trustroot
-
-                    d = txaio.gather([signature_d, pubkey_d])
-
-                    def _on_final(_):
-                        return Challenge(self._authmethod, extra)
-
-                    d.addCallback(_on_final)
-                    return d
-
+            if 'challenge' in details.authextra and details.authextra['challenge']:
+                challenge_raw = binascii.a2b_hex(details.authextra['challenge'])
+                if requested_channel_binding == 'tls-unique':
+                    data = util.xor(challenge_raw, self._channel_id)
                 else:
+                    data = challenge_raw
+
+                # sign the client challenge with our node private Ed25519 key on node controller
+                signature_d = self._realm_container.get_controller_session().call('crossbar.sign', data)
+
+                def _on_sign_ok(signature):
+                    # return the concatenation of the signature and the message signed (96 bytes)
+                    extra['signature'] = binascii.b2a_hex(signature).decode() + binascii.b2a_hex(data).decode()
+
+                signature_d.addCallback(_on_sign_ok)
+
+                # get node public key from node controller
+                pubkey_d = self._realm_container.get_controller_session().call('crossbar.get_public_key')
+
+                def _on_pubkey_ok(pubkey):
+                    # return router public key
+                    extra['pubkey'] = pubkey
+
+                pubkey_d.addCallback(_on_pubkey_ok)
+
+                # FIXME: add router certificate
+                # FIXME: add router trustroot
+
+                d = txaio.gather([signature_d, pubkey_d])
+
+                def _on_final(_):
                     return Challenge(self._authmethod, extra)
 
+                d.addCallback(_on_final)
+                return d
+
             else:
-                self.log.warn(
-                    'no principal with authid "{authid}" exists in principals for realm "{realm}" [func="{func}"]:\n{principals}',
-                    func=hltype(self.hello),
-                    realm=hlid(realm),
-                    authid=hlid(self._authid),
-                    principals=pformat(principals))
-                return Deny(message='no principal with authid "{}" exists'.format(self._authid))
+                return Challenge(self._authmethod, extra)
 
         elif self._config['type'] == 'dynamic':
 

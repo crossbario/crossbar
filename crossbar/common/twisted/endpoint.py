@@ -206,16 +206,16 @@ def _create_tls_client_context(config, cbdir, log):
     # explicit trust (certificate) root
     ca_certs = None
     if 'ca_certificates' in config:
-        log.info("TLS client using explicit trust ({cnt_certs} certificates)",
-                 cnt_certs=len(config['ca_certificates']))
+        log.debug("TLS client using explicit trust ({cnt_certs} certificates)",
+                  cnt_certs=len(config['ca_certificates']))
         ca_certs = []
         for cert_fname in [os.path.abspath(os.path.join(cbdir, x)) for x in (config['ca_certificates'])]:
             cert = crypto.load_certificate(crypto.FILETYPE_PEM, open(cert_fname, 'rb').read())
-            log.info("TLS client trust root CA certificate loaded from '{fname}'", fname=cert_fname)
+            log.debug("TLS client trust root CA certificate loaded from '{fname}'", fname=cert_fname)
             ca_certs.append(cert)
         ca_certs = OpenSSLCertificateAuthorities(ca_certs)
     else:
-        log.info("TLS client using platform trust")
+        log.debug("TLS client using platform trust")
 
     # client key/cert to use
     client_cert = None
@@ -226,15 +226,15 @@ def _create_tls_client_context(config, cbdir, log):
         key_fname = os.path.abspath(os.path.join(cbdir, config['key']))
         with open(key_fname, 'r') as f:
             private_key = KeyPair.load(f.read(), format=crypto.FILETYPE_PEM)
-            log.info("Loaded client TLS key from '{key_fname}'", key_fname=key_fname)
+            log.debug("Loaded client TLS key from '{key_fname}'", key_fname=key_fname)
 
         cert_fname = os.path.abspath(os.path.join(cbdir, config['certificate']))
         with open(cert_fname, 'r') as f:
             cert = Certificate.loadPEM(f.read(), )
-            log.info("Loaded client TLS certificate from '{cert_fname}' (cn='{cert_cn}', sha256={cert_sha256}..)",
-                     cert_fname=cert_fname,
-                     cert_cn=cert.getSubject().CN,
-                     cert_sha256=cert.digest('sha256')[:12])
+            log.debug("Loaded client TLS certificate from '{cert_fname}' (cn='{cert_cn}', sha256={cert_sha256}..)",
+                      cert_fname=cert_fname,
+                      cert_cn=cert.getSubject().CN,
+                      cert_sha256=cert.digest('sha256')[:12])
 
         client_cert = PrivateCertificate.fromCertificateAndKeyPair(cert, private_key)
     else:
