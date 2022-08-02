@@ -60,18 +60,19 @@ setuptools>=36.2.7
 six>=1.13.0
 sortedcontainers>=2.4.0
 stringcase>=1.2.0
-tabulate>=0.7.7
-treq>=20.4.1
-twisted[tls,conch,http2,osx_platform]>=20.3.0; sys_platform == 'darwin'
-twisted[tls,conch,http2,windows_platform]>=20.3.0; sys_platform == 'win32'
-twisted[tls,conch,http2]>=20.3.0; sys_platform != 'darwin' and sys_platform != 'win32'
+tabulate>=0.8.9
+treq>=22.2.0
+twisted[tls,conch,http2,osx_platform]>=22.2.0; sys_platform == 'darwin'
+twisted[tls,conch,http2,windows_platform]>=22.2.0; sys_platform == 'win32'
+twisted[tls,conch,http2]>=22.2.0; sys_platform != 'darwin' and sys_platform != 'win32'
 git+https://github.com/crossbario/txaio.git@master#egg=txaio
-txtorcon>=20.0.0
-u-msgpack-python>=2.4.1
+txtorcon>=22.0.0
+u-msgpack-python>=2.7.1
+ujson>=5.3.0
 urllib3>=1.21.1,<1.27
 validate-email>=1.3
-watchdog>=0.8.3
-web3>=5.13.1
+watchdog>=2.1.8
+web3>=5.29.2
 # ImportError: cannot import name 'escape' from 'werkzeug.utils'
 werkzeug>=0.14.1,<2
 wsaccel>=0.6.2; platform_python_implementation=='CPython'
