@@ -17,7 +17,7 @@ import abc
 from typing import Union, Dict, List, Any, Optional, Tuple
 
 from autobahn.wamp.interfaces import ISession
-from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails, SessionDetails
+from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails, SessionDetails, ComponentConfig
 from autobahn.wamp.message import Publish
 from autobahn.xbr._schema import FbsRepository
 
@@ -60,6 +60,14 @@ class IRealmContainer(abc.ABC):
     Interface to containers of routing realms the authentication system can query
     about the existence of realms and roles during authentication.
     """
+    @property
+    @abc.abstractmethod
+    def config(self) -> ComponentConfig:
+        """
+
+        :return: Return the realm container configuration.
+        """
+
     @abc.abstractmethod
     def has_realm(self, realm: str) -> bool:
         """
