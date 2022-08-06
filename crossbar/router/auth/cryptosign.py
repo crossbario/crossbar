@@ -25,8 +25,7 @@ from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.message import identity_realm_name_category
-from autobahn.xbr import parse_certificate_chain
-from autobahn.xbr._eip712_authority_certificate import EIP712AuthorityCertificate
+from autobahn.xbr import EIP712AuthorityCertificate, parse_certificate_chain
 
 from crossbar.router.auth.pending import PendingAuth
 from crossbar.interfaces import IRealmContainer, IPendingAuth

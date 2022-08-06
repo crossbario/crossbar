@@ -45,6 +45,7 @@ mypy; platform_python_implementation != 'PyPy'
 bandit
 
 # build
+setuptools
 wheel
 twine
 hashin
