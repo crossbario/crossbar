@@ -159,8 +159,6 @@ jobs:
     - name: Install Crossbar.io packages
       run: |
         pip install .
-        pip install -U -r requirements-latest.txt
-        pip install -U git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn[twisted,encryption,compress,serialization,scram,xbr]
 
     - name: Display Crossbar.io version
       run: |
@@ -212,8 +210,6 @@ jobs:
     - name: Install Crossbar.io packages
       run: |
         pip install .
-        pip install -U -r requirements-latest.txt
-        pip install -U git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn[twisted,encryption,compress,serialization,scram,xbr]
 
     - name: Display Crossbar.io version
       run: |
