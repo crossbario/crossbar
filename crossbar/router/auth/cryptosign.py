@@ -80,8 +80,7 @@ class PendingAuthCryptosign(PendingAuth):
             for _realm, _trustroot in self._config['trustroots'].items():
                 _trustroot_fn = os.path.join(self._realm_container.config.extra.cbdir,
                                              _trustroot['certificate'])  # noqa
-                _cert, _cert_sig = EIP712AuthorityCertificate.load(_trustroot_fn)
-                self._realms_to_trustroots[_realm] = _cert
+                self._realms_to_trustroots[_realm] = EIP712AuthorityCertificate.load(_trustroot_fn)
 
     def _compute_challenge(self, requested_channel_binding: Optional[str]) -> Dict[str, Any]:
         self._challenge = os.urandom(32)
@@ -146,7 +145,7 @@ class PendingAuthCryptosign(PendingAuth):
             if type(client_certificates) != list:
                 return Deny(message='invalid type {} for client certificates'.format(type(client_certificates)))
             for cc_i, cc_and_sig in enumerate(client_certificates):
-                cc, cc_sig = cc_and_sig
+                cc_hash, cc, cc_sig = cc_and_sig
                 if type(cc) != dict:
                     return Deny(
                         message='invalid type {} for certificate {} in client certificates'.format(type(cc), cc_i))
@@ -171,15 +170,29 @@ class PendingAuthCryptosign(PendingAuth):
                 # root CA configured as trustroot for realm
                 root_ca_cert = self._realms_to_trustroots[realm]
 
+                if client_trustroot != web3.Web3.toChecksumAddress(root_ca_cert.issuer):
+                    return Deny(message='trustroot {} provided by client for realm "{}" does not match '
+                                'root CA with issuer {} configured for that realm'.format(
+                                    client_trustroot, realm, web3.Web3.toChecksumAddress(root_ca_cert.issuer)))
+
                 # trustroot to consider is the issuer of the last certificate (the root CA cert) in
                 # the certificate chain provided by the client
                 trustroot = client_certificates[-1].issuer
-
                 if trustroot != root_ca_cert.issuer:
-                    return Deny(message='trustroot {} provided by client for realm "{}" does not match '
-                                'root CA configured'.format(web3.Web3.toChecksumAddress(trustroot), realm))
+                    return Deny(
+                        message=
+                        'trustroot {} provided by client in last certificate of certificate chain does not match '
+                        'root CA with issuer {} configured for realm "{}"'.format(
+                            web3.Web3.toChecksumAddress(trustroot), realm,
+                            web3.Web3.toChecksumAddress(root_ca_cert.issuer)))
 
-                principal = {'authid': web3.Web3.toChecksumAddress(client_certificates[0].delegate), 'role': 'user'}
+                principal = {
+                    # use delegate address as synthetic authid
+                    'authid': web3.Web3.toChecksumAddress(client_certificates[0].delegate),
+
+                    # FIXME: the authrole somehow needs to be configurable
+                    'role': 'user'
+                }
 
             # use static principal database from configuration
             elif 'principals' in self._config:
