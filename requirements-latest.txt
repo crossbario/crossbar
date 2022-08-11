@@ -1,5 +1,6 @@
 attrs>=17.2.0
-git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn[twisted,encryption,compress,serialization,scram,xbr]
+# FIXME: does not work
+# git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn[twisted,encryption,compress,serialization,scram,xbr]
 base58>=2.1.0
 bcrypt>=3.1.6
 bitstring>=3.1.5

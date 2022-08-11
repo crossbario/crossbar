@@ -106,6 +106,7 @@ jobs:
       run: |
         pip install .
         pip install -U -r requirements-latest.txt
+        pip install -U git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn[twisted,encryption,compress,serialization,scram,xbr]
 
     - name: Run Sphinx
       run: tox -c tox.ini -e sphinx
@@ -161,6 +162,7 @@ jobs:
       run: |
         pip install .
         pip install -U -r requirements-latest.txt
+        pip install -U git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn[twisted,encryption,compress,serialization,scram,xbr]
 
     - name: Display Crossbar.io version
       run: |
@@ -213,6 +215,7 @@ jobs:
       run: |
         pip install .
         pip install -U -r requirements-latest.txt
+        pip install -U git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn[twisted,encryption,compress,serialization,scram,xbr]
 
     - name: Display Crossbar.io version
       run: |
