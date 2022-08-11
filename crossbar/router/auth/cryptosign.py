@@ -25,7 +25,7 @@ from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.message import identity_realm_name_category
-from autobahn.xbr import parse_certificate_chain
+from autobahn.xbr import EIP712AuthorityCertificate, parse_certificate_chain
 
 from crossbar.router.auth.pending import PendingAuth
 from crossbar.interfaces import IRealmContainer, IPendingAuth
@@ -74,6 +74,13 @@ class PendingAuthCryptosign(PendingAuth):
             self.log.info('{func} using principals ({pubkeys_cnt} pubkeys loaded)',
                           pubkeys_cnt=hlval(len(self._pubkey_to_authid), color='green'),
                           func=hltype(PendingAuthCryptosign.__init__))
+
+        self._realms_to_trustroots = {}
+        if self._config['type'] == 'static' and 'trustroots' in self._config:
+            for _realm, _trustroot in self._config['trustroots'].items():
+                _trustroot_fn = os.path.join(self._realm_container.config.extra.cbdir,
+                                             _trustroot['certificate'])  # noqa
+                self._realms_to_trustroots[_realm] = EIP712AuthorityCertificate.load(_trustroot_fn)
 
     def _compute_challenge(self, requested_channel_binding: Optional[str]) -> Dict[str, Any]:
         self._challenge = os.urandom(32)
@@ -138,7 +145,7 @@ class PendingAuthCryptosign(PendingAuth):
             if type(client_certificates) != list:
                 return Deny(message='invalid type {} for client certificates'.format(type(client_certificates)))
             for cc_i, cc_and_sig in enumerate(client_certificates):
-                cc, cc_sig = cc_and_sig
+                cc_hash, cc, cc_sig = cc_and_sig
                 if type(cc) != dict:
                     return Deny(
                         message='invalid type {} for certificate {} in client certificates'.format(type(cc), cc_i))
@@ -159,24 +166,33 @@ class PendingAuthCryptosign(PendingAuth):
 
             # use trustroots configured (if trustroots are indeed configured and the client provided
             # a certificate chain to verify)
-            if 'trustroots' in self._config and client_certificates:
+            if client_certificates and realm in self._realms_to_trustroots:
+                # root CA configured as trustroot for realm
+                root_ca_cert = self._realms_to_trustroots[realm]
+
+                if client_trustroot != web3.Web3.toChecksumAddress(root_ca_cert.issuer):
+                    return Deny(message='trustroot {} provided by client for realm "{}" does not match '
+                                'root CA with issuer {} configured for that realm'.format(
+                                    client_trustroot, realm, web3.Web3.toChecksumAddress(root_ca_cert.issuer)))
+
                 # trustroot to consider is the issuer of the last certificate (the root CA cert) in
                 # the certificate chain provided by the client
-                trustroot = web3.Web3.toChecksumAddress(client_certificates[-1].issuer)
-
-                # if we don't have the given trustroot configured, bail out
-                if trustroot not in self._config['trustroots']:
+                trustroot = client_certificates[-1].issuer
+                if trustroot != root_ca_cert.issuer:
                     return Deny(
                         message=
-                        'certificate chain trustroot address {} does not match any of our configured trustroots {}'.
-                        format(trustroot, self._config['trustroots'].keys()))
+                        'trustroot {} provided by client in last certificate of certificate chain does not match '
+                        'root CA with issuer {} configured for realm "{}"'.format(
+                            web3.Web3.toChecksumAddress(trustroot), realm,
+                            web3.Web3.toChecksumAddress(root_ca_cert.issuer)))
 
-                # map the trustroot to a principal: realm and authrole to use for the client
-                principal = self._config['trustroots'][trustroot]
+                principal = {
+                    # use delegate address as synthetic authid
+                    'authid': web3.Web3.toChecksumAddress(client_certificates[0].delegate),
 
-                # we always use the client's delegate address, which is in the first certificate
-                # of the certificate chain provided by the client
-                principal['authid'] = web3.Web3.toChecksumAddress(client_certificates[0].delegate)
+                    # FIXME: the authrole somehow needs to be configurable
+                    'role': 'user'
+                }
 
             # use static principal database from configuration
             elif 'principals' in self._config:
