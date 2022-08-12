@@ -20,7 +20,7 @@ txaio.use_twisted()
 
 from autobahn.websocket.util import parse_url
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, _URI_PAT_STRICT_LAST_EMPTY, \
-    _URI_PAT_REALM_NAME, _URI_PAT_LOOSE_EMPTY, identity_realm_name_category
+    _URI_PAT_REALM_NAME, _URI_PAT_LOOSE_EMPTY, identify_realm_name_category
 from autobahn.wamp.uri import convert_starred_uri
 
 from yaml import Loader, SafeLoader, Dumper, SafeDumper
@@ -569,9 +569,9 @@ def check_transport_auth_cryptosign(config):
                         raise InvalidConfigException('invalid type for "certificate" key in static WAMP-Cryptosign '
                                                      'configuration - expected string, got {}'.format(
                                                          type(certificate)))
-                elif 'trustroot':
+                elif 'trustroot' in trustroot_config:
                     trustroot = trustroot_config['trustroot']
-                    name_category = identity_realm_name_category(trustroot)
+                    name_category = identify_realm_name_category(trustroot)
                     if name_category not in ['eth', 'ens', 'reverse_ens']:
                         raise InvalidConfigException(
                             'invalid value for "trustroot" key in static WAMP-Cryptosign '
