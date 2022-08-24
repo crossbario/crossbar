@@ -63,24 +63,36 @@ class PendingAuthCryptosign(PendingAuth):
         self._challenge: Optional[bytes] = None
         self._expected_signed_message: Optional[bytes] = None
 
-        # create a map `pubkey -> authid` from `config['principals']`, this is to allow clients to
+        # map `pubkey -> authid` from `config['principals']`, this is to allow clients to
         # authenticate without specifying an authid
         self._pubkey_to_authid = None
-        if self._config['type'] == 'static' and 'principals' in self._config:
-            self._pubkey_to_authid = {}
-            for authid, principal in self._config.get('principals', {}).items():
-                for pubkey in principal['authorized_keys']:
-                    self._pubkey_to_authid[pubkey] = authid
-            self.log.info('{func} using principals ({pubkeys_cnt} pubkeys loaded)',
-                          pubkeys_cnt=hlval(len(self._pubkey_to_authid), color='green'),
-                          func=hltype(PendingAuthCryptosign.__init__))
 
-        self._realms_to_trustroots = {}
-        if self._config['type'] == 'static' and 'trustroots' in self._config:
-            for _realm, _trustroot in self._config['trustroots'].items():
-                _trustroot_fn = os.path.join(self._realm_container.config.extra.cbdir,
-                                             _trustroot['certificate'])  # noqa
-                self._realms_to_trustroots[_realm] = EIP712AuthorityCertificate.load(_trustroot_fn)
+        # map `realm_name -> trustroot` from `config['trustroots']`
+        self._realms_to_trustroots = None
+
+        if self._config['type'] == 'static':
+            if 'principals' in self._config:
+                self._pubkey_to_authid = {}
+                for authid, principal in self._config.get('principals', {}).items():
+                    for pubkey in principal['authorized_keys']:
+                        self._pubkey_to_authid[pubkey] = authid
+                self.log.info('{func} using principals ({pubkeys_cnt} pubkeys loaded)',
+                              pubkeys_cnt=hlval(len(self._pubkey_to_authid), color='green'),
+                              func=hltype(PendingAuthCryptosign.__init__))
+            elif 'trustroots' in self._config:
+                self._realms_to_trustroots = {}
+                for _realm, _trustroot in self._config['trustroots'].items():
+                    _realm_category = identify_realm_name_category(_realm)
+                    if _realm_category == 'standalone':
+                        _trustroot_fn = os.path.join(self._realm_container.config.extra.cbdir,
+                                                     _trustroot['certificate'])  # noqa
+                        self._realms_to_trustroots[_realm] = EIP712AuthorityCertificate.load(_trustroot_fn)
+                    elif _realm_category in ['eth', 'ens', 'reverse_ens']:
+                        assert False, 'FIXME-' * 10
+                    else:
+                        assert False, 'invalid realm name "{}" in static cryptosign configuration'.format(_realm)
+            else:
+                assert False, 'neither "principals" nor "trustroots" attribute found in static cryptosign configuration'
 
     def _compute_challenge(self, requested_channel_binding: Optional[str]) -> Dict[str, Any]:
         self._challenge = os.urandom(32)

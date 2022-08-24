@@ -310,7 +310,8 @@ class RouterController(TransportController):
         # from realm name: "standalone", "eth", "ens", "reverse_ens" or None
         realm_category = identify_realm_name_category(realm_name)
         if realm_category is None:
-            emsg = 'Invalid router realm configuration: the name "{}" is not a valid WAMP realm name'.format(realm_name)
+            emsg = 'Invalid router realm configuration: the name "{}" is not a valid WAMP realm name'.format(
+                realm_name)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
