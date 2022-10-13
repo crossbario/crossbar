@@ -67,7 +67,7 @@ class BridgeSession(ApplicationSession):
             other=other)
 
         @inlineCallbacks
-        def on_subscription_create(sub_id, sub_details, details=None):
+        def on_subscription_create(sub_session, sub_details, details=None):
             """
             Event handler fired when a new subscription was created on this router.
 
@@ -79,14 +79,14 @@ class BridgeSession(ApplicationSession):
             :param details:
             :return:
             """
-            if sub_id in self._subs:
+            if sub_details["id"] in self._subs:
                 # this should not happen actually, but not sure ..
                 self.log.error('on_subscription_create: sub ID {sub_id} already in map {method}',
-                               sub_id=sub_id,
+                               sub_id=sub_details["id"],
                                method=hltype(BridgeSession._setup_event_forwarding))
                 return
 
-            self._subs[sub_id] = sub_details
+            self._subs[sub_details["id"]] = sub_details
 
             uri = sub_details['uri']
             ERR_MSG = [None]
@@ -151,15 +151,16 @@ class BridgeSession(ApplicationSession):
                 )
 
             sub = yield other.subscribe(on_event, uri, options=SubscribeOptions(details=True))
-            self._subs[sub_id]['sub'] = sub
+            self._subs[sub_details["id"]]['sub'] = sub
 
             self.log.debug(
-                "created forwarding subscription: me={me} other={other} sub_id={sub_id} sub_details={sub_details} details={details}",
+                "created forwarding subscription: me={me} other={other} sub_id={sub_id} sub_details={sub_details} details={details} sub_session={sub_session}",
                 me=self._session_id,
                 other=other,
-                sub_id=sub_id,
+                sub_id=sub_details["id"],
                 sub_details=sub_details,
                 details=details,
+                sub_session=sub_session
             )
 
         # listen to when a subscription is removed from the router
