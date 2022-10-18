@@ -160,7 +160,7 @@ class BridgeSession(ApplicationSession):
                 sub_id=sub_details["id"],
                 sub_details=sub_details,
                 details=details,
-                sub_session=sub_session
+                sub_session=sub_session,
             )
 
         # listen to when a subscription is removed from the router
