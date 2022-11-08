@@ -79,6 +79,9 @@ class BridgeSession(ApplicationSession):
             :param details:
             :return:
             """
+            if sub_details["uri"].startswith("wamp."):
+                return
+
             if sub_details["id"] in self._subs:
                 # this should not happen actually, but not sure ..
                 self.log.error('on_subscription_create: sub ID {sub_id} already in map {method}',
@@ -87,6 +90,7 @@ class BridgeSession(ApplicationSession):
                 return
 
             self._subs[sub_details["id"]] = sub_details
+            self._subs[sub_details["id"]]["sub"] = None
 
             uri = sub_details['uri']
             ERR_MSG = [None]
@@ -150,8 +154,19 @@ class BridgeSession(ApplicationSession):
                     options=options,
                 )
 
-            sub = yield other.subscribe(on_event, uri, options=SubscribeOptions(details=True))
-            self._subs[sub_details["id"]]['sub'] = sub
+            try:
+                sub = yield other.subscribe(on_event, uri, options=SubscribeOptions(details=True))
+            except TransportLost:
+                self.log.debug(
+                    "on_subscription_create: could not forward-subscription '{}' as RLink is not connected".format(
+                        uri))
+                return
+
+            if sub_details["id"] not in self._subs:
+                self.log.info("subscription already gone: {uri}", uri=sub_details['uri'])
+                yield sub.unregister()
+            else:
+                self._subs[sub_details["id"]]["sub"] = sub
 
             self.log.debug(
                 "created forwarding subscription: me={me} other={other} sub_id={sub_id} sub_details={sub_details} details={details} sub_session={sub_session}",
@@ -182,7 +197,13 @@ class BridgeSession(ApplicationSession):
 
             uri = sub_details['uri']
 
-            yield self._subs[sub_id]['sub'].unsubscribe()
+            sub = self._subs[sub_id]["sub"]
+            if sub is None:
+                # see above; we might have un-subscribed here before
+                # we got an answer from the other router
+                self.log.info("subscription has no 'sub'")
+            else:
+                yield sub.unsubscribe()
 
             del self._subs[sub_id]
 
@@ -191,13 +212,11 @@ class BridgeSession(ApplicationSession):
         @inlineCallbacks
         def forward_current_subs():
             # get current subscriptions on the router
-            #
             subs = yield self.call("wamp.subscription.list")
             for sub_id in subs['exact']:
                 sub = yield self.call("wamp.subscription.get", sub_id)
-
-                if not sub['uri'].startswith("wamp."):
-                    yield on_subscription_create(sub_id, sub)
+                assert sub["id"] == sub_id, "Logic error, subscription IDs don't match"
+                yield on_subscription_create(self._session_id, sub)
 
         @inlineCallbacks
         def on_remote_join(_session, _details):
@@ -328,6 +347,10 @@ class BridgeSession(ApplicationSession):
                                                details_arg='details',
                                                invoke=reg_details.get('invoke', None),
                                            ))
+            except TransportLost:
+                self.log.debug(
+                    "on_registration_create: could not forward-register '{}' as RLink is not connected".format(uri))
+                return
             except Exception as e:
                 # FIXME: partially fixes https://github.com/crossbario/crossbar/issues/1894,
                 #  however we need to make sure this situation never happens.
@@ -361,7 +384,7 @@ class BridgeSession(ApplicationSession):
         # called when a registration is removed from the local router
         @inlineCallbacks
         def on_registration_delete(session_id, reg_id, details=None):
-            self.log.info(
+            self.log.debug(
                 "Registration deleted: {me} {session} {reg_id} {details}",
                 me=self,
                 session=session_id,
@@ -371,7 +394,7 @@ class BridgeSession(ApplicationSession):
 
             reg_details = self._regs.get(reg_id, None)
             if not reg_details:
-                self.log.info("registration not tracked - huh??")
+                self.log.debug("registration not tracked - huh??")
                 return
 
             uri = reg_details['uri']
@@ -380,13 +403,13 @@ class BridgeSession(ApplicationSession):
             if reg is None:
                 # see above; we might have un-registered here before
                 # we got an answer from the other router
-                self.log.info("registration has no 'reg'")
+                self.log.debug("registration has no 'reg'")
             else:
                 yield reg.unregister()
 
             del self._regs[reg_id]
 
-            self.log.info("{other} unsubscribed from {uri}".format(other=other, uri=uri))
+            self.log.debug("{other} unsubscribed from {uri}".format(other=other, uri=uri))
 
         @inlineCallbacks
         def register_current():
