@@ -27,10 +27,11 @@ importlib-resources>=4.1.1
 incremental>=17.5.0
 iso8601>=0.1.12
 jinja2_highlight>=0.6.1
-jinja2>=2.10.1
+jinja2>=3.1.2
 lmdb>=1.1.1
 # ImportError: cannot import name 'soft_unicode' from 'markupsafe'
-MarkupSafe>=1.1.1,<2
+# MarkupSafe>=1.1.1,<2
+MarkupSafe>=2.1.1
 mistune>=0.8.4
 morphys>=1.0
 netaddr>=0.8.0
