@@ -24,7 +24,7 @@ from autobahn import util
 from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.message import identity_realm_name_category
+from autobahn.wamp.message import identify_realm_name_category
 from autobahn.xbr import EIP712AuthorityCertificate, parse_certificate_chain
 
 from crossbar.router.auth.pending import PendingAuth
@@ -131,7 +131,7 @@ class PendingAuthCryptosign(PendingAuth):
         # get trustroot presented by the client
         client_trustroot = details.authextra.get('trustroot', None) if details.authextra else None
         if client_trustroot:
-            client_trustroot_name_category = identity_realm_name_category(client_trustroot)
+            client_trustroot_name_category = identify_realm_name_category(client_trustroot)
             if client_trustroot_name_category not in ['eth', 'ens', 'reverse_ens']:
                 return Deny(message='invalid client trustroot "{}" provided'.format(client_trustroot))
             self.log.info('{func} using client trustroot {trustroot_name_category} "{trustroot}" from client HELLO',
