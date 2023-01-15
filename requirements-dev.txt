@@ -9,14 +9,14 @@ pip-licenses>=3.5.3
 pandoc>=2.1
 nbsphinx>=0.8.8
 sphinx-autodoc-typehints>=1.17.0
-# jinja2>=2.10.1
+jinja2>=3.1.2
 # jinja2-highlight>=0.6.1
 humanize>=4.0.0
 
 # https://github.com/crossbario/crossbar/pull/1943#issuecomment-1037569885
 pip>=22.0.3
 
-tox
+tox>=4.2.8
 # detox # detox is unmaintained and incompatible with tox > 3.6
 mock
 pytest<4
