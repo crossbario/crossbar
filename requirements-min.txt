@@ -41,7 +41,7 @@ passlib>=1.7.1
 # twisted/http2 needs <2:
 priority>=1.3.0,<2.0
 prompt-toolkit>=2.0.10
-psutil>=5.8.0
+psutil>=5.9.4
 py-eth-sig-utils>=0.4.0
 py-ubjson>=0.9.0
 pyasn1-modules>=0.2.4
@@ -63,9 +63,9 @@ sortedcontainers>=2.4.0
 stringcase>=1.2.0
 tabulate>=0.8.9
 treq>=22.2.0
-twisted[tls,conch,http2,osx_platform]>=22.2.0; sys_platform == 'darwin'
-twisted[tls,conch,http2,windows_platform]>=22.2.0; sys_platform == 'win32'
-twisted[tls,conch,http2]>=22.2.0; sys_platform != 'darwin' and sys_platform != 'win32'
+twisted[tls,conch,http2,osx_platform]>=22.10.0; sys_platform == 'darwin'
+twisted[tls,conch,http2,windows_platform]>=22.10.0; sys_platform == 'win32'
+twisted[tls,conch,http2]>=22.10.0; sys_platform != 'darwin' and sys_platform != 'win32'
 txaio>=23.1.1
 txtorcon>=22.0.0
 u-msgpack-python>=2.7.1
