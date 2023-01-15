@@ -1,5 +1,5 @@
 attrs>=17.2.0
-autobahn[twisted,encryption,compress,serialization,scram,xbr]>=22.7.1
+autobahn[twisted,encryption,compress,serialization,scram,xbr]>=23.1.1
 base58>=2.1.0
 bcrypt>=3.1.6
 bitstring>=3.1.5
@@ -66,7 +66,7 @@ treq>=22.2.0
 twisted[tls,conch,http2,osx_platform]>=22.2.0; sys_platform == 'darwin'
 twisted[tls,conch,http2,windows_platform]>=22.2.0; sys_platform == 'win32'
 twisted[tls,conch,http2]>=22.2.0; sys_platform != 'darwin' and sys_platform != 'win32'
-txaio>=22.2.1
+txaio>=23.1.1
 txtorcon>=22.0.0
 u-msgpack-python>=2.7.1
 ujson>=5.3.0

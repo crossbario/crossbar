@@ -6,7 +6,7 @@ argon2-cffi-bindings==21.2.0
 arrow==1.2.3
 async-timeout==4.0.2
 attrs==22.2.0
-autobahn==22.12.1
+autobahn==23.1.1
 Automat==22.10.0
 base58==2.1.1
 bcrypt==4.0.1
@@ -30,12 +30,12 @@ docker==6.0.1
 ecdsa==0.18.0
 eth-abi==2.2.0
 eth-account==0.5.9
-eth-hash==0.3.3
+eth-hash==0.5.1
 eth-keyfile==0.5.1
 eth-keys==0.3.4
 eth-rlp==0.2.1
 eth-typing==2.3.0
-eth-utils==1.10.0
+eth-utils==1.9.5
 Flask==1.1.2
 flatbuffers==23.1.4
 frozenlist==1.3.3
@@ -105,7 +105,7 @@ rlp==2.0.1
 sdnotify==0.3.2
 service-identity==21.1.0
 setproctitle==1.3.2
-setuptools==64.0.0
+setuptools==65.6.3
 six==1.16.0
 sortedcontainers==2.4.0
 spake2==0.8
@@ -115,7 +115,7 @@ text-unidecode==1.3
 toolz==0.12.0
 treq==22.2.0
 Twisted==22.10.0
-txaio==22.2.1
+txaio==23.1.1
 txtorcon==22.0.0
 typing_extensions==4.4.0
 u-msgpack-python==2.7.2
@@ -133,6 +133,5 @@ wsaccel==0.6.4
 xbr==21.2.1
 yapf==0.29.0
 yarl==1.8.2
-zipp==3.11.0
 zlmdb==22.6.1
 zope.interface==5.5.2

@@ -18,7 +18,7 @@
  arrow                 1.2.3      Apache Software License                                                                              Chris Smith                                                    
  async-timeout         4.0.2      Apache Software License                                                                              Andrew Svetlov <andrew.svetlov@gmail.com>                      
  attrs                 22.2.0     MIT License                                                                                          Hynek Schlawack                                                
- autobahn              22.12.1    MIT License                                                                                          Crossbar.io Technologies GmbH                                  
+ autobahn              23.1.1     MIT License                                                                                          typedef int GmbH                                               
  base58                2.1.1      MIT License                                                                                          David Keijser                                                  
  bcrypt                4.0.1      Apache Software License                                                                              The Python Cryptographic Authority developers                  
  binaryornot           0.4.4      BSD License                                                                                          Audrey Roy Greenfeld                                           
@@ -41,12 +41,12 @@
  ecdsa                 0.18.0     UNKNOWN                                                                                              Brian Warner                                                   
  eth-abi               2.2.0      MIT License                                                                                          The Ethereum Foundation                                        
  eth-account           0.5.9      MIT License                                                                                          The Ethereum Foundation                                        
- eth-hash              0.3.3      MIT License                                                                                          The Ethereum Foundation                                        
+ eth-hash              0.5.1      MIT License                                                                                          The Ethereum Foundation                                        
  eth-keyfile           0.5.1      MIT License                                                                                          Piper Merriam                                                  
  eth-keys              0.3.4      MIT License                                                                                          Piper Merriam                                                  
  eth-rlp               0.2.1      MIT License                                                                                          The Ethereum Foundation                                        
  eth-typing            2.3.0      MIT License                                                                                          The Ethereum Foundation                                        
- eth-utils             1.10.0     MIT License                                                                                          The Ethereum Foundation                                        
+ eth-utils             1.9.5      MIT License                                                                                          Piper Merriam                                                  
  flatbuffers           23.1.4     Apache Software License                                                                              Derek Bailey                                                   
  frozenlist            1.3.3      Apache Software License                                                                              UNKNOWN                                                        
  h2                    3.2.0      MIT License                                                                                          Cory Benfield                                                  
@@ -116,7 +116,7 @@
  text-unidecode        1.3        Artistic License; GNU General Public License (GPL); GNU General Public License v2 or later (GPLv2+)  Mikhail Korobov                                                
  toolz                 0.12.0     BSD License                                                                                          https://raw.github.com/pytoolz/toolz/master/AUTHORS.md         
  treq                  22.2.0     MIT License                                                                                          David Reid                                                     
- txaio                 22.2.1     MIT License                                                                                          Crossbar.io Technologies GmbH                                  
+ txaio                 23.1.1     MIT License                                                                                          typedef int GmbH                                               
  txtorcon              22.0.0     MIT License                                                                                          meejah                                                         
  typing_extensions     4.4.0      Python Software Foundation License                                                                   UNKNOWN                                                        
  u-msgpack-python      2.7.2      MIT License                                                                                          vsergeev                                                       
@@ -132,6 +132,5 @@
  xbr                   21.2.1     Apache Software License                                                                              Crossbar.io Technologies GmbH                                  
  yapf                  0.29.0     Apache Software License                                                                              Bill Wendling                                                  
  yarl                  1.8.2      Apache Software License                                                                              Andrew Svetlov                                                 
- zipp                  3.11.0     MIT License                                                                                          Jason R. Coombs                                                
  zlmdb                 22.6.1     MIT License                                                                                          Crossbar.io Technologies GmbH                                  
  zope.interface        5.5.2      Zope Public License                                                                                  Zope Foundation and Contributors                               
