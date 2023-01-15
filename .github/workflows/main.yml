@@ -14,7 +14,7 @@ jobs:
     runs-on: [self-hosted, linux, X64] # means matterhorn
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     # must be skipped on self-hosted build slaves (eg matterhorn)
     #
@@ -26,10 +26,10 @@ jobs:
     #     sudo apt install libsnappy-dev
     #     sudo apt install libunwind-dev
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
       with:
-        python-version: '3.9'
+        python-version: '3.11'
         architecture: 'x64'
 
     - name: Install Python package dependencies
@@ -63,7 +63,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
@@ -78,7 +78,7 @@ jobs:
     runs-on: [self-hosted, linux, X64] # means matterhorn
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     # must be skipped on self-hosted build slaves (eg matterhorn)
     #
@@ -90,10 +90,10 @@ jobs:
     #     sudo apt install libsnappy-dev
     #     sudo apt install libunwind-dev
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
       with:
-        python-version: '3.9'
+        python-version: '3.11'
         architecture: 'x64'
 
     - name: Install Python package dependencies
@@ -120,7 +120,7 @@ jobs:
     strategy:
       matrix:
         # https://github.com/actions/setup-python#specifying-a-pypy-version
-        python-version: ['3.7', '3.9', 'pypy-3.8']
+        python-version: ['3.11', 'pypy-3.9']
 
     # https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepscontinue-on-error
@@ -128,7 +128,7 @@ jobs:
 
     steps:
     # Checkout sources
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     # must be skipped on self-hosted build slaves (eg matterhorn)
     #
@@ -146,7 +146,7 @@ jobs:
     # Use this Python
     # https://github.com/actions/setup-python/blob/main/README.md
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -189,15 +189,15 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.9']
+        python-version: ['3.11']
 
     continue-on-error: false
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -241,7 +241,7 @@ jobs:
 
   #   steps:
   #   # Checkout sources
-  #   - uses: actions/checkout@v2
+  #   - uses: actions/checkout@v3
 
   #   # Use this Python
   #   # https://github.com/marketplace/actions/setup-python
@@ -250,7 +250,7 @@ jobs:
   #   # https://github.com/actions/setup-python/issues/45
   #   # https://github.com/sqlalchemy/sqlalchemy/blob/master/.github/workflows/create-wheels.yaml
   #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v2
+  #     uses: actions/setup-python@v3
   #     with:
   #       python-version: ${{ matrix.python-version }}
   #       architecture: aarch64
