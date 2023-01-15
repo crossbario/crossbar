@@ -87,15 +87,15 @@ wheel:
 
 # test all syntax check target on the host via tox
 test_quick:
-	tox -e  sphinx,flake8,mypy,yapf .
+	tox -e  sphinx,flake8,mypy,yapf
 
 # test all targets on the host via tox
 test_all:
-	tox -e  sphinx,flake8,mypy,yapf,bandit,py39-pinned-trial,py39-unpinned-trial,py39-abtrunk-trial,py39-examples,pytest,functests-cb,functests-cfc,py39-api-1,py39-cli-0,py39-cli-1,py39-cli-2,py39-cli-3 .
+	tox -e  sphinx,flake8,mypy,yapf,bandit,py39-pinned-trial,py39-unpinned-trial,py39-abtrunk-trial,py39-examples,pytest,functests-cb,functests-cfc,py39-api-1,py39-cli-0,py39-cli-1,py39-cli-2,py39-cli-3
 
 # test all broken (FIXME) targets
 test_fixme:
-	tox -e	py39-automate-1,py39-automate-2,py39-xbrnetwork-1 .
+	tox -e	py39-automate-1,py39-automate-2,py39-xbrnetwork-1
 
 test_cb_apperrors:
 	pytest -sv --no-install test/functests/cbtests/test_cb_apperrors.py
