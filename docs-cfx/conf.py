@@ -2,7 +2,7 @@
 #
 # Configuration file for the Sphinx documentation builder.
 #
-# Copyright (c) Crossbar.io Technologies GmbH. All rights reserved.
+# Copyright (c) typedef int GmbH. All rights reserved.
 #
 
 import os

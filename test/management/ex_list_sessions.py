@@ -1,4 +1,4 @@
-# Copyright (c) Crossbar.io Technologies GmbH, licensed under The MIT License (MIT)
+# Copyright (c) typedef int GmbH, licensed under The MIT License (MIT)
 
 import pprint
 

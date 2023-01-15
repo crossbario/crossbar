@@ -1,6 +1,6 @@
 #####################################################################################
 #
-#  Copyright (c) Crossbar.io Technologies GmbH
+#  Copyright (c) typedef int GmbH
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
@@ -77,7 +77,7 @@ setup(
     version=__version__,
     description='Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices.',
     long_description=long_description,
-    author='Crossbar.io Technologies GmbH',
+    author='typedef int GmbH',
     url='http://crossbar.io/',
     platforms=('Any'),
     license="European Union Public Licence 1.2 (EUPL 1.2)",

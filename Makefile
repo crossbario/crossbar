@@ -169,3 +169,6 @@ find_uris:
 
 find_registers:
 	find crossbar -name "*.py" -exec grep -Hi -n2 "@wamp.register" {} \;
+
+fix_copyright:
+	find . -type f -exec sed -i 's/Copyright (c) Crossbar.io Technologies GmbH/Copyright (c) typedef int GmbH/g' {} \;
