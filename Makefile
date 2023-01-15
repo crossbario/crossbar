@@ -112,6 +112,9 @@ test_cb_cookie:
 test_wap:
 	trial crossbar.webservice.test
 
+test_wildcard:
+	trial crossbar.router.test.test_wildcard
+
 docs:
 	cd docs && sphinx-build -b html . _build
 
