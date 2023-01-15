@@ -105,6 +105,7 @@ jobs:
     - name: Install Crossbar.io packages
       run: |
         pip install .
+        pip install -U git+https://github.com/erikrose/parsimonious.git
 
     - name: Run Sphinx
       run: tox -c tox.ini -e sphinx
@@ -159,6 +160,7 @@ jobs:
     - name: Install Crossbar.io packages
       run: |
         pip install .
+        pip install -U git+https://github.com/erikrose/parsimonious.git
 
     - name: Display Crossbar.io version
       run: |
@@ -210,6 +212,7 @@ jobs:
     - name: Install Crossbar.io packages
       run: |
         pip install .
+        pip install -U git+https://github.com/erikrose/parsimonious.git
 
     - name: Display Crossbar.io version
       run: |
