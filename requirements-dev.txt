@@ -23,7 +23,11 @@ pip>=22.0.3
 tox>=4.2.8
 # detox # detox is unmaintained and incompatible with tox > 3.6
 mock
-pytest<4
+
+# https://github.com/pytest-dev/pytest/pull/8540
+# fixes "TypeError: required field "lineno" missing from alias" on Python 3.10+
+pytest>=7.2.1
+
 # py-evm
 # git+https://github.com/ethereum/py-evm.git@master#egg=py-evm
 # eth-tester
