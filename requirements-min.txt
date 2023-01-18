@@ -1,4 +1,4 @@
-attrs>=17.2.0
+attrs>=22.2.0
 autobahn[twisted,encryption,compress,serialization,scram,xbr]>=23.1.1
 base58>=2.1.0
 bcrypt>=3.1.6
@@ -11,9 +11,10 @@ constantly>=15.1.0
 cookiecutter>=1.6.0
 cryptography>=2.6.1
 docker>=3.5.0
+git+https://github.com/ethereum/eth-abi.git@master#v4.0.0
 eth-account>=0.5.4
 eth-typing>=2.2.2
-flask>=1.1.1
+flask>=2.2.1
 git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
 git+https://github.com/crossbario/py-multihash.git@remove-dep-version-limits#egg=py-multihash
 # twisted/http2 needs <4:
@@ -29,8 +30,6 @@ iso8601>=0.1.12
 jinja2_highlight>=0.6.1
 jinja2>=3.1.2
 lmdb>=1.1.1
-# ImportError: cannot import name 'soft_unicode' from 'markupsafe'
-# MarkupSafe>=1.1.1,<2
 MarkupSafe>=2.1.1
 mistune>=0.8.4
 morphys>=1.0
@@ -75,8 +74,7 @@ urllib3>=1.21.1,<1.27
 validate-email>=1.3
 watchdog>=2.1.8
 web3>=5.29.2
-# ImportError: cannot import name 'escape' from 'werkzeug.utils'
-werkzeug>=0.14.1,<2
+werkzeug>=2.2.0
 wsaccel>=0.6.2; platform_python_implementation=='CPython'
 xbr>=21.2.1
 zlmdb>=22.6.1
