@@ -28,15 +28,15 @@ cryptography==39.0.0
 cytoolz==0.12.1
 docker==6.0.1
 ecdsa==0.18.0
-eth-abi==2.2.0
-eth-account==0.5.9
+eth-abi @ git+https://github.com/ethereum/eth-abi.git@78c42caaa567e2e49b03c18706e1adda1828505d
+eth-account @ git+https://github.com/ethereum/eth-account.git@c5552a56b349e4c205089f50ddf54e942d4d9bc9
 eth-hash==0.5.1
-eth-keyfile==0.5.1
-eth-keys==0.3.4
-eth-rlp==0.2.1
-eth-typing==2.3.0
-eth-utils==1.9.5
-Flask==1.1.2
+eth-keyfile==0.6.0
+eth-keys==0.4.0
+eth-rlp==0.3.0
+eth-typing==3.2.0
+eth-utils==2.1.0
+Flask==2.2.2
 flatbuffers==23.1.4
 frozenlist==1.3.3
 h2==3.2.0
@@ -50,7 +50,6 @@ hyperlink==21.0.0
 idna==2.5
 importlib-resources==5.10.2
 incremental==22.10.0
-ipfshttpclient==0.8.0a2
 iso8601==1.1.0
 itsdangerous==2.1.2
 Jinja2==3.1.2
@@ -59,26 +58,25 @@ jinja2-time==0.2.0
 jsonschema==4.17.3
 lmdb==1.4.0
 lru-dict==1.1.8
-MarkupSafe==2.1.1
+MarkupSafe==2.1.2
 mistune==2.0.4
 mnemonic==0.20
 morphys==1.0
 msgpack==1.0.4
-multiaddr==0.0.9
 multidict==6.0.4
 mypy-extensions==0.4.3
 netaddr==0.8.0
 numpy==1.24.1
 packaging==23.0
-parsimonious==0.8.1
+parsimonious==0.9.0
 passlib==1.7.4
 prettytable==3.6.0
 priority==1.3.0
 prompt-toolkit==3.0.36
-protobuf==3.19.5
+protobuf==4.21.12
 psutil==5.9.4
 py-cid @ git+https://github.com/crossbario/py-cid.git@e1dc52a43ced53845679405f78d92fb18f093653
-py-ecc==5.2.0
+py-ecc==6.0.0
 py-eth-sig-utils==0.4.0
 py-multibase==1.0.3
 py-multicodec==0.2.1
@@ -100,8 +98,9 @@ python-snappy==0.6.1
 PyTrie==0.4.0
 PyYAML==6.0
 qrcode==7.3.1
+regex==2022.10.31
 requests==2.28.2
-rlp==2.0.1
+rlp==3.0.0
 sdnotify==0.3.2
 service-identity==21.1.0
 setproctitle==1.3.2
@@ -125,10 +124,10 @@ validate-email==1.3
 varint==1.0.2
 watchdog==2.2.1
 wcwidth==0.2.6
-web3==5.31.3
+web3 @ git+https://github.com/ethereum/web3.py.git@96b7785cfee9c71a72ce40981004a887543ae860
 websocket-client==1.4.2
-websockets==9.1
-Werkzeug==1.0.1
+websockets==10.4
+Werkzeug==2.2.2
 wsaccel==0.6.4
 xbr==21.2.1
 yapf==0.29.0

@@ -11,8 +11,10 @@ constantly>=15.1.0
 cookiecutter>=1.6.0
 cryptography>=2.6.1
 docker>=3.5.0
+# required for python 3.11+ https://github.com/ethereum/eth-abi/pull/194
 git+https://github.com/ethereum/eth-abi.git@master#v4.0.0
-eth-account>=0.5.4
+# required for python 3.11+ (https://github.com/ethereum/eth-account/pull/212)
+git+https://github.com/ethereum/eth-account.git#v0.8.0
 eth-typing>=2.2.2
 flask>=2.2.1
 git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
@@ -35,8 +37,9 @@ mistune>=0.8.4
 morphys>=1.0
 netaddr>=0.8.0
 numpy>=1.20.0
-# fixes: "ImportError: cannot import name 'getargspec' from 'inspect'" on Python 3.10+
-parsimonious>=0.10.0
+# python 3.10+ requires >=0.9.0 ("ImportError: cannot import name 'getargspec' from 'inspect'")
+# eth-abi requires <0.10.0 (https://github.com/ethereum/eth-abi/pull/194)
+parsimonious>=0.9.0,<0.10.0
 passlib>=1.7.1
 # twisted/http2 needs <2:
 priority>=1.3.0,<2.0
@@ -73,7 +76,8 @@ ujson>=5.3.0
 urllib3>=1.21.1,<1.27
 validate-email>=1.3
 watchdog>=2.1.8
-web3>=5.29.2
+# web3 5.31.3 depends on eth-abi<3.0.0 and >=2.2.0
+git+https://github.com/ethereum/web3.py.git#v6.0.0-beta.9
 werkzeug>=2.2.0
 wsaccel>=0.6.2; platform_python_implementation=='CPython'
 xbr>=21.2.1
