@@ -34,7 +34,7 @@ eth-hash==0.5.1
 eth-keyfile==0.6.0
 eth-keys==0.4.0
 eth-rlp==0.3.0
-eth-typing==3.2.0
+eth-typing @ git+https://github.com/ethereum/eth-typing.git@c93c57f7331c8e515cf72e5893bf2c9cec7e5c69
 eth-utils==2.1.0
 Flask==2.2.2
 flatbuffers==23.1.4

@@ -15,7 +15,7 @@ docker>=3.5.0
 git+https://github.com/ethereum/eth-abi.git@master#v4.0.0
 # required for python 3.11+ (https://github.com/ethereum/eth-account/pull/212)
 git+https://github.com/ethereum/eth-account.git#v0.8.0
-eth-typing>=2.2.2
+git+https://github.com/ethereum/eth-typing.git#v3.2.0
 flask>=2.2.1
 git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
 git+https://github.com/crossbario/py-multihash.git@remove-dep-version-limits#egg=py-multihash
