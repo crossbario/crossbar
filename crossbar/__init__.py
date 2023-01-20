@@ -12,6 +12,22 @@ import sys
 
 import psutil
 
+# monkey patch eth_abi for master branch (which we need for python 3.11)
+# https://github.com/ethereum/eth-abi/blob/master/docs/release_notes.rst#breaking-changes
+# https://github.com/ethereum/eth-abi/pull/161
+# ImportError: cannot import name 'encode_single' from 'eth_abi' (/home/oberstet/cpy311_2/lib/python3.11/site-packages/eth_abi/__init__.py)
+import eth_abi
+if not hasattr(eth_abi, 'encode_abi') and hasattr(eth_abi, 'encode'):
+    eth_abi.encode_abi = eth_abi.encode
+if not hasattr(eth_abi, 'encode_single') and hasattr(eth_abi, 'encode'):
+    eth_abi.encode_single = eth_abi.encode
+
+# monkey patch web3 for master branch / upcoming v6 (which we need for python 3.11)
+# AttributeError: type object 'Web3' has no attribute 'toChecksumAddress'. Did you mean: 'to_checksum_address'?
+import web3
+if not hasattr(web3.Web3, 'toChecksumAddress') and hasattr(web3.Web3, 'to_checksum_address'):
+    web3.Web3.toChecksumAddress = web3.Web3.to_checksum_address
+
 from crossbar._util import hl
 from crossbar._version import __version__, __build__
 
