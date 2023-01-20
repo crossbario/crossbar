@@ -5,6 +5,7 @@
 #
 #####################################################################################
 
+import unittest
 from io import StringIO as NativeStringIO
 
 from twisted.internet.selectreactor import SelectReactor
@@ -23,10 +24,6 @@ import twisted
 
 class CLITestBase(TestCase):
 
-    # the tests here a mostly bogus, as they test for log message content,
-    # not actual functionality
-    skip = True
-
     def setUp(self):
 
         self._subprocess_timeout = 15
@@ -37,10 +34,11 @@ class CLITestBase(TestCase):
         self.stderr = NativeStringIO()
         self.stdout = NativeStringIO()
 
-        self.patch(_logging, "_stderr", self.stderr)
-        self.patch(_logging, "_stdout", self.stdout)
-        self.patch(_logging, "_loggers", WeakKeyDictionary())
-        self.patch(_logging, "_loglevel", "info")
+        # FIXME
+        # self.patch(_logging.sys, "_stderr", self.stderr)
+        # self.patch(_logging.sys, "_stdout", self.stdout)
+        # self.patch(_logging.sys, "_loggers", WeakKeyDictionary())
+        # self.patch(_logging.sys, "_loglevel", "info")
         return super(CLITestBase, self).setUp()
 
     def tearDown(self):
@@ -48,6 +46,7 @@ class CLITestBase(TestCase):
         sys.stderr = sys.__stderr__
 
 
+@unittest.skip("FIXME (broken unit test)")
 class VersionTests(CLITestBase):
     """
     Tests for `crossbar version`.
@@ -79,6 +78,7 @@ class VersionTests(CLITestBase):
         self.assertIn(("[twisted.internet.selectreactor.SelectReactor]"), self.stdout.getvalue())
 
 
+@unittest.skip("FIXME (broken unit test)")
 class StartTests(CLITestBase):
     """
     Tests for `crossbar start`.
@@ -162,6 +162,7 @@ class StartTests(CLITestBase):
                                                               pid=9999999), self.stdout.getvalue())
 
 
+@unittest.skip("FIXME (broken unit test)")
 class ConvertTests(CLITestBase):
     """
     Tests for `crossbar convert`.
