@@ -49,6 +49,7 @@ def make_lc(self, reactor, func):
 
 
 if not os.environ.get("CB_FULLTESTS"):
+
     class ContainerRunningTests(CLITestBase):
         def setUp(self):
 
@@ -1090,7 +1091,6 @@ if not os.environ.get("CB_FULLTESTS"):
 
             self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
-
     class InitTests(CLITestBase):
         def test_hello(self):
             def _check(lc, reactor):
@@ -1105,7 +1105,9 @@ if not os.environ.get("CB_FULLTESTS"):
             cbdir = os.path.join(appdir, ".crossbar")
 
             reactor = SelectReactor()
-            main.main("crossbar", ["init", "--appdir={}".format(appdir)], reactor=reactor, personality=edge.Personality)
+            main.main("crossbar", ["init", "--appdir={}".format(appdir)],
+                      reactor=reactor,
+                      personality=edge.Personality)
 
             self.assertIn("Application template initialized", self.stdout.getvalue())
 

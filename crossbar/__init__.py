@@ -27,6 +27,8 @@ if not hasattr(eth_abi, 'encode_single') and hasattr(eth_abi, 'encode'):
 import web3
 if not hasattr(web3.Web3, 'toChecksumAddress') and hasattr(web3.Web3, 'to_checksum_address'):
     web3.Web3.toChecksumAddress = web3.Web3.to_checksum_address
+if not hasattr(web3.Web3, 'isConnected') and hasattr(web3.Web3, 'is_connected'):
+    web3.Web3.isConnected = web3.Web3.is_connected
 
 from crossbar._util import hl
 from crossbar._version import __version__, __build__
