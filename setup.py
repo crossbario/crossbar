@@ -32,15 +32,12 @@ install_requires = []
 # https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
 dependency_links = []
 
-if False:
-    extras_require = {}
-else:
-    extras_require = {
-        'dev': []
-    }
-    with open('requirements-dev.txt') as f:
-        for line in f.read().splitlines():
-            extras_require['dev'].append(line.strip())
+extras_require = {
+    'dev': []
+}
+with open('requirements-dev.txt') as f:
+    for line in f.read().splitlines():
+        extras_require['dev'].append(line.strip())
 
 with open('requirements-min.txt') as f:
     for line in f.read().splitlines():
