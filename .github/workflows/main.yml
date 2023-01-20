@@ -101,9 +101,9 @@ jobs:
         pip install -r requirements-dev.txt
         pip install -U pip setuptools
 
-    # pip install -U --force-reinstall -r requirements-latest.txt
     - name: Install Crossbar.io packages
       run: |
+        pip install -U --force-reinstall -r requirements-latest.txt
         pip install .
 
     - name: Run Sphinx
@@ -155,9 +155,9 @@ jobs:
         pip install -r requirements-dev.txt
         pip install -U pip setuptools
 
-    # pip install -U --force-reinstall -r requirements-latest.txt
     - name: Install Crossbar.io packages
       run: |
+        pip install -U --force-reinstall -r requirements-latest.txt
         pip install .
 
     - name: Display Crossbar.io version
@@ -206,9 +206,9 @@ jobs:
         pip install -r requirements-dev.txt
         pip install -U pip setuptools
 
-    # pip install -U --force-reinstall -r requirements-latest.txt
     - name: Install Crossbar.io packages
       run: |
+        pip install -U --force-reinstall -r requirements-latest.txt
         pip install .
 
     - name: Display Crossbar.io version
