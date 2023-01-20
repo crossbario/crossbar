@@ -12,9 +12,6 @@ from twisted.internet.selectreactor import SelectReactor
 
 from crossbar.test import TestCase
 from crossbar.node import main
-from crossbar import _logging
-
-from weakref import WeakKeyDictionary
 
 import os
 import sys
@@ -23,7 +20,6 @@ import twisted
 
 
 class CLITestBase(TestCase):
-
     def setUp(self):
 
         self._subprocess_timeout = 15
@@ -35,6 +31,8 @@ class CLITestBase(TestCase):
         self.stdout = NativeStringIO()
 
         # FIXME
+        # from crossbar import _logging
+        # from weakref import WeakKeyDictionary
         # self.patch(_logging.sys, "_stderr", self.stderr)
         # self.patch(_logging.sys, "_stdout", self.stdout)
         # self.patch(_logging.sys, "_loggers", WeakKeyDictionary())
@@ -97,7 +95,7 @@ class StartTests(CLITestBase):
         A basic start, that doesn't actually enter the reactor.
         """
         with open(self.config, "w") as f:
-            f.write("""{"controller": {}}""")
+            f.write("""{"version": 2, "controller": {}}""")
 
         reactor = SelectReactor()
         reactor.run = lambda: False
@@ -130,7 +128,7 @@ class StartTests(CLITestBase):
         Running `crossbar start --logtofile` will log to cbdir/node.log.
         """
         with open(self.config, "w") as f:
-            f.write("""{"controller": {}}""")
+            f.write("""{"version": 2, "controller": {}}""")
 
         reactor = SelectReactor()
         reactor.run = lambda: None
@@ -147,7 +145,7 @@ class StartTests(CLITestBase):
     def test_stalePID(self):
 
         with open(self.config, "w") as f:
-            f.write("""{"controller": {}}""")
+            f.write("""{"version": 2, "controller": {}}""")
 
         with open(os.path.join(self.cbdir, "node.pid"), "w") as f:
             f.write("""{"pid": 9999999}""")

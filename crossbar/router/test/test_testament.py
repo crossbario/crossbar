@@ -18,7 +18,6 @@ from crossbar._logging import LogCapturer
 
 @unittest.skip("FIXME (broken unit test)")
 class TestamentTests(trial.unittest.TestCase):
-
     def setUp(self):
 
         self.logs = LogCapturer()

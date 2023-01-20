@@ -5,7 +5,6 @@
 #
 #####################################################################################
 
-import unittest
 from twisted import trial
 
 from pytrie import StringTrie

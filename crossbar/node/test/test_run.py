@@ -13,6 +13,7 @@ from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.task import LoopingCall
 
 from crossbar.node import main
+from crossbar import edge
 from .test_cli import CLITestBase
 
 # Turn this to `True` to print the stdout/stderr of the Crossbars spawned
@@ -61,6 +62,9 @@ class ContainerRunningTests(CLITestBase):
 
     def _start_run(self, config, app, stdout_expected, stderr_expected, end_on):
 
+        if 'version' not in config:
+            config['version'] = 2
+
         with open(self.config, "wb") as f:
             f.write(json.dumps(config, ensure_ascii=False).encode('utf8'))
 
@@ -74,7 +78,9 @@ class ContainerRunningTests(CLITestBase):
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-        main.main("crossbar", ["start", "--cbdir={}".format(self.cbdir), "--logformat=syslogd"], reactor=reactor)
+        main.main("crossbar", ["start", "--cbdir={}".format(self.cbdir), "--logformat=syslogd"],
+                  reactor=reactor,
+                  personality=edge.Personality)
 
         out = self.stdout.getvalue()
         err = self.stderr.getvalue()
@@ -102,6 +108,8 @@ class ContainerRunningTests(CLITestBase):
                     pass
 
         config = {
+            "version":
+            2,
             "controller": {},
             "workers": [{
                 "type":
@@ -117,10 +125,12 @@ class ContainerRunningTests(CLITestBase):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -194,6 +204,8 @@ class MySession(ApplicationSession):
                     pass
 
         config = {
+            "version":
+            2,
             "controller": {},
             "workers": [{
                 "type":
@@ -209,10 +221,12 @@ class MySession(ApplicationSession):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -261,6 +275,8 @@ print("Loaded the component!")
                     pass
 
         config = {
+            "version":
+            2,
             "controller": {},
             "workers": [{
                 "type":
@@ -276,10 +292,12 @@ print("Loaded the component!")
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -354,10 +372,12 @@ class MySession(ApplicationSession):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -454,10 +474,12 @@ class MySession(ApplicationSession):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -534,10 +556,12 @@ class MySession(ApplicationSession):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -621,10 +645,12 @@ class MySession(ApplicationSession):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -706,10 +732,12 @@ class MySession(ApplicationSession):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -780,6 +808,8 @@ class MySession(ApplicationSession):
     def test_failure5(self):
 
         config = {
+            "version":
+            2,
             "controller": {},
             "workers": [{
                 "type":
@@ -792,10 +822,12 @@ class MySession(ApplicationSession):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -870,6 +902,8 @@ class MySession(ApplicationSession):
     def test_failure6(self):
 
         config = {
+            "version":
+            2,
             "controller": {},
             "workers": [{
                 "type":
@@ -882,10 +916,12 @@ class MySession(ApplicationSession):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -980,10 +1016,12 @@ class MySession(ApplicationSession):
                         "anonymous",
                         "permissions": [{
                             "uri": "*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }]
                     }]
                 }],
@@ -1066,7 +1104,7 @@ class InitTests(CLITestBase):
         cbdir = os.path.join(appdir, ".crossbar")
 
         reactor = SelectReactor()
-        main.main("crossbar", ["init", "--appdir={}".format(appdir), "--template=hello:python"], reactor=reactor)
+        main.main("crossbar", ["init", "--appdir={}".format(appdir)], reactor=reactor, personality=edge.Personality)
 
         self.assertIn("Application template initialized", self.stdout.getvalue())
 
@@ -1076,7 +1114,9 @@ class InitTests(CLITestBase):
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-        main.main("crossbar", ["start", "--cbdir={}".format(cbdir.path), "--logformat=syslogd"], reactor=reactor)
+        main.main("crossbar", ["start", "--cbdir={}".format(cbdir.path), "--logformat=syslogd"],
+                  reactor=reactor,
+                  personality=edge.Personality)
 
         stdout_expected = ["published to 'oncounter'"]
 

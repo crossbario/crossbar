@@ -78,7 +78,6 @@ class FakeWAMPTransport(object):
 
 @unittest.skip("FIXME (broken unit test)")
 class RouterWorkerSessionTests(TestCase):
-
     def setUp(self):
         """
         Set up the common component config.
@@ -245,7 +244,6 @@ class RouterWorkerSessionTests(TestCase):
 
 @unittest.skip("FIXME (broken unit test)")
 class WebTests(TestCase):
-
     def setUp(self):
         self.cbdir = self.mktemp()
         os.makedirs(self.cbdir)
@@ -317,7 +315,6 @@ class WebTests(TestCase):
 
 @unittest.skip("FIXME (broken unit test)")
 class WSGITests(TestCase):
-
     def setUp(self):
         self.cbdir = self.mktemp()
         os.makedirs(self.cbdir)
