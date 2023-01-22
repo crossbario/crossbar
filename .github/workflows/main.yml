@@ -176,14 +176,6 @@ jobs:
       run: |
         pytest -sv crossbar
 
-    - name: Run integration tests (Autobahn|Python Client)
-      run: |
-        ./test/test_ab_examples.sh
-
-    - name: Run command line tests (Crossbar.io CLI) 0
-      run: |
-        ./test/test_cli_0.sh
-
   functional-test-amd64:
     runs-on: [self-hosted, linux, X64] # means matterhorn
 
@@ -215,9 +207,33 @@ jobs:
       run: |
         crossbar version
 
-    - name: Run functional tests using direct node management APIs
+    - name: Run integration tests (Autobahn|Python Client)
+      run: |
+        ./test/test_ab_examples.sh
+
+    - name: Run functional tests - cbtests
       run: |
         pytest -sv --no-install ./test/functests/cbtests
+
+    - name: Run functional tests - cfctests
+      run: |
+        pytest -sv --no-install ./test/functests/cfctests
+
+    # - name: Run command line tests (Crossbar.io CLI) 0
+    #   run: |
+    #     ./test/test_cli_0.sh
+
+    # - name: Run command line tests (Crossbar.io CLI) 0
+    #   run: |
+    #     ./test/test_cli_1.sh
+
+    # - name: Run command line tests (Crossbar.io CLI) 0
+    #   run: |
+    #     ./test/test_cli_2.sh
+
+    # - name: Run command line tests (Crossbar.io CLI) 0
+    #   run: |
+    #     ./test/test_cli_3.sh
 
   # FIXME: https://github.com/crossbario/crossbar/issues/1842
   #
