@@ -17,7 +17,7 @@ cached-property==1.5.2
 cbor2==5.4.6
 certifi==2022.12.7
 cffi==1.15.1
-cfxdb==22.6.1
+cfxdb==23.1.1
 chardet==5.1.0
 charset-normalizer==2.1.1
 click==8.1.3
@@ -37,7 +37,7 @@ eth-rlp==0.3.0
 eth-typing @ git+https://github.com/ethereum/eth-typing.git@c93c57f7331c8e515cf72e5893bf2c9cec7e5c69
 eth-utils==2.1.0
 Flask==2.2.2
-flatbuffers==23.1.4
+flatbuffers==23.1.21
 frozenlist==1.3.3
 h2==3.2.0
 hashin==0.17.0
@@ -132,5 +132,5 @@ wsaccel==0.6.4
 xbr==21.2.1
 yapf==0.29.0
 yarl==1.8.2
-zlmdb==22.6.1
+zlmdb==23.1.1
 zope.interface==5.5.2

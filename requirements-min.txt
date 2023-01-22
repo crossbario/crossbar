@@ -4,7 +4,7 @@ base58>=2.1.1
 bcrypt>=4.0.1
 bitstring>=4.0.1
 cbor2>=5.4.6
-cfxdb>=22.6.1
+cfxdb>=23.1.1
 click>=8.1.3
 colorama>=0.4.6
 constantly>=15.1.0
@@ -83,5 +83,5 @@ git+https://github.com/ethereum/web3.py.git#v6.0.0-beta.9
 werkzeug>=2.2.2
 wsaccel>=0.6.4; platform_python_implementation=='CPython'
 xbr>=21.2.1
-zlmdb>=22.6.1
+zlmdb>=23.1.1
 zope.interface>=5.5.2
