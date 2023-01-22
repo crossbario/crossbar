@@ -150,14 +150,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Python package dependencies
-      run: |
-        pip install -r requirements-dev.txt
-        pip install -U pip setuptools
+    # - name: Install Python package dependencies
+    #   run: |
+    #     pip install -r requirements-dev.txt
+    #     pip install -U pip setuptools
 
+    # pip install -U --force-reinstall -r requirements-latest.txt
     - name: Install Crossbar.io packages
       run: |
-        pip install -U --force-reinstall -r requirements-latest.txt
         pip install .
 
     - name: Display Crossbar.io version

@@ -92,7 +92,8 @@ setup(
     },
     packages=find_packages(),
     include_package_data=True,
-    data_files=[('.', ['crossbar/LICENSE', 'crossbar/LICENSES-OSS', 'crossbar.ico'])],
+    data_files=[('.', ['crossbar/LICENSE', 'crossbar/LICENSES-OSS', 'crossbar.ico', 'requirements-dev.txt',
+                       'requirements-latest.txt', 'requirements-min.txt', 'requirements-pinned.txt', 'requirements.txt'])],
     zip_safe=False,
     python_requires='>=3.7',
 
@@ -108,6 +109,7 @@ setup(
                  "Programming Language :: Python :: 3.8",
                  "Programming Language :: Python :: 3.9",
                  "Programming Language :: Python :: 3.10",
+                 "Programming Language :: Python :: 3.11",
                  "Programming Language :: Python :: Implementation :: CPython",
                  "Programming Language :: Python :: Implementation :: PyPy",
                  "Topic :: Internet",
