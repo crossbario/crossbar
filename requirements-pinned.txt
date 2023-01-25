@@ -124,7 +124,7 @@ validate-email==1.3
 varint==1.0.2
 watchdog==2.2.1
 wcwidth==0.2.6
-web3 @ git+https://github.com/ethereum/web3.py.git@96b7785cfee9c71a72ce40981004a887543ae860
+web3 @ git+https://github.com/ethereum/web3.py.git@29cc5f24ef4164cf8556cfc70ee8a1098b044eb9
 websocket-client==1.4.2
 websockets==10.4
 Werkzeug==2.2.2

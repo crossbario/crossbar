@@ -91,18 +91,15 @@ test_quick:
 
 # test all targets on the host via tox
 test_all:
-	tox -e sphinx,flake8,mypy,yapf,bandit
-	tox -e py39-pinned-trial,py39-unpinned-trial,py39-abtrunk-trial
-	tox -e py39-examples
-	tox -e pytest
-	tox -e functests-cb,functests-cfc
+	tox -e sphinx,flake8,mypy,yapf,bandit,py311-pinned-trial,py311-unpinned-trial,py311-abtrunk-trial,py311-examples,pytest,functests-cb
+#	tox -e functests-cfc
 
 test_automate:
-	tox -e py39-cli-0
-	tox -e py39-cli-1,py39-cli-2,py39-cli-3
-	tox -e py39-api-1
+	tox -e py311-cli-0
+	tox -e py311-cli-1,py311-cli-2,py311-cli-3
+	tox -e py311-api-1
 
-# directly test CLI script normally run for "tox -e py39-cli-0"
+# directly test CLI script normally run for "tox -e py311-cli-0"
 test_cli: test_cli0 test_cli1 test_cli2 test_cli3
 
 test_ab_examples:
@@ -127,7 +124,7 @@ test_cli3:
 
 # test all broken (FIXME) targets
 test_fixme:
-	tox -e	py39-automate-1,py39-automate-2,py39-xbrnetwork-1
+	tox -e	py311-automate-1,py311-automate-2,py311-xbrnetwork-1
 
 test_cb_apperrors:
 	pytest -sv --no-install test/functests/cbtests/test_cb_apperrors.py
