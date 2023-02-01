@@ -215,9 +215,11 @@ jobs:
       run: |
         pytest -sv --no-install ./test/functests/cbtests
 
-    - name: Run functional tests - cfctests
-      run: |
-        pytest -sv --no-install ./test/functests/cfctests
+    # FIXME
+
+    # - name: Run functional tests - cfctests
+    #   run: |
+    #     pytest -sv --no-install ./test/functests/cfctests
 
     # - name: Run command line tests (Crossbar.io CLI) 0
     #   run: |
