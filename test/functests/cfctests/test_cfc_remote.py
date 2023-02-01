@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
+# Copyright (c) typedef int GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -25,9 +25,9 @@ from autobahn.wamp.exception import ApplicationError
 @inlineCallbacks
 def _prepare(management_session, mrealm_id):
     nodes = {
-        'node1': 'a35a92c77d5cc0d289749a895f91981834a78a2a47c8275081c587d1886f4528',
-        'node2': '8ec0d95b623c59d606283c0f698b3e189329433c5f34d46769ee2707ef277d9d',
-        'node3': '28d8696911a11399f29576ca10ac38a2d499f1264ccbea36d395184eb3049675',
+        'node1': '7be45c5ea077aff51973b9af8cadea31955087f9cd483bd57b51c3b7da4bc623',
+        'node2': '72ada0f4af4dde782a68ca2f4604b53babc79506d2e66474858771411670ccaf',
+        'node3': '539c9c30f65531751261101898ca38b2441b3b4e5121513c5c4ee36599d4726f',
     }
 
     new_mrealm = {

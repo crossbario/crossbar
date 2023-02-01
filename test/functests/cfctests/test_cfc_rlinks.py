@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
+# Copyright (c) typedef int GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -20,14 +20,14 @@ from crossbar.common.key import _read_node_key
 # do not directly import fixtures, or session-scoped ones will get run twice.
 from ..helpers import *
 
-if False:
-    node1_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../cf1/.crossbar/')
-    node2_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../cf2/.crossbar/')
-    node3_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../cf3/.crossbar/')
-else:
+if os.path.isfile('./test/cf1/.crossbar/key.pub'):
     node1_cbdir = './test/cf1/.crossbar/'
     node2_cbdir = './test/cf2/.crossbar/'
     node3_cbdir = './test/cf3/.crossbar/'
+else:
+    node1_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../cf1/.crossbar/')
+    node2_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../cf2/.crossbar/')
+    node3_cbdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../cf3/.crossbar/')
 
 node1_pubkey = _read_node_key(node1_cbdir, private=False)['hex']
 node2_pubkey = _read_node_key(node2_cbdir, private=False)['hex']

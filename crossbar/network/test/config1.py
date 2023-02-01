@@ -1,5 +1,5 @@
 # coding=utf8
-# XBR Network - Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
+# XBR Network - Copyright (c) typedef int GmbH. Licensed under EUPLv1.2.
 
 from eth_account import Account
 

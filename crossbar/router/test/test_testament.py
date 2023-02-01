@@ -1,11 +1,13 @@
 #####################################################################################
 #
-#  Copyright (c) Crossbar.io Technologies GmbH
+#  Copyright (c) typedef int GmbH
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
-from twisted.trial import unittest
+import unittest
+
+from twisted import trial
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
@@ -14,15 +16,8 @@ from .helpers import make_router_and_realm, connect_application_session
 from crossbar._logging import LogCapturer
 
 
-class TestamentTests(unittest.TestCase):
-
-    # FIXME:
-    # [ERROR] Traceback (most recent call last):
-    # File "/home/oberstet/scm/crossbario/crossbar/crossbar/router/test/test_testament.py", line 203, in test_one_scope_does_not_affect_other
-    # d = session.call("wamp.session.add_testament", "com.test.dc",
-    # builtins.AttributeError: 'NoneType' object has no attribute 'call'
-    skip = True
-
+@unittest.skip("FIXME (broken unit test)")
+class TestamentTests(trial.unittest.TestCase):
     def setUp(self):
 
         self.logs = LogCapturer()
