@@ -1,7 +1,11 @@
 # docs
-sphinx>=4.5.0
+sphinx>=6.1.3
 sphinxcontrib-images>=0.9.4
-sphinx-rtd-theme>=1.0.0
+
+# FIX conflict:
+# sphinx 6.1.3 depends on docutils<0.20 and >=0.18, sphinx-rtd-theme 1.0.0 depends on docutils<0.18
+# sphinx-rtd-theme>=1.0.0
+
 sphinxcontrib-spelling>=7.3.2
 pygments>=2.11.2
 pyenchant>=3.2.2
@@ -9,17 +13,21 @@ pip-licenses>=3.5.3
 pandoc>=2.1
 nbsphinx>=0.8.8
 sphinx-autodoc-typehints>=1.17.0
-# jinja2>=2.10.1
+jinja2>=3.1.2
 # jinja2-highlight>=0.6.1
 humanize>=4.0.0
 
 # https://github.com/crossbario/crossbar/pull/1943#issuecomment-1037569885
 pip>=22.0.3
 
-tox
+tox>=4.2.8
 # detox # detox is unmaintained and incompatible with tox > 3.6
 mock
-pytest<4
+
+# https://github.com/pytest-dev/pytest/pull/8540
+# fixes "TypeError: required field "lineno" missing from alias" on Python 3.10+
+pytest>=7.2.1
+
 # py-evm
 # git+https://github.com/ethereum/py-evm.git@master#egg=py-evm
 # eth-tester
@@ -51,5 +59,11 @@ twine
 hashin
 
 pyinstaller==4.2
-docker-compose>=1.29.0
-awscli>=1.19.84
+
+# FIXME: the docker shit insists on old deps (yaml, jsonschema)
+# https://github.com/docker/compose/blob/30fcb72cf3b136598883752edfa6ea4f3b8643d4/setup.py#L27
+# docker-compose>=1.29.0
+
+# FIX conflict:
+# tox 4.2.8 depends on colorama>=0.4.6, awscli 1.27.50 depends on colorama<0.4.5 and >=0.2.5
+# awscli>=1.27.50

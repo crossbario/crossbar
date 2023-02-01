@@ -5,7 +5,7 @@
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -46,7 +46,7 @@ exports.derive_key = derive_key;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -206,7 +206,7 @@ exports.create_connection = create_connection;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -261,7 +261,7 @@ exports.auth = auth;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -336,7 +336,7 @@ exports.log = log;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -400,7 +400,7 @@ exports.transports = _transports;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -898,7 +898,7 @@ exports.Connection = Connection;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -2898,7 +2898,7 @@ if (typeof window !== "undefined") {
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -3053,7 +3053,7 @@ exports.CBORSerializer = CBORSerializer;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -4574,7 +4574,7 @@ exports.Publication = Publication;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -4782,7 +4782,7 @@ exports.Factory = Factory;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -5482,7 +5482,7 @@ exports.Protocol = Protocol;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php
@@ -5718,7 +5718,7 @@ exports.Factory = Factory;
 //
 //  A JavaScript library for WAMP ("The Web Application Messaging Protocol").
 //
-//  Copyright (c) Crossbar.io Technologies GmbH and contributors
+//  Copyright (c) typedef int GmbH and contributors
 //
 //  Licensed under the MIT License.
 //  http://www.opensource.org/licenses/mit-license.php

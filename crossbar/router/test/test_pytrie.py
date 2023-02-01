@@ -1,16 +1,16 @@
 #####################################################################################
 #
-#  Copyright (c) Crossbar.io Technologies GmbH
+#  Copyright (c) typedef int GmbH
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
-from twisted.trial import unittest
+from twisted import trial
 
 from pytrie import StringTrie
 
 
-class TestPyTrie(unittest.TestCase):
+class TestPyTrie(trial.unittest.TestCase):
     def test_empty_tree(self):
         """
         Test trie ctor, and that is doesn't match on "any" prefix.
@@ -79,23 +79,23 @@ class TestPyTrie(unittest.TestCase):
             with self.assertRaises(KeyError):
                 t.longest_prefix_value(key)
 
-    def test_longest_prefix_4(self):
-        """
-        Test that a trie with an empty string as a key contained
-        matches a non-empty prefix matching lookup.
-        """
-        self.skip = True
-        # stored_key = 'x'  # this works (and of course it should!)
-        stored_key = ''  # this blows up! (and it _should_ work)
-        test_key = 'xyz'
+    # @unittest.skip("FIXME (broken unit test)")
+    # def test_longest_prefix_4(self):
+    #     """
+    #     Test that a trie with an empty string as a key contained
+    #     matches a non-empty prefix matching lookup.
+    #     """
+    #     # stored_key = 'x'  # this works (and of course it should!)
+    #     stored_key = ''  # this blows up! (and it _should_ work)
+    #     test_key = 'xyz'
 
-        t = StringTrie()
-        t[stored_key] = stored_key
-        self.assertTrue(stored_key in t)
-        self.assertTrue(test_key.startswith(stored_key))
-        self.assertEqual(t.longest_prefix_value(test_key), stored_key)
+    #     t = StringTrie()
+    #     t[stored_key] = stored_key
+    #     self.assertTrue(stored_key in t)
+    #     self.assertTrue(test_key.startswith(stored_key))
+    #     self.assertEqual(t.longest_prefix_value(test_key), stored_key)
 
-    # pytrie behavior is broken wrt to string keys of zero length!
-    # See: https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
-    # We have a workaround in place for this at the relevant places.
-    test_longest_prefix_4.skip = True
+    # # pytrie behavior is broken wrt to string keys of zero length!
+    # # See: https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
+    # # We have a workaround in place for this at the relevant places.
+    # test_longest_prefix_4.skip = True

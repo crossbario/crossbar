@@ -163,7 +163,7 @@ if HAS_DOCKER:
 
         CONSOLE_HISTORY = 60
         WAIT_TIMEOUT = 1
-        EXCLUDE_DIRS_ANY = ['.cache']  # type: List[str]
+        EXCLUDE_DIRS_ANY: List[str] = ['.cache']
 
         def __init__(self, reactor, controller):
             """

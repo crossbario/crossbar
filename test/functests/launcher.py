@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
+# Copyright (c) typedef int GmbH. Licensed under EUPLv1.2.
 #
 ###############################################################################
 
@@ -1195,12 +1195,16 @@ async def run_process(exe, args, env, publisher=stdout_publisher):
     return proto.exit_status
 
 
-async def create_virtualenv(python, env_dir, env, requirements, logging=True, just_update=False, progress=None):
+async def create_virtualenv(python, env_dir, env, requirements, logging=True, no_install=True, just_update=False, progress=None):
     """
     Create a new Python virtualenv at ``env_dir`` with the Python
     executable ``python``. Returns a Deferred, which callbacks with
     nothing (when "virtualenv" exits).
     """
+    if no_install:
+        print('Using Python "{}"'.format(python))
+        print('No new virtualenv to create (reusing "{}")'.format(env_dir))
+        return []
 
     def progress_publisher(_, data):
         progress_publisher.logs += data.decode('utf8')

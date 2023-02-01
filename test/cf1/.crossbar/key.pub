@@ -1,0 +1,9 @@
+Crossbar.io node public key
+
+creator: oberstet@intel-nuci7
+created-at: 2022-07-03T01:18:46.061Z
+machine-id: 816b4b901e774fc1ad59cbf2719806b7
+node-authid: core1
+node-cluster-ip: core1
+public-key-ed25519: 7be45c5ea077aff51973b9af8cadea31955087f9cd483bd57b51c3b7da4bc623
+public-adr-eth: 0x119AE3287bc259a944119456B03D3eC4D31c1105

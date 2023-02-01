@@ -1,6 +1,6 @@
 #####################################################################################
 #
-#  Copyright (c) Crossbar.io Technologies GmbH
+#  Copyright (c) typedef int GmbH
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
@@ -214,10 +214,7 @@ def _run_command_legal(options, reactor, personality, verbose=True):
     """
     Subcommand "crossbar legal".
     """
-    if verbose:
-        docs = [personality.LEGAL, personality.LICENSE, personality.LICENSE_FOR_API, personality.LICENSES_OSS]
-    else:
-        docs = [personality.LEGAL]
+    docs = [personality.LICENSE, personality.LICENSES_OSS]
 
     print(hl('*' * 120, bold=True, color='yellow'))
     for package, resource_name in docs:

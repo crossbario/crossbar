@@ -1,6 +1,6 @@
 #####################################################################################
 #
-#  Copyright (c) Crossbar.io Technologies GmbH
+#  Copyright (c) typedef int GmbH
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
@@ -246,9 +246,7 @@ class Personality(object):
                             build=crossbar.__build__,
                             year=time.strftime('%Y'))
 
-    LEGAL = ('crossbar', 'LEGAL')
     LICENSE = ('crossbar', 'LICENSE')
-    LICENSE_FOR_API = ('crossbar', 'LICENSE-FOR-API')
     LICENSES_OSS = ('crossbar', 'LICENSES-OSS')
 
     # a list of directories to serach Jinja2 templates for
