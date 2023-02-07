@@ -12,14 +12,13 @@ cookiecutter>=2.1.1
 cryptography>=39.0.0
 docker>=6.0.1
 # required for python 3.11+ https://github.com/ethereum/eth-abi/pull/194
-git+https://github.com/ethereum/eth-abi.git@v4.0.0-beta.2#egg=eth-abi
+eth-abi @ git+https://github.com/ethereum/eth-abi.git@v4.0.0-beta.2#egg=eth-abi
 # required for python 3.11+ (https://github.com/ethereum/eth-account/pull/212)
-# git+https://github.com/ethereum/eth-account.git@v0.8.0#egg=eth-account
-git+https://github.com/crossbario/eth-account.git@fix-215#egg=eth-account
-git+https://github.com/ethereum/eth-typing.git@v3.2.0#egg=eth-typing
+eth-account @ git+https://github.com/crossbario/eth-account.git@fix-215#egg=eth-account
+eth-typing @ git+https://github.com/ethereum/eth-typing.git@v3.2.0#egg=eth-typing
 flask>=2.2.2
-git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
-git+https://github.com/crossbario/py-multihash.git@remove-dep-version-limits#egg=py-multihash
+py-cid @ git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
+py-multihash @ git+https://github.com/crossbario/py-multihash.git@remove-dep-version-limits#egg=py-multihash
 # FIXME: twisted/http2 needs <4 => h2>=4.1.0
 h2>=3.2.0,<4.0.0
 hexbytes>=0.3.0
@@ -63,7 +62,7 @@ requests>=2.28.2
 sdnotify>=0.3.2
 service-identity>=21.1.0
 setproctitle>=1.3.2
-setuptools>=66.0.0
+setuptools>=67.2.0
 six>=1.16.0
 sortedcontainers>=2.4.0
 stringcase>=1.2.0
@@ -80,7 +79,7 @@ urllib3>=1.26.14,<1.27
 validate-email>=1.3
 watchdog>=2.2.1
 # web3 5.31.3 depends on eth-abi<3.0.0 and >=2.2.0
-git+https://github.com/ethereum/web3.py.git@v6.0.0-beta.9#egg=web3[ipfs]
+web3[ipfs] @ git+https://github.com/ethereum/web3.py.git@v6.0.0-beta.9#egg=web3
 werkzeug>=2.2.2
 wsaccel>=0.6.4; platform_python_implementation=='CPython'
 xbr>=21.2.1
