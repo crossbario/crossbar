@@ -569,7 +569,7 @@ def check_transport_auth_cryptosign(config):
                         raise InvalidConfigException('invalid type for "certificate" key in static WAMP-Cryptosign '
                                                      'configuration - expected string, got {}'.format(
                                                          type(certificate)))
-                elif 'trustroot':
+                elif 'trustroot' in trustroot_config:
                     trustroot = trustroot_config['trustroot']
                     name_category = identify_realm_name_category(trustroot)
                     if name_category not in ['eth', 'ens', 'reverse_ens']:
