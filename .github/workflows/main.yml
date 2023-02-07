@@ -14,7 +14,7 @@ jobs:
     runs-on: [self-hosted, linux, X64] # means matterhorn
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     # must be skipped on self-hosted build slaves (eg matterhorn)
     #
@@ -26,10 +26,10 @@ jobs:
     #     sudo apt install libsnappy-dev
     #     sudo apt install libunwind-dev
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
       with:
-        python-version: '3.9'
+        python-version: '3.11'
         architecture: 'x64'
 
     - name: Install Python package dependencies
@@ -63,22 +63,22 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
 
   docs:
     # runs-on: ubuntu-20.04 # means github.com
     runs-on: [self-hosted, linux, X64] # means matterhorn
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     # must be skipped on self-hosted build slaves (eg matterhorn)
     #
@@ -90,10 +90,10 @@ jobs:
     #     sudo apt install libsnappy-dev
     #     sudo apt install libunwind-dev
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
       with:
-        python-version: '3.9'
+        python-version: '3.11'
         architecture: 'x64'
 
     - name: Install Python package dependencies
@@ -101,9 +101,9 @@ jobs:
         pip install -r requirements-dev.txt
         pip install -U pip setuptools
 
-    # pip install -U --force-reinstall -r requirements-latest.txt
     - name: Install Crossbar.io packages
       run: |
+        pip install -U --force-reinstall -r requirements-latest.txt
         pip install .
 
     - name: Run Sphinx
@@ -120,7 +120,7 @@ jobs:
     strategy:
       matrix:
         # https://github.com/actions/setup-python#specifying-a-pypy-version
-        python-version: ['3.7', '3.9', 'pypy-3.8']
+        python-version: ['3.11', 'pypy-3.9']
 
     # https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepscontinue-on-error
@@ -128,7 +128,7 @@ jobs:
 
     steps:
     # Checkout sources
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     # must be skipped on self-hosted build slaves (eg matterhorn)
     #
@@ -146,7 +146,7 @@ jobs:
     # Use this Python
     # https://github.com/actions/setup-python/blob/main/README.md
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -155,9 +155,9 @@ jobs:
         pip install -r requirements-dev.txt
         pip install -U pip setuptools
 
-    # pip install -U --force-reinstall -r requirements-latest.txt
     - name: Install Crossbar.io packages
       run: |
+        pip install -U --force-reinstall -r requirements-latest.txt
         pip install .
 
     - name: Display Crossbar.io version
@@ -176,28 +176,20 @@ jobs:
       run: |
         pytest -sv crossbar
 
-    - name: Run integration tests (Autobahn|Python Client)
-      run: |
-        ./test/test_ab_examples.sh
-
-    - name: Run command line tests (Crossbar.io CLI) 0
-      run: |
-        ./test/test_cli_0.sh
-
   functional-test-amd64:
     runs-on: [self-hosted, linux, X64] # means matterhorn
 
     strategy:
       matrix:
-        python-version: ['3.9']
+        python-version: ['3.11']
 
     continue-on-error: false
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -206,18 +198,44 @@ jobs:
         pip install -r requirements-dev.txt
         pip install -U pip setuptools
 
-    # pip install -U --force-reinstall -r requirements-latest.txt
     - name: Install Crossbar.io packages
       run: |
+        pip install -U --force-reinstall -r requirements-latest.txt
         pip install .
 
     - name: Display Crossbar.io version
       run: |
         crossbar version
 
-    - name: Run functional tests using direct node management APIs
+    - name: Run integration tests (Autobahn|Python Client)
+      run: |
+        ./test/test_ab_examples.sh
+
+    - name: Run functional tests - cbtests
       run: |
         pytest -sv --no-install ./test/functests/cbtests
+
+    # FIXME
+
+    # - name: Run functional tests - cfctests
+    #   run: |
+    #     pytest -sv --no-install ./test/functests/cfctests
+
+    # - name: Run command line tests (Crossbar.io CLI) 0
+    #   run: |
+    #     ./test/test_cli_0.sh
+
+    # - name: Run command line tests (Crossbar.io CLI) 0
+    #   run: |
+    #     ./test/test_cli_1.sh
+
+    # - name: Run command line tests (Crossbar.io CLI) 0
+    #   run: |
+    #     ./test/test_cli_2.sh
+
+    # - name: Run command line tests (Crossbar.io CLI) 0
+    #   run: |
+    #     ./test/test_cli_3.sh
 
   # FIXME: https://github.com/crossbario/crossbar/issues/1842
   #
@@ -241,7 +259,7 @@ jobs:
 
   #   steps:
   #   # Checkout sources
-  #   - uses: actions/checkout@v2
+  #   - uses: actions/checkout@v3
 
   #   # Use this Python
   #   # https://github.com/marketplace/actions/setup-python
@@ -250,7 +268,7 @@ jobs:
   #   # https://github.com/actions/setup-python/issues/45
   #   # https://github.com/sqlalchemy/sqlalchemy/blob/master/.github/workflows/create-wheels.yaml
   #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v2
+  #     uses: actions/setup-python@v3
   #     with:
   #       python-version: ${{ matrix.python-version }}
   #       architecture: aarch64

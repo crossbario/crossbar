@@ -1,19 +1,17 @@
 #####################################################################################
 #
-#  Copyright (c) Crossbar.io Technologies GmbH
+#  Copyright (c) typedef int GmbH
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
 
+import unittest
 from io import StringIO as NativeStringIO
 
 from twisted.internet.selectreactor import SelectReactor
 
 from crossbar.test import TestCase
 from crossbar.node import main
-from crossbar import _logging
-
-from weakref import WeakKeyDictionary
 
 import os
 import sys
@@ -22,11 +20,6 @@ import twisted
 
 
 class CLITestBase(TestCase):
-
-    # the tests here a mostly bogus, as they test for log message content,
-    # not actual functionality
-    skip = True
-
     def setUp(self):
 
         self._subprocess_timeout = 15
@@ -37,10 +30,13 @@ class CLITestBase(TestCase):
         self.stderr = NativeStringIO()
         self.stdout = NativeStringIO()
 
-        self.patch(_logging, "_stderr", self.stderr)
-        self.patch(_logging, "_stdout", self.stdout)
-        self.patch(_logging, "_loggers", WeakKeyDictionary())
-        self.patch(_logging, "_loglevel", "info")
+        # FIXME
+        # from crossbar import _logging
+        # from weakref import WeakKeyDictionary
+        # self.patch(_logging.sys, "_stderr", self.stderr)
+        # self.patch(_logging.sys, "_stdout", self.stdout)
+        # self.patch(_logging.sys, "_loggers", WeakKeyDictionary())
+        # self.patch(_logging.sys, "_loglevel", "info")
         return super(CLITestBase, self).setUp()
 
     def tearDown(self):
@@ -48,6 +44,7 @@ class CLITestBase(TestCase):
         sys.stderr = sys.__stderr__
 
 
+@unittest.skip("FIXME (broken unit test)")
 class VersionTests(CLITestBase):
     """
     Tests for `crossbar version`.
@@ -79,6 +76,7 @@ class VersionTests(CLITestBase):
         self.assertIn(("[twisted.internet.selectreactor.SelectReactor]"), self.stdout.getvalue())
 
 
+@unittest.skip("FIXME (broken unit test)")
 class StartTests(CLITestBase):
     """
     Tests for `crossbar start`.
@@ -97,7 +95,7 @@ class StartTests(CLITestBase):
         A basic start, that doesn't actually enter the reactor.
         """
         with open(self.config, "w") as f:
-            f.write("""{"controller": {}}""")
+            f.write("""{"version": 2, "controller": {}}""")
 
         reactor = SelectReactor()
         reactor.run = lambda: False
@@ -130,7 +128,7 @@ class StartTests(CLITestBase):
         Running `crossbar start --logtofile` will log to cbdir/node.log.
         """
         with open(self.config, "w") as f:
-            f.write("""{"controller": {}}""")
+            f.write("""{"version": 2, "controller": {}}""")
 
         reactor = SelectReactor()
         reactor.run = lambda: None
@@ -147,7 +145,7 @@ class StartTests(CLITestBase):
     def test_stalePID(self):
 
         with open(self.config, "w") as f:
-            f.write("""{"controller": {}}""")
+            f.write("""{"version": 2, "controller": {}}""")
 
         with open(os.path.join(self.cbdir, "node.pid"), "w") as f:
             f.write("""{"pid": 9999999}""")
@@ -162,6 +160,7 @@ class StartTests(CLITestBase):
                                                               pid=9999999), self.stdout.getvalue())
 
 
+@unittest.skip("FIXME (broken unit test)")
 class ConvertTests(CLITestBase):
     """
     Tests for `crossbar convert`.

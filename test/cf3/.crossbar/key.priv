@@ -1,0 +1,11 @@
+Crossbar.io node private key - KEEP THIS SAFE!
+
+creator: oberstet@intel-nuci7
+created-at: 2022-07-03T01:18:51.053Z
+machine-id: 816b4b901e774fc1ad59cbf2719806b7
+node-authid: core3
+node-cluster-ip: core3
+public-key-ed25519: 539c9c30f65531751261101898ca38b2441b3b4e5121513c5c4ee36599d4726f
+public-adr-eth: 0xC953dfb9Ecf880c337584AF29b152c40eAA41103
+private-key-ed25519: f676ffaae131fc5764f88811c9a975a5817ec499d1c32abce3e5665cebc2c5d2
+private-key-eth: c9ff74a6b510342f0f81c60564304b725983c71244f7fe825713988f4e53a567

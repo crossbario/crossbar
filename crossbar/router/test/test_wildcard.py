@@ -1,6 +1,6 @@
 #####################################################################################
 #
-#  Copyright (c) Crossbar.io Technologies GmbH
+#  Copyright (c) typedef int GmbH
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
@@ -9,10 +9,10 @@ import unittest
 
 from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
 
-WILDCARDS = ['.', 'a..c', 'a.b.', 'a..', '.b.', '..', 'x..', '.x.', '..x', 'x..x', 'x.x.', '.x.x', 'x.x.x']
+WILDCARDS = ['', '.', 'a..c', 'a.b.', 'a..', '.b.', '..', 'x..', '.x.', '..x', 'x..x', 'x.x.', '.x.x', 'x.x.x']
 
 MATCHES = {
-    'abc': [],
+    'abc': [''],
     'a.b': ['.'],
     'a.b.c': ['a..c', 'a.b.', 'a..', '.b.', '..'],
     'a.x.c': ['a..c', 'a..', '..', '.x.'],

@@ -1,6 +1,6 @@
 #####################################################################################
 #
-#  Copyright (c) Crossbar.io Technologies GmbH
+#  Copyright (c) typedef int GmbH
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
@@ -18,6 +18,7 @@ from autobahn import wamp
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, ComponentConfig, CallDetails, SessionIdent
+from autobahn.wamp.message import identify_realm_name_category
 
 from crossbar._util import class_name, hltype, hlid, hlval
 
@@ -305,6 +306,23 @@ class RouterController(TransportController):
         # URI of the realm to start
         realm_name = realm_config['name']
 
+        # Category of the realm to start, as determined
+        # from realm name: "standalone", "eth", "ens", "reverse_ens" or None
+        realm_category = identify_realm_name_category(realm_name)
+        if realm_category is None:
+            emsg = 'Invalid router realm configuration: the name "{}" is not a valid WAMP realm name'.format(
+                realm_name)
+            self.log.error(emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+        else:
+            self.log.info(
+                '{func} starting {realm_category}-realm with WAMP realm name "{realm_name}" '
+                'using router local realm_id {realm_id}',
+                func=hltype(self.start_router_realm),
+                realm_name=hlid(realm_name),
+                realm_id=hlid(realm_id),
+                realm_category=hlval(realm_category.upper(), color='magenta'))
+
         # router/realm wide options
         options = realm_config.get('options', {})
 
@@ -320,7 +338,7 @@ class RouterController(TransportController):
             bridge_meta_api_prefix = None
 
         # track realm
-        rlm = self.router_realm_class(self, realm_id, realm_config)
+        rlm = self.router_realm_class(self, realm_id, realm_config, realm_category)
         self.realms[realm_id] = rlm
         self.realm_to_id[realm_name] = realm_id
 
@@ -332,6 +350,9 @@ class RouterController(TransportController):
 
         # add a router/realm service session
         extra = {
+            # the realm category, one of ["standalone", "eth", "ens", "reverse_ens"]
+            'category': realm_category,
+
             # the RouterServiceAgent will fire this in onJoin() when it is ready
             'onready': Deferred(),
 
@@ -382,11 +403,13 @@ class RouterController(TransportController):
         caller = details.caller if details else None
         self.publish(topic, event, options=PublishOptions(exclude=caller))
 
-        self.log.info('Realm "{realm_id}" (name="{realm_name}", authrole="{authrole}", authid="{authid}") started',
-                      realm_id=realm_id,
-                      realm_name=rlm.session._realm,
-                      authrole=svc_authrole,
-                      authid=svc_authid)
+        self.log.info(
+            'Realm "{realm_id}" (category="{realm_category}", name="{realm_name}", authrole="{authrole}", authid="{authid}") started',
+            realm_id=realm_id,
+            realm_category=realm_category,
+            realm_name=rlm.session._realm,
+            authrole=svc_authrole,
+            authid=svc_authid)
         return event
 
     @wamp.register(None)

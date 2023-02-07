@@ -1,6 +1,6 @@
 #####################################################################################
 #
-#  Copyright (c) Crossbar.io Technologies GmbH
+#  Copyright (c) typedef int GmbH
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
@@ -50,7 +50,13 @@ class RouterRealm(object):
     """
     A realm running in a router worker.
     """
-    def __init__(self, controller, id, config, router=None, session=None):
+    CATEGORY_STANDALONE = 'standalone'
+    CATEGORY_ETH = 'eth'
+    CATEGORY_ENS = 'ens'
+    CATEGORY_REVERSE_ENS = 'reverse_ens'
+    VALID_CATEGORIES = [CATEGORY_STANDALONE, CATEGORY_ETH, CATEGORY_ENS, CATEGORY_REVERSE_ENS]
+
+    def __init__(self, controller, id, config, category=None, router=None, session=None):
         """
 
         :param controller: The controller this router is running under.
@@ -62,18 +68,24 @@ class RouterRealm(object):
         :param config: The realm configuration.
         :type config: dict
 
+        :param category: The realm category (derived of the realm name), one of ``["standalone", "eth", "ens", "reverse_ens"]``.
+        :type category: str
+
         :param router: The router (within the router worker) serving the realm.
         :type router: :class:`crossbar.router.router.Router`
 
         :param session: The realm service session.
         :type session: :class:`crossbar.router.service.RouterServiceAgent`
         """
+        assert category is None or category in RouterRealm.VALID_CATEGORIES
+
         # import here to dissolve circular dependency
         from crossbar.worker.rlink import RLinkManager
 
         self.controller = controller
         self.id = id
         self.config = config
+        self.category = category or RouterRealm.CATEGORY_STANDALONE
 
         # this is filled later (after construction) when the router has been started
         self.router = router
@@ -96,6 +108,7 @@ class RouterRealm(object):
         marshalled = {
             'id': self.id,
             'config': self.config,
+            'category': self.category,
             'created': utcstr(self.created),
             'roles': [self.roles[role].marshal() for role in self.roles if self.roles],
             'has_router': self.router is not None,
