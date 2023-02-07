@@ -18,7 +18,7 @@ jinja2>=3.1.2
 humanize>=4.0.0
 
 # https://github.com/crossbario/crossbar/pull/1943#issuecomment-1037569885
-pip>=22.0.3
+pip>=23.0
 
 tox>=4.2.8
 # detox # detox is unmaintained and incompatible with tox > 3.6
@@ -53,7 +53,7 @@ mypy; platform_python_implementation != 'PyPy'
 bandit
 
 # build
-setuptools
+setuptools>=67.2.0
 wheel
 twine
 hashin

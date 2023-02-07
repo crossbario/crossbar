@@ -11,7 +11,7 @@ Automat==22.10.0
 base58==2.1.1
 bcrypt==4.0.1
 binaryornot==0.4.4
-bitarray==2.6.2
+bitarray==2.7.0
 bitstring==4.0.1
 cached-property==1.5.2
 cbor2==5.4.6
@@ -29,7 +29,7 @@ cytoolz==0.12.1
 docker==6.0.1
 ecdsa==0.18.0
 eth-abi @ git+https://github.com/ethereum/eth-abi.git@78c42caaa567e2e49b03c18706e1adda1828505d
-eth-account @ git+https://github.com/ethereum/eth-account.git@c5552a56b349e4c205089f50ddf54e942d4d9bc9
+eth-account @ git+https://github.com/crossbario/eth-account.git@1aa6220b0f2c17035837f7ada4f495112f176cca
 eth-hash==0.5.1
 eth-keyfile==0.6.0
 eth-keys==0.4.0
@@ -44,12 +44,13 @@ hashin==0.17.0
 hexbytes==0.3.0
 hkdf==0.0.3
 hpack==3.0.0
-humanize==4.4.0
+humanize==4.6.0
 hyperframe==5.2.0
 hyperlink==21.0.0
 idna==2.5
 importlib-resources==5.10.2
 incremental==22.10.0
+ipfshttpclient==0.8.0a2
 iso8601==1.1.0
 itsdangerous==2.1.2
 Jinja2==3.1.2
@@ -59,14 +60,15 @@ jsonschema==4.17.3
 lmdb==1.4.0
 lru-dict==1.1.8
 MarkupSafe==2.1.2
-mistune==2.0.4
+mistune==2.0.5
 mnemonic==0.20
 morphys==1.0
 msgpack==1.0.4
+multiaddr==0.0.9
 multidict==6.0.4
-mypy-extensions==0.4.3
+mypy-extensions==1.0.0
 netaddr==0.8.0
-numpy==1.24.1
+numpy==1.24.2
 packaging==23.0
 parsimonious==0.9.0
 passlib==1.7.4
@@ -85,26 +87,27 @@ py-ubjson==0.16.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.21
-pycryptodome==3.16.0
+pycryptodome==3.17
 Pygments==2.14.0
 PyNaCl==1.5.0
 pyOpenSSL==23.0.0
+pypng==0.20220715.0
 PyQRCode==1.2.1
 pyrsistent==0.19.3
 python-baseconv==1.2.2
 python-dateutil==2.8.2
-python-slugify==7.0.0
+python-slugify==8.0.0
 python-snappy==0.6.1
 PyTrie==0.4.0
 PyYAML==6.0
-qrcode==7.3.1
+qrcode==7.4.2
 regex==2022.10.31
 requests==2.28.2
 rlp==3.0.0
 sdnotify==0.3.2
 service-identity==21.1.0
 setproctitle==1.3.2
-setuptools==66.1.1
+setuptools==67.2.0
 six==1.16.0
 sortedcontainers==2.4.0
 spake2==0.8
@@ -125,7 +128,7 @@ varint==1.0.2
 watchdog==2.2.1
 wcwidth==0.2.6
 web3 @ git+https://github.com/ethereum/web3.py.git@29cc5f24ef4164cf8556cfc70ee8a1098b044eb9
-websocket-client==1.4.2
+websocket-client==1.5.1
 websockets==10.4
 Werkzeug==2.2.2
 wsaccel==0.6.4

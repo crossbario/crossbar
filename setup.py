@@ -51,13 +51,9 @@ with open('requirements-latest.txt') as f:
             else:
                 name = parts[0]
                 # do NOT (!) touch this!
-                # git+https://github.com/{user|org}/{repository}.git@{tag}#egg={package-name}[flavor]
-                # https://mike.zwobble.org/2013/05/adding-git-or-hg-or-svn-dependencies-in-setup-py/
-                if name.startswith('git+'):
-                    pname = name.split('#egg=')[1]
-                    install_requires.append('{} @ {}'.format(pname, name))
-                else:
-                    install_requires.append(name)
+                # {package-name}[flavor] @ git+https://github.com/{user|org}/{repository}.git@{tag}#egg={package-name}
+                # https://peps.python.org/pep-0508/
+                install_requires.append(name)
 
 # enforce use of CFFI for LMDB
 os.environ['LMDB_FORCE_CFFI'] = '1'
