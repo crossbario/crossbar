@@ -26,7 +26,7 @@ if not hasattr(eth_abi, 'encode_single') and hasattr(eth_abi, 'encode'):
 # AttributeError: type object 'Web3' has no attribute 'toChecksumAddress'. Did you mean: 'to_checksum_address'?
 import web3
 if not hasattr(web3.Web3, 'toChecksumAddress') and hasattr(web3.Web3, 'to_checksum_address'):
-    web3.Web3.toChecksumAddress = web3.Web3.to_checksum_address
+    web3.Web3.toChecksumAddress = lambda x: web3.Web3.to_checksum_address(x)
 if not hasattr(web3.Web3, 'isConnected') and hasattr(web3.Web3, 'is_connected'):
     web3.Web3.isConnected = web3.Web3.is_connected
 

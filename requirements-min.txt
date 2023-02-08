@@ -1,5 +1,5 @@
 attrs>=22.2.0
-autobahn[twisted,encryption,compress,serialization,scram,xbr]>=23.1.1
+autobahn[twisted,encryption,compress,serialization,scram,xbr]>=23.1.2
 base58>=2.1.1
 bcrypt>=4.0.1
 bitstring>=4.0.1
@@ -78,8 +78,9 @@ ujson>=5.7.0
 urllib3>=1.26.14,<1.27
 validate-email>=1.3
 watchdog>=2.2.1
-# web3 5.31.3 depends on eth-abi<3.0.0 and >=2.2.0
-web3[ipfs] @ git+https://github.com/ethereum/web3.py.git@v6.0.0-beta.9#egg=web3
+# FIXME: web3 5.31.3 depends on eth-abi<3.0.0 and >=2.2.0
+# FIXME: pip runs into a conflict with autobahn[xbr] even though we use _exactly_ the same web3!!
+# web3[ipfs] @ git+https://github.com/ethereum/web3.py.git@v6.0.0-beta.9#egg=web3
 werkzeug>=2.2.2
 wsaccel>=0.6.4; platform_python_implementation=='CPython'
 xbr>=21.2.1
