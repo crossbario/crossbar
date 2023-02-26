@@ -488,3 +488,32 @@ fit your system .. this works for Ubuntu):
         Verify return code: 0 (ok)
     ---
     ^C
+
+Updating Certificates
+=====================
+
+After updating Crossbar.io TLS server certificates and/or keys, you must restart
+Crossbar.io for the new certificates/keys to take effect. The certificates/keys
+are cached when loading the first time, and hence without restarting
+Crossbar.io, the old certificates/keys would still be used despite the new ones
+already being stored on disk.
+
+Updating LetsEncrypt with certbot
+---------------------------------
+
+Once you have configured LetsEncrypt, you can periodically run `certbot
+<https://certbot.eff.org/>`_ to update your certificates.  You may wish to
+restart Crossbar.io if a new certificate is generated.  Certbot has a
+`--deploy-hook` which is run once for every generated certificate, with the
+domains in `$RENEWED_DOMAINS`.  Thus you can create something like
+
+.. code:: bash
+
+    #!/bin/bash
+    if [[ "$RENEWED_DOMAINS" =~ "wamp.my.domain" ]]; then
+        systemctl restart crossbar # or however your router is run
+        echo "restarted server" > /tmp/log
+    fi
+
+And then pass it to certbot, e.g. by running `systemctl edit certbot` and adding
+`--deploy-hook=/path/to/restart.sh`.
