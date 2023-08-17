@@ -119,7 +119,7 @@ class BridgeSession(ApplicationSession):
 
                 if details.forward_for:
                     # the event comes already forwarded from a router node
-                    if len(details.forward_for) >= 0:
+                    if not details.forward_for:
                         self.log.debug('SKIP! already forwarded')
                         return
 
@@ -307,8 +307,8 @@ class BridgeSession(ApplicationSession):
                 }
 
                 if details.forward_for:
-                    # the call comes already forwarded from a router node ..
-                    if len(details.forward_for) >= 0:
+                    # the call comes already forwarded from a router node ..                    
+                    if not details.forward_for:
                         self.log.debug('SKIP! already forwarded')
                         return
 
