@@ -124,7 +124,7 @@ class Broker(object):
 
             for subscription in self._session_to_subscriptions[session]:
 
-                was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
+                was_subscribed, was_last_subscriber, was_last_local_subscriber = self._subscription_map.drop_observer(session, subscription)
                 was_deleted = False
 
                 # delete it if there are no subscribers and no retained events
@@ -132,6 +132,10 @@ class Broker(object):
                 if was_subscribed and was_last_subscriber and not subscription.extra.retained_events:
                     was_deleted = True
                     self._subscription_map.delete_observation(subscription)
+
+                is_rlink_session = (session._authrole == 'rlink')
+
+                exclude_authid = session._authid
 
                 # publish WAMP meta events, if we have a service session, but
                 # not for the meta API itself!
@@ -143,10 +147,16 @@ class Broker(object):
                     def _publish(subscription):
                         service_session = self._router._realm.session
 
-                        # FIXME: what about exclude_authid as colleced from forward_for? like we do elsewhere in this file!
-                        options = types.PublishOptions(correlation_id=None,
-                                                       correlation_is_anchor=True,
-                                                       correlation_is_last=False)
+                        # FIXME: what about exclude_authid as collected from forward_for? like we do elsewhere in this file!
+                        options = types.PublishOptions(
+                            correlation_id=None,
+                            correlation_is_anchor=True,
+                            correlation_is_last=False,
+                            exclude_authid=exclude_authid,
+                            exclude_authrole=['rlink'] if is_rlink_session else None,
+                            eligible_authrole=['rlink'] if was_last_local_subscriber and
+                                                           not was_last_subscriber else None,
+                        )
 
                         if was_subscribed:
                             service_session.publish(
@@ -156,7 +166,7 @@ class Broker(object):
                                 options=options,
                             )
 
-                        if was_deleted:
+                        if was_deleted or was_last_local_subscriber:
                             options.correlation_is_last = True
                             service_session.publish(
                                 'wamp.subscription.on_delete',
@@ -830,11 +840,14 @@ class Broker(object):
 
                 # ok, session authorized to subscribe. now get the subscription
                 #
-                subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_observer(
-                    session, subscribe.topic, subscribe.match, extra=SubscriptionExtra())
+                subscription, was_already_subscribed, is_first_subscriber, is_first_local_subscriber \
+                    = self._subscription_map.add_observer(session, subscribe.topic,
+                                                          subscribe.match, extra=SubscriptionExtra())
 
                 if not was_already_subscribed:
                     self._session_to_subscriptions[session].add(subscription)
+
+                is_rlink_session = (session._authrole == 'rlink')
 
                 # publish WAMP meta events, if we have a service session, but
                 # not for the meta API itself!
@@ -853,17 +866,20 @@ class Broker(object):
                     def _publish():
                         service_session = self._router._realm.session
 
-                        if exclude_authid or self._router.is_traced:
+                        if exclude_authid or self._router.is_traced or \
+                            is_first_local_subscriber or is_rlink_session:
                             options = types.PublishOptions(
                                 correlation_id=subscribe.correlation_id,
                                 correlation_is_anchor=False,
                                 correlation_is_last=False,
                                 exclude_authid=exclude_authid,
+                                exclude_authrole=['rlink'] if is_rlink_session else None,
+                                eligible_authrole=['rlink'] if is_first_local_subscriber and not is_first_subscriber else None,
                             )
                         else:
                             options = None
 
-                        if is_first_subscriber:
+                        if is_first_subscriber or is_first_local_subscriber:
                             subscription_details = {
                                 'id': subscription.id,
                                 'created': subscription.created,
@@ -1037,7 +1053,7 @@ class Broker(object):
 
         # drop session from subscription observers
         #
-        was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
+        was_subscribed, was_last_subscriber, was_last_local_subscriber = self._subscription_map.drop_observer(session, subscription)
         was_deleted = False
 
         if was_subscribed and was_last_subscriber and not subscription.extra.retained_events:
@@ -1048,6 +1064,8 @@ class Broker(object):
         #
         if was_subscribed:
             self._session_to_subscriptions[session].discard(subscription)
+
+        is_rlink_session = (session._authrole == 'rlink')
 
         # publish WAMP meta events, if we have a service session, but
         # not for the meta API itself!
@@ -1072,6 +1090,8 @@ class Broker(object):
                         correlation_is_anchor=False,
                         correlation_is_last=False,
                         exclude_authid=exclude_authid,
+                        exclude_authrole=['rlink'] if is_rlink_session else None,
+                        eligible_authrole=['rlink'] if was_last_local_subscriber and not was_last_subscriber else None,
                     )
                 else:
                     options = None
@@ -1084,7 +1104,7 @@ class Broker(object):
                         options=options,
                     )
 
-                if was_deleted:
+                if was_deleted or was_last_local_subscriber:
                     if options:
                         options.correlation_is_last = True
 

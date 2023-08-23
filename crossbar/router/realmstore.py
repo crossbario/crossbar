@@ -166,9 +166,10 @@ class RealmStoreMemory(object):
         for sub in self._config.get('event-history', []):
             uri = sub['uri']
             match = sub.get('match', 'exact')
-            observation, was_already_observed, was_first_observer = subscription_map.add_observer(self,
-                                                                                                  uri=uri,
-                                                                                                  match=match)
+            observation, was_already_observed, was_first_observer, was_first_local_observer = \
+                subscription_map.add_observer(self,
+                                              uri=uri,
+                                              match=match)
             subscription_id = observation.id
 
             # for in-memory history, we just use a double-ended queue
