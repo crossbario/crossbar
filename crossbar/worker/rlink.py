@@ -91,9 +91,10 @@ class BridgeSession(ApplicationSession):
                                method=hltype(BridgeSession._setup_event_forwarding))
                 return
 
+            sub_details_local = copy.deepcopy(sub_details)
             if sub_id not in self._subs:
-                self._subs[sub_id] = sub_details
-                self._subs[sub_id]["sub"] = None
+                sub_details_local["sub"] = None
+                self._subs[sub_id] = sub_details_local
 
             uri = sub_details['uri']
             ERR_MSG = [None]
@@ -167,7 +168,7 @@ class BridgeSession(ApplicationSession):
 
             if sub_id not in self._subs:
                 self.log.info("subscription already gone: {uri}", uri=sub_details['uri'])
-                yield sub.unregister()
+                yield sub.unsubscribe()
             else:
                 self._subs[sub_id]["sub"] = sub
 
@@ -288,9 +289,10 @@ class BridgeSession(ApplicationSession):
                                method=hltype(BridgeSession._setup_invocation_forwarding))
                 return
 
+            reg_details_local = copy.deepcopy(reg_details)
             if reg_id not in self._regs:
-                self._regs[reg_id] = reg_details
-                self._regs[reg_id]['reg'] = None
+                reg_details_local["reg"] = None
+                self._regs[reg_id] = reg_details_local
 
             uri = reg_details['uri']
             ERR_MSG = [None]
