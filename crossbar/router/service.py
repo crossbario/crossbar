@@ -24,11 +24,27 @@ from crossbar.router.router import Router
 
 from txaio import make_logger
 
-__all__ = ('RouterServiceAgent', )
+__all__ = ('RouterServiceAgent',)
 
 
 def is_restricted_session(session: ISession):
     return session.authrole is None or session.authrole == 'trusted'
+
+
+def is_registration_visible_to_caller(is_rlink_caller, registration) -> bool:
+    # Visible for non-RLinks
+    return not is_rlink_caller or not registration.observers or \
+        (
+            (registration.extra.invoke == 'single' and registration.observers[0].authrole != 'rlink')
+            or
+            (next(filter(lambda o: o.authrole != 'rlink', registration.observers), None) is not None)
+        )
+
+
+def is_subscription_visible_to_caller(is_rlink_caller, subscription) -> bool:
+    # Visible for non-RLinks
+    return not is_rlink_caller or not subscription.observers or \
+        (next(filter(lambda o: o.authrole != 'rlink', subscription.observers), None) is not None)
 
 
 class RouterServiceAgent(ApplicationSession):
@@ -690,19 +706,24 @@ class RouterServiceAgent(ApplicationSession):
 
             registration_map = self._router._dealer._registration_map
 
+            is_rlink_caller = details and details.caller_authrole == 'rlink'
+
             registrations_exact = []
             for registration in registration_map._observations_exact.values():
-                if not is_protected_uri(registration.uri, details):
+                if not is_protected_uri(registration.uri, details) and is_registration_visible_to_caller(
+                    is_rlink_caller, registration):
                     registrations_exact.append(registration.id)
 
             registrations_prefix = []
             for registration in registration_map._observations_prefix.values():
-                if not is_protected_uri(registration.uri, details):
+                if not is_protected_uri(registration.uri, details) and is_registration_visible_to_caller(
+                    is_rlink_caller, registration):
                     registrations_prefix.append(registration.id)
 
             registrations_wildcard = []
             for registration in registration_map._observations_wildcard.values():
-                if not is_protected_uri(registration.uri, details):
+                if not is_protected_uri(registration.uri, details) and is_registration_visible_to_caller(
+                    is_rlink_caller, registration):
                     registrations_wildcard.append(registration.id)
 
             regs = {
@@ -751,14 +772,19 @@ class RouterServiceAgent(ApplicationSession):
 
             subscription_map = self._router._broker._subscription_map
 
+            is_rlink_caller = details and details.caller_authrole == 'rlink'
+
+            # and is_registration_visible_to_caller(is_rlink_caller, subscription):
             subscriptions_exact = []
             for subscription in subscription_map._observations_exact.values():
-                if not is_protected_uri(subscription.uri, details):
+                if not is_protected_uri(subscription.uri, details) \
+                    and is_subscription_visible_to_caller(is_rlink_caller, subscription):
                     subscriptions_exact.append(subscription.id)
 
             subscriptions_prefix = []
             for subscription in subscription_map._observations_prefix.values():
-                if not is_protected_uri(subscription.uri, details):
+                if not is_protected_uri(subscription.uri, details) \
+                    and is_subscription_visible_to_caller(is_rlink_caller, subscription):
                     subscriptions_prefix.append(subscription.id)
 
             subscriptions_wildcard = []
@@ -790,7 +816,10 @@ class RouterServiceAgent(ApplicationSession):
         """
         registration = self._router._dealer._registration_map.best_matching_observation(procedure)
 
-        if registration and not is_protected_uri(registration.uri, details):
+        is_rlink_caller = details and details.caller_authrole == 'rlink'
+
+        if registration and not is_protected_uri(registration.uri, details) and \
+            is_registration_visible_to_caller(is_rlink_caller, registration):
             return registration.id
         else:
             return None
@@ -809,11 +838,13 @@ class RouterServiceAgent(ApplicationSession):
         :rtype: obj or None
         """
         subscriptions = self._router._broker._subscription_map.match_observations(topic)
+        is_rlink_caller = details and details.caller_authrole == 'rlink'
 
         if subscriptions:
             subscription_ids = []
             for subscription in subscriptions:
-                if not is_protected_uri(subscription.uri, details):
+                if not is_protected_uri(subscription.uri, details) and \
+                    is_subscription_visible_to_caller(is_rlink_caller, subscription):
                     subscription_ids.append(subscription.id)
             if subscription_ids:
                 return subscription_ids
@@ -839,10 +870,12 @@ class RouterServiceAgent(ApplicationSession):
         """
         options = options or {}
         match = options.get('match', 'exact')
+        is_rlink_caller = details and details.caller_authrole == 'rlink'
 
         registration = self._router._dealer._registration_map.get_observation(procedure, match)
 
-        if registration and not is_protected_uri(registration.uri, details):
+        if registration and not is_protected_uri(registration.uri, details) and \
+            is_registration_visible_to_caller(is_rlink_caller, registration):
             return registration.id
         else:
             return None
@@ -866,8 +899,10 @@ class RouterServiceAgent(ApplicationSession):
         match = options.get('match', 'exact')
 
         subscription = self._router._broker._subscription_map.get_observation(topic, match)
+        is_rlink_caller = details and details.caller_authrole == 'rlink'
 
-        if subscription and not is_protected_uri(subscription.uri, details):
+        if subscription and not is_protected_uri(subscription.uri, details) and \
+            is_subscription_visible_to_caller(is_rlink_caller, subscription):
             return subscription.id
         else:
             return None
@@ -886,7 +921,9 @@ class RouterServiceAgent(ApplicationSession):
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
 
         if registration:
-            if is_protected_uri(registration.uri, details):
+            is_rlink_caller = details and details.caller_authrole == 'rlink'
+            if is_protected_uri(registration.uri, details) \
+                or not is_registration_visible_to_caller(is_rlink_caller, registration):
                 raise ApplicationError(
                     ApplicationError.NOT_AUTHORIZED,
                     message='not authorized to list callees for protected URI "{}"'.format(registration.uri),
@@ -916,7 +953,10 @@ class RouterServiceAgent(ApplicationSession):
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
 
         if subscription:
-            if is_protected_uri(subscription.uri, details):
+            is_rlink_caller = details and details.caller_authrole == 'rlink'
+
+            if is_protected_uri(subscription.uri, details) \
+                or not is_subscription_visible_to_caller(is_rlink_caller, subscription):
                 raise ApplicationError(
                     ApplicationError.NOT_AUTHORIZED,
                     message='not authorized to list subscribers for protected URI "{}"'.format(subscription.uri),
@@ -946,7 +986,10 @@ class RouterServiceAgent(ApplicationSession):
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
 
         if registration:
-            if is_protected_uri(registration.uri, details):
+            is_rlink_caller = details and details.caller_authrole == 'rlink'
+
+            if is_protected_uri(registration.uri, details) \
+                or not is_registration_visible_to_caller(is_rlink_caller, registration):
                 raise ApplicationError(
                     ApplicationError.NOT_AUTHORIZED,
                     message='not authorized to count callees for protected URI "{}"'.format(registration.uri),
@@ -972,7 +1015,10 @@ class RouterServiceAgent(ApplicationSession):
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
 
         if subscription:
-            if is_protected_uri(subscription.uri, details):
+            is_rlink_caller = details and details.caller_authrole == 'rlink'
+
+            if is_protected_uri(subscription.uri, details) \
+                or not is_subscription_visible_to_caller(is_rlink_caller, subscription):
                 raise ApplicationError(
                     ApplicationError.NOT_AUTHORIZED,
                     message='not authorized to count subscribers for protected URI "{}"'.format(subscription.uri),
@@ -1011,7 +1057,10 @@ class RouterServiceAgent(ApplicationSession):
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
 
         if subscription:
-            if is_protected_uri(subscription.uri, details):
+            is_rlink_caller = details and details.caller_authrole == 'rlink'
+
+            if is_protected_uri(subscription.uri, details)\
+                or not is_subscription_visible_to_caller(is_rlink_caller, subscription):
                 raise ApplicationError(
                     ApplicationError.NOT_AUTHORIZED,
                     message='not authorized to retrieve event history for protected URI "{}"'.format(subscription.uri),

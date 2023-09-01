@@ -333,7 +333,10 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         from autobahn.twisted.websocket import WampWebSocketServerFactory
         transport_factory = WampWebSocketServerFactory(make_session, 'ws://localhost')
         transport_factory.protocol = WorkerServerProtocol
-        transport_factory.setProtocolOptions(failByDrop=False)
+
+        # we need to increase the opening handshake timeout,
+        # because when running multiple router workers controller may not be able to connect get to this worker in 5 seconds
+        transport_factory.setProtocolOptions(failByDrop=False, openHandshakeTimeout=45)
 
         # create a protocol instance and wire up to stdio
         #

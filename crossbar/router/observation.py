@@ -178,6 +178,7 @@ class UriObservationMap(object):
             raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
         is_first_observer = False
+        is_first_local_observer = False
 
         if match == "exact":
 
@@ -218,6 +219,13 @@ class UriObservationMap(object):
         else:
             raise Exception("invalid match strategy '{}'".format(match))
 
+        is_rlink_observer = observer.authrole == 'rlink'
+        if is_first_observer:
+            is_first_local_observer = not is_rlink_observer
+        else:
+            is_first_local_observer = not is_rlink_observer and \
+                                      next(filter(lambda o: o.authrole != 'rlink', observation.observers), None) is None
+
         # add observer if not already in observation
         #
         if observer not in observation.observers:
@@ -232,7 +240,7 @@ class UriObservationMap(object):
         else:
             was_already_observed = True
 
-        return observation, was_already_observed, is_first_observer
+        return observation, was_already_observed, is_first_observer, is_first_local_observer
 
     def get_observation(self, uri, match="exact"):
         """
@@ -383,9 +391,12 @@ class UriObservationMap(object):
         :rtype: tuple
         """
         was_last_observer = False
+        was_last_local_observer = False
 
         if observer in observation.observers:
             was_observed = True
+
+            is_rlink_observer = observer.authrole == 'rlink'
 
             # remove observer from observation
             #
@@ -400,12 +411,17 @@ class UriObservationMap(object):
             #
             if not observation.observers:
                 was_last_observer = True
-
+                was_last_local_observer = True
+            else:
+                was_last_observer = False
+                was_last_local_observer = not is_rlink_observer and \
+                                          next(filter(lambda o: o.authrole != 'rlink', observation.observers),
+                                               None) is None
         else:
             # observer wasn't on this observation
             was_observed = False
 
-        return was_observed, was_last_observer
+        return was_observed, was_last_observer, was_last_local_observer
 
     def delete_observation(self, observation):
         """

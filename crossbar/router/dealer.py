@@ -236,7 +236,7 @@ class Dealer(object):
                     invoke.caller._transport.send(reply)
 
             for registration in self._session_to_registrations[session]:
-                was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
+                was_registered, was_last_callee, was_last_local_callee = self._registration_map.drop_observer(session, registration)
 
                 if was_registered and was_last_callee:
                     self._registration_map.delete_observation(registration)
@@ -250,7 +250,12 @@ class Dealer(object):
                         service_session = self._router._realm.session
 
                         # FIXME: what about exclude_authid as collected from forward_for? like we do elsewhere in this file!
-                        options = types.PublishOptions(correlation_id=None)
+                        options = types.PublishOptions(
+                            correlation_id=None,
+                            exclude_authrole=['rlink'] if is_rlink_session else None,
+                            eligible_authrole=['rlink'] if was_last_local_callee and
+                                                             not was_last_callee else None,
+                        )
 
                         if was_registered:
                             service_session.publish(
@@ -260,14 +265,13 @@ class Dealer(object):
                                 options=options,
                             )
 
-                        if was_last_callee:
-                            if not is_rlink_session:
-                                service_session.publish(
-                                    'wamp.registration.on_delete',
-                                    session._session_id,
-                                    registration.id,
-                                    options=options,
-                                )
+                        if was_last_callee or was_last_local_callee:
+                            service_session.publish(
+                                'wamp.registration.on_delete',
+                                session._session_id,
+                                registration.id,
+                                options=options,
+                            )
 
                     # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish, registration)
@@ -281,7 +285,7 @@ class Dealer(object):
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processRegister`
         """
-        # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
+        # check topic URI: for REGISTER, must be valid URI (either strict or loose), and all
         # URI components must be non-empty other than for wildcard subscriptions
         #
         is_rlink_session = (session._authrole == "rlink")
@@ -437,6 +441,7 @@ class Dealer(object):
             if authorization['allow']:
                 registration = self._registration_map.get_observation(register.procedure, register.match)
                 if register.force_reregister and registration:
+                    # TODO handle Unregistered in RLink
                     for obs in registration.observers:
                         self._registration_map.drop_observer(obs, registration)
                         kicked = message.Unregistered(
@@ -455,7 +460,7 @@ class Dealer(object):
                 #
                 registration_extra = RegistrationExtra(register.invoke)
                 registration_callee_extra = RegistrationCalleeExtra(register.concurrency)
-                registration, was_already_registered, is_first_callee = self._registration_map.add_observer(
+                registration, was_already_registered, is_first_callee, is_first_local_callee = self._registration_map.add_observer(
                     session, register.procedure, register.match, registration_extra, registration_callee_extra)
 
                 if not was_already_registered:
@@ -489,29 +494,34 @@ class Dealer(object):
                     def _publish():
                         service_session = self._router._realm.session
 
-                        if exclude_authid or self._router.is_traced:
+                        if exclude_authid or self._router.is_traced or \
+                            is_rlink_session or is_first_local_callee:
                             options = types.PublishOptions(
                                 correlation_id=register.correlation_id,
                                 correlation_is_anchor=False,
                                 correlation_is_last=False,
                                 exclude_authid=exclude_authid,
+                                exclude_authrole=['rlink'] if is_rlink_session else None,
+                                eligible_authrole=['rlink'] if is_first_local_callee and
+                                                               not is_first_callee else None,
+
                             )
                         else:
                             options = None
 
-                        if is_first_callee:
+                        if is_first_callee or is_first_local_callee:
                             registration_details = {
                                 'id': registration.id,
                                 'created': registration.created,
                                 'uri': registration.uri,
                                 'match': registration.match,
                                 'invoke': registration.extra.invoke,
+                                'forced_reregister': register.force_reregister
                             }
-                            if not is_rlink_session:
-                                service_session.publish('wamp.registration.on_create',
-                                                        session._session_id,
-                                                        registration_details,
-                                                        options=options)
+                            service_session.publish('wamp.registration.on_create',
+                                                    session._session_id,
+                                                    registration_details,
+                                                    options=options)
 
                         if not was_already_registered:
                             if options:
@@ -612,7 +622,7 @@ class Dealer(object):
 
         # drop session from registration observers
         #
-        was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
+        was_registered, was_last_callee, was_last_local_callee = self._registration_map.drop_observer(session, registration)
         was_deleted = False
         is_rlink_session = (session._authrole == "rlink")
 
@@ -652,6 +662,8 @@ class Dealer(object):
                         correlation_is_anchor=False,
                         correlation_is_last=False,
                         exclude_authid=exclude_authid,
+                        exclude_authrole=['rlink'] if is_rlink_session else None,
+                        eligible_authrole=['rlink'] if was_last_local_callee and not was_last_callee else None,
                     )
                 else:
                     options = None
@@ -662,15 +674,14 @@ class Dealer(object):
                                             registration.id,
                                             options=options)
 
-                if was_deleted:
+                if was_deleted or was_last_local_callee:
                     if options:
                         options.correlation_is_last = True
 
-                    if not is_rlink_session:
-                        service_session.publish('wamp.registration.on_delete',
-                                                session._session_id,
-                                                registration.id,
-                                                options=options)
+                    service_session.publish('wamp.registration.on_delete',
+                                            session._session_id,
+                                            registration.id,
+                                            options=options)
 
             # we postpone actual sending of meta events until we return to this client session
             self._reactor.callLater(0, _publish)

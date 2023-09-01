@@ -68,7 +68,7 @@ class TestUriObservationMap(unittest.TestCase):
 
         uri1 = "com.example.uri1"
         obs1 = FakeObserver()
-        observation, was_already_observed, is_first_observer = obs_map.add_observer(obs1, uri1)
+        observation, was_already_observed, is_first_observer, is_first_local_observer = obs_map.add_observer(obs1, uri1)
 
         self.assertIsInstance(observation, ExactUriObservation)
         self.assertFalse(was_already_observed)
@@ -84,10 +84,10 @@ class TestUriObservationMap(unittest.TestCase):
         uri1 = "com.example.uri1"
         obs1 = FakeObserver()
 
-        observation1, was_already_observed, _ = obs_map.add_observer(obs1, uri1)
+        observation1, was_already_observed, _, _ = obs_map.add_observer(obs1, uri1)
         self.assertFalse(was_already_observed)
 
-        observation2, was_already_observed, _ = obs_map.add_observer(obs1, uri1)
+        observation2, was_already_observed, _, _ = obs_map.add_observer(obs1, uri1)
         self.assertTrue(was_already_observed)
 
         self.assertEqual(observation1, observation2)
@@ -103,10 +103,10 @@ class TestUriObservationMap(unittest.TestCase):
         obs1 = FakeObserver()
         obs2 = FakeObserver()
 
-        _, _, is_first_observer = obs_map.add_observer(obs1, uri1)
+        _, _, is_first_observer, _ = obs_map.add_observer(obs1, uri1)
         self.assertTrue(is_first_observer)
 
-        _, _, is_first_observer = obs_map.add_observer(obs2, uri1)
+        _, _, is_first_observer, _ = obs_map.add_observer(obs2, uri1)
         self.assertFalse(is_first_observer)
 
     def test_delete_observer(self):
@@ -116,8 +116,8 @@ class TestUriObservationMap(unittest.TestCase):
         obs1 = FakeObserver()
         obs2 = FakeObserver()
 
-        ob1, uri1, _ = obs_map.add_observer(obs1, uri)
-        ob2, uri2, _ = obs_map.add_observer(obs2, uri)
+        ob1, uri1, _, _ = obs_map.add_observer(obs1, uri)
+        ob2, uri2, _, _ = obs_map.add_observer(obs2, uri)
 
         self.assertTrue(ob1 is ob2)
         obs_map.drop_observer(obs1, ob1)
@@ -140,7 +140,7 @@ class TestUriObservationMap(unittest.TestCase):
         uri1 = "com.example.uri1"
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, uri1)
+        observation1, _, _, _ = obs_map.add_observer(obs1, uri1)
 
         observations = obs_map.match_observations(uri1)
 
@@ -158,9 +158,9 @@ class TestUriObservationMap(unittest.TestCase):
         obs2 = FakeObserver()
         obs3 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, uri1)
-        observation2, _, _ = obs_map.add_observer(obs2, uri1)
-        observation3, _, _ = obs_map.add_observer(obs3, uri1)
+        observation1, _, _, _ = obs_map.add_observer(obs1, uri1)
+        observation2, _, _, _ = obs_map.add_observer(obs2, uri1)
+        observation3, _, _, _ = obs_map.add_observer(obs3, uri1)
 
         observations = obs_map.match_observations(uri1)
 
@@ -177,9 +177,9 @@ class TestUriObservationMap(unittest.TestCase):
         uri1 = "com.example.uri1"
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, uri1)
-        observation2, _, _ = obs_map.add_observer(obs1, uri1)
-        observation3, _, _ = obs_map.add_observer(obs1, uri1)
+        observation1, _, _, _ = obs_map.add_observer(obs1, uri1)
+        observation2, _, _, _ = obs_map.add_observer(obs1, uri1)
+        observation3, _, _, _ = obs_map.add_observer(obs1, uri1)
 
         self.assertEqual(observation1, observation2)
         self.assertEqual(observation1, observation3)
@@ -198,7 +198,7 @@ class TestUriObservationMap(unittest.TestCase):
 
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, "com.example", match=Subscribe.MATCH_PREFIX)
+        observation1, _, _, _ = obs_map.add_observer(obs1, "com.example", match=Subscribe.MATCH_PREFIX)
 
         # test matches
         for uri in [
@@ -224,7 +224,7 @@ class TestUriObservationMap(unittest.TestCase):
 
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, "com.example..create", match=Subscribe.MATCH_WILDCARD)
+        observation1, _, _, _ = obs_map.add_observer(obs1, "com.example..create", match=Subscribe.MATCH_WILDCARD)
 
         # test matches
         for uri in ["com.example.foobar.create", "com.example.1.create"]:
@@ -248,7 +248,7 @@ class TestUriObservationMap(unittest.TestCase):
 
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, "com...create", match=Subscribe.MATCH_WILDCARD)
+        observation1, _, _, _ = obs_map.add_observer(obs1, "com...create", match=Subscribe.MATCH_WILDCARD)
 
         # test matches
         for uri in [
@@ -284,9 +284,9 @@ class TestUriObservationMap(unittest.TestCase):
 
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, "com.example.product.create", match=Subscribe.MATCH_EXACT)
-        observation2, _, _ = obs_map.add_observer(obs1, "com.example.product", match=Subscribe.MATCH_PREFIX)
-        observation3, _, _ = obs_map.add_observer(obs1, "com.example..create", match=Subscribe.MATCH_WILDCARD)
+        observation1, _, _, _ = obs_map.add_observer(obs1, "com.example.product.create", match=Subscribe.MATCH_EXACT)
+        observation2, _, _, _ = obs_map.add_observer(obs1, "com.example.product", match=Subscribe.MATCH_PREFIX)
+        observation3, _, _, _ = obs_map.add_observer(obs1, "com.example..create", match=Subscribe.MATCH_WILDCARD)
 
         observations = obs_map.match_observations("com.example.product.create")
         self.assertEqual(observations, [observation1, observation2, observation3])
