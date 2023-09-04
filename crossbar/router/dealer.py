@@ -40,6 +40,7 @@ class InvocationRequest(object):
         'id',
         'registration',
         'caller',
+        'caller_session_id',
         'call',
         'callee',
         'forward_for',
@@ -53,6 +54,7 @@ class InvocationRequest(object):
         self.id = id
         self.registration = registration
         self.caller = caller
+        self.caller_session_id = caller._session_id
         self.call = call
         self.callee = callee
         self.forward_for = forward_for
@@ -1132,11 +1134,7 @@ class Dealer(object):
 
         del self._invocations[invocation_request.id]
 
-        # the session_id will be None if the caller session has
-        # already vanished
-        caller_id = invocation_request.caller._session_id
-        if caller_id is not None:
-            del self._invocations_by_call[caller_id, invocation_request.call.request]
+        del self._invocations_by_call[invocation_request.caller_session_id, invocation_request.call.request]
 
     # noinspection PyUnusedLocal
     def processCancel(self, session, cancel):
