@@ -9,6 +9,12 @@ from __future__ import absolute_import
 
 import os
 import re
+import socket
+import sys
+import platform
+
+from twisted.internet import fdesc, tcp, ssl
+from twisted.python.runtime import platformType
 from os.path import join
 
 from functools import partial
@@ -26,6 +32,39 @@ import pytest
 # twice.
 from ..helpers import _cleanup_crossbar, start_crossbar, functest_session
 
+# Allow to test on macOS and other platforms without shared ports
+
+_HAS_SHARED_LOADBALANCED_SOCKET = False
+
+if sys.platform.startswith('linux'):
+    try:
+        # get Linux kernel version, like: (3, 19)
+        _LINUX_KERNEL_VERSION = [int(x) for x in tuple(sys.platform.uname()[2].split('.')[:2])]
+
+        # SO_REUSEPORT only supported for Linux kernels >= 3.9
+        if (_LINUX_KERNEL_VERSION[0] == 3 and _LINUX_KERNEL_VERSION[1] >= 9) or _LINUX_KERNEL_VERSION[0] >= 4:
+            _HAS_SHARED_LOADBALANCED_SOCKET = True
+
+            # monkey patch missing constant if needed
+            if not hasattr(socket, 'SO_REUSEPORT'):
+                socket.SO_REUSEPORT = 15
+    except:
+        pass
+
+elif sys.platform == 'win32':
+    # http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t/14388707#14388707
+    _HAS_SHARED_LOADBALANCED_SOCKET = True
+
+
+def shared_port():
+    return _HAS_SHARED_LOADBALANCED_SOCKET
+
+
+def proxy_port(proxy_ordinal):
+    if _HAS_SHARED_LOADBALANCED_SOCKET:
+        return 8443
+    else:
+        return 8443 + proxy_ordinal
 
 
 @inlineCallbacks
@@ -143,8 +182,8 @@ def test_proxy(request, virtualenv, reactor, session_temp):
                         "id": "ws_test_0",
                         "endpoint": {
                             "type": "tcp",
-                            "port": 8443,
-                            "shared": True,
+                            "port": proxy_port(0),
+                            "shared": shared_port(),
                         },
                         "paths": {
                             "autobahn": {
@@ -236,8 +275,8 @@ def test_proxy(request, virtualenv, reactor, session_temp):
                         "type": "web",
                         "endpoint": {
                             "type": "tcp",
-                            "port": 8443,
-                            "shared": True,
+                            "port": proxy_port(1),
+                            "shared": shared_port(),
                         },
                         "paths": {
                             "autobahn": {
@@ -303,6 +342,7 @@ def test_proxy(request, virtualenv, reactor, session_temp):
         Super hacky, but ... other suggestions? Could busy-wait for ports
         to become connect()-able? Better text to search for?
         """
+
         def __init__(self, done):
             self.data = ''
             self.done = done
@@ -332,11 +372,11 @@ def test_proxy(request, virtualenv, reactor, session_temp):
 
     listening = Deferred()
     protocol = yield start_crossbar(
-            reactor, virtualenv,
-            cbdir, crossbar_config,
-            stdout=WaitForTransportAndProxy(listening),
-            stderr=WaitForTransportAndProxy(listening),
-            log_level='debug' if request.config.getoption('logdebug', False) else False,
+        reactor, virtualenv,
+        cbdir, crossbar_config,
+        stdout=WaitForTransportAndProxy(listening),
+        stderr=WaitForTransportAndProxy(listening),
+        log_level='debug' if request.config.getoption('logdebug', False) else False,
     )
     request.addfinalizer(partial(_cleanup_crossbar, protocol))
 
@@ -386,6 +426,7 @@ def test_proxy(request, virtualenv, reactor, session_temp):
     @callee.on_ready
     def _(session):
         callee_ready.callback(None)
+
     callee.start()
 
     yield callee_ready
@@ -394,7 +435,6 @@ def test_proxy(request, virtualenv, reactor, session_temp):
     caller_sessions = []
     results = []
     for _ in range(num_callees):
-
         @inlineCallbacks
         def main(reactor, session):
             # print("main: {} {}".format(reactor, session))

@@ -123,7 +123,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
 
     # we use an Autobahn utility to import the "best" available Twisted reactor
     from autobahn.twisted.choosereactor import install_reactor
-    reactor = install_reactor(options.reactor)
+    reactor = install_reactor(explicit_reactor=options.reactor or os.environ.get('CROSSBAR_REACTOR', None))
 
     # make sure logging to something else than stdio is setup _first_
     from crossbar._logging import make_JSON_observer, cb_logging_aware

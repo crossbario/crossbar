@@ -58,7 +58,7 @@ wheel
 twine
 hashin
 
-pyinstaller==4.2
+pyinstaller>=4.2
 
 # FIXME: the docker shit insists on old deps (yaml, jsonschema)
 # https://github.com/docker/compose/blob/30fcb72cf3b136598883752edfa6ea4f3b8643d4/setup.py#L27
