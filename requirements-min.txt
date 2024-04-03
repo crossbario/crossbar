@@ -12,7 +12,7 @@ cookiecutter>=2.1.1
 cryptography>=39.0.0
 docker>=6.0.1
 eth-abi>=5.0.0
-eth-account==0.11.0
+eth-account==0.10.0
 eth-typing>=4.0.0
 flask>=2.2.2
 py-cid @ git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid

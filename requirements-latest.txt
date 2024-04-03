@@ -14,7 +14,7 @@ docker>=6.0.1
 # required for python 3.11+ https://github.com/ethereum/eth-abi/pull/194
 eth-abi @ git+https://github.com/ethereum/eth-abi.git@v4.0.0-beta.2#egg=eth-abi
 # required for python 3.11+ (https://github.com/ethereum/eth-account/pull/212)
-eth-account==0.11.0
+eth-account==0.10.0
 eth-typing @ git+https://github.com/ethereum/eth-typing.git@v3.2.0#egg=eth-typing
 flask>=2.2.2
 py-cid @ git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
