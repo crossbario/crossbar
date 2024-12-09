@@ -2263,7 +2263,8 @@ def check_listening_transport_websocket(personality, transport, with_endpoint=Tr
     :type transport: dict
     """
     for k in transport:
-        if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options', 'auth', 'cookie']:
+        if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options', 'auth', 'cookie',
+                     'debug_traffic']:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
