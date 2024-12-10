@@ -74,7 +74,7 @@ jobs:
       uses: github/codeql-action/analyze@v2
 
   docs:
-    runs-on: ubuntu-20.04 # means github.com
+    runs-on: ubuntu-latest  # means github.com
     # runs-on: [self-hosted, linux, X64] # means matterhorn
 
     steps:
@@ -110,7 +110,7 @@ jobs:
       run: tox -c tox.ini -e sphinx
 
   unit-test-amd64:
-    runs-on: ubuntu-20.04 # means github.com
+    runs-on: ubuntu-latest  # means github.com
     # runs-on: [self-hosted, linux, X64] # means matterhorn
 
     env:
@@ -177,7 +177,7 @@ jobs:
         pytest -sv crossbar
 
   functional-test-amd64:
-    runs-on: ubuntu-20.04 # means github.com
+    runs-on: ubuntu-latest  # means github.com
     # runs-on: [self-hosted, linux, X64] # means matterhorn
 
 
