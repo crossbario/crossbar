@@ -148,7 +148,7 @@ html_favicon = '_static/favicon.ico'
 # -- Options for intersphinx extension ---------------------------------------
 
 intersphinx_mapping = {
-    'https://docs.python.org/': None,
+    'python': ('https://docs.python.org/', None),
     'py2': ('https://docs.python.org/2', None),
     'py3': ('https://docs.python.org/3', None),
 
