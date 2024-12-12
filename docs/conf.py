@@ -41,7 +41,7 @@ extensions = [
     'sphinx.ext.intersphinx',
 
     # Usage: .. thumbnail:: picture.png
-    'sphinxcontrib.images',
+    # 'sphinxcontrib.images',
 ]
 
 # https://pythonhosted.org/sphinxcontrib-images/#how-to-configure
