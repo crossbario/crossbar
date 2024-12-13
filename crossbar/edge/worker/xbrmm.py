@@ -864,7 +864,7 @@ class MarketplaceController(WorkerController):
         """
         Starts a XBR Market Maker providing services in a specific XBR market.
         """
-        if type(maker_id) != str:
+        if not isinstance(maker_id, str):
             emsg = 'maker_id has invalid type {}'.format(type(maker_id))
             raise ApplicationError('wamp.error.invalid_argument', emsg)
 
@@ -912,7 +912,7 @@ class MarketplaceController(WorkerController):
     @inlineCallbacks
     @wamp.register(None)
     def stop_market_maker(self, maker_id, details=None):
-        if type(maker_id) != str:
+        if not isinstance(maker_id, str):
             emsg = 'maker_id has invalid type {}'.format(type(maker_id))
             raise ApplicationError('wamp.error.invalid_argument', emsg)
 

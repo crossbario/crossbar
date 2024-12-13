@@ -101,7 +101,7 @@ class UserManager(object):
         :returns: The organization database object (marshaled instance)
         :rtype: :class:`cfxdb.user.Organization`
         """
-        assert type(org_oid) == str
+        assert isinstance(org_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{klass}.get_organization(org_oid={org_oid}, details={details})',
@@ -129,7 +129,7 @@ class UserManager(object):
         :param details: Call details
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        assert type(organization) == dict
+        assert isinstance(organization, dict)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{klass}.create_organization(organization={organization}, details={details})',
@@ -175,7 +175,7 @@ class UserManager(object):
         :param details: Call details
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        assert type(org_oid) == str
+        assert isinstance(org_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{klass}.delete_organization(details={details})', klass=self.__class__.__name__, details=details)
@@ -211,7 +211,7 @@ class UserManager(object):
         :param details: Call details
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        assert type(user_id) == str
+        assert isinstance(user_id, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{klass}.get_user(user_id={user_id}, details={details})',
@@ -240,7 +240,7 @@ class UserManager(object):
         :param details: Call details
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        assert type(pubkey) == str
+        assert isinstance(pubkey, str)
         assert details is None or isinstance(details, CallDetails)
 
         with self.db.begin() as txn:
@@ -261,7 +261,7 @@ class UserManager(object):
         :param details: Call details
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        assert type(email) == str
+        assert isinstance(email, str)
         assert details is None or isinstance(details, CallDetails)
 
         with self.db.begin() as txn:
