@@ -74,8 +74,8 @@ class RouterServiceAgent(ApplicationSession):
         bridge_meta_api = self.config.extra.get('bridge_meta_api', False) if self.config.extra else False
         if bridge_meta_api:
 
-            management_session: RouterServiceAgent = self.config.extra.get('management_session',
-                                                                           None) if self.config.extra else None
+            management_session: Optional[RouterServiceAgent] = self.config.extra.get(
+                'management_session', None) if self.config.extra else None
             if management_session is None:
                 raise Exception('logic error: missing management_session in extra')
             assert management_session
