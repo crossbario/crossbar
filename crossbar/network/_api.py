@@ -387,8 +387,8 @@ class Network(ApplicationSession):
                 * ``text``: Actual EULA text.
             * ``from``: Email sending address for system emails.
         """
-        assert isinstance(include_eula_text, bool), 'include_eula_text must be bool, was {}'.format(
-            type(include_eula_text))
+        assert isinstance(include_eula_text,
+                          bool), 'include_eula_text must be bool, was {}'.format(type(include_eula_text))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -523,7 +523,8 @@ class Network(ApplicationSession):
         """
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
-        assert isinstance(client_pubkey, bytes), 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
+        assert isinstance(client_pubkey,
+                          bytes), 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
         assert len(client_pubkey) == 32, 'client_pubkey must be bytes[32], but was bytes[{}]'.format(
             len(client_pubkey))
         assert isinstance(wallet_adr, bytes), 'wallet_adr must be bytes, but was "{}"'.format(type(wallet_adr))
@@ -876,7 +877,8 @@ class Network(ApplicationSession):
         """
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
-        assert isinstance(client_pubkey, bytes), 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
+        assert isinstance(client_pubkey,
+                          bytes), 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
         assert len(client_pubkey) == 32, 'client_pubkey must be bytes[32], but was bytes[{}]'.format(
             len(client_pubkey))
         assert isinstance(wallet_adr, bytes), 'wallet_adr must be bytes, but was "{}"'.format(type(wallet_adr))

@@ -1516,7 +1516,8 @@ class Backend(object):
         :param block_no:
         :return:
         """
-        assert isinstance(block_no, bytes) and len(block_no) == 32, 'block_no must be bytes[32], was "{}"'.format(block_no)
+        assert isinstance(block_no,
+                          bytes) and len(block_no) == 32, 'block_no must be bytes[32], was "{}"'.format(block_no)
 
         with self._db.begin() as txn:
             block = self._xbr.blocks[txn, block_no]

@@ -137,12 +137,12 @@ class XbrDelegate(ApplicationSession):
         assert isinstance(status['status'], str) and status['status'] == 'ready'
         assert isinstance(status['block'], dict)
 
-        assert ('number' in status['block'] and isinstance(status['block']['number'], int) and
-                status['block']['number'] > 0)
+        assert ('number' in status['block'] and isinstance(status['block']['number'], int)
+                and status['block']['number'] > 0)
         assert 'hash' in status['block'] and isinstance(status['block']['hash'], bytes) and len(
             status['block']['hash']) == 32
-        assert 'gas_limit' in status['block'] and isinstance(
-            status['block']['gas_limit'], int) and status['block']['gas_limit'] > 0
+        assert 'gas_limit' in status['block'] and isinstance(status['block']['gas_limit'],
+                                                             int) and status['block']['gas_limit'] > 0
 
     async def _test_echo(self):
         counter = 1

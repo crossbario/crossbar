@@ -169,7 +169,8 @@ class XbrDelegate(ApplicationSession):
                 raise e
 
             assert isinstance(result, dict)
-            assert 'member_oid' in result and isinstance(result['member_oid'], bytes) and len(result['member_oid']) == 16
+            assert 'member_oid' in result and isinstance(result['member_oid'], bytes) and len(
+                result['member_oid']) == 16
             assert 'created' in result and isinstance(result['created'], int) and result['created'] > 0
 
             member_oid = result['member_oid']

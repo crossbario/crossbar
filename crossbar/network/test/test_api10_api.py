@@ -188,7 +188,8 @@ class XbrDelegate(ApplicationSession):
                 raise e
 
             assert isinstance(result, dict)
-            assert 'member_oid' in result and isinstance(result['member_oid'], bytes) and len(result['member_oid']) == 16
+            assert 'member_oid' in result and isinstance(result['member_oid'], bytes) and len(
+                result['member_oid']) == 16
             assert 'catalog_oid' in result and isinstance(result['catalog_oid'], bytes) and \
                    len(result['catalog_oid']) == 16 and result['catalog_oid'] == catalog_id
             assert 'api_oid' in result and isinstance(result['api_oid'], bytes) and len(result['api_oid']) == 16
