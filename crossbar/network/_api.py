@@ -184,7 +184,7 @@ class Network(ApplicationSession):
         if os.path.exists(keypath):
             with open(keypath, 'rb') as f:
                 self._eth_privkey_raw = f.read()
-                assert type(self._eth_privkey_raw, bytes) and len(self._eth_privkey_raw) == 32
+                assert isinstance(self._eth_privkey_raw, bytes) and len(self._eth_privkey_raw) == 32
                 self.log.info('Existing XBR Network Backend Ethereum private key loaded from "{keypath}"',
                               keypath=hlid(keypath))
         else:

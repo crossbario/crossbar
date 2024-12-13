@@ -669,7 +669,7 @@ class WebClusterManager(object):
                     "tls_key": null
                 }
         """
-        assert type(webcluster_oid, str)
+        assert isinstance(webcluster_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(webcluster_oid={webcluster_oid}, details={details})',
@@ -703,7 +703,7 @@ class WebClusterManager(object):
 
         :return: Web cluster definition.
         """
-        assert type(webcluster_name, str)
+        assert isinstance(webcluster_name, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(webcluster_name="{webcluster_name}", details={details})',
