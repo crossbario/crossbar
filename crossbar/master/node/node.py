@@ -499,7 +499,7 @@ class FabricCenterNode(node.FabricNode):
 
                         ipfs_config_url = '{}/api/v0/cat?arg={}&encoding=json'.format(
                             ipfs_gateway_url, xbr_node_config)
-                        resp = requests.get(ipfs_config_url)
+                        resp = requests.get(ipfs_config_url, timeout=10)
 
                         xbr_node_config_data = resp.json()
 

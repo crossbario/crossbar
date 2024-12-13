@@ -213,7 +213,7 @@ class MarketplaceController(WorkerController):
             ipfs_file = cfxdb.xbrmm.IPFSFile()
             ipfs_file.file_hash = file_hash
             path = 'https://ipfs.infura.io:5001/api/v0/cat?arg={}'.format(file_hash)
-            response = requests.get(path)
+            response = requests.get(path, timeout=10)
             if response.status_code == 200:
                 with open(file_path, 'w') as file:
                     file.write(response.text)

@@ -631,7 +631,7 @@ class MarketMaker(object):
             # http request
             eula_url = 'https://raw.githubusercontent.com/crossbario/xbr-protocol/master/ipfs/xbr-eula/XBR-EULA.txt'
             if include_eula_text:
-                resp = requests.get(eula_url)
+                resp = requests.get(eula_url, timeout=10)
                 eula_text = resp.content.decode('utf8')
             else:
                 eula_text = None
