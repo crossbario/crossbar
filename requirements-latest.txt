@@ -1,3 +1,4 @@
+#only test
 attrs>=22.2.0
 autobahn[twisted,encryption,compress,serialization,scram,xbr] @ git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn
 base58>=2.1.1
