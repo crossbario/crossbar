@@ -213,7 +213,7 @@ class MarketplaceController(WorkerController):
             ipfs_file = cfxdb.xbrmm.IPFSFile()
             ipfs_file.file_hash = file_hash
             path = 'https://ipfs.infura.io:5001/api/v0/cat?arg={}'.format(file_hash)
-            response = requests.get(path)
+            response = requests.get(path, timeout=10)
             if response.status_code == 200:
                 with open(file_path, 'w') as file:
                     file.write(response.text)
@@ -864,7 +864,7 @@ class MarketplaceController(WorkerController):
         """
         Starts a XBR Market Maker providing services in a specific XBR market.
         """
-        if type(maker_id) != str:
+        if not isinstance(maker_id, str):
             emsg = 'maker_id has invalid type {}'.format(type(maker_id))
             raise ApplicationError('wamp.error.invalid_argument', emsg)
 
@@ -912,7 +912,7 @@ class MarketplaceController(WorkerController):
     @inlineCallbacks
     @wamp.register(None)
     def stop_market_maker(self, maker_id, details=None):
-        if type(maker_id) != str:
+        if not isinstance(maker_id, str):
             emsg = 'maker_id has invalid type {}'.format(type(maker_id))
             raise ApplicationError('wamp.error.invalid_argument', emsg)
 

@@ -97,51 +97,52 @@ class XbrDelegate(ApplicationSession):
         config = await self.call('xbr.network.get_config', include_eula_text=True)
         self.log.info('Backend config:\n\n{config}\n', config=pformat(config))
 
-        assert type(config) == dict
+        assert isinstance(config, dict)
         assert 'now' in config
         assert 'chain' in config
         assert 'contracts' in config
         assert 'eula' in config
         assert 'from' in config
 
-        assert type(config['now']) == int and config['now'] > 0
-        assert type(config['chain']) == int and config['chain'] > 0
-        assert type(config['contracts']) == dict
-        assert type(config['eula']) == dict
-        assert type(config['from']) == str
+        assert isinstance(config['now'], int) and config['now'] > 0
+        assert isinstance(config['chain'], int) and config['chain'] > 0
+        assert isinstance(config['contracts'], dict)
+        assert isinstance(config['eula'], dict)
+        assert isinstance(config['from'], str)
 
         assert 'xbrtoken' in config['contracts']
         assert 'xbrnetwork' in config['contracts']
-        assert type(config['contracts']['xbrtoken']) == str
-        assert type(config['contracts']['xbrnetwork']) == str
+        assert isinstance(config['contracts']['xbrtoken'], str)
+        assert isinstance(config['contracts']['xbrnetwork'], str)
 
         assert 'hash' in config['eula']
         assert 'url' in config['eula']
         assert 'text' in config['eula']
-        assert type(config['eula']['hash']) == str
-        assert type(config['eula']['url']) == str
-        assert type(config['eula']['text']) == str
+        assert isinstance(config['eula']['hash'], str)
+        assert isinstance(config['eula']['url'], str)
+        assert isinstance(config['eula']['text'], str)
 
     async def _test_get_status(self):
         status = await self.call('xbr.network.get_status')
         self.log.info('Backend status:\n\n{status}\n', status=pformat(status))
 
-        assert type(status) == dict
+        assert isinstance(status, dict)
         assert 'now' in status
         assert 'status' in status
         assert 'chain' in status
         assert 'block' in status
 
-        assert type(status['now']) == int and status['now'] > 0
-        assert type(status['chain']) == int and status['chain'] > 0
-        assert type(status['status']) == str and status['status'] == 'ready'
-        assert type(status['block']) == dict
+        assert isinstance(status['now'], int) and status['now'] > 0
+        assert isinstance(status['chain'], int) and status['chain'] > 0
+        assert isinstance(status['status'], str) and status['status'] == 'ready'
+        assert isinstance(status['block'], dict)
 
-        assert 'number' in status['block'] and type(status['block']['number']) == int and status['block']['number'] > 0
-        assert 'hash' in status['block'] and type(status['block']['hash']) == bytes and len(
+        assert ('number' in status['block'] and isinstance(status['block']['number'], int)
+                and status['block']['number'] > 0)
+        assert 'hash' in status['block'] and isinstance(status['block']['hash'], bytes) and len(
             status['block']['hash']) == 32
-        assert 'gas_limit' in status['block'] and type(
-            status['block']['gas_limit']) == int and status['block']['gas_limit'] > 0
+        assert 'gas_limit' in status['block'] and isinstance(status['block']['gas_limit'],
+                                                             int) and status['block']['gas_limit'] > 0
 
     async def _test_echo(self):
         counter = 1

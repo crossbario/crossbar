@@ -187,7 +187,7 @@ def check_controller(personality, controller, ignore=[]):
 
     if 'enable_docker' in controller:
         enable_docker = controller['enable_docker']
-        if type(enable_docker) != bool:
+        if not isinstance(enable_docker, bool):
             raise checkconfig.InvalidConfigException('invalid type "{}" for "enable_docker" in controller'.format(
                 type(enable_docker)))
 
