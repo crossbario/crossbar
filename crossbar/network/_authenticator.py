@@ -89,10 +89,10 @@ class Authenticator(ApplicationSession):
             raise ApplicationError(self.ERROR_INVALID_AUTH_REQUEST, self.ERROR_INVALID_AUTH_REQUEST_MSG.format(msg))
         pubkey = details['authextra']['pubkey']
         pubkey_raw = binascii.a2b_hex(pubkey)
-        assert type(pubkey_raw) == bytes and len(pubkey_raw) == 32
+        assert isinstance(pubkey_raw, bytes) and len(pubkey_raw) == 32
 
         session_id = details['session']
-        assert type(session_id) == int
+        assert isinstance(session_id, int)
 
         with self._db.begin() as txn:
             # double check (again) for username collision, as the mailgun email submit happens async in above after

@@ -178,13 +178,13 @@ class XbrDelegate(ApplicationSession):
             self.log.info('Create market request submitted: \n{createmarket_request_submitted}\n',
                           createmarket_request_submitted=pformat(createmarket_request_submitted))
 
-            assert type(createmarket_request_submitted) == dict
-            assert 'timestamp' in createmarket_request_submitted and type(
-                createmarket_request_submitted['timestamp']) == int and createmarket_request_submitted['timestamp'] > 0
+            assert isinstance(createmarket_request_submitted, dict)
+            assert 'timestamp' in createmarket_request_submitted and isinstance(
+                createmarket_request_submitted['timestamp'], int) and createmarket_request_submitted['timestamp'] > 0
             assert 'action' in createmarket_request_submitted and createmarket_request_submitted[
                 'action'] == 'create_market'
-            assert 'vaction_oid' in createmarket_request_submitted and type(
-                createmarket_request_submitted['vaction_oid']) == bytes and len(
+            assert 'vaction_oid' in createmarket_request_submitted and isinstance(
+                createmarket_request_submitted['vaction_oid'], bytes) and len(
                     createmarket_request_submitted['vaction_oid']) == 16
 
             vaction_oid = UUID(bytes=createmarket_request_submitted['vaction_oid'])
@@ -214,12 +214,12 @@ class XbrDelegate(ApplicationSession):
             self.log.info('Create market request verified: \n{create_market_request_verified}\n',
                           create_market_request_verified=pformat(create_market_request_verified))
 
-            assert type(create_market_request_verified) == dict
-            assert 'market_oid' in create_market_request_verified and type(
-                create_market_request_verified['market_oid']) == bytes and len(
+            assert isinstance(create_market_request_verified, dict)
+            assert 'market_oid' in create_market_request_verified and isinstance(
+                create_market_request_verified['market_oid'], bytes) and len(
                     create_market_request_verified['market_oid']) == 16
-            assert 'created' in create_market_request_verified and type(
-                create_market_request_verified['created']) == int and create_market_request_verified['created'] > 0
+            assert 'created' in create_market_request_verified and isinstance(
+                create_market_request_verified['created'], int) and create_market_request_verified['created'] > 0
 
             market_oid = create_market_request_verified['market_oid']
             self.log.info('SUCCESS! New XBR market created: market_oid={market_oid}, result=\n{result}',

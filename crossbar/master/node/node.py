@@ -139,11 +139,11 @@ class FabricServiceNodeManager(ApplicationSession):
         # create database and attach tables to database slots
         #
         dbpath = config.get('path', '.db-controller')
-        assert type(dbpath) == str
+        assert isinstance(dbpath, str)
         dbpath = os.path.join(cbdir, dbpath)
 
         maxsize = config.get('maxsize', 128 * 2**20)
-        assert type(maxsize) == int
+        assert isinstance(maxsize, int)
         # allow maxsize 128kiB to 128GiB
         assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
 
@@ -169,7 +169,7 @@ class FabricServiceNodeManager(ApplicationSession):
         for prefix, register in domains:
             registrations = await register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
             for reg in registrations:
-                if type(reg) == Registration:
+                if isinstance(reg, Registration):
                     self.log.info('Registered CFC Global Realm "{realm}" API <{proc}>',
                                   proc=reg.procedure,
                                   realm=self._realm)
@@ -499,7 +499,7 @@ class FabricCenterNode(node.FabricNode):
 
                         ipfs_config_url = '{}/api/v0/cat?arg={}&encoding=json'.format(
                             ipfs_gateway_url, xbr_node_config)
-                        resp = requests.get(ipfs_config_url)
+                        resp = requests.get(ipfs_config_url, timeout=10)
 
                         xbr_node_config_data = resp.json()
 
