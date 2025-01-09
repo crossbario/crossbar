@@ -446,7 +446,6 @@ for x in [1, 2, 3, 4, 5]:
 
 
 class SubscribeHandlingTests(TestCase):
-
     @unittest.skip("FIXME: MQTT tests are failing")
     def test_exception_in_subscribe_drops_connection(self):
         """
@@ -886,7 +885,6 @@ class SendPublishTests(TestCase):
     """
     Tests for the WAMP layer sending messages to MQTT clients.
     """
-
     @unittest.skip("FIXME: MQTT tests are failing")
     def test_qos_0_queues_message(self):
         """
