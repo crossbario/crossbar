@@ -303,7 +303,7 @@ class NodeController(NativeProcess):
         :returns: List of worker processes.
         :rtype: list[dict]
         """
-        assert filter_types is None or (type(filter_types) == list and type(ft) == str for ft in filter_types)
+        assert filter_types is None or (isinstance(filter_types, list) and isinstance(ft, str) for ft in filter_types)
 
         if filter_types:
             ft = set(filter_types)
@@ -352,7 +352,7 @@ class NodeController(NativeProcess):
         """
         Start a new worker process in the node.
         """
-        if type(worker_id) != str or worker_id in ['controller', '']:
+        if not isinstance(worker_id, str) or worker_id in ['controller', '']:
             raise Exception('invalid worker ID "{}"'.format(worker_id))
 
         self.log.info('Starting {worker_type}-worker "{worker_id}" .. {worker_klass}',

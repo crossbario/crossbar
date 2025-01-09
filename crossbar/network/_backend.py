@@ -90,7 +90,7 @@ def is_valid_username(username):
 
 def _verify_meta_data(meta_hash, meta_data, meta_obj_expected):
     if meta_hash is not None:
-        if type(meta_hash) != str:
+        if isinstance(meta_hash, str):
             raise RuntimeError('Invalid type {} for meta_hash'.format(type(meta_hash)))
         try:
             # Profile hash must be a valid IPFS CID
@@ -101,7 +101,7 @@ def _verify_meta_data(meta_hash, meta_data, meta_obj_expected):
             raise RuntimeError('No profile_data, but meta_hash provided!')
 
     if meta_data is not None:
-        if type(meta_data) != bytes:
+        if isinstance(meta_data, bytes):
             raise RuntimeError('Invalid type {} for meta_data'.format(type(meta_data)))
         if meta_hash is None:
             raise RuntimeError('No profile_hash, but meta_data provided!')
@@ -899,17 +899,17 @@ class Backend(object):
                              block_number, contract_adr, eula_hash, profile_hash, profile_data, signature):
         ts_started = time_ns()
 
-        if type(member_username) != str or not is_valid_username(member_username):
+        if isinstance(member_username, str) or not is_valid_username(member_username):
             raise RuntimeError('Invalid username "{}" - must be a string matching the regular expression {}'.format(
                 member_username, _USERNAME_PAT_STR))
 
-        if type(member_email) != str or not validate_email(member_email, check_mx=False, verify=False):
+        if isinstance(member_email, str) or not validate_email(member_email, check_mx=False, verify=False):
             raise RuntimeError('Invalid email address "{}"'.format(member_email))
 
         if not is_cs_pubkey(client_pubkey):
             raise RuntimeError('Invalid client public key "{}"'.format(client_pubkey))
 
-        if type(wallet_type) != str or wallet_type not in Account.WALLET_TYPE_FROM_STRING:
+        if isinstance(wallet_type, str) or wallet_type not in Account.WALLET_TYPE_FROM_STRING:
             raise RuntimeError('Invalid wallet type "{}"'.format(wallet_type))
 
         if not is_address(wallet_adr):
@@ -925,11 +925,11 @@ class Backend(object):
             raise RuntimeError('Invalid contract_adr "{}"'.format(contract_adr))
 
         network_eula_hash = await deferToThread(lambda: str(xbr.xbrnetwork.functions.eula().call()))
-        if type(eula_hash) != str or eula_hash != network_eula_hash:
+        if isinstance(eula_hash, str) or eula_hash != network_eula_hash:
             raise RuntimeError('EULA must be accepted')
 
         if profile_hash is not None:
-            if type(profile_hash) != str:
+            if isinstance(profile_hash, str):
                 raise RuntimeError('Invalid type {} for profile_hash'.format(type(profile_hash)))
             try:
                 # Profile hash must be a valid IPFS CID
@@ -941,7 +941,7 @@ class Backend(object):
                 raise RuntimeError('No profile_data, but profile_hash provided!')
 
         if profile_data is not None:
-            if type(profile_data) != bytes:
+            if isinstance(profile_data, bytes):
                 raise RuntimeError('Invalid type {} for profile_data'.format(type(profile_data)))
             if profile_hash is None:
                 raise RuntimeError('No profile_hash, but profile_data provided!')
@@ -973,7 +973,7 @@ class Backend(object):
                 raise RuntimeError('Invalid profile_data {} does not match expected data {}'.format(
                     _profile_obj_received, _profile_obj_expected))
 
-        if type(signature) != bytes:
+        if isinstance(signature, bytes):
             raise RuntimeError('Invalid type {} for signature'.format(type(signature)))
         if len(signature) != (32 + 32 + 1):
             raise RuntimeError('Invalid signature length {} - must be 65'.format(len(signature)))
@@ -1228,28 +1228,28 @@ class Backend(object):
         """
         ts_started = time_ns()
 
-        if type(member_email) != str or not validate_email(member_email, check_mx=False, verify=False):
+        if isinstance(member_email, str) or not validate_email(member_email, check_mx=False, verify=False):
             raise RuntimeError('Invalid member_email "{}"'.format(member_email))
 
-        if type(client_pubkey) != bytes or len(client_pubkey) != 32:
+        if isinstance(client_pubkey, bytes) or len(client_pubkey) != 32:
             raise RuntimeError('Invalid client_pubkey "{}"'.format(client_pubkey))
 
-        if type(chain_id) != int:
+        if isinstance(chain_id, int):
             raise RuntimeError('Invalid chain_id "{}"'.format(chain_id))
 
-        if type(block_number) != int:
+        if isinstance(block_number, int):
             raise RuntimeError('Invalid block_number "{}"'.format(block_number))
 
-        if type(contract_adr) != bytes or len(contract_adr) != 20:
+        if isinstance(contract_adr, bytes) or len(contract_adr) != 20:
             raise RuntimeError('Invalid contract_adr "{}"'.format(contract_adr))
 
-        if type(timestamp) != int:
+        if isinstance(timestamp, int):
             raise RuntimeError('Invalid timestamp "{}"'.format(timestamp))
 
-        if type(wallet_adr) != bytes or len(wallet_adr) != 20:
+        if isinstance(wallet_adr, bytes) or len(wallet_adr) != 20:
             raise RuntimeError('Invalid wallet_adr "{}"'.format(wallet_adr))
 
-        if type(signature) != bytes:
+        if isinstance(signature, bytes):
             raise RuntimeError('Invalid type {} for signature'.format(type(signature)))
         if len(signature) != (32 + 32 + 1):
             raise RuntimeError('Invalid signature length {} - must be 65'.format(len(signature)))
@@ -1399,7 +1399,7 @@ class Backend(object):
         except ValueError:
             raise RuntimeError('Invalid vaction_oid "{}"'.format(vaction_oid))
 
-        if type(vaction_code) != str:
+        if isinstance(vaction_code, str):
             raise RuntimeError('Invalid vaction_code "{}"'.format(vaction_code))
 
         with self._db.begin(write=True) as txn:
@@ -1453,7 +1453,7 @@ class Backend(object):
 
     async def get_member(self, member_oid):
 
-        assert type(member_oid) == bytes and len(member_oid) == 16
+        assert isinstance(member_oid, bytes) and len(member_oid) == 16
         member_oid = uuid.UUID(bytes=member_oid)
 
         with self._db.begin() as txn:
@@ -1516,7 +1516,8 @@ class Backend(object):
         :param block_no:
         :return:
         """
-        assert type(block_no) == bytes and len(block_no) == 32, 'block_no must be bytes[32], was "{}"'.format(block_no)
+        assert isinstance(block_no,
+                          bytes) and len(block_no) == 32, 'block_no must be bytes[32], was "{}"'.format(block_no)
 
         with self._db.begin() as txn:
             block = self._xbr.blocks[txn, block_no]
@@ -1532,7 +1533,7 @@ class Backend(object):
         :return:
         """
         assert isinstance(market_oid, uuid.UUID), 'market_oid must be bytes[16], was "{}"'.format(market_oid)
-        assert attributes is None or type(attributes) == dict
+        assert attributes is None or isinstance(attributes, dict)
 
         with self._db.begin(write=True) as txn:
 
@@ -1629,7 +1630,7 @@ class Backend(object):
 
         _verify_meta_data(meta_hash, meta_data, meta_obj_expected)
 
-        if type(signature) != bytes:
+        if isinstance(signature, bytes):
             raise RuntimeError('Invalid type {} for signature'.format(type(signature)))
         if len(signature) != (32 + 32 + 1):
             raise RuntimeError('Invalid signature length {} - must be 65'.format(len(signature)))
@@ -1698,7 +1699,7 @@ class Backend(object):
         # FIXME: cbor2.types.CBOREncodeTypeError: cannot serialize type memoryview
         for k in verified_data:
             v = verified_data[k]
-            if type(v) == type(memoryview):
+            if type(v) is type(memoryview):
                 verified_data[k] = bytes(v)
                 self.log.warn('Monkey-patched (memoryview => bytes) dict "verified_data" for key "{key_name}"',
                               key_name=k)
@@ -1885,19 +1886,19 @@ class Backend(object):
         if not isinstance(market_id, uuid.UUID):
             raise RuntimeError('market_id must be UUID, was {}'.format(type(market_id)))
 
-        if type(chain_id) != int:
+        if isinstance(chain_id, int):
             raise RuntimeError('Invalid chain_id "{}"'.format(chain_id))
 
-        if type(contract_adr) != bytes or len(contract_adr) != 20:
+        if isinstance(contract_adr, bytes) or len(contract_adr) != 20:
             raise RuntimeError('Invalid contract_adr "{}"'.format(contract_adr))
 
-        if type(block_number) != int:
+        if isinstance(block_number, int):
             raise RuntimeError('Invalid block_number "{}"'.format(block_number))
 
-        if type(contract_adr) != bytes or len(contract_adr) != 20:
+        if isinstance(contract_adr, bytes) or len(contract_adr) != 20:
             raise RuntimeError('Invalid contract_adr "{}"'.format(contract_adr))  # type: ignore
 
-        if type(actor_type) != int:
+        if isinstance(actor_type, int):
             raise RuntimeError('Invalid actor_type {}'.format(type(actor_type)))
 
         if actor_type not in [ActorType.PROVIDER, ActorType.CONSUMER, ActorType.PROVIDER_CONSUMER]:
@@ -1906,7 +1907,7 @@ class Backend(object):
         _meta_object_expected = {}
         _verify_meta_data(meta_hash, meta_data, _meta_object_expected)
 
-        if type(signature) != bytes:
+        if isinstance(signature, bytes):
             raise RuntimeError('Invalid type {} for signature'.format(type(signature)))
 
         if len(signature) != (32 + 32 + 1):
@@ -2024,7 +2025,7 @@ class Backend(object):
         except ValueError:
             raise RuntimeError('Invalid vaction_oid "{}"'.format(vaction_oid))
 
-        if type(vaction_code) != str:
+        if isinstance(vaction_code, str):
             raise RuntimeError('Invalid vaction_code "{}"'.format(vaction_code))
 
         with self._db.begin(write=True) as txn:
@@ -2113,26 +2114,26 @@ class Backend(object):
         if not isinstance(catalog_oid, uuid.UUID):
             raise RuntimeError('catalog_oid must be UUID, was {}'.format(type(catalog_oid)))
 
-        if type(verifying_chain_id) != int:
+        if not isinstance(verifying_chain_id, int):
             raise RuntimeError('verifying_chain_id must be int, was "{}"'.format(type(verifying_chain_id)))
 
-        if type(current_block_number) != int:
+        if not isinstance(current_block_number, int):
             raise RuntimeError('current_block_number must be int, was "{}"'.format(type(current_block_number)))
 
-        if type(verifying_contract_adr) != bytes and len(verifying_contract_adr) != 20:
+        if not isinstance(verifying_contract_adr, bytes) and len(verifying_contract_adr) != 20:
             raise RuntimeError('Invalid verifying_contract_adr "{!r}"'.format(verifying_contract_adr))
 
-        if terms_hash and type(terms_hash) != str:
+        if terms_hash and not isinstance(terms_hash, str):
             raise RuntimeError('terms_hash must be str, was "{}"'.format(type(terms_hash)))
 
         if meta_hash and meta_data:
             _meta_object_expected = {}  # type: ignore
             _verify_meta_data(meta_hash, meta_data, _meta_object_expected)
 
-        if attributes and type(attributes) != dict:
+        if attributes and not isinstance(attributes, dict) != dict:
             raise RuntimeError('attributes must be dict, was "{}"'.format(type(attributes)))
 
-        if type(signature) != bytes:
+        if not isinstance(signature, bytes):
             raise RuntimeError('Invalid type {} for signature'.format(type(signature)))
 
         if len(signature) != (32 + 32 + 1):
@@ -2241,7 +2242,7 @@ class Backend(object):
         except ValueError:
             raise RuntimeError('Invalid vaction_oid "{}"'.format(vaction_oid))
 
-        if type(vaction_code) != str:
+        if isinstance(vaction_code, str):
             raise RuntimeError('Invalid vaction_code "{}"'.format(vaction_code))
 
         with self._db.begin(write=True) as txn:
@@ -2334,19 +2335,19 @@ class Backend(object):
         if not isinstance(api_oid, uuid.UUID):
             raise RuntimeError('api_oid must be UUID, was {}'.format(type(api_oid)))
 
-        if type(verifying_chain_id) != int:
+        if not isinstance(verifying_chain_id, int):
             raise RuntimeError('verifying_chain_id must be int, was "{}"'.format(type(verifying_chain_id)))
 
-        if type(current_block_number) != int:
+        if not isinstance(current_block_number, int):
             raise RuntimeError('current_block_number must be int, was "{}"'.format(type(current_block_number)))
 
-        if type(verifying_contract_adr) != bytes and len(verifying_contract_adr) != 20:
+        if not isinstance(verifying_contract_adr, bytes) and len(verifying_contract_adr) != 20:
             raise RuntimeError('Invalid verifying_contract_adr "{!r}"'.format(verifying_contract_adr))
 
-        if schema_hash and type(schema_hash) != str:
+        if schema_hash and not isinstance(schema_hash, str):
             raise RuntimeError('schema_hash must be str, was "{}"'.format(type(schema_hash)))
 
-        if meta_hash and type(meta_hash) != str:
+        if meta_hash and not isinstance(meta_hash, str):
             raise RuntimeError('meta_hash must be str, was "{}"'.format(type(meta_hash)))
 
         _meta_object_expected = {}  # type: ignore
@@ -2354,10 +2355,10 @@ class Backend(object):
 
         _verify_meta_data(meta_hash, meta_data, _meta_object_expected)
 
-        if attributes and type(attributes) != dict:
+        if attributes and not isinstance(attributes, dict):
             raise RuntimeError('attributes must be dict, was "{}"'.format(type(attributes)))
 
-        if type(signature) != bytes:
+        if isinstance(signature, bytes):
             raise RuntimeError('Invalid type {} for signature'.format(type(signature)))
 
         if len(signature) != (32 + 32 + 1):
@@ -2457,7 +2458,7 @@ class Backend(object):
         except ValueError:
             raise RuntimeError('Invalid vaction_oid "{}"'.format(vaction_oid))
 
-        if type(vaction_code) != str:
+        if isinstance(vaction_code, str):
             raise RuntimeError('Invalid vaction_code "{}"'.format(vaction_code))
 
         with self._db.begin(write=True) as txn:

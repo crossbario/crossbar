@@ -185,7 +185,7 @@ class CmdAddPrincipal(CmdAdd):
             arealm_oid = arealm['oid']
 
         role = self.config.get('role', None)
-        assert role is not None and type(role) == str
+        assert role is not None and isinstance(role, str)
 
         try:
             role_oid = uuid.UUID(role)

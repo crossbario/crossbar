@@ -669,7 +669,7 @@ class WebClusterManager(object):
                     "tls_key": null
                 }
         """
-        assert type(webcluster_oid) == str
+        assert isinstance(webcluster_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(webcluster_oid={webcluster_oid}, details={details})',
@@ -703,7 +703,7 @@ class WebClusterManager(object):
 
         :return: Web cluster definition.
         """
-        assert type(webcluster_name) == str
+        assert isinstance(webcluster_name, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(webcluster_name="{webcluster_name}", details={details})',
@@ -802,7 +802,7 @@ class WebClusterManager(object):
                     "tls_key": null
                 }
         """
-        assert type(webcluster) == dict
+        assert isinstance(webcluster, dict)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(webcluster="{webcluster}", details={details})',
@@ -1133,9 +1133,9 @@ class WebClusterManager(object):
                     "node4"
                 ]
         """
-        assert type(webcluster_oid) == str
-        assert return_names is None or type(return_names) == bool
-        assert filter_by_status is None or type(filter_by_status) == str
+        assert isinstance(webcluster_oid, str)
+        assert return_names is None or isinstance(return_names, bool)
+        assert filter_by_status is None or isinstance(filter_by_status, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info(
@@ -1280,8 +1280,8 @@ class WebClusterManager(object):
                     "standby": null
                 }
         """
-        assert type(webcluster_oid) == str
-        assert type(node_oid) == str
+        assert isinstance(webcluster_oid, str)
+        assert isinstance(node_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         try:
@@ -1348,8 +1348,8 @@ class WebClusterManager(object):
                     "standby": null
                 }
         """
-        assert type(webcluster_oid) == str
-        assert type(node_oid) == str
+        assert isinstance(webcluster_oid, str)
+        assert isinstance(node_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         try:
@@ -1411,8 +1411,8 @@ class WebClusterManager(object):
                     "ws": "92f5f4c7-4175-4c72-a0a6-81467c343565"
                 }
         """
-        assert type(webcluster_oid) == str
-        assert prefix is None or type(prefix) == str
+        assert isinstance(webcluster_oid, str)
+        assert prefix is None or isinstance(prefix, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(webcluster_oid={webcluster_oid}, prefix="{prefix}", details={details})',
@@ -1475,9 +1475,9 @@ class WebClusterManager(object):
                     "webcluster_oid": "92f5f4c7-4175-4c72-a0a6-81467c343565"
                 }
         """
-        assert type(webcluster_oid) == str
-        assert type(path) == str
-        assert type(webservice) == dict
+        assert isinstance(webcluster_oid, str)
+        assert isinstance(path, str)
+        assert isinstance(webservice, dict)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info(
@@ -1597,8 +1597,8 @@ class WebClusterManager(object):
                     "webcluster_oid": "92f5f4c7-4175-4c72-a0a6-81467c343565"
                 }
         """
-        assert type(webcluster_oid) == str
-        assert type(webservice_oid) == str
+        assert isinstance(webcluster_oid, str)
+        assert isinstance(webservice_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info(
@@ -1682,8 +1682,8 @@ class WebClusterManager(object):
                     "webcluster_oid": "92f5f4c7-4175-4c72-a0a6-81467c343565"
                 }
         """
-        assert type(webcluster_oid) == str
-        assert type(webservice_oid) == str
+        assert isinstance(webcluster_oid, str)
+        assert isinstance(webservice_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(webcluster_oid={webcluster_oid}, webservice_oid={webservice_oid}, details={details})',
@@ -1731,8 +1731,8 @@ class WebClusterManager(object):
 
         :return: see :meth:`crossbar.master.cluster.webcluster.WebClusterManager.get_webcluster_service`
         """
-        assert type(webcluster_oid) == str
-        assert type(path) == str
+        assert isinstance(webcluster_oid, str)
+        assert isinstance(path, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(webcluster_oid={webcluster_oid}, path="{path}", details={details})',

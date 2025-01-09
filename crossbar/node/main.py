@@ -92,7 +92,7 @@ def _get_version(name_or_module):
 
     if type(v) in (tuple, list):
         return '.'.join(str(x) for x in v)
-    elif type(v) == str:
+    elif isinstance(v, str):
         return v
     else:
         raise RuntimeError('unexpected type {} for version in module "{}"'.format(type(v), name_or_module))

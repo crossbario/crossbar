@@ -204,7 +204,7 @@ class MailGateway(object):
             "text": email_body
         }
 
-        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
+        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
             raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
                 self._mailgun_url, self._mailgun_from, res.status_code))
@@ -249,7 +249,7 @@ class MailGateway(object):
             "text": email_body
         }
 
-        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
+        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
             raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
                 self._mailgun_url, self._mailgun_from, res.status_code))
@@ -267,7 +267,7 @@ class MailGateway(object):
             "text": email_body
         }
 
-        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
+        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
             raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
                 self._mailgun_url, self._mailgun_from, res.status_code))
@@ -296,7 +296,7 @@ class MailGateway(object):
             "text": email_body
         }
 
-        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
+        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
             raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
                 self._mailgun_url, self._mailgun_from, res.status_code))
@@ -336,7 +336,7 @@ class MailGateway(object):
             "text": email_body
         }
 
-        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data)
+        res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
             raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
                 self._mailgun_url, self._mailgun_from, res.status_code))

@@ -129,7 +129,7 @@ class MarketMaker(object):
         if os.path.exists(keypath):
             with open(keypath, 'rb') as f:
                 self._eth_privkey_raw = f.read()
-                assert type(self._eth_privkey_raw) == bytes and len(self._eth_privkey_raw) == 32
+                assert isinstance(self._eth_privkey_raw, bytes) and len(self._eth_privkey_raw) == 32
                 self.log.info('Existing XBR Market Maker Ethereum private key loaded from "{keypath}"',
                               keypath=hlid(keypath))
         else:
@@ -160,19 +160,19 @@ class MarketMaker(object):
         cfg = self._config['database']
 
         dbpath = cfg.get('path', None)
-        assert type(dbpath) == str, "dbpath must be a string, was {}".format(type(dbpath))
+        assert isinstance(dbpath, str), "dbpath must be a string, was {}".format(type(dbpath))
 
         maxsize = cfg.get('maxsize', 1024 * 2**20)
-        assert type(maxsize) == int, "maxsize must be an int, was {}".format(type(maxsize))
+        assert isinstance(maxsize, int), "maxsize must be an int, was {}".format(type(maxsize))
         # allow maxsize 128kiB to 128GiB
         assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30, "maxsize must be >=128kiB and <=128GiB, was {}".format(
             maxsize)
 
         readonly = cfg.get('readonly', False)
-        assert type(readonly) == bool, "readonly must be a bool, was {}".format(type(readonly))
+        assert isinstance(readonly, bool), "readonly must be a bool, was {}".format(type(readonly))
 
         sync = cfg.get('sync', True)
-        assert type(sync) == bool, "sync must be a bool, was {}".format(type(sync))
+        assert isinstance(sync, bool), "sync must be a bool, was {}".format(type(sync))
 
         # self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
         self._db = zlmdb.Database.open(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
@@ -609,8 +609,8 @@ class MarketMaker(object):
 
     @wamp.register(None, check_types=True)
     async def get_config(self, include_eula_text: bool = False, details: Optional[CallDetails] = None) -> dict:
-        assert type(include_eula_text) == bool, 'include_eula_text must be bool, was {}'.format(
-            type(include_eula_text))
+        assert isinstance(include_eula_text,
+                          bool), 'include_eula_text must be bool, was {}'.format(type(include_eula_text))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -631,7 +631,7 @@ class MarketMaker(object):
             # http request
             eula_url = 'https://raw.githubusercontent.com/crossbario/xbr-protocol/master/ipfs/xbr-eula/XBR-EULA.txt'
             if include_eula_text:
-                resp = requests.get(eula_url)
+                resp = requests.get(eula_url, timeout=10)
                 eula_text = resp.content.decode('utf8')
             else:
                 eula_text = None
@@ -768,24 +768,26 @@ class MarketMaker(object):
         :return: Offer placement information, including offer ID assigned.
         :rtype: dict
         """
-        assert type(key_id) == bytes and len(key_id) == 16, 'key_id must be bytes[16], but was "{}"'.format(key_id)
-        assert type(api_id) == bytes and len(api_id) == 16, 'api_id must be bytes[16], but was "{}"'.format(api_id)
-        assert type(uri) == str, 'uri must be str, but was "{}"'.format(uri)
-        assert type(valid_from) == int, 'valid_from must be int, but was "{}"'.format(valid_from)
-        assert type(delegate_adr) == bytes and len(
-            delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
-        assert type(delegate_signature) == bytes and len(
+        assert isinstance(key_id, bytes) and len(key_id) == 16, 'key_id must be bytes[16], but was "{}"'.format(key_id)
+        assert isinstance(api_id, bytes) and len(api_id) == 16, 'api_id must be bytes[16], but was "{}"'.format(api_id)
+        assert isinstance(uri, str), 'uri must be str, but was "{}"'.format(uri)
+        assert isinstance(valid_from, int), 'valid_from must be int, but was "{}"'.format(valid_from)
+        assert isinstance(
+            delegate_adr,
+            bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
+        assert isinstance(delegate_signature, bytes) and len(
             delegate_signature) == 65, 'delegate_signature must be bytes[65]. but was "{}"'.format(delegate_signature)
-        assert privkey is None or type(privkey) == bytes and len(
-            privkey) == 32, 'privkey must be bytes[32], but was "{}"'.format(privkey)
-        assert price is None or (type(price) == bytes
+        assert privkey is None or isinstance(
+            privkey, bytes) and len(privkey) == 32, 'privkey must be bytes[32], but was "{}"'.format(privkey)
+        assert price is None or (isinstance(price, bytes)
                                  and len(price) == 32), 'price must be bytes[32], but was "{}"'.format(price)
         assert categories is None or (
-            type(categories) == dict and (type(k) == str for k in categories.keys()) and (type(v) == str
-                                                                                          for v in categories.values())
+            isinstance(categories, dict) and (isinstance(k, str)
+                                              for k in categories.keys()) and (isinstance(v, str)
+                                                                               for v in categories.values())
         ), 'invalid categories type (must be dict) or category key or value type (must both be string)'
-        assert expires is None or type(expires) == int, 'expires must be int, but was "{}"'.format(expires)
-        assert copies is None or type(copies) == int, 'copies must be int, but was "{}"'.format(copies)
+        assert expires is None or isinstance(expires, int), 'expires must be int, but was "{}"'.format(expires)
+        assert copies is None or isinstance(copies, int), 'copies must be int, but was "{}"'.format(copies)
 
         try:
             key_id = uuid.UUID(bytes=key_id)
@@ -813,11 +815,11 @@ class MarketMaker(object):
         min_validity = 5 * 60 * 10**9
         # FIXME: ABJS!
         if False:
-            if type(valid_from) != int or valid_from < (now - min_validity) or valid_from > max_future_time:
+            if not isinstance(valid_from, int) or valid_from < (now - min_validity) or valid_from > max_future_time:
                 raise ApplicationError('wamp.error.invalid_argument', 'invalid valid_from type or value')
 
-        if expires is not None and (type(expires) != int or expires <= valid_from or expires > max_future_time or
-                                    (expires - valid_from) < min_validity):
+        if expires is not None and (not isinstance(expires, int) or expires <= valid_from or expires > max_future_time
+                                    or (expires - valid_from) < min_validity):
             raise ApplicationError('wamp.error.invalid_argument', 'invalid expires type or value')
 
         # FIXME: XBRSIG - check the supplied offer information to match the delegate signature according to the delegate address
@@ -879,7 +881,8 @@ class MarketMaker(object):
         :return: Detail information about the offer requested.
         :rtype: dict
         """
-        assert type(offer_id) == bytes and len(offer_id) == 16, 'offer_id must be bytes[16], was "{}"'.format(offer_id)
+        assert (isinstance(offer_id, bytes)
+                and len(offer_id) == 16), 'offer_id must be bytes[16], was "{}"'.format(offer_id)
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
 
@@ -995,7 +998,7 @@ class MarketMaker(object):
         :return: Offer revocation information.
         :rtype: dict
         """
-        assert type(key_id) == bytes and len(key_id) == 16, 'key_id must be bytes[16], was "{}"'.format(key_id)
+        assert isinstance(key_id, bytes) and len(key_id) == 16, 'key_id must be bytes[16], was "{}"'.format(key_id)
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
 
@@ -1043,7 +1046,7 @@ class MarketMaker(object):
         :return: The price quotation.
         :rtype: dict
         """
-        assert type(key_id) == bytes and len(key_id) == 16, 'key_id must be bytes[16], was "{}"'.format(key_id)
+        assert isinstance(key_id, bytes) and len(key_id) == 16, 'key_id must be bytes[16], was "{}"'.format(key_id)
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
 
@@ -1131,15 +1134,16 @@ class MarketMaker(object):
             data encryption key is itself encrypted (sealed) to the ``buyer_pubkey``.
         :rtype: dict
         """
-        assert type(delegate_adr) == bytes and len(delegate_adr) == 20, 'delegate_adr must be bytes[20]'
-        assert type(buyer_pubkey) == bytes and len(buyer_pubkey) == 32, 'buyer_pubkey must be bytes[32]'
-        assert type(key_id) == bytes and len(key_id) == 16, 'key_id must be bytes[16]'
-        assert type(channel_oid) == bytes and len(channel_oid) == 16, 'channel_oid must be bytes[20]'
-        assert type(channel_seq) == int, 'channel_seq must be int, but was {}'.format(type(channel_seq))
-        assert type(amount) == bytes and len(amount) == 32, 'amount must be bytes[32], but was {}'.format(type(amount))
-        assert type(balance) == bytes and len(balance) == 32, 'balance must be bytes[32], but was {}'.format(
+        assert isinstance(delegate_adr, bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20]'
+        assert isinstance(buyer_pubkey, bytes) and len(buyer_pubkey) == 32, 'buyer_pubkey must be bytes[32]'
+        assert isinstance(key_id, bytes) and len(key_id) == 16, 'key_id must be bytes[16]'
+        assert isinstance(channel_oid, bytes) and len(channel_oid) == 16, 'channel_oid must be bytes[20]'
+        assert isinstance(channel_seq, int), 'channel_seq must be int, but was {}'.format(type(channel_seq))
+        assert isinstance(amount, bytes) and len(amount) == 32, 'amount must be bytes[32], but was {}'.format(
+            type(amount))
+        assert isinstance(balance, bytes) and len(balance) == 32, 'balance must be bytes[32], but was {}'.format(
             type(balance))
-        assert type(signature) == bytes, 'signature must be bytes, but was {}'.format(type(signature))
+        assert isinstance(signature, bytes), 'signature must be bytes, but was {}'.format(type(signature))
         assert len(signature) == (32 + 32 + 1), 'signature must be bytes[65], but was bytes[{}]'.format(len(signature))
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
@@ -1181,10 +1185,10 @@ class MarketMaker(object):
         except Exception as e:
             raise ApplicationError('wamp.error.invalid_argument', 'invalid key_id: {}'.format(str(e)))
 
-        if type(amount) != int or amount < 0:
+        if not isinstance(amount, int) or amount < 0:
             raise ApplicationError('wamp.error.invalid_argument', 'invalid amount type or value: {}'.format(amount))
 
-        if type(balance) != int or balance < 0:
+        if not isinstance(balance, int) or balance < 0:
             raise ApplicationError('wamp.error.invalid_argument', 'invalid balance type or value: {}'.format(balance))
 
         if not self._market_session:
@@ -1651,32 +1655,33 @@ class MarketMaker(object):
 
         :return: XBR channel information.
         """
-        assert type(member_adr) == bytes, 'member_adr must be bytes, was {}'.format(type(member_adr))
+        assert isinstance(member_adr, bytes), 'member_adr must be bytes, was {}'.format(type(member_adr))
         assert len(member_adr) == 20, 'member_adr must be bytes[20], was bytes[{}]'.format(len(member_adr))
-        assert type(market_oid) == bytes, 'market_oid must be bytes, was {}'.format(type(market_oid))
+        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
         assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
-        assert type(channel_oid) == bytes, 'channel_oid must be bytes, was {}'.format(type(channel_oid))
+        assert isinstance(channel_oid, bytes), 'channel_oid must be bytes, was {}'.format(type(channel_oid))
         assert len(channel_oid) == 16, 'channel_oid must be bytes[16], was bytes[{}]'.format(len(channel_oid))
-        assert type(verifying_chain_id) == int, 'verifying_chain_id must be int, was {}'.format(
-            type(verifying_chain_id))
-        assert type(current_block_number) == int, 'current_block_number mus be int, was {}'.format(
-            type(current_block_number))
-        assert type(verifying_contract_adr) == bytes and len(
-            verifying_contract_adr) == 20, 'verifying_contract_adr mus be bytes[20], was {}'.format(
+        assert isinstance(verifying_chain_id,
+                          int), 'verifying_chain_id must be int, was {}'.format(type(verifying_chain_id))
+        assert isinstance(current_block_number,
+                          int), 'current_block_number mus be int, was {}'.format(type(current_block_number))
+        assert isinstance(
+            verifying_contract_adr,
+            bytes) and len(verifying_contract_adr) == 20, 'verifying_contract_adr mus be bytes[20], was {}'.format(
                 type(verifying_contract_adr))
-        assert type(channel_type) == int, 'channel_type must be int, was {}'.format(type(channel_type))
+        assert isinstance(channel_type, int), 'channel_type must be int, was {}'.format(type(channel_type))
         assert channel_type in [ActorType.PROVIDER, ActorType.CONSUMER]
-        assert type(delegate) == bytes, 'delegate must be bytes, was {}'.format(type(delegate))
+        assert isinstance(delegate, bytes), 'delegate must be bytes, was {}'.format(type(delegate))
         assert len(delegate) == 20, 'delegate must be bytes[20], was bytes[{}]'.format(len(delegate))
-        assert type(marketmaker) == bytes, 'marketmaker must be bytes, was {}'.format(type(marketmaker))
+        assert isinstance(marketmaker, bytes), 'marketmaker must be bytes, was {}'.format(type(marketmaker))
         assert len(marketmaker) == 20, 'marketmaker must be bytes[16], was bytes[{}]'.format(len(marketmaker))
-        assert type(recipient) == bytes, 'recipient must be bytes, was {}'.format(type(recipient))
+        assert isinstance(recipient, bytes), 'recipient must be bytes, was {}'.format(type(recipient))
         assert len(recipient) == 20, 'recipient must be bytes[16], was bytes[{}]'.format(len(recipient))
-        assert type(amount) == bytes, 'amount must be bytes, was {}'.format(type(amount))
+        assert isinstance(amount, bytes), 'amount must be bytes, was {}'.format(type(amount))
         assert len(amount) == 32, 'amount must be bytes[16], was bytes[{}]'.format(len(amount))
-        assert type(signature) == bytes and len(signature) == 65, 'signature must be bytes[65], was {}'.format(
+        assert isinstance(signature, bytes) and len(signature) == 65, 'signature must be bytes[65], was {}'.format(
             type(signature))
-        assert attributes is None or type(attributes) == dict, 'attributes must be dict, was {}'.format(
+        assert attributes is None or isinstance(attributes, dict), 'attributes must be dict, was {}'.format(
             type(attributes))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -1793,21 +1798,25 @@ class MarketMaker(object):
 
         :return: XBR channel information.
         """
-        assert type(channel_oid) == bytes, 'channel_oid must be bytes, was {}'.format(type(channel_oid))
+        assert isinstance(channel_oid, bytes), 'channel_oid must be bytes, was {}'.format(type(channel_oid))
         assert len(channel_oid) == 16, 'channel_oid must be bytes[16], was bytes[{}]'.format(len(channel_oid))
-        assert type(verifying_chain_id) == int, 'verifying_chain_id must be int, was {}'.format(
-            type(verifying_chain_id))
-        assert type(current_block_number) == int, 'current_block_number mus be int, was {}'.format(
-            type(current_block_number))
-        assert type(verifying_contract_adr) == bytes and len(
-            verifying_contract_adr) == 20, 'verifying_contract_adr mus be bytes[20], was {}'.format(
+        assert isinstance(verifying_chain_id,
+                          int), 'verifying_chain_id must be int, was {}'.format(type(verifying_chain_id))
+        assert isinstance(current_block_number,
+                          int), 'current_block_number mus be int, was {}'.format(type(current_block_number))
+        assert isinstance(
+            verifying_contract_adr,
+            bytes) and len(verifying_contract_adr) == 20, 'verifying_contract_adr mus be bytes[20], was {}'.format(
                 type(verifying_contract_adr))
-        assert type(closing_balance) == bytes and len(
-            closing_balance) == 32, 'closing_balance must be bytes[32], was {}'.format(type(closing_balance))
-        assert type(closing_seq) == int, 'closing_seq must be int, was {}'.format(type(closing_seq))
-        assert type(closing_is_final) == bool, 'closing_final must be bool, was {}'.format(type(closing_is_final))
-        assert type(delegate_signature) == bytes and len(
-            delegate_signature) == 65, 'delegate_signature must be bytes[65], was {}'.format(type(delegate_signature))
+        assert isinstance(closing_balance,
+                          bytes) and len(closing_balance) == 32, 'closing_balance must be bytes[32], was {}'.format(
+                              type(closing_balance))
+        assert isinstance(closing_seq, int), 'closing_seq must be int, was {}'.format(type(closing_seq))
+        assert isinstance(closing_is_final, bool), 'closing_final must be bool, was {}'.format(type(closing_is_final))
+        assert isinstance(
+            delegate_signature,
+            bytes) and len(delegate_signature) == 65, 'delegate_signature must be bytes[65], was {}'.format(
+                type(delegate_signature))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -1960,8 +1969,9 @@ class MarketMaker(object):
         :return: Payment channel information.
         :rtype: dict
         """
-        assert type(channel_oid) == bytes and len(channel_oid) == 16, 'channel_oid must be bytes[16], was "{}"'.format(
-            channel_oid)
+        assert isinstance(
+            channel_oid,
+            bytes) and len(channel_oid) == 16, 'channel_oid must be bytes[16], was "{}"'.format(channel_oid)
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
 
@@ -2088,8 +2098,8 @@ class MarketMaker(object):
         :return: Payment channel balance information.
         :rtype: dict
         """
-        assert type(channel_oid) == bytes and len(channel_oid) == 16, 'channel_oid must be bytes[16], was "{}"'.format(
-            channel_oid)
+        assert (isinstance(channel_oid, bytes)
+                and len(channel_oid) == 16), 'channel_oid must be bytes[16], was "{}"'.format(channel_oid)
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
 
@@ -2120,8 +2130,8 @@ class MarketMaker(object):
         :return: Paying channel information.
         :rtype: dict
         """
-        assert type(channel_oid) == bytes and len(channel_oid) == 16, 'channel_oid must be bytes[16], was "{}"'.format(
-            channel_oid)
+        assert (isinstance(channel_oid, bytes)
+                and len(channel_oid) == 16), 'channel_oid must be bytes[16], was "{}"'.format(channel_oid)
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
 
@@ -2153,8 +2163,8 @@ class MarketMaker(object):
         :return: Paying channel balance information.
         :rtype: dict
         """
-        assert type(channel_oid) == bytes and len(channel_oid) == 16, 'channel_oid must be bytes[20], was "{}"'.format(
-            channel_oid)
+        assert (isinstance(channel_oid, bytes)
+                and len(channel_oid) == 16), 'channel_oid must be bytes[20], was "{}"'.format(channel_oid)
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
 
@@ -2185,8 +2195,9 @@ class MarketMaker(object):
         :return: Payment channel and balance details: ``(channel, balance)``.
         :rtype: tuple
         """
-        assert type(delegate_adr) == bytes and len(
-            delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
+        assert isinstance(
+            delegate_adr,
+            bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
 
@@ -2220,8 +2231,9 @@ class MarketMaker(object):
         :return: Paying channel and balance details: ``(channel, balance)``.
         :rtype: tuple
         """
-        assert type(delegate_adr) == bytes and len(
-            delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
+        assert isinstance(
+            delegate_adr,
+            bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
         assert details is None or isinstance(
             details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
 
@@ -2251,8 +2263,9 @@ class MarketMaker(object):
 
         which contain the currently active payment/paying channel per buyer/seller delegate address.
         """
-        assert type(delegate_adr) == bytes and len(
-            delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
+        assert isinstance(
+            delegate_adr,
+            bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
         assert channel_type in ['payment', 'paying'], 'invalid channel_type "{}"'.format(channel_type)
 
         t_zero = np.datetime64(0, 'ns')
@@ -2433,11 +2446,11 @@ class MarketMaker(object):
 
         :return: XBR Consent setting information.
         """
-        assert type(verifying_chain_id) == int
-        assert type(current_block_number) == int
-        assert type(verifying_contract_adr) == bytes and len(verifying_contract_adr) == 20
-        assert type(signature) == bytes and len(signature) == 65
-        assert attributes is None or type(attributes) == dict
+        assert isinstance(verifying_chain_id, int)
+        assert isinstance(current_block_number, int)
+        assert isinstance(verifying_contract_adr, bytes) and len(verifying_contract_adr) == 20
+        assert isinstance(signature, bytes) and len(signature) == 65
+        assert attributes is None or isinstance(attributes, dict)
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -2454,28 +2467,28 @@ class MarketMaker(object):
         _market_oid = uuid.UUID(bytes=market_oid)
         _catalog_oid = uuid.UUID(bytes=catalog_oid)
 
-        if type(verifying_chain_id) != int:
+        if not isinstance(verifying_chain_id, int):
             raise RuntimeError('verifying_chain_id must be int, was "{}"'.format(type(verifying_chain_id)))
 
-        if type(current_block_number) != int:
+        if not isinstance(current_block_number, int):
             raise RuntimeError('current_block_number must be int, was "{}"'.format(type(current_block_number)))
 
-        if type(verifying_contract_adr) != bytes and len(verifying_contract_adr) != 20:
+        if not isinstance(verifying_contract_adr, bytes) and len(verifying_contract_adr) != 20:
             raise RuntimeError('Invalid verifying_contract_adr "{!r}"'.format(verifying_contract_adr))
 
-        if type(delegate) != bytes and len(delegate) != 20:
+        if not isinstance(delegate, bytes) and len(delegate) != 20:
             raise RuntimeError('Invalid delegate "{!r}"'.format(delegate))
 
-        if type(delegate_type) != int:
+        if not isinstance(delegate_type, int):
             raise RuntimeError('Invalid delegate type "{}"'.format(delegate_type))
 
-        assert type(consent) == bool
-        assert type(service_prefix) == str
+        assert isinstance(consent, bool)
+        assert isinstance(service_prefix, str)
 
-        if attributes and type(attributes) != dict:
+        if attributes and not isinstance(attributes, dict):
             raise RuntimeError('attributes must be dict, was "{}"'.format(type(attributes)))
 
-        if type(signature) != bytes:
+        if not isinstance(signature, bytes):
             raise RuntimeError('Invalid type {} for signature'.format(type(signature)))
 
         if len(signature) != (32 + 32 + 1):
@@ -2528,11 +2541,11 @@ class MarketMaker(object):
                     include_attributes: bool = False,
                     details: Optional[CallDetails] = None) -> dict:
 
-        assert type(market_oid) == bytes and len(market_oid) == 16
-        assert type(member) == bytes and len(member) == 20
-        assert type(delegate) == bytes and len(delegate) == 20
-        assert type(delegate_type) == int
-        assert type(catalog_oid) == bytes and len(catalog_oid) == 16
+        assert isinstance(market_oid, bytes) and len(market_oid) == 16
+        assert isinstance(member, bytes) and len(member) == 20
+        assert isinstance(delegate, bytes) and len(delegate) == 20
+        assert isinstance(delegate_type, int)
+        assert isinstance(catalog_oid, bytes) and len(catalog_oid) == 16
         assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)

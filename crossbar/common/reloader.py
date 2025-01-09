@@ -14,7 +14,7 @@ try:
     reload
 except NameError:
     # Python 3
-    from imp import reload
+    from importlib import reload
 
 __all__ = ('TrackingModuleReloader', )
 

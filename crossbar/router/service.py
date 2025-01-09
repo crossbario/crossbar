@@ -74,8 +74,8 @@ class RouterServiceAgent(ApplicationSession):
         bridge_meta_api = self.config.extra.get('bridge_meta_api', False) if self.config.extra else False
         if bridge_meta_api:
 
-            management_session: RouterServiceAgent = self.config.extra.get('management_session',
-                                                                           None) if self.config.extra else None
+            management_session: Optional[RouterServiceAgent] = self.config.extra.get(
+                'management_session', None) if self.config.extra else None
             if management_session is None:
                 raise Exception('logic error: missing management_session in extra')
             assert management_session
@@ -422,9 +422,9 @@ class RouterServiceAgent(ApplicationSession):
         :param message: A message provided to the killed session.
         :type message: str or None
         """
-        assert type(session_id) == int
-        assert reason is None or type(reason) == str
-        assert message is None or type(message) == str
+        assert isinstance(session_id, int)
+        assert reason is None or isinstance(reason, str)
+        assert message is None or isinstance(message, str)
         assert details is None or isinstance(details, CallDetails)
 
         if session_id in self._router._session_id_to_session:
@@ -455,9 +455,9 @@ class RouterServiceAgent(ApplicationSession):
         :param message: A message provided to the killed session(s).
         :type message: str or None
         """
-        assert type(authid) == str
-        assert reason is None or type(reason) == str
-        assert message is None or type(message) == str
+        assert isinstance(authid, str)
+        assert reason is None or isinstance(reason, str)
+        assert message is None or isinstance(message, str)
         assert details is None or isinstance(details, CallDetails)
 
         killed = []
@@ -487,9 +487,9 @@ class RouterServiceAgent(ApplicationSession):
         :param message: A message provided to the killed session(s).
         :type message: str or None
         """
-        assert type(authrole) == str
-        assert reason is None or type(reason) == str
-        assert message is None or type(message) == str
+        assert isinstance(authrole, str)
+        assert reason is None or isinstance(reason, str)
+        assert message is None or isinstance(message, str)
         assert details is None or isinstance(details, CallDetails)
 
         killed = []
