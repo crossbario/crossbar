@@ -131,11 +131,11 @@ class WapResource(resource.Resource):
 
         # setup Jinja2 to point to our templates folder or a package resource
         templates_config = self._config.get("templates")
-        if type(templates_config) == str:
+        if isinstance(templates_config, str):
             # resolve specified template directory path relative to node directory
             templates_dir = os.path.abspath(os.path.join(self._worker.config.extra.cbdir, templates_config))
             templates_source = 'directory'
-        elif type(templates_config) == dict:
+        elif isinstance(templates_config, dict):
             # in case we got a dict, that must contain "package" and "resource" attributes
             if 'package' not in templates_config:
                 raise ApplicationError('crossbar.error.invalid_configuration',

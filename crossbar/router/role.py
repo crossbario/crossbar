@@ -124,7 +124,7 @@ class RouterPermissions(object):
                 ]:
                     raise RuntimeError('invalid key "{}" in role-permissions configuration'.format(k))
                 if (k == 'extra' and not isinstance(validate[k], Mapping)) or (k != 'extra'
-                                                                               and type(validate[k]) != str):
+                                                                               and not isinstance(validate[k], str)):
                     print(type(k), type(validate[k]), k, validate[k])
                     raise RuntimeError('invalid value type "{}" for key "{}" in role-permissions configuration'.format(
                         type(validate[k]), k))

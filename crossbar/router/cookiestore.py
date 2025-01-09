@@ -452,16 +452,16 @@ class CookieStoreDatabaseBacked(CookieStore):
         CookieStore.__init__(self, config)
 
         maxsize = config['store'].get('maxsize', 1024 * 2**20)
-        assert type(maxsize) == int, "maxsize must be an int, was {}".format(type(maxsize))
+        assert isinstance(maxsize, int), "maxsize must be an int, was {}".format(type(maxsize))
         # allow maxsize 128kiB to 128GiB
         assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30, "maxsize must be >=128kiB and <=128GiB, was {}".format(
             maxsize)
 
         readonly = config['store'].get('readonly', False)
-        assert type(readonly) == bool, "readonly must be a bool, was {}".format(type(readonly))
+        assert isinstance(readonly, bool), "readonly must be a bool, was {}".format(type(readonly))
 
         sync = config['store'].get('sync', True)
-        assert type(sync) == bool, "sync must be a bool, was {}".format(type(sync))
+        assert isinstance(sync, bool), "sync must be a bool, was {}".format(type(sync))
 
         if config['store'].get('purge_on_startup', False):
             zlmdb.Database.scratch(dbpath)

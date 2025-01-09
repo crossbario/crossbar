@@ -145,9 +145,9 @@ class MetadataManager(object):
 
         :return: Documentation object,
         """
-        assert type(otype) == str
+        assert isinstance(otype, str)
         assert otype in MetadataManager.otype_to_slot
-        assert type(oid) == str
+        assert isinstance(oid, str)
 
         slot = MetadataManager.otype_to_slot[otype]  # noqa
         try:
@@ -171,9 +171,9 @@ class MetadataManager(object):
         :param details:
         :return:
         """
-        assert type(otype) == str
+        assert isinstance(otype, str)
         assert otype in MetadataManager.otype_to_slot
-        assert type(oid) == str
+        assert isinstance(oid, str)
 
         slot = MetadataManager.otype_to_slot[otype]
         try:
@@ -220,7 +220,7 @@ class MetadataManager(object):
         :param details:
         :return:
         """
-        assert type(oid) == str
+        assert isinstance(oid, str)
 
         result = []
 

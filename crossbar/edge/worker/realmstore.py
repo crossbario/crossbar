@@ -61,18 +61,18 @@ class RealmStoreDatabase(object):
         self._factory = factory
 
         dbpath = config.get('path', None)
-        assert type(dbpath) == str
+        assert isinstance(dbpath, str)
 
         maxsize = config.get('maxsize', 128 * 2**20)
-        assert type(maxsize) == int
+        assert isinstance(maxsize, int)
         # allow maxsize 128kiB to 128GiB
         assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
 
         readonly = config.get('readonly', False)
-        assert type(readonly) == bool
+        assert isinstance(readonly, bool)
 
         sync = config.get('sync', True)
-        assert type(sync) == bool
+        assert isinstance(sync, bool)
 
         self._config = config
 
@@ -371,7 +371,7 @@ class RealmStoreDatabase(object):
         """
         # FIXME: builtins.AssertionError: invalid type <class 'crossbar.router.service.RouterServiceAgent'> for "session"
         # assert isinstance(session, RouterSession), 'invalid type {} for "session"'.format(type(session))
-        assert type(publication_id) == int, 'invalid type {} for "publication_id"'.format(type(publication_id))
+        assert isinstance(publication_id, int), 'invalid type {} for "publication_id"'.format(type(publication_id))
         assert isinstance(publish, message.Publish), 'invalid type {} for "publish"'.format(type(publish))
 
         self._buffer.append([self._store_event, session, publication_id, publish])
@@ -403,7 +403,7 @@ class RealmStoreDatabase(object):
         pub.topic = publish.topic
 
         # FIXME: runs into pmap assert
-        pub.args = list(publish.args) if type(publish.args) == tuple else publish.args
+        pub.args = list(publish.args) if isinstance(publish.args, tuple) else publish.args
 
         pub.kwargs = publish.kwargs
         pub.payload = publish.payload
@@ -426,8 +426,8 @@ class RealmStoreDatabase(object):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_event_history`
         """
-        assert type(publication_id) == int
-        assert type(subscription_id) == int
+        assert isinstance(publication_id, int)
+        assert isinstance(subscription_id, int)
 
         # FIXME: unexpected type <class 'backend.BackendSession'> for receiver
         # assert isinstance(receiver, RouterSession), 'unexpected type {} for receiver'.format(type(receiver))
@@ -472,8 +472,8 @@ class RealmStoreDatabase(object):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_events`
         """
-        assert type(subscription_id) == int
-        assert limit is None or type(limit) == int
+        assert isinstance(subscription_id, int)
+        assert limit is None or isinstance(limit, int)
 
         return self.get_event_history(subscription_id, from_ts=0, until_ts=time_ns(), reverse=True, limit=limit)
 
@@ -486,11 +486,11 @@ class RealmStoreDatabase(object):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_event_history`
         """
-        assert type(subscription_id) == int
-        assert type(from_ts) == int
-        assert type(until_ts) == int
-        assert type(reverse) == bool
-        assert limit is None or type(limit) == int
+        assert isinstance(subscription_id, int)
+        assert isinstance(from_ts, int)
+        assert isinstance(until_ts, int)
+        assert isinstance(reverse, bool)
+        assert limit is None or isinstance(limit, int)
 
         # FIXME
         # from_key = (subscription_id, np.datetime64(from_ts, 'ns'))

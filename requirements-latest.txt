@@ -12,10 +12,10 @@ cookiecutter>=2.1.1
 cryptography>=39.0.0
 docker>=6.0.1
 # required for python 3.11+ https://github.com/ethereum/eth-abi/pull/194
-eth-abi>=4.1.0
+eth-abi>=5.0.1,<5.1.0
 # required for python 3.11+ (https://github.com/ethereum/eth-account/pull/212)
-eth-account @ git+https://github.com/crossbario/eth-account.git@fix-215#egg=eth-account
-eth-typing @ git+https://github.com/ethereum/eth-typing.git@v3.2.0#egg=eth-typing
+eth-account>=0.6.0
+eth-typing>=5.0.1
 flask>=2.2.2
 py-cid @ git+https://github.com/crossbario/py-cid.git@remove-dep-upper-limits#egg=py-cid
 py-multihash @ git+https://github.com/crossbario/py-multihash.git@remove-dep-version-limits#egg=py-multihash

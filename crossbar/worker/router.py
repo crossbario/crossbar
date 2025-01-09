@@ -1114,7 +1114,7 @@ class RouterController(TransportController):
         :returns: List of router link IDs.
         :rtype: list[str]
         """
-        assert type(realm_id) == str
+        assert isinstance(realm_id, str)
         assert isinstance(details, CallDetails)
 
         self.log.info('{method} Getting router links for realm {realm_id}',
@@ -1142,8 +1142,8 @@ class RouterController(TransportController):
         :returns: Router link detail information.
         :rtype: dict
         """
-        assert type(realm_id) == str
-        assert type(link_id) == str
+        assert isinstance(realm_id, str)
+        assert isinstance(link_id, str)
         assert isinstance(details, CallDetails)
 
         self.log.info('{method} Get router link {link_id} on realm {realm_id}',
@@ -1199,9 +1199,9 @@ class RouterController(TransportController):
         :returns: The new link detail information.
         :rtype: dict
         """
-        assert type(realm_id) == str
-        assert type(link_id) == str
-        assert type(link_config) == dict
+        assert isinstance(realm_id, str)
+        assert isinstance(link_id, str)
+        assert isinstance(link_config, dict)
         assert isinstance(details, CallDetails)
 
         self.log.info('{method} Router link {link_id} starting on realm {realm_id} ..',
@@ -1253,8 +1253,8 @@ class RouterController(TransportController):
         :returns: The stopped link detail information.
         :rtype: dict
         """
-        assert type(realm_id) == str
-        assert type(link_id) == str
+        assert isinstance(realm_id, str)
+        assert isinstance(link_id, str)
         assert isinstance(details, CallDetails)
 
         self.log.info('{method} Router link {link_id} stopping on realm {realm_id}',

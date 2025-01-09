@@ -87,9 +87,9 @@ class XbrDelegate(ApplicationSession):
                 self.log.error('ApplicationError: {error}', error=e)
                 raise e
 
-            assert type(result) == list
+            assert isinstance(result, list)
             for item in result:
-                assert type(item) == bytes and len(item) == 16
+                assert isinstance(item, bytes) and len(item) == 16
 
             # Get all catalogs
             try:
@@ -99,9 +99,9 @@ class XbrDelegate(ApplicationSession):
                 self.log.error('ApplicationError: {error}', error=e)
                 raise e
 
-            assert type(result) == list
+            assert isinstance(result, list)
             for item in result:
-                assert type(item) == bytes and len(item) == 16
+                assert isinstance(item, bytes) and len(item) == 16
 
         except Exception as e:
             self.log.failure()

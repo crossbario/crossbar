@@ -134,7 +134,7 @@ class HostMonitor(WorkerController):
         self._monitors = {}
         for monitor_key, monitor_config in monitors.items():
 
-            if type(monitor_key) != six.text_type:
+            if not isinstance(monitor_key, six.text_type):
                 raise ApplicationError(u'crossbar.error.invalid_configuration',
                                        u'invalid monitor key type "{}"'.format(type(monitor_key)))
 

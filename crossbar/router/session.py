@@ -84,7 +84,7 @@ class RouterApplicationSession(object):
             router.__class__.__name__ if router else type(router))
         assert (authid is None or isinstance(authid, str))
         assert (authrole is None or isinstance(authrole, str))
-        assert (authextra is None or type(authextra) == dict)
+        assert (authextra is None or isinstance(authextra, dict))
 
         self.log.debug(
             '{func}(session={session}, router={router}, authid="{authid}", authrole="{authrole}", authextra={authextra}, store={store})',
@@ -1094,12 +1094,12 @@ class RouterSession(BaseSession):
                 trigger_on_join = realm_config['stats'].get('trigger_on_join', False)
                 trigger_on_leave = realm_config['stats'].get('trigger_on_leave', True)
 
-                assert type(rated_message_size) == int and rated_message_size > 0 and rated_message_size % 2 == 0
-                assert type(trigger_after_rated_messages) == int
-                assert type(trigger_after_duration) == int
+                assert isinstance(rated_message_size, int) and rated_message_size > 0 and rated_message_size % 2 == 0
+                assert isinstance(trigger_after_rated_messages, int)
+                assert isinstance(trigger_after_duration, int)
                 assert trigger_after_rated_messages or trigger_after_duration
-                assert type(trigger_on_join) == bool
-                assert type(trigger_on_leave) == bool
+                assert isinstance(trigger_on_join, bool)
+                assert isinstance(trigger_on_leave, bool)
 
                 # setup serializer stats event publishing
                 session_info_short = {
@@ -1282,9 +1282,9 @@ class RouterSessionFactory(object):
         """
         assert isinstance(session, ApplicationSession)
         assert isinstance(router, Router)
-        assert authid is None or type(authid) == str
-        assert authrole is None or type(authrole) == str
-        assert authextra is None or type(authextra) == dict
+        assert authid is None or isinstance(authid, str)
+        assert authrole is None or isinstance(authrole, str)
+        assert authextra is None or isinstance(authextra, dict)
 
         if session not in self._app_sessions:
             router_session = RouterApplicationSession(session,
