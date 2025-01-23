@@ -40,6 +40,7 @@ class InvocationRequest(object):
         'id',
         'registration',
         'caller',
+        'caller_session_id',
         'call',
         'callee',
         'forward_for',
@@ -53,6 +54,7 @@ class InvocationRequest(object):
         self.id = id
         self.registration = registration
         self.caller = caller
+        self.caller_session_id = caller._session_id
         self.call = call
         self.callee = callee
         self.forward_for = forward_for
@@ -185,6 +187,7 @@ class Dealer(object):
         is_rlink_session = (session._authrole == "rlink")
         if session in self._caller_to_invocations:
 
+            # this needs to update all four places where we track invocations similar to _remove_invoke_request
             outstanding = self._caller_to_invocations.get(session, [])
             for invoke in outstanding:  # type: InvocationRequest
                 if invoke.canceled:
@@ -207,10 +210,25 @@ class Dealer(object):
                     request=invoke.id,
                     session=session._session_id,
                 )
+
+                if invoke.timeout_call:
+                    invoke.timeout_call.cancel()
+                    invoke.timeout_call = None
+
+                invokes = self._callee_to_invocations[callee]
+                invokes.remove(invoke)
+                if not invokes:
+                    del self._callee_to_invocations[callee]
+
+                del self._invocations[invoke.id]
+                del self._invocations_by_call[(invoke.caller_session_id, invoke.call.request)]
+
                 self._router.send(invoke.callee, message.Interrupt(
                     request=invoke.id,
                     mode=message.Cancel.KILLNOWAIT,
                 ))
+
+            del self._caller_to_invocations[session]
 
         if session in self._session_to_registrations:
 
@@ -234,6 +252,21 @@ class Dealer(object):
                 # _transport is None before we get here though)
                 if invoke.caller._transport:
                     invoke.caller._transport.send(reply)
+
+                if invoke.timeout_call:
+                    invoke.timeout_call.cancel()
+                    invoke.timeout_call = None
+
+                invokes = self._caller_to_invocations[invoke.caller]
+                invokes.remove(invoke)
+                if not invokes:
+                    del self._caller_to_invocations[invoke.caller]
+
+                del self._invocations[invoke.id]
+                del self._invocations_by_call[(invoke.caller_session_id, invoke.call.request)]
+
+            if outstanding:
+                del self._callee_to_invocations[session]
 
             for registration in self._session_to_registrations[session]:
                 was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
@@ -1120,23 +1153,20 @@ class Dealer(object):
             invocation_request.timeout_call.cancel()
             invocation_request.timeout_call = None
 
-        invokes = self._callee_to_invocations[invocation_request.callee]
-        invokes.remove(invocation_request)
-        if not invokes:
-            del self._callee_to_invocations[invocation_request.callee]
+        # all four places should always be updated together
+        if invocation_request.id in self._invocations:
+            del self._invocations[invocation_request.id]
+            invokes = self._callee_to_invocations[invocation_request.callee]
+            invokes.remove(invocation_request)
+            if not invokes:
+                del self._callee_to_invocations[invocation_request.callee]
 
-        invokes = self._caller_to_invocations[invocation_request.caller]
-        invokes.remove(invocation_request)
-        if not invokes:
-            del self._caller_to_invocations[invocation_request.caller]
+            invokes = self._caller_to_invocations[invocation_request.caller]
+            invokes.remove(invocation_request)
+            if not invokes:
+                del self._caller_to_invocations[invocation_request.caller]
 
-        del self._invocations[invocation_request.id]
-
-        # the session_id will be None if the caller session has
-        # already vanished
-        caller_id = invocation_request.caller._session_id
-        if caller_id is not None:
-            del self._invocations_by_call[caller_id, invocation_request.call.request]
+            del self._invocations_by_call[invocation_request.caller_session_id, invocation_request.call.request]
 
     # noinspection PyUnusedLocal
     def processCancel(self, session, cancel):
