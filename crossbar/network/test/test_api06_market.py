@@ -128,12 +128,12 @@ class XbrDelegate(ApplicationSession):
                     member_adr=binascii.b2a_hex(member_adr).decode(),
                     request_submitted=pformat(request_submitted))
 
-                assert type(request_submitted) == dict
-                assert 'created' in request_submitted and type(
-                    request_submitted['created']) == int and request_submitted['created'] > 0
+                assert isinstance(request_submitted, dict)
+                assert 'created' in request_submitted and isinstance(request_submitted['created'],
+                                                                     int) and request_submitted['created'] > 0
                 assert 'action' in request_submitted and request_submitted['action'] == 'join_market'
-                assert 'vaction_oid' in request_submitted and type(request_submitted['vaction_oid']) == bytes and len(
-                    request_submitted['vaction_oid']) == 16
+                assert ('vaction_oid' in request_submitted and isinstance(request_submitted['vaction_oid'], bytes)
+                        and len(request_submitted['vaction_oid']) == 16)
 
                 vaction_oid = UUID(bytes=request_submitted['vaction_oid'])
                 self.log.info('Join market verification "{vaction_oid}" created', vaction_oid=vaction_oid)
@@ -160,11 +160,11 @@ class XbrDelegate(ApplicationSession):
                 self.log.info('Join market request verified: \n{request_verified}\n',
                               request_verified=pformat(request_verified))
 
-                assert type(request_verified) == dict
-                assert 'market_oid' in request_verified and type(request_verified['market_oid']) == bytes and len(
+                assert isinstance(request_verified, dict)
+                assert 'market_oid' in request_verified and isinstance(request_verified['market_oid'], bytes) and len(
                     request_verified['market_oid']) == 16
-                assert 'created' in request_verified and type(
-                    request_verified['created']) == int and request_verified['created'] > 0
+                assert 'created' in request_verified and isinstance(request_verified['created'],
+                                                                    int) and request_verified['created'] > 0
 
                 market_oid = request_verified['market_oid']
                 self.log.info(

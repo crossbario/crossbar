@@ -135,7 +135,7 @@ class MrealmManager(object):
         :returns: List of OIDs (or names) of management realms
         :rtype: list[str]
         """
-        assert return_names is None or type(return_names) == bool
+        assert return_names is None or isinstance(return_names, bool)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{klass}.list_mrealms(return_names={return_names}, details={details})',
@@ -167,7 +167,7 @@ class MrealmManager(object):
 
         :return:
         """
-        assert type(mrealm_name) == str
+        assert isinstance(mrealm_name, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{klass}.get_mrealm_by_name(mrealm_oid={mrealm_name}, details={details})',
@@ -221,7 +221,7 @@ class MrealmManager(object):
         :returns: The management realm (marshaled instance)
         :rtype: :class:`cfxdb.mrealm.ManagementRealm`
         """
-        assert type(mrealm_oid) == str
+        assert isinstance(mrealm_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{klass}.get_realm(mrealm_oid={mrealm_oid}, details={details})',
@@ -293,7 +293,7 @@ class MrealmManager(object):
         :returns: Newly created management realm, including OID generated.
         :rtype: dict marshaled from :class:`cfxdb.mrealm.ManagementRealm`
         """
-        assert type(mrealm) == dict
+        assert isinstance(mrealm, dict)
         assert details is None or isinstance(details, CallDetails)
 
         arg_mrealm = ManagementRealm.parse(mrealm)
@@ -646,7 +646,7 @@ class MrealmManager(object):
 
         :return:
         """
-        assert type(mrealm_name) == str
+        assert isinstance(mrealm_name, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{klass}.get_mrealm_by_name(mrealm_oid={mrealm_name}, details={details})',

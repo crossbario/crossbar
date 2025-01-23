@@ -192,10 +192,10 @@ class ContainerController(WorkerController):
         # WAMP application component factory
         #
         realm = config.get('realm', None)
-        assert type(realm) == str
+        assert isinstance(realm, str)
 
         extra = config.get('extra', {})
-        assert type(extra) == dict
+        assert isinstance(extra, dict)
 
         # forward crossbar node base directory
         extra['cbdir'] = self.config.extra.cbdir

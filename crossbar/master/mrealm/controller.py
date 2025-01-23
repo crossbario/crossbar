@@ -164,16 +164,16 @@ class MrealmController(ApplicationSession):
         # Release (public) key
         self._release_pubkey_hex = _read_release_key()['hex']
 
-        assert 'mrealm' in config.extra and type(config.extra['mrealm'] == str)
+        assert 'mrealm' in config.extra and isinstance(config.extra['mrealm'], str)
         self._mrealm_oid = uuid.UUID(config.extra['mrealm'])
 
         # controller database
         #
         dbcfg = config.extra.get('controller-database', {})
-        assert dbcfg and type(dbcfg) == dict
+        assert dbcfg and isinstance(dbcfg, dict)
 
         dbfile = dbcfg.get('dbfile', None)
-        assert dbfile and type(dbfile) == six.text_type
+        assert dbfile and isinstance(dbfile, six.text_type)
 
         maxsize = dbcfg.get('maxsize', None)
         assert maxsize and type(maxsize) in six.integer_types
@@ -191,10 +191,10 @@ class MrealmController(ApplicationSession):
         # mrealm database
         #
         dbcfg = config.extra.get('database', {})
-        assert dbcfg and type(dbcfg) == dict
+        assert dbcfg and isinstance(dbcfg, dict)
 
         dbfile = dbcfg.get('dbfile', None)
-        assert dbfile and type(dbfile) == six.text_type
+        assert dbfile and isinstance(dbfile, six.text_type)
 
         maxsize = dbcfg.get('maxsize', None)
         assert maxsize and type(maxsize) in six.integer_types
@@ -651,9 +651,9 @@ class MrealmController(ApplicationSession):
         :param details: Event details.
         :type details: :class:`autobahn.wamp.types.EventDetails`
         """
-        assert type(node_authid) == str
-        assert type(worker_id) == str
-        assert type(heartbeat) == dict
+        assert isinstance(node_authid, str)
+        assert isinstance(worker_id, str)
+        assert isinstance(heartbeat, dict)
         assert details is None or isinstance(details, EventDetails)
 
         started = time_ns()
@@ -724,23 +724,23 @@ class MrealmController(ApplicationSession):
         :param details: Event details.
         :type details: :class:`autobahn.wamp.types.EventDetails`
         """
-        assert type(node_authid) == str
-        assert type(heartbeat) == dict
+        assert isinstance(node_authid, str)
+        assert isinstance(heartbeat, dict)
         assert details is None or isinstance(details, EventDetails)
 
         started = time_ns()
 
         heartbeat_time = heartbeat.get('timestamp', None)
-        assert type(heartbeat_time) == int
+        assert isinstance(heartbeat_time, int)
 
         heartbeat_seq = heartbeat.get('seq', None)
-        assert type(heartbeat_seq) == int
+        assert isinstance(heartbeat_seq, int)
 
         heartbeat_pubkey = heartbeat.get('pubkey', None)
-        assert heartbeat_pubkey is None or (type(heartbeat_pubkey) == str and len(heartbeat_pubkey) == 64)
+        assert heartbeat_pubkey is None or (isinstance(heartbeat_pubkey, str) and len(heartbeat_pubkey) == 64)
 
         heartbeat_workers = heartbeat.get('workers', {})
-        assert type(heartbeat_workers) == dict
+        assert isinstance(heartbeat_workers, dict)
         for worker_type in heartbeat_workers:
             # FIXME:
             ALLOWED_WORKER_TYPES = [
@@ -749,7 +749,7 @@ class MrealmController(ApplicationSession):
             ]
             assert worker_type in ALLOWED_WORKER_TYPES, 'invalid worker type "{}" (valid types: {})'.format(
                 worker_type, ALLOWED_WORKER_TYPES)
-            assert type(heartbeat_workers[worker_type]) == int
+            assert isinstance(heartbeat_workers[worker_type], int)
 
         self.log.debug(
             'Heartbeat from node "{node_authid}" with workers {heartbeat_workers} [heartbeat_seq={heartbeat_seq}, time={heartbeat_time}, publisher={publisher}, authid={authid}]',

@@ -1239,7 +1239,7 @@ class ApplicationRealmManager(object):
                  "workergroup_oid": "74ba0f88-eb7d-4810-a901-4a6d611d7519"}
 
         """
-        assert type(arealm_oid) == str
+        assert isinstance(arealm_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(arealm_oid={arealm_oid}, details={details})',
@@ -1272,7 +1272,7 @@ class ApplicationRealmManager(object):
 
         :return: Application realm definition.
         """
-        assert type(arealm_name) == str
+        assert isinstance(arealm_name, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(arealm_name="{arealm_name}", details={details})',
@@ -1316,7 +1316,7 @@ class ApplicationRealmManager(object):
 
         :return: Application realm creation information.
         """
-        assert type(arealm) == dict
+        assert isinstance(arealm, dict)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(arealm="{arealm}", details={details})',
@@ -1598,7 +1598,7 @@ class ApplicationRealmManager(object):
 
         :return: Current status and statistics for given routercluster.
         """
-        assert type(arealm_oid) == str
+        assert isinstance(arealm_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(arealm_oid={arealm_oid}, details={details})',
@@ -1636,8 +1636,8 @@ class ApplicationRealmManager(object):
 
         :return: List of principal object IDs or names.
         """
-        assert type(arealm_oid) == str
-        assert return_names is None or type(return_names) == bool
+        assert isinstance(arealm_oid, str)
+        assert return_names is None or isinstance(return_names, bool)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(arealm_oid={arealm_oid}, details={details})',
@@ -1754,7 +1754,7 @@ class ApplicationRealmManager(object):
 
         :return: Principal addition information.
         """
-        assert type(principal) == dict
+        assert isinstance(principal, dict)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(arealm_oid="{arealm_oid}", principal={principal}, details={details})',
@@ -1769,7 +1769,7 @@ class ApplicationRealmManager(object):
             raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(arealm_oid))
 
         role_oid = principal.get('role_oid', None)
-        assert role_oid is not None and type(role_oid) == str
+        assert role_oid is not None and isinstance(role_oid, str)
         try:
             role_oid_ = uuid.UUID(role_oid)
         except:
@@ -1837,8 +1837,8 @@ class ApplicationRealmManager(object):
 
         :return: List of credential object IDs or names (WAMP authids).
         """
-        assert type(arealm_oid) == str
-        assert type(principal_oid) == str
+        assert isinstance(arealm_oid, str)
+        assert isinstance(principal_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(arealm_oid={arealm_oid}, principal_oid={principal_oid}, details={details})',
@@ -2088,7 +2088,7 @@ class ApplicationRealmManager(object):
 
         :return: Role definition.
         """
-        assert type(role_oid) == str
+        assert isinstance(role_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(role_oid={role_oid}, details={details})',
@@ -2118,7 +2118,7 @@ class ApplicationRealmManager(object):
 
         :return: Role definition.
         """
-        assert type(role_name) == str
+        assert isinstance(role_name, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(role_name="{role_name}", details={details})',
@@ -2145,7 +2145,7 @@ class ApplicationRealmManager(object):
 
         :return: Role creation information.
         """
-        assert type(role) == dict
+        assert isinstance(role, dict)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(role="{role}", details={details})',
@@ -2313,8 +2313,8 @@ class ApplicationRealmManager(object):
 
         :return: Permission removal information.
         """
-        assert type(role_oid) == str
-        assert type(permission_oid) == str
+        assert isinstance(role_oid, str)
+        assert isinstance(permission_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         try:
@@ -2358,8 +2358,8 @@ class ApplicationRealmManager(object):
 
         :return: Permission definition.
         """
-        assert type(role_oid) == str
-        assert type(permission_oid) == str
+        assert isinstance(role_oid, str)
+        assert isinstance(permission_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         try:
@@ -2536,8 +2536,8 @@ class ApplicationRealmManager(object):
 
         :return: Application realm role removal information.
         """
-        assert type(arealm_oid) == str
-        assert type(role_oid) == str
+        assert isinstance(arealm_oid, str)
+        assert isinstance(role_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info('{func}(arealm_oid={arealm_oid}, role_oid={role_oid}, details={details})',
@@ -2591,8 +2591,8 @@ class ApplicationRealmManager(object):
 
         :return: Application realm role association removal information.
         """
-        assert type(arealm_oid) == str
-        assert type(role_oid) == str
+        assert isinstance(arealm_oid, str)
+        assert isinstance(role_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
         try:

@@ -96,7 +96,7 @@ def color_json(json_str):
     Given an already formatted JSON string, return a colored variant which will
     produce colored output on terminals.
     """
-    assert (type(json_str) == str)
+    assert (isinstance(json_str, str))
     return highlight(json_str, lexers.JsonLexer(), formatters.TerminalFormatter())
 
 
@@ -105,7 +105,7 @@ def color_yaml(yaml_str):
     Given an already formatted YAML string, return a colored variant which will
     produce colored output on terminals.
     """
-    assert (type(yaml_str) == str)
+    assert (isinstance(yaml_str, str))
     return highlight(yaml_str, lexers.YamlLexer(), formatters.TerminalFormatter())
 
 
@@ -3495,7 +3495,7 @@ def check_controller_options(personality, options, ignore=[]):
 
     if 'enable_parallel_worker_start' in options:
         enable_parallel_worker_start = options['enable_parallel_worker_start']
-        if type(enable_parallel_worker_start) != bool:
+        if not isinstance(enable_parallel_worker_start, bool):
             raise InvalidConfigException(
                 "'enable_parallel_worker_start' in 'options' in controller configuration must be a bool ({} encountered)"
                 .format(type(enable_parallel_worker_start)))

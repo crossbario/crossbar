@@ -116,7 +116,7 @@ def hltype(obj, render=True):
 
 
 def hlflag(flag, true_txt='YES', false_txt='NO', null_txt='UNSET'):
-    assert flag is None or type(flag) == bool
+    assert flag is None or isinstance(flag, bool)
     if flag is None:
         return hl('{}'.format(null_txt), color='blue', bold=True)
     elif flag:

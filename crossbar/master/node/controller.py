@@ -196,11 +196,11 @@ class DomainController(ApplicationSession):
         config = self.config.extra.get('database', {})
 
         dbpath = config.get('path', '.db-controller')
-        assert type(dbpath) == str
+        assert isinstance(dbpath, str)
         dbpath = os.path.join(cbdir, dbpath)
 
         maxsize = config.get('maxsize', 128 * 2**20)
-        assert type(maxsize) == int
+        assert isinstance(maxsize, int)
         # allow maxsize 128kiB to 128GiB
         assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
 
@@ -498,7 +498,7 @@ class DomainController(ApplicationSession):
         for topic, procedure in domains:
             results = await procedure(self, prefix=topic, options=RegisterOptions(details_arg='details'))
             for reg in results:
-                if type(reg) == Registration:
+                if isinstance(reg, Registration):
                     self.log.debug('Registered CFC API <{proc}>', proc=reg.procedure)
                 else:
                     self.log.error('Error: <{}>'.format(reg.value.args[0]))

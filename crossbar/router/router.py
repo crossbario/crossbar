@@ -680,7 +680,7 @@ class RouterFactory(object):
         # extract name (URI in general) of realm from realm configuration
         assert 'name' in realm.config
         uri = realm.config['name']
-        assert type(uri) == str
+        assert isinstance(uri, str)
         self.log.info('{func}: realm={realm} with URI "{uri}"',
                       func=hltype(self.start_realm),
                       realm=realm,

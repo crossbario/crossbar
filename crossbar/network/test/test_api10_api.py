@@ -154,10 +154,10 @@ class XbrDelegate(ApplicationSession):
             except Exception as e:
                 raise e
 
-            assert type(result) == dict
-            assert 'created' in result and type(result['created']) == int and result['created'] > 0
+            assert isinstance(result, dict)
+            assert 'created' in result and isinstance(result['created'], int) and result['created'] > 0
             assert 'action' in result and result['action'] == 'publish_api'
-            assert 'vaction_oid' in result and type(result['vaction_oid']) == bytes and len(
+            assert 'vaction_oid' in result and isinstance(result['vaction_oid'], bytes) and len(
                 result['vaction_oid']) == 16
 
             vaction_oid = uuid.UUID(bytes=result['vaction_oid'])
@@ -187,11 +187,12 @@ class XbrDelegate(ApplicationSession):
                 self.log.error('ApplicationError: {error}', error=e)
                 raise e
 
-            assert type(result) == dict
-            assert 'member_oid' in result and type(result['member_oid']) == bytes and len(result['member_oid']) == 16
-            assert 'catalog_oid' in result and type(result['catalog_oid']) == bytes and \
+            assert isinstance(result, dict)
+            assert 'member_oid' in result and isinstance(result['member_oid'], bytes) and len(
+                result['member_oid']) == 16
+            assert 'catalog_oid' in result and isinstance(result['catalog_oid'], bytes) and \
                    len(result['catalog_oid']) == 16 and result['catalog_oid'] == catalog_id
-            assert 'api_oid' in result and type(result['api_oid']) == bytes and len(result['api_oid']) == 16
+            assert 'api_oid' in result and isinstance(result['api_oid'], bytes) and len(result['api_oid']) == 16
 
             catalog_oid = result['catalog_oid']
             api_id = result['api_oid']
@@ -209,9 +210,9 @@ class XbrDelegate(ApplicationSession):
                 self.log.error('ApplicationError: {error}', error=e)
                 raise e
 
-            assert type(result) == dict
-            assert 'oid' in result and type(result['oid']) == bytes and result['oid'] == api_id
-            assert 'catalog_oid' in result and type(result['catalog_oid']) == bytes
+            assert isinstance(result, dict)
+            assert 'oid' in result and isinstance(result['oid'], bytes) and result['oid'] == api_id
+            assert 'catalog_oid' in result and isinstance(result['catalog_oid'], bytes)
 
             # Lets get *all* APIs
             try:
@@ -220,9 +221,9 @@ class XbrDelegate(ApplicationSession):
                 self.log.error('ApplicationError: {error}', error=e)
                 raise e
 
-            assert type(apis) == list
+            assert isinstance(apis, list)
             for api in apis:
-                assert type(api) == bytes and len(api) == 16
+                assert isinstance(api, bytes) and len(api) == 16
 
         except Exception as e:
             self.log.failure()

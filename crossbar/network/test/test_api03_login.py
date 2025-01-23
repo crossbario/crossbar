@@ -107,11 +107,11 @@ class XbrDelegate(ApplicationSession):
             self.log.info('login_request_submitted:\n{login_request_submitted}',
                           login_request_submitted=pformat(login_request_submitted))
 
-            assert type(login_request_submitted) == dict
+            assert isinstance(login_request_submitted, dict)
             assert 'vaction_oid' in login_request_submitted
 
             vaction_oid = login_request_submitted['vaction_oid']
-            assert type(vaction_oid) == bytes and len(vaction_oid) == 16
+            assert isinstance(vaction_oid, bytes) and len(vaction_oid) == 16
             vaction_oid = UUID(bytes=vaction_oid)
 
             self.log.info('Login member - verification "{vaction_oid}" created', vaction_oid=vaction_oid)
@@ -136,9 +136,9 @@ class XbrDelegate(ApplicationSession):
 
             result = await self.call('xbr.network.verify_login_member', vaction_oid.bytes, vaction_code)
 
-            assert type(result) == dict
+            assert isinstance(result, dict)
             assert 'member_oid' in result
-            assert type(result['member_oid']) == bytes and len(result['member_oid']) == 16
+            assert isinstance(result['member_oid'], bytes) and len(result['member_oid']) == 16
             member_oid = UUID(bytes=result['member_oid'])
 
             self.log.info('SUCCESS! Existing XBR Member logged in: member_oid={member_oid}', member_oid=member_oid)

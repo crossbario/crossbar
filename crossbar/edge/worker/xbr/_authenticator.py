@@ -72,7 +72,7 @@ class Authenticator:
         assert is_cs_pubkey(pubkey)
 
         session_id = details['session']
-        assert type(session_id) == int
+        assert isinstance(session_id, int)
 
         # FIXME: find a more elegant way to query the db.
         def get_actor(_txn, address):

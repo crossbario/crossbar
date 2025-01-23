@@ -329,7 +329,7 @@ def color_json(json_str):
     Given an already formatted JSON string, return a colored variant which will
     produce colored output on terminals.
     """
-    assert (type(json_str) == str)
+    assert (isinstance(json_str, str))
     return highlight(json_str, lexers.JsonLexer(), formatters.TerminalFormatter())
 
 

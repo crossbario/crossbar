@@ -10,8 +10,8 @@ on:
 
 jobs:
   check:
-    # runs-on: ubuntu-20.04 # means github.com
-    runs-on: [self-hosted, linux, X64] # means matterhorn
+    runs-on: ubuntu-latest  # means github.com
+    # runs-on: [self-hosted, linux, X64] # means matterhorn
 
     steps:
     - uses: actions/checkout@v3
@@ -74,8 +74,8 @@ jobs:
       uses: github/codeql-action/analyze@v2
 
   docs:
-    # runs-on: ubuntu-20.04 # means github.com
-    runs-on: [self-hosted, linux, X64] # means matterhorn
+    runs-on: ubuntu-latest  # means github.com
+    # runs-on: [self-hosted, linux, X64] # means matterhorn
 
     steps:
     - uses: actions/checkout@v3
@@ -110,8 +110,8 @@ jobs:
       run: tox -c tox.ini -e sphinx
 
   unit-test-amd64:
-    # runs-on: ubuntu-20.04 # means github.com
-    runs-on: [self-hosted, linux, X64] # means matterhorn
+    runs-on: ubuntu-latest  # means github.com
+    # runs-on: [self-hosted, linux, X64] # means matterhorn
 
     env:
       CB_FULLTESTS: 1
@@ -120,7 +120,7 @@ jobs:
     strategy:
       matrix:
         # https://github.com/actions/setup-python#specifying-a-pypy-version
-        python-version: ['3.11', 'pypy-3.9']
+        python-version: ['3.11']
 
     # https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepscontinue-on-error
@@ -177,7 +177,9 @@ jobs:
         pytest -sv crossbar
 
   functional-test-amd64:
-    runs-on: [self-hosted, linux, X64] # means matterhorn
+    runs-on: ubuntu-latest  # means github.com
+    # runs-on: [self-hosted, linux, X64] # means matterhorn
+
 
     strategy:
       matrix:

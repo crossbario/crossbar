@@ -154,7 +154,7 @@ class Network(ApplicationSession):
         # Market listing whitelist configuration
         self._markets_whitelist = []
         if 'markets_whitelist' in config.extra:
-            assert type(config.extra['markets_whitelist']) == list, 'Must be a list of market UUIDs'
+            assert isinstance(config.extra['markets_whitelist'], list), 'Must be a list of market UUIDs'
             for market in config.extra['markets_whitelist']:
                 try:
                     market_uuid = uuid.UUID(market)
@@ -184,7 +184,7 @@ class Network(ApplicationSession):
         if os.path.exists(keypath):
             with open(keypath, 'rb') as f:
                 self._eth_privkey_raw = f.read()
-                assert type(self._eth_privkey_raw) == bytes and len(self._eth_privkey_raw) == 32
+                assert isinstance(self._eth_privkey_raw, bytes) and len(self._eth_privkey_raw) == 32
                 self.log.info('Existing XBR Network Backend Ethereum private key loaded from "{keypath}"',
                               keypath=hlid(keypath))
         else:
@@ -387,8 +387,8 @@ class Network(ApplicationSession):
                 * ``text``: Actual EULA text.
             * ``from``: Email sending address for system emails.
         """
-        assert type(include_eula_text) == bool, 'include_eula_text must be bool, was {}'.format(
-            type(include_eula_text))
+        assert isinstance(include_eula_text,
+                          bool), 'include_eula_text must be bool, was {}'.format(type(include_eula_text))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -523,10 +523,11 @@ class Network(ApplicationSession):
         """
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
-        assert type(client_pubkey) == bytes, 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
+        assert isinstance(client_pubkey,
+                          bytes), 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
         assert len(client_pubkey) == 32, 'client_pubkey must be bytes[32], but was bytes[{}]'.format(
             len(client_pubkey))
-        assert type(wallet_adr) == bytes, 'wallet_adr must be bytes, but was "{}"'.format(type(wallet_adr))
+        assert isinstance(wallet_adr, bytes), 'wallet_adr must be bytes, but was "{}"'.format(type(wallet_adr))
         assert len(wallet_adr) == 20, 'wallet_adr must be bytes[20], but was bytes[{}]'.format(len(wallet_adr))
 
         self.log.info(
@@ -769,7 +770,7 @@ class Network(ApplicationSession):
 
         :return: Member information.
         """
-        assert type(wallet_adr) == bytes and len(wallet_adr) == 20, 'wallet_adr must be bytes[20], was {}'.format(
+        assert isinstance(wallet_adr, bytes) and len(wallet_adr) == 20, 'wallet_adr must be bytes[20], was {}'.format(
             type(wallet_adr))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -797,7 +798,7 @@ class Network(ApplicationSession):
 
         :return: Flag indicating whether the address is a member or not.
         """
-        assert type(wallet_adr) == bytes and len(wallet_adr) == 20, 'wallet_adr must be bytes[20], was {}'.format(
+        assert isinstance(wallet_adr, bytes) and len(wallet_adr) == 20, 'wallet_adr must be bytes[20], was {}'.format(
             type(wallet_adr))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -876,10 +877,11 @@ class Network(ApplicationSession):
         """
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
-        assert type(client_pubkey) == bytes, 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
+        assert isinstance(client_pubkey,
+                          bytes), 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
         assert len(client_pubkey) == 32, 'client_pubkey must be bytes[32], but was bytes[{}]'.format(
             len(client_pubkey))
-        assert type(wallet_adr) == bytes, 'wallet_adr must be bytes, but was "{}"'.format(type(wallet_adr))
+        assert isinstance(wallet_adr, bytes), 'wallet_adr must be bytes, but was "{}"'.format(type(wallet_adr))
         assert len(wallet_adr) == 20, 'wallet_adr must be bytes[20], but was bytes[{}]'.format(len(wallet_adr))
 
         self.log.info(
@@ -1030,7 +1032,7 @@ class Network(ApplicationSession):
         """
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
-        assert type(member_oid) == bytes and len(member_oid) == 16
+        assert isinstance(member_oid, bytes) and len(member_oid) == 16
 
         # caller_authid=member-e939a1c8-8af0-4359-9415-acafc4a35ffa
         assert details and details.caller_authid and len(details.caller_authid) == 43
@@ -1072,7 +1074,7 @@ class Network(ApplicationSession):
         """
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
-        assert type(member_oid) == bytes and len(member_oid) == 16
+        assert isinstance(member_oid, bytes) and len(member_oid) == 16
 
         # caller_authid=member-e939a1c8-8af0-4359-9415-acafc4a35ffa
         assert details and details.caller_authid and len(details.caller_authid) == 43
@@ -1130,19 +1132,19 @@ class Network(ApplicationSession):
 
         :return: Coin creation information.
         """
-        assert type(member_oid) == bytes and len(member_oid) == 16
-        assert type(coin_oid) == bytes and len(coin_oid) == 16
-        assert type(chain_id) == int
-        assert type(block_number) == int
-        assert type(contract_adr) == bytes and len(contract_adr) == 20
-        assert type(name) == str
-        assert type(symbol) == str
-        assert type(decimals) == int
-        assert type(initial_supply) == bytes and len(initial_supply) == 32
-        assert meta_hash is None or type(meta_hash) == str
-        assert meta_data is None or type(meta_data) == bytes
+        assert isinstance(member_oid, bytes) and len(member_oid) == 16
+        assert isinstance(coin_oid, bytes) and len(coin_oid) == 16
+        assert isinstance(chain_id, int)
+        assert isinstance(block_number, int)
+        assert isinstance(contract_adr, bytes) and len(contract_adr) == 20
+        assert isinstance(name, str)
+        assert isinstance(symbol, str)
+        assert isinstance(decimals, int)
+        assert isinstance(initial_supply, bytes) and len(initial_supply) == 32
+        assert meta_hash is None or isinstance(meta_hash, str)
+        assert meta_data is None or isinstance(meta_data, bytes)
         assert (meta_hash is None and meta_data is None) or (meta_hash is not None and meta_data is not None)
-        assert attributes is None or type(attributes) == dict
+        assert attributes is None or isinstance(attributes, dict)
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -1223,7 +1225,7 @@ class Network(ApplicationSession):
 
         :return: Market information.
         """
-        assert type(coin_oid) == bytes, 'coin_oid must be bytes, was {}'.format(type(coin_oid))
+        assert isinstance(coin_oid, bytes), 'coin_oid must be bytes, was {}'.format(type(coin_oid))
         assert len(coin_oid) == 16, 'coin_oid must be bytes[16], was bytes[{}]'.format(len(coin_oid))
         assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
         assert details is None or isinstance(
@@ -1262,7 +1264,7 @@ class Network(ApplicationSession):
 
         :return: If found, the OID of the coin.
         """
-        assert type(symbol) == str, 'coin_name must be str, was {}'.format(type(symbol))
+        assert isinstance(symbol, str), 'coin_name must be str, was {}'.format(type(symbol))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -1287,9 +1289,9 @@ class Network(ApplicationSession):
 
         :return: Current balance of given member and coin.
         """
-        assert type(member_oid) == bytes, 'member_oid must be bytes, was {}'.format(type(member_oid))
+        assert isinstance(member_oid, bytes), 'member_oid must be bytes, was {}'.format(type(member_oid))
         assert len(member_oid) == 16, 'member_oid must be bytes[16], was bytes[{}]'.format(len(member_oid))
-        assert type(coin_oid) == bytes, 'coin_oid must be bytes, was {}'.format(type(coin_oid))
+        assert isinstance(coin_oid, bytes), 'coin_oid must be bytes, was {}'.format(type(coin_oid))
         assert len(coin_oid) == 16, 'coin_oid must be bytes[16], was bytes[{}]'.format(len(coin_oid))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -1416,18 +1418,18 @@ class Network(ApplicationSession):
 
         :return: Data market creation information.
         """
-        assert type(verifying_chain_id) == int
-        assert type(current_block_number) == int
-        assert type(verifying_contract_adr) == bytes and len(verifying_contract_adr) == 20
-        assert type(coin_adr) == bytes and len(coin_adr) == 20
-        assert terms_hash is None or type(terms_hash) == str
-        assert meta_hash is None or type(meta_hash) == str
-        assert type(market_maker_adr) == bytes and len(market_maker_adr) == 20
-        assert type(provider_security) == bytes and len(provider_security) == 32
-        assert type(consumer_security) == bytes and len(consumer_security) == 32
-        assert type(market_fee) == bytes and len(market_fee) == 32
+        assert isinstance(verifying_chain_id, int)
+        assert isinstance(current_block_number, int)
+        assert isinstance(verifying_contract_adr, bytes) and len(verifying_contract_adr) == 20
+        assert isinstance(coin_adr, bytes) and len(coin_adr) == 20
+        assert terms_hash is None or isinstance(terms_hash, str)
+        assert meta_hash is None or isinstance(meta_hash, str)
+        assert isinstance(market_maker_adr, bytes) and len(market_maker_adr) == 20
+        assert isinstance(provider_security, bytes) and len(provider_security) == 32
+        assert isinstance(consumer_security, bytes) and len(consumer_security) == 32
+        assert isinstance(market_fee, bytes) and len(market_fee) == 32
         assert is_signature(signature)
-        assert attributes is None or type(attributes) == dict
+        assert attributes is None or isinstance(attributes, dict)
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -1544,9 +1546,9 @@ class Network(ApplicationSession):
         :param details: Caller details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        assert type(market_oid) == bytes, 'market_oid must be bytes, was {}'.format(type(market_oid))
+        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
         assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
-        assert attributes is None or type(attributes) == dict
+        assert attributes is None or isinstance(attributes, dict)
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -1588,7 +1590,7 @@ class Network(ApplicationSession):
 
         :return: Market information.
         """
-        assert type(market_oid) == bytes, 'market_oid must be bytes, was {}'.format(type(market_oid))
+        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
         assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
         assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
         assert details is None or isinstance(
@@ -1614,7 +1616,7 @@ class Network(ApplicationSession):
 
         :return: List of markets owned by the given member.
         """
-        assert type(owner_oid) == bytes, 'owner_oid must be bytes, was {}'.format(type(owner_oid))
+        assert isinstance(owner_oid, bytes), 'owner_oid must be bytes, was {}'.format(type(owner_oid))
         assert len(owner_oid) == 16, 'owner_oid must be bytes[16], was bytes[{}]'.format(len(owner_oid))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -1651,7 +1653,7 @@ class Network(ApplicationSession):
 
         :return: List of addresses of markets joined by the given actor.
         """
-        assert type(market_oid) == bytes, 'market_oid must be bytes, was {}'.format(type(market_oid))
+        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
         assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -1682,9 +1684,9 @@ class Network(ApplicationSession):
 
         :return: Information on the actor in the market.
         """
-        assert type(market_oid) == bytes, 'market_oid must be bytes, was {}'.format(type(market_oid))
+        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
         assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
-        assert type(actor_adr) == bytes, 'actor_adr must be bytes, was {}'.format(type(actor_adr))
+        assert isinstance(actor_adr, bytes), 'actor_adr must be bytes, was {}'.format(type(actor_adr))
         assert len(actor_adr) == 20, 'actor_adr must be bytes[20], was bytes[{}]'.format(len(actor_adr))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -1722,7 +1724,7 @@ class Network(ApplicationSession):
 
         :return: List of markets joined by the given actor.
         """
-        assert type(actor_oid) == bytes, 'owner_oid must be bytes, was {}'.format(type(actor_oid))
+        assert isinstance(actor_oid, bytes), 'owner_oid must be bytes, was {}'.format(type(actor_oid))
         assert len(actor_oid) == 16, 'owner_oid must be bytes[16], was bytes[{}]'.format(len(actor_oid))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -1767,7 +1769,7 @@ class Network(ApplicationSession):
 
         :return: List of addresses of markets using the specified coin as a means of payment.
         """
-        assert type(coin_oid) == bytes, 'coin_oid must be bytes, was {}'.format(type(coin_oid))
+        assert isinstance(coin_oid, bytes), 'coin_oid must be bytes, was {}'.format(type(coin_oid))
         assert len(coin_oid) == 16, 'coin_oid must be bytes[16], was bytes[{}]'.format(len(coin_oid))
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
@@ -2068,11 +2070,11 @@ class Network(ApplicationSession):
         assert is_chain_id(verifying_chain_id)
         assert is_block_number(current_block_number)
         assert is_address(verifying_contract_adr)
-        assert terms_hash is None or type(terms_hash) == str
-        assert meta_hash is None or type(meta_hash) == str
-        assert meta_data is None or type(meta_data) == bytes
+        assert terms_hash is None or isinstance(terms_hash, str)
+        assert meta_hash is None or isinstance(meta_hash, str)
+        assert meta_data is None or isinstance(meta_data, bytes)
         assert is_signature(signature)
-        assert attributes is None or type(attributes) == dict
+        assert attributes is None or isinstance(attributes, dict)
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 
@@ -2358,20 +2360,20 @@ class Network(ApplicationSession):
 
         :return: API creation information.
         """
-        assert type(member_oid) == bytes and len(member_oid) == 16
-        assert type(catalog_oid) == bytes and len(catalog_oid) == 16
-        assert type(api_oid) == bytes and len(api_oid) == 16
-        assert type(verifying_chain_id) == int
-        assert type(current_block_number) == int
-        assert type(verifying_contract_adr) == bytes and len(verifying_contract_adr) == 20
-        assert schema_hash is None or type(schema_hash) == str
-        assert schema_data is None or type(schema_data) == bytes
+        assert isinstance(member_oid, bytes) and len(member_oid) == 16
+        assert isinstance(catalog_oid, bytes) and len(catalog_oid) == 16
+        assert isinstance(api_oid, bytes) and len(api_oid) == 16
+        assert isinstance(verifying_chain_id, int)
+        assert isinstance(current_block_number, int)
+        assert isinstance(verifying_contract_adr, bytes) and len(verifying_contract_adr) == 20
+        assert schema_hash is None or isinstance(schema_hash, str)
+        assert schema_data is None or isinstance(schema_data, bytes)
         assert (schema_hash is None and schema_data is None) or (schema_hash is not None and schema_data is not None)
-        assert meta_hash is None or type(meta_hash) == str
-        assert meta_data is None or type(meta_data) == bytes
+        assert meta_hash is None or isinstance(meta_hash, str)
+        assert meta_data is None or isinstance(meta_data, bytes)
         assert (meta_hash is None and meta_data is None) or (meta_hash is not None and meta_data is not None)
         assert is_signature(signature)
-        assert attributes is None or type(attributes) == dict
+        assert attributes is None or isinstance(attributes, dict)
         assert details is None or isinstance(
             details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
 

@@ -154,11 +154,11 @@ class PendingAuthCryptosign(PendingAuth):
         # get certificates presented by the client
         client_certificates = details.authextra.get('certificates', None) if details.authextra else None
         if client_certificates:
-            if type(client_certificates) != list:
+            if not isinstance(client_certificates, list):
                 return Deny(message='invalid type {} for client certificates'.format(type(client_certificates)))
             for cc_i, cc_and_sig in enumerate(client_certificates):
                 cc_hash, cc, cc_sig = cc_and_sig
-                if type(cc) != dict:
+                if not isinstance(cc, dict):
                     return Deny(
                         message='invalid type {} for certificate {} in client certificates'.format(type(cc), cc_i))
             client_certificates = parse_certificate_chain(client_certificates)

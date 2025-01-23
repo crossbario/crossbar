@@ -124,10 +124,10 @@ class XbrDelegate(ApplicationSession):
             except Exception as e:
                 raise e
 
-            assert type(result) == dict
-            assert 'created' in result and type(result['created']) == int and result['created'] > 0
+            assert isinstance(result, dict)
+            assert 'created' in result and isinstance(result['created'], int) and result['created'] > 0
             assert 'action' in result and result['action'] == 'create_catalog'
-            assert 'vaction_oid' in result and type(result['vaction_oid']) == bytes and len(
+            assert 'vaction_oid' in result and isinstance(result['vaction_oid'], bytes) and len(
                 result['vaction_oid']) == 16
 
             vaction_oid = uuid.UUID(bytes=result['vaction_oid'])
@@ -157,9 +157,10 @@ class XbrDelegate(ApplicationSession):
                 self.log.error('ApplicationError: {error}', error=e)
                 raise e
 
-            assert type(result) == dict
-            assert 'member_oid' in result and type(result['member_oid']) == bytes and len(result['member_oid']) == 16
-            assert 'catalog_oid' in result and type(result['catalog_oid']) == bytes and len(
+            assert isinstance(result, dict)
+            assert 'member_oid' in result and isinstance(result['member_oid'], bytes) and len(
+                result['member_oid']) == 16
+            assert 'catalog_oid' in result and isinstance(result['catalog_oid'], bytes) and len(
                 result['catalog_oid']) == 16
 
             catalog_oid = result['catalog_oid']
@@ -178,9 +179,9 @@ class XbrDelegate(ApplicationSession):
                 self.log.error('ApplicationError: {error}', error=e)
                 raise e
 
-            assert type(result) == dict
-            assert 'oid' in result and type(result['oid']) == bytes and result['oid'] == catalog_oid
-            assert 'owner' in result and type(result['owner']) == bytes and result['owner'] == member_adr
+            assert isinstance(result, dict)
+            assert 'oid' in result and isinstance(result['oid'], bytes) and result['oid'] == catalog_oid
+            assert 'owner' in result and isinstance(result['owner'], bytes) and result['owner'] == member_adr
 
         except Exception as e:
             self.log.failure()

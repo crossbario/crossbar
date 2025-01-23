@@ -283,7 +283,7 @@ class Catalog(object):
             svc_dups = 0
 
             for schema_path in obj['schemas']:
-                assert type(schema_path) == str, 'invalid type {} for schema path'.format(type(schema_path))
+                assert isinstance(schema_path, str), 'invalid type {} for schema path'.format(type(schema_path))
                 assert schema_path in f.namelist(), 'cannot find schema path "{}" in catalog archive'.format(
                     schema_path)
                 with f.open(schema_path) as fd:
@@ -327,13 +327,13 @@ class Catalog(object):
         if 'keywords' in obj:
             kw_pat = re.compile(r'^[a-z]{3,20}$')
             for kw in obj['keywords']:
-                assert type(kw) == str, 'invalid type {} for keyword'.format(type(kw))
+                assert isinstance(kw, str), 'invalid type {} for keyword'.format(type(kw))
                 assert kw_pat.match(kw) is not None, 'invalid keyword "{}"'.format(kw)
             keywords = obj['keywords']
 
         homepage = None
         if 'homepage' in obj:
-            assert type(obj['homepage']) == str, 'invalid type {} for homepage'.format(type(obj['homepage']))
+            assert isinstance(obj['homepage'], str), 'invalid type {} for homepage'.format(type(obj['homepage']))
             try:
                 urlparse(obj['homepage'])
             except Exception as e:
@@ -342,7 +342,7 @@ class Catalog(object):
 
         giturl = None
         if 'giturl' in obj:
-            assert type(obj['git']) == str, 'invalid type {} for giturl'.format(type(obj['giturl']))
+            assert isinstance(obj['git'], str), 'invalid type {} for giturl'.format(type(obj['giturl']))
             try:
                 urlparse(obj['giturl'])
             except Exception as e:
@@ -355,7 +355,7 @@ class Catalog(object):
             for k in obj['theme']:
                 if k not in ['background', 'highlight', 'text', 'logo']:
                     raise RuntimeError('invalid theme attribute "{}"'.format(k))
-                if type(obj['theme'][k]) != str:
+                if not isinstance(obj['theme'][k], str):
                     raise RuntimeError('invalid type{} for attribute {} in theme'.format(type(obj['theme'][k]), k))
             if 'logo' in obj['theme']:
                 logo_path = obj['theme']['logo']
@@ -534,7 +534,7 @@ class Inventory(IInventory):
         :return:
         """
         assert 'type' in config and config['type'] == Inventory.INVENTORY_TYPE
-        assert 'catalogs' in config and type(config['catalogs']) == list
+        assert 'catalogs' in config and isinstance(config['catalogs'], list)
 
         inventory = Inventory(personality, factory)
         catalogs = {}

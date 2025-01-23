@@ -842,10 +842,10 @@ def cmd_pair_node(ctx, pubkey, realm, node_id, authextra=None):
     :param authextra: authextra to be provided to the node when connecting, must be a JSON string
     :return:
     """
-    assert type(pubkey) == str
-    assert type(realm) == str
-    assert type(node_id) == str
-    assert authextra is None or type(authextra) == str
+    assert isinstance(pubkey, str)
+    assert isinstance(realm, str)
+    assert isinstance(node_id, str)
+    assert authextra is None or isinstance(authextra, str)
 
     pubkey = _read_pubkey(pubkey)
 
@@ -872,7 +872,7 @@ def cmd_unpair_node(ctx, pubkey):
     :param pubkey:
     :return:
     """
-    assert type(pubkey) == str
+    assert isinstance(pubkey, str)
 
     pubkey = _read_pubkey(pubkey)
 

@@ -63,7 +63,7 @@ class RemoteApi(object):
         procs_by_node = self.PROCS.get('node', [])
 
         for proc in procs_by_node:
-            if type(proc) == tuple:
+            if isinstance(proc, tuple):
                 proc, rproc = proc
             else:
                 rproc = proc
@@ -100,7 +100,7 @@ class RemoteApi(object):
         procs_by_worker = self.PROCS.get('worker', [])
 
         for proc in procs_by_worker:
-            if type(proc) == tuple:
+            if isinstance(proc, tuple):
                 proc, rproc = proc
             else:
                 rproc = proc
@@ -155,7 +155,7 @@ class RemoteApi(object):
         topics_by_node = self.EVENTS.get('node', [])
 
         for topic in topics_by_node:
-            if type(topic) == tuple:
+            if isinstance(topic, tuple):
                 topic, rtopic = topic
             else:
                 rtopic = topic
@@ -208,7 +208,7 @@ class RemoteApi(object):
         topics_by_worker = self.EVENTS.get('worker', [])
 
         for topic in topics_by_worker:
-            if type(topic) == tuple:
+            if isinstance(topic, tuple):
                 topic, rtopic = topic
             else:
                 rtopic = topic
