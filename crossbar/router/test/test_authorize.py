@@ -16,6 +16,7 @@ from crossbar.router.role import RouterRoleStaticAuth
 from crossbar.router.auth import cryptosign, wampcra, ticket, tls, anonymous
 
 from autobahn.wamp import types
+from autobahn.wamp import auth as autobahn_auth
 
 from mock import Mock
 
@@ -143,6 +144,68 @@ class TestDynamicAuth(unittest.TestCase):
         self.assertEqual("wampcra", val.method)
         self.assertTrue("challenge" in val.extra)
         self.assertEqual(auth._authextra, {"what": "authenticator-supplied authextra"})
+
+    @defer.inlineCallbacks
+    def test_authextra_wampcra_with_salt(self):
+        """
+        We pass along the authextra to a dynamic authenticator
+        """
+        session = Mock()
+        session._transport.transport_details = types.TransportDetails()
+
+        secret = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+        authextra = { "foo": "bar", "salt": "malok", "iterations": 1000, "keylen": 32}
+
+        def fake_call(method, *args, **kw):
+            realm, authid, details = args
+            self.assertEqual("foo.auth_a_doodle", method)
+            self.assertEqual("realm", realm)
+            self.assertEqual(details["authmethod"], "wampcra")
+            self.assertEqual(details["authextra"], authextra)
+            return defer.succeed({
+                "secret": secret,
+                "role": "some_role",
+                "salt": "malok",
+                "iterations": 1000,
+                "keylen": 32,
+                "extra": {
+                    "what": "authenticator-supplied authextra",
+                }
+            })
+
+        session.call = Mock(side_effect=fake_call)
+        realm = Mock()
+        realm._realm.session = session
+        session._pending_session_id = 'pending session id'
+        session._router_factory = {
+            "realm": realm,
+        }
+        config = {
+            "type": "dynamic",
+            "authenticator": "foo.auth_a_doodle",
+            "authenticator-realm": "realm",
+            "authenticator-role": "myauth_role"
+        }
+        details = Mock()
+        details.authid = 'alice'
+        details.authextra = authextra
+
+        pending_session_id = 1
+        transport_details = types.TransportDetails()
+        realm_container = MockRealmContainer("realm", ["some_role", "myauth_role"], session)
+
+        auth = wampcra.PendingAuthWampCra(pending_session_id, transport_details, realm_container, config)
+        val = yield auth.hello("realm", details)
+
+        self.assertTrue(isinstance(val, types.Challenge))
+        self.assertEqual("wampcra", val.method)
+        self.assertTrue("challenge" in val.extra)
+        self.assertEqual(auth._authextra, {"what": "authenticator-supplied authextra"})
+
+        config = {"authid": "alice", "secret": secret}
+        # generate a signature from client & match it with the existing
+        expected_signature = autobahn_auth.AuthWampCra(**config).on_challenge("res", val)
+        self.assertEqual(auth._signature, expected_signature)
 
     @defer.inlineCallbacks
     def test_authextra_tls(self):
