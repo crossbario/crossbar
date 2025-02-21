@@ -189,8 +189,9 @@ class ProxyFrontendSession(object):
         :param wasClean: Indicates if the transport has been closed regularly.
         :type wasClean: bool
         """
-        self.log.info('{func} proxy frontend session closed (wasClean={wasClean})',
+        self.log.info('{func} proxy frontend session {sessionId} closed (wasClean={wasClean})',
                       func=hltype(self.onClose),
+                      sessionId=hlid(self._session_id),
                       wasClean=wasClean)
 
         # actually, at this point, the backend session should already be gone, but better check!
@@ -324,6 +325,11 @@ class ProxyFrontendSession(object):
                 # first, wait for the WAMP-level transport to connect before starting to join
                 yield backend._on_connect
 
+                # while we were yielding, frontend session might have been closed (transport disconnected)
+                if self.transport is None:
+                    backend.disconnect()
+                    raise TransportLost("Proxy frontend session disconnected while connecting to backend")
+
                 # node private key
                 key = _read_node_key(self._controller._cbdir, private=False)
 
@@ -427,6 +433,16 @@ class ProxyFrontendSession(object):
         backend_d.addErrback(backend_failed)
 
         return result
+
+    def _send_if_transport_is_alive(self, msg):
+        # this is a debugging helper
+        # We received a message on the backend connection (auth, welcome) and need to send it to the client
+        # this is semantically the same as _forward, and it solve the same issues
+        # We don't send here, but we also do not cause an exception if the transport is gone
+        if self.transport:
+            self.transport.send(msg)
+        else:
+            self.log.debug('Trying to send a message to the client, but no frontend transport! [{msg}]', msg=msg)
 
     def _forward(self, msg):
         # we received a message on the backend connection: forward to client over frontend connection
@@ -609,7 +625,7 @@ class ProxyFrontendSession(object):
                     hello_result = yield as_future(self._pending_auth.hello, realm, details)
                 except Exception as e:
                     self.log.failure()
-                    self.transport.send(
+                    self._send_if_transport_is_alive(
                         message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                       message='Frontend connection accept failed ({})'.format(e)))
                     return
@@ -618,61 +634,97 @@ class ProxyFrontendSession(object):
                                authmethod=hlval(authmethod),
                                hello_result=hello_result)
 
-            # if the frontend session is accepted right away (eg when doing "anonymous" authentication), process the
-            # frontend accept ..
-            if isinstance(hello_result, types.Accept):
-                try:
-                    # get a backend session mapped to the incoming frontend session
-                    session = yield self.frontend_accepted(hello_result)
-                except Exception as e:
-                    self.log.failure()
-                    self.transport.send(
-                        message.Abort(ApplicationError.AUTHENTICATION_FAILED,
-                                      message='Frontend connection accept failed ({})'.format(e)))
-                    return
-
-                def _on_backend_joined(session, details):
-                    # we now got everything! the frontend is authenticated, and a backend session is associated.
-                    msg = message.Welcome(self._session_id,
-                                          ProxyFrontendSession.ROLES,
-                                          realm=details.realm,
-                                          authid=details.authid,
-                                          authrole=details.authrole,
-                                          authmethod=hello_result.authmethod,
-                                          authprovider=hello_result.authprovider,
-                                          authextra=dict(details.authextra or {}, **self._custom_authextra))
-                    self._backend_session = session
-                    self.transport.send(msg)
-                    self.log.debug(
-                        '{func} proxy frontend session WELCOME: session_id={session}, session={session}, '
-                        'details="{details}"',
-                        func=hltype(self._process_Hello),
-                        session_id=hlid(self._session_id),
-                        session=self,
-                        details=details)
-
-                session.on('join', _on_backend_joined)
-
-            # if the client is required to do an authentication message exchange, answer sending a CHALLENGE message
-            elif isinstance(hello_result, types.Challenge):
-                self.transport.send(message.Challenge(hello_result.method, extra=hello_result.extra))
-
-            # if the client is denied right away, answer by sending an ABORT message
-            elif isinstance(hello_result, types.Deny):
-                self.transport.send(message.Abort(hello_result.reason, message=hello_result.message))
-
+            # check if client disconnected while we were yielding to authenticator
+            if not self.transport:
+                self.log.debug(
+                    '{func} proxy frontend disconnected while processing hello in authenticator:'
+                    ': session_id={session_id}, session={session}, details="{details}"',
+                    func=hltype(self._process_Hello),
+                    session_id=hlid(self._session_id),
+                    session=self,
+                    details=details)
+                return
             else:
-                # should not arrive here: internal (logic) error
-                self.log.warn('{func} internal error: unexpected authenticator return type {rtype}',
-                              rtype=hltype(hello_result),
-                              func=hltype(self._process_Hello))
-                self.transport.send(
-                    message.Abort(ApplicationError.AUTHENTICATION_FAILED,
-                                  message='internal error: unexpected authenticator return type {}'.format(
-                                      type(hello_result))))
-            return
+                # if the frontend session is accepted right away (eg when doing "anonymous" authentication), process the
+                # frontend accept ..
+                if isinstance(hello_result, types.Accept):
+                    try:
+                        # get a backend session mapped to the incoming frontend session
+                        session = yield self.frontend_accepted(hello_result)
+                    except Exception as e:
+                        self.log.failure()
+                        self._send_if_transport_is_alive(
+                            message.Abort(ApplicationError.AUTHENTICATION_FAILED,
+                                          message='Frontend connection accept failed ({})'.format(e)))
+                        return
 
-        self.transport.send(message.Abort(ApplicationError.NO_AUTH_METHOD, message='no suitable authmethod found'))
+                    if not self.transport:
+                        # we have not yet established a backend session, only authenticator session was used
+                        self.log.debug(
+                            '{func} proxy frontend disconnected while connecting backend session'
+                            ': session_id={session_id}, session={session}, details="{details}"',
+                            func=hltype(self._process_Hello),
+                            session_id=hlid(self._session_id),
+                            session=self,
+                            details=details)
+                        self._controller.unmap_backend(self, session)
+                        self._backend_session = None
+                    else:
+
+                        def _on_backend_joined(session, details):
+                            # we now got everything! the frontend is authenticated, and a backend session is associated.
+                            msg = message.Welcome(self._session_id,
+                                                  ProxyFrontendSession.ROLES,
+                                                  realm=details.realm,
+                                                  authid=details.authid,
+                                                  authrole=details.authrole,
+                                                  authmethod=hello_result.authmethod,
+                                                  authprovider=hello_result.authprovider,
+                                                  authextra=dict(details.authextra or {}, **self._custom_authextra))
+                            if self.transport:
+                                self._backend_session = session
+                                self.transport.send(msg)
+                                self.log.debug(
+                                    '{func} proxy frontend session WELCOME: session_id={session_id}, session={session}, '
+                                    'details="{details}"',
+                                    func=hltype(self._process_Hello),
+                                    session_id=hlid(self._session_id),
+                                    session=self,
+                                    details=details)
+                            else:
+                                self.log.debug(
+                                    '{func} proxy frontend disconnected while joining backend session'
+                                    ': session_id={session_id}, session={session}, details="{details}"',
+                                    func=hltype(self._process_Hello),
+                                    session_id=hlid(self._session_id),
+                                    session=self,
+                                    details=details)
+                                self._controller.unmap_backend(self, session)
+                                self._backend_session = None
+
+                        session.on('join', _on_backend_joined)
+
+                # if the client is required to do an authentication message exchange, answer sending a CHALLENGE message
+                elif isinstance(hello_result, types.Challenge):
+                    self._send_if_transport_is_alive(message.Challenge(hello_result.method, extra=hello_result.extra))
+
+                # if the client is denied right away, answer by sending an ABORT message
+                elif isinstance(hello_result, types.Deny):
+                    self._send_if_transport_is_alive(message.Abort(hello_result.reason, message=hello_result.message))
+
+                else:
+                    # should not arrive here: internal (logic) error
+                    self.log.warn('{func} internal error: unexpected authenticator return type {rtype}',
+                                  rtype=hltype(hello_result),
+                                  func=hltype(self._process_Hello))
+                    self._send_if_transport_is_alive(
+                        message.Abort(ApplicationError.AUTHENTICATION_FAILED,
+                                      message='internal error: unexpected authenticator return type {}'.format(
+                                          type(hello_result))))
+                return
+
+        self._send_if_transport_is_alive(
+            message.Abort(ApplicationError.NO_AUTH_METHOD, message='no suitable authmethod found'))
 
     @inlineCallbacks
     def _process_Authenticate(self, msg):
@@ -689,55 +741,89 @@ class ProxyFrontendSession(object):
                                func=hltype(self._process_Authenticate),
                                pending_auth=self._pending_auth,
                                authresult=auth_result)
-                if isinstance(auth_result, types.Accept):
-                    try:
-                        session = yield self.frontend_accepted(auth_result)
-                    except Exception as e:
-                        self.log.failure()
-                        self.transport.send(
-                            message.Abort(ApplicationError.AUTHENTICATION_FAILED,
-                                          message='Frontend connection accept failed ({})'.format(e)))
-                    else:
 
-                        def _on_backend_joined(session, details):
-                            msg = message.Welcome(self._session_id,
-                                                  ProxyFrontendSession.ROLES,
-                                                  realm=details.realm,
-                                                  authid=details.authid,
-                                                  authrole=details.authrole,
-                                                  authmethod=auth_result.authmethod,
-                                                  authprovider=auth_result.authprovider,
-                                                  authextra=dict(details.authextra or {}, **self._custom_authextra))
-                            self._backend_session = session
-                            self.transport.send(msg)
-                            self.log.debug(
-                                '{func} proxy frontend session WELCOME: session_id={session_id}, '
-                                'session={session}, msg={msg}',
-                                func=hltype(self._process_Authenticate),
-                                session_id=hlid(self._session_id),
-                                session=self,
-                                msg=msg)
-
-                        session.on('join', _on_backend_joined)
-                elif isinstance(auth_result, types.Deny):
-                    self.transport.send(message.Abort(auth_result.reason, message=auth_result.message))
+                # check if client disconnected while we were yielding to authenticator
+                if not self.transport:
+                    # we have not yet established a backend session, only authenticator session was used
+                    self.log.info(
+                        '{func} frontend disconnected while processing pending'
+                        ' authentication {pending_auth}: {authresult}',
+                        func=hltype(self._process_Authenticate),
+                        pending_auth=self._pending_auth,
+                        authresult=auth_result)
                 else:
-                    # should not arrive here: logic error
-                    self.log.warn('{func} internal error: unexpected authenticator return type {rtype}',
-                                  rtype=hltype(auth_result),
-                                  func=hltype(self._process_Authenticate))
-                    self.transport.send(
-                        message.Abort(ApplicationError.AUTHENTICATION_FAILED,
-                                      message='internal error: unexpected authenticator return type {}'.format(
-                                          type(auth_result))))
+                    if isinstance(auth_result, types.Accept):
+                        try:
+                            session = yield self.frontend_accepted(auth_result)
+                        except TransportLost:
+                            self.log.info(
+                                '{func} frontend disconnected while connecting backend session {pending_auth}',
+                                func=hltype(self._process_Authenticate),
+                                pending_auth=self._pending_auth)
+                        except Exception as e:
+                            self.log.failure()
+                            self._send_if_transport_is_alive(
+                                message.Abort(ApplicationError.AUTHENTICATION_FAILED,
+                                              message='Frontend connection accept failed ({})'.format(e)))
+                        else:
+                            if self.transport is None:
+                                # we have not yet established a backend session, only authenticator session was used
+                                self.log.info('{func} frontend disconnected connecting backend session {pending_auth}',
+                                              func=hltype(self._process_Authenticate),
+                                              pending_auth=self._pending_auth)
+                                self._controller.unmap_backend(self, session)
+                                self._backend_session = None
+                            else:
+
+                                def _on_backend_joined(session, details):
+                                    msg = message.Welcome(self._session_id,
+                                                          ProxyFrontendSession.ROLES,
+                                                          realm=details.realm,
+                                                          authid=details.authid,
+                                                          authrole=details.authrole,
+                                                          authmethod=auth_result.authmethod,
+                                                          authprovider=auth_result.authprovider,
+                                                          authextra=dict(details.authextra or {},
+                                                                         **self._custom_authextra))
+                                    if self.transport:
+                                        self._backend_session = session
+                                        self.transport.send(msg)
+                                        self.log.debug(
+                                            '{func} proxy frontend session WELCOME: session_id={session_id}, '
+                                            'session={session}, msg={msg}',
+                                            func=hltype(self._process_Authenticate),
+                                            session_id=hlid(self._session_id),
+                                            session=self,
+                                            msg=msg)
+                                    else:
+                                        self.log.info(
+                                            '{func} frontend disconnected while joining backend session {pending_auth}',
+                                            func=hltype(self._process_Authenticate),
+                                            pending_auth=self._pending_auth)
+                                        self._controller.unmap_backend(self, session)
+                                        self._backend_session = None
+
+                                session.on('join', _on_backend_joined)
+                    elif isinstance(auth_result, types.Deny):
+                        self._send_if_transport_is_alive(message.Abort(auth_result.reason,
+                                                                       message=auth_result.message))
+                    else:
+                        # should not arrive here: logic error
+                        self.log.warn('{func} internal error: unexpected authenticator return type {rtype}',
+                                      rtype=hltype(auth_result),
+                                      func=hltype(self._process_Authenticate))
+                        self._send_if_transport_is_alive(
+                            message.Abort(ApplicationError.AUTHENTICATION_FAILED,
+                                          message='internal error: unexpected authenticator return type {}'.format(
+                                              type(auth_result))))
             else:
                 # should not arrive here: logic error
-                self.transport.send(
+                self._send_if_transport_is_alive(
                     message.Abort(ApplicationError.AUTHENTICATION_FAILED,
                                   message='internal error: unexpected pending authentication'))
         else:
             # should not arrive here: client misbehaving!
-            self.transport.send(
+            self._send_if_transport_is_alive(
                 message.Abort(ApplicationError.AUTHENTICATION_FAILED, message='no pending authentication'))
 
 
@@ -1592,11 +1678,18 @@ class ProxyController(TransportController):
                     backend_config = self.get_backend_config(realm, authrole)
 
                     # create and store a new service session connected to the backend router worker
-                    self._service_sessions[realm][authrole] = yield make_service_session(
-                        self._reactor, self, backend_config, realm, authrole)
+                    self._service_sessions[realm][authrole] = make_service_session(self._reactor, self, backend_config,
+                                                                                   realm, authrole)
                 else:
                     # mark as non-existing!
                     self._service_sessions[realm][authrole] = None
+
+            if self._service_sessions[realm] and self._service_sessions[realm][authrole]:
+                service_session_or_deferred = self._service_sessions[realm][authrole]
+                if isinstance(service_session_or_deferred, Deferred):
+                    service_session = yield service_session_or_deferred
+                    if service_session is not None:
+                        self._service_sessions[realm][authrole] = service_session
 
             # return cached service session
             if self._service_sessions[realm] and self._service_sessions[realm][authrole]:

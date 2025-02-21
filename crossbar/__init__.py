@@ -22,6 +22,10 @@ if not hasattr(eth_abi, 'encode_abi') and hasattr(eth_abi, 'encode'):
 if not hasattr(eth_abi, 'encode_single') and hasattr(eth_abi, 'encode'):
     eth_abi.encode_single = eth_abi.encode
 
+import eth_typing
+if not hasattr(eth_typing, 'ChainID') and hasattr(eth_typing, 'ChainId'):
+    eth_typing.ChainID = eth_typing.ChainId
+
 # monkey patch web3 for master branch / upcoming v6 (which we need for python 3.11)
 # AttributeError: type object 'Web3' has no attribute 'toChecksumAddress'. Did you mean: 'to_checksum_address'?
 import web3

@@ -111,10 +111,17 @@ class TestDealer(unittest.TestCase):
         outstanding = mock.Mock()
         outstanding.call.request = 1
 
+        # there was a bug where timeout calls were not getting cancelled
+        # mock has non-null timeout_call, so we need to set it to None
+        outstanding.timeout_call = None
         dealer = self.router._dealer
         dealer.attach(session)
 
+        # All four maps involved in invocation tracking must be updated atomically
+        dealer._caller_to_invocations[outstanding.caller] = [outstanding]
         dealer._callee_to_invocations[session] = [outstanding]
+        dealer._invocations[outstanding.id] = outstanding
+        dealer._invocations_by_call[(outstanding.caller_session_id, outstanding.call.request)] = outstanding
         # pretend we've disconnected already
         outstanding.caller._transport = None
 
