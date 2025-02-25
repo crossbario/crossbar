@@ -49,8 +49,6 @@ from twisted.internet.interfaces import IStreamServerEndpoint
 from twisted.python.filepath import FilePath
 from zope.interface import implementer
 
-import txtorcon
-
 from crossbar.common.twisted.sharedport import SharedPort, SharedTLSPort
 
 try:
@@ -441,64 +439,6 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
     elif config['type'] == 'twisted':
         endpoint = serverFromString(reactor, config['server_string'])
 
-    # tor endpoint
-    elif config['type'] == 'onion':  # or "tor"? r "tor_onion"?
-        port = config['port']
-        private_key_fname = _ensure_absolute(config['private_key_file'], cbdir)
-        tor_control_ep = create_connecting_endpoint_from_config(
-            config['tor_control_endpoint'], cbdir, reactor, log
-        )
-        version = config.get('version', 3)  # default to modern version 3
-
-        try:
-            with open(private_key_fname, 'r') as f:
-                private_key = f.read().strip()
-            log.info(
-                "Onion private key from '{private_key_fname}'",
-                private_key_fname=private_key_fname,
-            )
-        except (IOError, OSError):
-            private_key = None
-
-        @implementer(IStreamServerEndpoint)
-        class _EphemeralOnion(object):
-
-            @defer.inlineCallbacks
-            def listen(self, proto_factory):
-                # we don't care which local TCP port we listen on, but
-                # we do need to know it
-                local_ep = TCP4ServerEndpoint(reactor, 0, interface="127.0.0.1")
-                target_port = yield local_ep.listen(proto_factory)
-                tor = yield txtorcon.connect(
-                    reactor,
-                    tor_control_ep,
-                )
-
-                log.info("Creating onion service (descriptor upload can take 30s or more)")
-                hs = yield tor.create_onion_service(
-                    ports=[
-                        (port, target_port.getHost().port),
-                    ],
-                    private_key=private_key,
-                    version=version,
-                )
-
-                # if it's new, store our private key
-                # XXX better "if private_key is None"?
-                if not exists(private_key_fname):
-                    with open(private_key_fname, 'w') as f:
-                        f.write(hs.private_key)
-                    log.info("Wrote private key to '{fname}'", fname=private_key_fname)
-
-                log.info(
-                    "Listening on Tor onion service {hs.hostname} "
-                    " with ports: {ports}",
-                    hs=hs,
-                    ports=" ".join(hs.ports),
-                )
-                defer.returnValue(target_port)
-        endpoint = _EphemeralOnion()
-
     else:
         raise Exception("invalid endpoint type '{}'".format(config['type']))
 
@@ -670,24 +610,6 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
 
     elif config['type'] == 'twisted':
         endpoint = clientFromString(reactor, config['client_string'])
-
-    elif config['type'] == 'tor':
-        host = config['host']
-        port = config['port']
-        socks_port = config['tor_socks_port']
-        tls = config.get('tls', False)
-        if not tls and not host.endswith('.onion'):
-            log.warn("Non-TLS connection traversing Tor network; end-to-end encryption advised")
-
-        socks_endpoint = TCP4ClientEndpoint(
-            reactor, "127.0.0.1", socks_port,
-        )
-        endpoint = txtorcon.TorClientEndpoint(
-            host, port,
-            socks_endpoint=socks_endpoint,
-            reactor=reactor,
-            use_tls=tls,
-        )
 
     else:
         raise Exception("invalid endpoint type '{}'".format(config['type']))

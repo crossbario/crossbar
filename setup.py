@@ -48,10 +48,10 @@ extras_require = {
 }
 
 # minimum, open-ended requirements
-reqs = 'requirements-min.txt'
+# reqs = 'requirements-min.txt'
 
 # pinned requirements
-#reqs = 'requirements-pinned.txt'
+reqs = 'requirements-pinned.txt'
 
 # pinned & hashed requirements: we cannot use that here sadly,
 # as setuptools doesn't understand hashes ..

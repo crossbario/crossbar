@@ -1,0 +1,72 @@
+FROM python:3.7-slim
+
+# these build arguments should be defined _after_ FROM, so the values are available later on
+ARG CROSSBAR_BUILD_ID
+ARG CROSSBAR_BUILD_DATE
+ARG CROSSBAR_VCS_REF
+ARG CROSSBAR_VERSION
+
+# Metadata labeling
+LABEL org.label-schema.build-date=$CROSSBAR_BUILD_DATE \
+      org.label-schema.name="Crossbar.io Starter Template" \
+      org.label-schema.description="Quickstart template for application development with Crossbar.io" \
+      org.label-schema.url="http://crossbar.io" \
+      org.label-schema.vcs-ref=$CROSSBAR_VCS_REF \
+      org.label-schema.vcs-url="https://github.com/quantivly/crossbar" \
+      org.label-schema.vendor="The Crossbar.io Project" \
+      org.label-schema.version=$CROSSBAR_VERSION \
+      org.label-schema.schema-version="1.0"
+
+# http://bugs.python.org/issue19846
+# > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
+ENV LANG=C.UTF-8
+# Application home
+ENV HOME=/node
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Use Bash (yes, we want bash for both building the image, and later inside containers)
+# https://github.com/moby/moby/issues/7281#issuecomment-389440503
+SHELL ["/bin/bash", "-c"]
+
+RUN    apt-get update \
+    && apt-get install -y --no-install-recommends \
+               ca-certificates \
+               expat \
+               build-essential \
+               libssl-dev \
+               libffi-dev \
+               libunwind-dev \
+               libsnappy-dev \
+               libbz2-dev \
+    && rm -rf ~/.cache \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy in source code and install it as a package
+COPY . /tmp/crossbar/
+RUN pip install /tmp/crossbar
+
+# Check versions of CLI
+RUN crossbar version
+
+## SETUP RUNTIME ENVIRONMENT #############################################################
+
+# add our user and group
+RUN adduser --system --group --uid 242 --home /node crossbar
+
+# Crossbar.io node directory
+RUN mkdir -p /node/.crossbar
+RUN chown -R crossbar:crossbar /node
+
+# make /node a volume to allow external configuration
+VOLUME /node
+
+# set the Crossbar.io node directory as working directory
+WORKDIR /node
+
+# run under this user, and expose default port
+USER crossbar
+EXPOSE 8080 8000
+
+# entrypoint for the Docker image is the Crossbar.io executable
+ENTRYPOINT ["crossbar", "start", "--cbdir", "/node/.crossbar"]

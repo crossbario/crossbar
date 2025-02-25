@@ -56,7 +56,6 @@
  sortedcontainers  2.2.2      Apache Software License                              Grant Jenks                                   
  treq              20.4.1     MIT License                                          David Reid                                    
  txaio             20.4.1     MIT License                                          Crossbar.io Technologies GmbH                 
- txtorcon          20.0.0     MIT License                                          meejah                                        
  u-msgpack-python  2.6.0      MIT License                                          vsergeev                                      
  ujson             3.0.0      BSD License                                          Jonas Tarnstrom                               
  urllib3           1.24.3     MIT License                                          Andrey Petrov                                 
