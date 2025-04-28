@@ -1376,5 +1376,5 @@ class SendPublishTests(TestCase):
     for x in [test_qos_1_resent_on_disconnect,
               test_qos_2_resent_on_disconnect_pubcomp,
               test_qos_2_resent_on_disconnect_pubrel]:
-        x.todo = ("Needs WAMP-level implementation first, and the WAMP router "
+        x.skip = ("Needs WAMP-level implementation first, and the WAMP router "
                   "to resend ACKs/messages")

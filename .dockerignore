@@ -1,0 +1,12 @@
+# Irrelevant files
+docker/
+docs*/
+legal/
+snap/
+
+# Copied from .gitignore
+build
+dist
+.coverage
+htmlcov/
+*.egg-info
