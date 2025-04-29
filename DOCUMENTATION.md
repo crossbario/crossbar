@@ -102,7 +102,7 @@ A custom Docker setup using Python `3.8-slim` as the base image with:
 1. **Tor/Onion Support Removal**:
 
    - All code between lines 441-503 and 611-630 in `crossbar/common/twisted/endpoint.py` was removed
-   - These sections contained the implementation for Tor onion services
+   - These sections contained the implementation for Tor onion services, and required the `txtorcon` library
 
 2. **Requirements Management**:
 
