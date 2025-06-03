@@ -736,12 +736,13 @@ class RouterSession(BaseSession):
                 self.onLeave(CloseDetails())
             except Exception:
                 self.log.failure("Exception raised in onLeave callback")
+                self.log.warn("{tb}".format(tb=Failure().getTraceback()))
 
             try:
                 self._router.detach(self)
             except Exception as e:
                 self.log.error("Failed to detach session '{}': {}".format(self._session_id, e))
-                self.log.debug("{tb}".format(tb=Failure().getTraceback()))
+                self.log.warn("{tb}".format(tb=Failure().getTraceback()))
 
             self._session_id = None
 
