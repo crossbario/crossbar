@@ -55,7 +55,6 @@ class TestDocker(unittest.TestCase):
         self.client._docker = mock.Mock()
         self.client._docker.from_env = from_env
 
-        global dummy_scandir
         dummy_scandir().__enter__().__iter__.return_value = iter([
             DirEntry('tom', True),
             DirEntry('dick', True),

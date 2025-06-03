@@ -6,7 +6,6 @@
 ##############################################################################
 
 import six
-from typing import Dict
 
 from txaio import make_logger
 
@@ -70,7 +69,8 @@ class ExtRouterFactory(RouterFactory):
 
     def __init__(self, node_id, worker, options=None):
         RouterFactory.__init__(self, node_id, worker, options=options)
-        self._routers: Dict[str, ExtRouter] = {}
+        assert isinstance(ExtRouter, Router)
+        self._routers: dict[str, ExtRouter] = {}
 
     def add_interface(self, realm, interface):
         assert (isinstance(realm, six.text_type))
