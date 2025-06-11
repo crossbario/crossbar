@@ -62,17 +62,19 @@ class PendingAuthWampCra(PendingAuth):
         }
         challenge: str = json.dumps(challenge_obj, ensure_ascii=False)
         secret = user['secret'].encode('utf8')
-        signature = auth.compute_wcs(secret, challenge.encode('utf8')).decode('ascii')
 
         # extra data to send to client in CHALLENGE
         extra = {'challenge': challenge}
 
         # when using salted passwords, provide the client with
         # the salt and then PBKDF2 parameters used
-        if 'salt' in user:
+        if 'salt' in user and 'iterations' in user and 'keylen' in user:
             extra['salt'] = user['salt']
-            extra['iterations'] = user.get('iterations', 1000)
-            extra['keylen'] = user.get('keylen', 32)
+            extra['iterations'] = user['iterations']
+            extra['keylen'] = user['keylen']
+            secret = auth.derive_key(secret, extra['salt'], extra['iterations'], extra['keylen'])
+
+        signature = auth.compute_wcs(secret, challenge.encode('utf8')).decode('ascii')
 
         return extra, signature
 
