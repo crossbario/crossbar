@@ -426,7 +426,7 @@ class BridgeSession(ApplicationSession):
 
             del self._regs[reg_id]
 
-            self.log.debug("{other} unsubscribed from {uri}".format(other=other, uri=uri))
+            self.log.debug("{other} unregistered from {uri}".format(other=other, uri=uri))
 
         @inlineCallbacks
         def register_current():
@@ -697,8 +697,12 @@ class RLinkRemoteSession(BridgeSession):
         for k, v in self._subs.items():
             if v['sub'].active:
                 yield v['sub'].unsubscribe()
-
         self._subs = {}
+
+        for k, v, in self._regs.items():
+            if v["reg"] and v["reg"].active:
+                yield v["reg"].unregister()
+        self._regs = {}
 
         self.config.extra['other']._tracker.connected = False
         self.log.warn(
