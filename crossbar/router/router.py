@@ -228,7 +228,7 @@ class Router(object):
         if self.realm != 'crossbar':
             self.log.debug(
                 'session "{session_id}" left realm "{realm}"',
-                session_id=session_details.session,
+                session_id=session._session_id,
                 realm=self.realm,
             )
             self.log.trace('{details}', details=session_details)
