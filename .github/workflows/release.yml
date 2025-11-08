@@ -1,0 +1,380 @@
+name: release
+
+on:
+  # Auto-trigger after main workflow completes
+  workflow_run:
+    workflows: ["main"]
+    types: [completed]
+
+  # Manual dispatch for debugging
+  workflow_dispatch:
+
+permissions:
+  id-token: write      # Required for PyPI trusted publishing (OIDC)
+  contents: write      # Required for creating GitHub releases
+  discussions: write   # Required for posting to discussions
+  pull-requests: read  # Required for identifiers workflow
+
+jobs:
+  identifiers:
+    uses: wamp-proto/wamp-cicd/.github/workflows/identifiers.yml@main
+
+  check-main-workflow:
+    name: Check if main workflow completed successfully
+    needs: [identifiers]
+    runs-on: ubuntu-latest
+    outputs:
+      main_run_id: ${{ steps.check.outputs.main_run_id }}
+      should_proceed: ${{ steps.check.outputs.should_proceed }}
+
+    steps:
+      - name: Check main workflow completion
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commitSha = context.payload.workflow_run?.head_sha || context.sha;
+            const triggeredBy = context.payload.workflow_run?.name || 'manual (workflow_dispatch)';
+
+            console.log('─────────────────────────────────────────────────');
+            console.log('🔍 Checking main workflow completion status');
+            console.log('─────────────────────────────────────────────────');
+            console.log(`Event: ${context.eventName}`);
+            console.log(`Commit SHA: ${commitSha}`);
+            console.log(`Triggered by: ${triggeredBy}`);
+            console.log('');
+
+            // Get workflow runs for this commit
+            const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head_sha: commitSha,
+              per_page: 100
+            });
+
+            // Find latest main workflow run
+            const mainRun = runs.workflow_runs
+              .filter(run => run.name === 'main')
+              .sort((a, b) => b.id - a.id)[0];
+
+            const mainComplete = mainRun && mainRun.status === 'completed' && mainRun.conclusion === 'success';
+            const status = mainRun ? `${mainRun.status}/${mainRun.conclusion}` : 'not found';
+
+            console.log(`Main workflow: ${status}`);
+            console.log('');
+
+            if (!mainComplete) {
+              console.log('⏳ Main workflow not complete yet - exiting early');
+              console.log('   This is normal! Release will proceed once main workflow finishes.');
+            } else {
+              console.log('✅ Main workflow complete - proceeding with release!');
+            }
+            console.log('─────────────────────────────────────────────────');
+
+            core.setOutput('should_proceed', mainComplete ? 'true' : 'false');
+            core.setOutput('main_run_id', mainRun?.id || '');
+
+  # Development/Nightly GitHub releases (for untagged master builds)
+  release-development:
+    name: Development/Nightly GitHub Release
+    needs: [identifiers, check-main-workflow]
+    runs-on: ubuntu-24.04
+
+    # Only create releases for development/nightly builds (not stable tags)
+    if: |
+      needs.check-main-workflow.outputs.should_proceed == 'true' &&
+      (needs.identifiers.outputs.release_type == 'development' || needs.identifiers.outputs.release_type == 'nightly')
+
+    env:
+      RELEASE_TYPE: ${{ needs.identifiers.outputs.release_type }}
+      RELEASE_NAME: ${{ needs.identifiers.outputs.release_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Create venv and install build tools
+        run: |
+          just create cpy311
+          just install-build-tools cpy311
+
+      - name: Build distribution packages
+        run: just dist cpy311
+
+      - name: Verify packages
+        run: just verify-dist cpy311
+
+      - name: List built packages
+        run: |
+          echo "Built packages:"
+          ls -lh dist/
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum * > CHECKSUMS-ALL.sha256
+          cat CHECKSUMS-ALL.sha256
+
+      - name: Validate release fileset for GitHub
+        run: |
+          echo "======================================================================"
+          echo "==> Validating Release Fileset for GitHub Release"
+          echo "======================================================================"
+          echo ""
+
+          # Count wheels and source distributions
+          WHEEL_COUNT=$(find dist -name "*.whl" -type f | wc -l)
+          SDIST_COUNT=$(find dist -name "*.tar.gz" -type f ! -name "CHECKSUMS*.sha256" | wc -l)
+
+          echo "Found:"
+          echo "  - Wheels: $WHEEL_COUNT"
+          echo "  - Source distributions: $SDIST_COUNT"
+          echo ""
+
+          # Validate counts
+          HAS_ERRORS=0
+
+          if [ "$WHEEL_COUNT" -ne 1 ]; then
+            echo "❌ ERROR: Expected exactly 1 wheel, found $WHEEL_COUNT"
+            HAS_ERRORS=1
+          else
+            WHEEL_FILE=$(find dist -name "*.whl" -type f)
+            echo "✅ Wheel: $(basename $WHEEL_FILE)"
+
+            # Verify it's a universal wheel
+            if [[ "$WHEEL_FILE" != *"-py2.py3-none-any.whl" ]] && [[ "$WHEEL_FILE" != *"-py3-none-any.whl" ]]; then
+              echo "⚠️  WARNING: Wheel is not universal (py2.py3-none-any or py3-none-any)"
+            fi
+          fi
+
+          if [ "$SDIST_COUNT" -ne 1 ]; then
+            echo "❌ ERROR: Expected exactly 1 source distribution, found $SDIST_COUNT"
+            HAS_ERRORS=1
+          else
+            SDIST_FILE=$(find dist -name "*.tar.gz" -type f ! -name "CHECKSUMS*.sha256")
+            echo "✅ Source: $(basename $SDIST_FILE)"
+          fi
+
+          echo ""
+          if [ $HAS_ERRORS -eq 1 ]; then
+            echo "======================================================================"
+            echo "❌ VALIDATION FAILED"
+            echo "======================================================================"
+            exit 1
+          else
+            echo "======================================================================"
+            echo "✅ VALIDATION PASSED - Keeping all files (including CHECKSUMS)"
+            echo "======================================================================"
+          fi
+
+      - name: Create development GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.identifiers.outputs.release_name }}
+          name: Development Build ${{ needs.identifiers.outputs.release_name }}
+          body: |
+            ## Crossbar.io Development Build
+
+            **Release:** ${{ needs.identifiers.outputs.release_name }}
+            **Type:** ${{ needs.identifiers.outputs.release_type }}
+            **Branch:** ${{ needs.identifiers.outputs.base_branch }}
+            **Commit:** ${{ needs.identifiers.outputs.head_sha }}
+
+            This is an automated development/nightly build for testing purposes.
+
+            **Installation:**
+            ```bash
+            pip install https://github.com/crossbario/crossbar/releases/download/${{ needs.identifiers.outputs.release_name }}/crossbar-*.whl
+            ```
+
+            **Files:**
+            - Universal wheel (py3-none-any)
+            - Source distribution (.tar.gz)
+            - SHA256 checksums (CHECKSUMS-ALL.sha256)
+
+            ⚠️  This is a development build - for production use, install from PyPI.
+          files: dist/*
+          draft: false
+          prerelease: true
+          discussion_category_name: ci-cd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Production releases (for tagged stable builds) - GitHub + PyPI
+  release-production:
+    name: Production Release (GitHub + PyPI)
+    needs: [identifiers, check-main-workflow]
+    runs-on: ubuntu-24.04
+
+    # Only publish to PyPI for stable releases (explicit tag check)
+    if: |
+      needs.check-main-workflow.outputs.should_proceed == 'true' &&
+      needs.identifiers.outputs.release_type == 'stable'
+
+    env:
+      RELEASE_TYPE: ${{ needs.identifiers.outputs.release_type }}
+      RELEASE_NAME: ${{ needs.identifiers.outputs.release_name }}
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/crossbar
+    permissions:
+      id-token: write  # For trusted publishing
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Create venv and install build tools
+        run: |
+          just create cpy311
+          just install-build-tools cpy311
+
+      - name: Build distribution packages
+        run: just dist cpy311
+
+      - name: Verify packages
+        run: just verify-dist cpy311
+
+      - name: List built packages
+        run: |
+          echo "Built packages:"
+          ls -lh dist/
+
+      - name: Generate checksums (for GitHub release)
+        run: |
+          cd dist
+          sha256sum * > CHECKSUMS-ALL.sha256
+          cat CHECKSUMS-ALL.sha256
+
+      - name: Validate release fileset
+        run: |
+          echo "======================================================================"
+          echo "==> Validating Release Fileset"
+          echo "======================================================================"
+          echo ""
+
+          # Count wheels and source distributions
+          WHEEL_COUNT=$(find dist -name "*.whl" -type f | wc -l)
+          SDIST_COUNT=$(find dist -name "*.tar.gz" -type f ! -name "CHECKSUMS*.sha256" | wc -l)
+
+          echo "Found:"
+          echo "  - Wheels: $WHEEL_COUNT"
+          echo "  - Source distributions: $SDIST_COUNT"
+          echo ""
+
+          # Validate counts
+          HAS_ERRORS=0
+
+          if [ "$WHEEL_COUNT" -ne 1 ]; then
+            echo "❌ ERROR: Expected exactly 1 wheel, found $WHEEL_COUNT"
+            HAS_ERRORS=1
+          else
+            WHEEL_FILE=$(find dist -name "*.whl" -type f)
+            echo "✅ Wheel: $(basename $WHEEL_FILE)"
+
+            # Verify it's a universal wheel
+            if [[ "$WHEEL_FILE" != *"-py2.py3-none-any.whl" ]] && [[ "$WHEEL_FILE" != *"-py3-none-any.whl" ]]; then
+              echo "⚠️  WARNING: Wheel is not universal (py2.py3-none-any or py3-none-any)"
+            fi
+          fi
+
+          if [ "$SDIST_COUNT" -ne 1 ]; then
+            echo "❌ ERROR: Expected exactly 1 source distribution, found $SDIST_COUNT"
+            HAS_ERRORS=1
+          else
+            SDIST_FILE=$(find dist -name "*.tar.gz" -type f ! -name "CHECKSUMS*.sha256")
+            echo "✅ Source: $(basename $SDIST_FILE)"
+          fi
+
+          echo ""
+          if [ $HAS_ERRORS -eq 1 ]; then
+            echo "======================================================================"
+            echo "❌ VALIDATION FAILED"
+            echo "======================================================================"
+            exit 1
+          else
+            echo "======================================================================"
+            echo "✅ VALIDATION PASSED"
+            echo "======================================================================"
+          fi
+
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION="${RELEASE_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.get_version.outputs.version }}
+          body: |
+            ## Crossbar.io v${{ steps.get_version.outputs.version }}
+
+            Crossbar.io - Open source networking platform for distributed and microservice applications
+
+            **Installation:**
+            ```bash
+            pip install crossbar==${{ steps.get_version.outputs.version }}
+            ```
+
+            **Links:**
+            - 📦 PyPI: https://pypi.org/project/crossbar/${{ steps.get_version.outputs.version }}/
+            - 📖 Docs: https://crossbar.io/docs/
+            - 💻 Source: https://github.com/crossbario/crossbar/tree/v${{ steps.get_version.outputs.version }}
+
+            See [NEWS.rst](https://github.com/crossbario/crossbar/blob/master/NEWS.rst) for details.
+
+            Also published to PyPI: https://pypi.org/project/crossbar/
+          files: dist/*
+          draft: false
+          prerelease: false
+          discussion_category_name: ci-cd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove non-PyPI files before upload
+        run: |
+          echo "======================================================================"
+          echo "Removing files that PyPI doesn't accept"
+          echo "======================================================================"
+          rm -f dist/CHECKSUMS*.sha256
+          echo ""
+          echo "Files to upload to PyPI:"
+          ls -lh dist/
+          echo "======================================================================"
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Use OIDC trusted publishing (no password needed)
+          # Automatically generates and uploads attestations
+          packages-dir: dist/
+          verify-metadata: true
+          skip-existing: false
+          print-hash: true
+          attestations: true
