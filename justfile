@@ -321,18 +321,38 @@ install-dev-local venv="": (create venv)
     echo "==> Looking for repos in /home/oberstet/work/wamp/..."
 
     # Install local WAMP packages in editable mode
-    for pkg in txaio autobahn-python zlmdb cfxdb wamp-xbr; do
+    # txaio - no extras needed
+    if [ -d "/home/oberstet/work/wamp/txaio" ]; then
+        echo "  ✓ Installing txaio from /home/oberstet/work/wamp/txaio"
+        ${VENV_PYTHON} -m pip install -e "/home/oberstet/work/wamp/txaio"
+    else
+        echo "  ⚠ Warning: txaio not found, skipping"
+    fi
+
+    # autobahn-python - install with extras needed by crossbar
+    if [ -d "/home/oberstet/work/wamp/autobahn-python" ]; then
+        echo "  ✓ Installing autobahn-python with extras from /home/oberstet/work/wamp/autobahn-python"
+        ${VENV_PYTHON} -m pip install -e "/home/oberstet/work/wamp/autobahn-python[twisted,encryption,compress,serialization,scram]"
+    else
+        echo "  ⚠ Warning: autobahn-python not found, skipping"
+    fi
+
+    # zlmdb, cfxdb, wamp-xbr - no extras needed
+    for pkg in zlmdb cfxdb wamp-xbr; do
         pkg_path="/home/oberstet/work/wamp/${pkg}"
         if [ -d "${pkg_path}" ]; then
             echo "  ✓ Installing ${pkg} from ${pkg_path}"
-            ${VENV_PYTHON} -m pip install -e "${pkg_path}" || echo "  ✗ Failed to install ${pkg}, continuing..."
+            ${VENV_PYTHON} -m pip install -e "${pkg_path}"
         else
             echo "  ⚠ Warning: ${pkg_path} not found, skipping"
         fi
     done
 
     echo "==> Installing crossbar in editable mode with [dev] extras..."
-    ${VENV_PYTHON} -m pip install -e .[dev]
+    echo "==> Note: pip will use already-installed local WAMP packages and resolve remaining dependencies"
+    # Use pip's dependency resolver - it will use the already-installed local WAMP packages
+    # and install missing dependencies
+    ${VENV_PYTHON} -m pip install -e .[dev] --upgrade --upgrade-strategy only-if-needed
 
 # Install minimal build tools for building wheels (usage: `just install-build-tools cpy312`)
 install-build-tools venv="": (create venv)
