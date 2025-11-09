@@ -390,7 +390,7 @@ install-tools venv="": (create venv)
     ${VENV_PYTHON} -V
     ${VENV_PYTHON} -m pip -V
 
-    ${VENV_PYTHON} -m pip install -e .[dev]
+    ${VENV_PYTHON} -m pip install -e .[dev,dev-latest]
 
 # Meta-recipe to run `install-tools` on all environments
 install-tools-all:
