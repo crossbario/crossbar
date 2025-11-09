@@ -46,14 +46,14 @@ classifiers = [
 ]
 
 dependencies = [
-    # WAMP ecosystem packages (using published PyPI versions)
+    # WAMP ecosystem packages (using currently available PyPI versions)
+    # NOTE: For development/testing with unreleased versions, use: pip install -e .[dev,dev-latest]
     "autobahn[twisted,encryption,compress,serialization,scram]>=25.10.2",
-    "txaio>=25.10.2",
+    "txaio>=25.9.2",  # Will be bumped to >=25.10.2 when published
     "zlmdb>=25.10.2",
-    "cfxdb>=25.11.1",
+    "cfxdb>=23.12.1",  # Will be bumped to >=25.11.1 when published
 
-    # XBR support (will be published to PyPI after modernization)
-    "wamp-xbr @ git+https://github.com/wamp-proto/wamp-xbr.git@master",
+    # NOTE: wamp-xbr is not on PyPI yet - use [dev-latest] for testing
 
     # Twisted ecosystem
     "twisted[tls,conch,http2]>=22.10.0; sys_platform != 'darwin' and sys_platform != 'win32'",
@@ -105,7 +105,7 @@ dependencies = [
     "morphys>=1.0",
     "netaddr>=0.8.0",
     "numpy>=1.24.1",
-    "parsimonious>=0.9.0,<0.10.0",
+    "parsimonious>=0.9.0,<0.11.0",
     "passlib>=1.7.4",
     "prompt-toolkit>=3.0.36",
     "psutil>=5.9.4",
@@ -180,6 +180,26 @@ dev = [
 
     # Other tools
     "pyinstaller>=4.2",
+]
+
+# For testing with unreleased WAMP packages from GitHub master branches
+# Usage: pip install -e .[dev,dev-latest]
+# This installs the latest development versions from GitHub instead of PyPI
+dev-latest = [
+    "txaio @ git+https://github.com/crossbario/txaio.git@master",
+    "autobahn[twisted,encryption,compress,serialization,scram] @ git+https://github.com/crossbario/autobahn-python.git@master",
+    "zlmdb @ git+https://github.com/crossbario/zlmdb.git@master",
+    "cfxdb @ git+https://github.com/crossbario/cfxdb.git@master",
+    "wamp-xbr @ git+https://github.com/wamp-proto/wamp-xbr.git@master",
+]
+
+# For testing with locally editable WAMP packages (cross-repo development)
+# Usage: First install WAMP packages in editable mode from local checkouts,
+#        then: pip install -e .[dev,dev-local]
+# Assumes local repos are checked out in ../txaio, ../autobahn-python, etc.
+# Use the justfile recipe: just install-dev-local
+dev-local = [
+    # Empty - local editable installs are handled by justfile recipe
 ]
 
 [project.urls]

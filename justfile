@@ -288,6 +288,52 @@ install-dev-all:
         just install-dev ${venv}
     done
 
+# Install with latest unreleased WAMP packages from GitHub (usage: `just install-dev-latest cpy312` or `just install-dev-latest`)
+install-dev-latest venv="": (create venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Installing package in editable mode with [dev,dev-latest] extras in ${VENV_NAME}..."
+    echo "==> This will install WAMP packages from GitHub master (unreleased versions)..."
+    ${VENV_PYTHON} -m pip install -e .[dev,dev-latest]
+
+# Install with locally editable WAMP packages for cross-repo development (usage: `just install-dev-local cpy312` or `just install-dev-local`)
+install-dev-local venv="": (create venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+
+    echo "==> Installing WAMP packages in editable mode from local repos..."
+    echo "==> Looking for repos in /home/oberstet/work/wamp/..."
+
+    # Install local WAMP packages in editable mode
+    for pkg in txaio autobahn-python zlmdb cfxdb wamp-xbr; do
+        pkg_path="/home/oberstet/work/wamp/${pkg}"
+        if [ -d "${pkg_path}" ]; then
+            echo "  ✓ Installing ${pkg} from ${pkg_path}"
+            ${VENV_PYTHON} -m pip install -e "${pkg_path}" || echo "  ✗ Failed to install ${pkg}, continuing..."
+        else
+            echo "  ⚠ Warning: ${pkg_path} not found, skipping"
+        fi
+    done
+
+    echo "==> Installing crossbar in editable mode with [dev] extras..."
+    ${VENV_PYTHON} -m pip install -e .[dev]
+
 # Install minimal build tools for building wheels (usage: `just install-build-tools cpy312`)
 install-build-tools venv="": (create venv)
     #!/usr/bin/env bash
