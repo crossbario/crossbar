@@ -717,23 +717,24 @@ generate-license-metadata venv="":
         VENV_NAME=$(just --quiet _get-system-venv-name)
         echo "==> Using venv: ${VENV_NAME}"
     fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
-    
+
     echo "==> Generating OSS license metadata..."
-    
+
     # Generate plain text license list
-    ${VENV_PYTHON} -m pip_licenses --from=classifier -a -o name > LICENSES-OSS
+    ${VENV_PATH}/bin/pip-licenses --from=classifier -a -o name > LICENSES-OSS
     echo "  ✓ Generated LICENSES-OSS"
-    
+
     # Generate RST formatted license table for docs
-    ${VENV_PYTHON} -m pip_licenses --from=classifier -a -o name --format=rst > docs/oss_licenses_table.rst
-    
+    ${VENV_PATH}/bin/pip-licenses --from=classifier -a -o name --format=rst > docs/oss_licenses_table.rst
+
     # Add header to RST file
     sed -i '1s;^;OSS Licenses\n============\n\n;' docs/oss_licenses_table.rst
     echo "  ✓ Generated docs/oss_licenses_table.rst"
-    
+
     # Also generate for soss (if needed)
-    ${VENV_PYTHON} -m pip_licenses --from=classifier -a -o name --format=rst > docs/soss_licenses_table.rst
+    ${VENV_PATH}/bin/pip-licenses --from=classifier -a -o name --format=rst > docs/soss_licenses_table.rst
     sed -i '1s;^;OSS Licenses\n============\n\n;' docs/soss_licenses_table.rst
     echo "  ✓ Generated docs/soss_licenses_table.rst"
     
