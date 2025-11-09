@@ -218,7 +218,7 @@ _BANNER = r"""
           :::::
     :::::::::::::::::   {title} v{version} [{build}]
 
-    Copyright (c) 2013-{year} Crossbar.io Technologies GmbH. Licensed under EUPLv1.2.
+    Copyright (c) 2013-{year} typedef int GmbH. Licensed under EUPLv1.2.
 """
 
 _DESC = """Crossbar.io is a decentralized data plane for XBR/WAMP based application

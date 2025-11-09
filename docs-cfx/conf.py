@@ -41,8 +41,8 @@ sys.path.insert(0, os.path.abspath('.'))
 # -- Project information -----------------------------------------------------
 
 project = 'Crossbar.io'
-copyright = '2018-2020, Crossbar.io Technologies GmbH'
-author = 'Crossbar.io Technologies GmbH'
+copyright = '2018-2020, typedef int GmbH'
+author = 'typedef int GmbH'
 
 # The short X.Y version
 version = __version__

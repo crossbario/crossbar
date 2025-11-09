@@ -1,6 +1,6 @@
 ##############################################################################
 #
 #                        Crossbar.io
-#     Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
+#     Copyright (C) typedef int GmbH. All rights reserved.
 #
 ##############################################################################

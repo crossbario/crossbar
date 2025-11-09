@@ -25,11 +25,11 @@ project = 'Crossbar.io Application Router'
 this_year = u'{0}'.format(time.strftime('%Y'))
 copyright_since = u'2013'
 if this_year != copyright_since:
-    copyright = u'{0}-{1}, Crossbar.io Technologies GmbH'.format(copyright_since, this_year)
+    copyright = u'{0}-{1}, typedef int GmbH'.format(copyright_since, this_year)
 else:
-    copyright = u'{0}, Crossbar.io Technologies GmbH'.format(copyright_since)
+    copyright = u'{0}, typedef int GmbH'.format(copyright_since)
 
-author = 'Crossbar.io Technologies GmbH'
+author = 'typedef int GmbH'
 version = release = __version__
 
 

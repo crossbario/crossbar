@@ -6,9 +6,9 @@
 #####################################################################################
 import os
 import sys
-import pkg_resources
 import signal
 from typing import Optional, List
+from importlib.resources import files
 
 import jinja2
 from jinja2.sandbox import SandboxedEnvironment
@@ -69,7 +69,7 @@ class WorkerController(NativeProcess):
         #
         self._templates_dir = []
         for package, directory in self.personality.TEMPLATE_DIRS:
-            dir_path = os.path.abspath(pkg_resources.resource_filename(package, directory))
+            dir_path = os.path.abspath(str(files(package) / directory))
             self._templates_dir.append(dir_path)
         self.log.debug("Using Web templates from {template_dirs}", template_dirs=self._templates_dir)
 
@@ -373,15 +373,13 @@ class WorkerController(NativeProcess):
         else:
             sys.path.extend(paths_added_resolved)
 
-        # "It is important to note that the global working_set object is initialized from
-        # sys.path when pkg_resources is first imported, but is only updated if you do all
-        # future sys.path manipulation via pkg_resources APIs. If you manually modify sys.path,
-        # you must invoke the appropriate methods on the working_set instance to keep it in sync."
+        # Note: pkg_resources.working_set.add_entry() was previously used here to sync
+        # pkg_resources with sys.path changes. Since we've migrated to importlib.resources,
+        # this is no longer necessary. Modern Python's import system handles sys.path
+        # changes automatically.
         #
-        # @see: https://pythonhosted.org/setuptools/pkg_resources.html#workingset-objects
-        #
-        for p in paths_added_resolved:
-            pkg_resources.working_set.add_entry(p)
+        # for p in paths_added_resolved:
+        #     pkg_resources.working_set.add_entry(p)
 
         # publish event "on_pythonpath_add" to all but the caller
         #
