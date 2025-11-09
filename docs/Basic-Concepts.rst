@@ -148,7 +148,7 @@ The basic structure is:
     }
 
 The controller part is there for the connection to the upcoming
-`Crossbar.io DevOps Center <https://crossbario.com>`__ and is irrelevant
+`Crossbar.io DevOps Center <https://github.com/typedefint>`__ and is irrelevant
 for running a single Crossbar.io instance configured via the
 configuration file.
 

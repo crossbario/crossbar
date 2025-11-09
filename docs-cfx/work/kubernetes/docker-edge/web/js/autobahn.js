@@ -32967,7 +32967,7 @@ module.exports={
     "RPC",
     "PubSub"
   ],
-  "author": "Crossbar.io Technologies GmbH",
+  "author": "typedef int GmbH",
   "license": "MIT"
 }
 

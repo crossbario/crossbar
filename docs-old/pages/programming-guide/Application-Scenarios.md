@@ -123,6 +123,6 @@ _____________
 
 *Read more:*
 
-* [Arduino Yun with Autobahn](http://crossbario.com/blog/post/arduino-yun-with-autobahn/)
-* [Getting started with the RaspberryPi and Autobahn](http://crossbario.com/blog/post/pypy-on-the-pi/)
+* [Arduino Yun with Autobahn](https://github.com/typedefint/blog/post/arduino-yun-with-autobahn/)
+* [Getting started with the RaspberryPi and Autobahn](https://github.com/typedefint/blog/post/pypy-on-the-pi/)
 * [Why WAMP?](http://wamp.ws/why/)

@@ -41,7 +41,7 @@ This should look like:
               :::::
         :::::::::::::::::   Crossbar.io Fabric XBR Center v19.2.2 [00000]
 
-        Copyright (c) 2013-2019 Crossbar.io Technologies GmbH. All rights reserved.
+        Copyright (c) 2013-2019 typedef int GmbH. All rights reserved.
 
      Crossbar.io        : 19.2.1
        txaio            : 18.8.1
@@ -322,7 +322,7 @@ Now start the edge node again, you should see output like:
     2019-03-01T12:06:10+0000 [Controller      1]           :::::
     2019-03-01T12:06:10+0000 [Controller      1]     :::::::::::::::::   Crossbar Fabric XBR v19.2.2 [00000]
     2019-03-01T12:06:10+0000 [Controller      1]
-    2019-03-01T12:06:10+0000 [Controller      1]     Copyright (c) 2013-2019 Crossbar.io Technologies GmbH. All rights reserved.
+    2019-03-01T12:06:10+0000 [Controller      1]     Copyright (c) 2013-2019 typedef int GmbH. All rights reserved.
     2019-03-01T12:06:10+0000 [Controller      1]
     2019-03-01T12:06:10+0000 [Controller      1] Initializing <crossbarfx.edge.node.node.FabricNode> as node [realm=crossbar, cbdir=/node/.crossbar]
     2019-03-01T12:06:10+0000 [Controller      1] Node key files exist and are valid. Node public key is 0xcf8c2ea74058a47ec2c90d8aa0c8e0508d823444003ed60243ddd6887a946c63

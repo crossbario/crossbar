@@ -86,7 +86,7 @@ The basic structure is:
 
 ```
 
-The controller part is there for the connection to the upcoming [Crossbar.io DeveOps Center](http://crossbario.com) and is irrelevant for running a single Crossbar.io instance configured via the configuration file.
+The controller part is there for the connection to the upcoming [Crossbar.io DeveOps Center](https://github.com/typedefint) and is irrelevant for running a single Crossbar.io instance configured via the configuration file.
 
 You need to configure one or more workers which provide functionality to you as a user.
 

@@ -10,7 +10,7 @@ If you are new to Crossbar.io development in general you should start here at :r
     :caption: Home:
 
     Crossbar.io<https://crossbar.io>
-    Crossbario.com<https://crossbario.com>
+    Crossbario.com<https://github.com/typedefint>
     WAMP<https://wamp-proto.org/>
     Crossbario Docs <self>
    

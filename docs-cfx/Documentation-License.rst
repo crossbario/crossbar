@@ -3,10 +3,10 @@
 Crossbar.io Documentation License
 ====================================
 
-Copyright for the Crossbar.io Documentation (C) Crossbar.io Technologies GmbH.
+Copyright for the Crossbar.io Documentation (C) typedef int GmbH.
 Licensed under the `Creative Commons CC BY-NC-ND 4.0 license <https://creativecommons.org/licenses/by-nc-nd/4.0/>`__.
 
-"Crossbar.io", "WAMP" and "XBR" are trademarks of Crossbar.io Technologies GmbH.
+"Crossbar.io", "WAMP" and "XBR" are trademarks of typedef int GmbH.
 
 This license allows you to copy and redistribute the material in any medium or format as long as you
 
@@ -16,7 +16,7 @@ This license allows you to copy and redistribute the material in any medium or f
 
 Attribution details:
 
-(c) by Crossbar.io Technologies GmbH, material licensed under the
+(c) by typedef int GmbH, material licensed under the
     CC-BY-NC-ND 4.0, provided as-is without any warranties.
 
 For more details (and the legally binding conditions), please see the `Creative Commons license page <https://creativecommons.org/licenses/by-nc-nd/4.0/>`__.

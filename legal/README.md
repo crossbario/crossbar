@@ -6,7 +6,7 @@ The following sections provide information about legal aspects related to Crossb
 
 The Crossbar.io [source code](https://github.com/crossbario/crossbar/tree/master/crossbar) is licensed under the [EUPL-1.2](https://opensource.org/licenses/EUPL-1.2). You can read more about the [European Union Public Licence](https://ec.europa.eu/info/european-union-public-licence_en), you will find a copy of the license in the repository [here](https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE) and references to this license at the top of each source code file (`SPDX-License-Identifier: EUPL-1.2`).
 
-All rights to the Crossbar.io source code remain exclusively with [Crossbar.io Technologies GmbH](http://crossbar.io.com/). All (external) contributors sign a [Contributor Assignement Agreement](http://crossbar.io/docs/Contributing-to-the-project/)
+All rights to the Crossbar.io source code remain exclusively with [typedef int GmbH](http://crossbar.io.com/). All (external) contributors sign a [Contributor Assignement Agreement](http://crossbar.io/docs/Contributing-to-the-project/)
 
 The Crossbar.io [application templates](https://github.com/crossbario/crossbar/tree/master/crossbar/crossbar/templates) and instances of code generated from these templates are licensed under the [BSD 2-clause](http://opensource.org/licenses/BSD-2-Clause) license.
 
@@ -35,7 +35,7 @@ The Crossbar.io [documentation](http://crossbar.io/docs/) is licensed under a [C
 
 # Trademarks
 
-"WAMP" and "Crossbar.io" are trademarks of Crossbar.io Technologies GmbH.
+"WAMP" and "Crossbar.io" are trademarks of typedef int GmbH.
 
 The Crossbar.io symbol
 
@@ -49,6 +49,6 @@ and the Crossbar.io extended logo
 
 ![](https://github.com/crossbario/crossbar/blob/master/legal/crossbar_text_vectorized.png)
 
-are design marks of Crossbar.io Technologies GmbH.
+are design marks of typedef int GmbH.
 
-All rights to above trademarks remain with Crossbar.io Technologies GmbH and any use of these requires prior written agreement by Crossbar.io Technologies GmbH.
+All rights to above trademarks remain with typedef int GmbH and any use of these requires prior written agreement by typedef int GmbH.

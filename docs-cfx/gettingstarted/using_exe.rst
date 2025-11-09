@@ -69,7 +69,7 @@ Here is a log of above:
               :::::
         :::::::::::::::::   Crossbar.io Fabric XBR Center v19.1.1 [20190201-dfe263a]
 
-        Copyright (c) 2013-2019 Crossbar.io Technologies GmbH. All rights reserved.
+        Copyright (c) 2013-2019 typedef int GmbH. All rights reserved.
 
      Crossbar.io        : 19.1.2
        txaio            : 18.8.1

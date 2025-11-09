@@ -529,7 +529,7 @@ Usage: crossbarfx <command>
           :::::
     :::::::::::::::::   Crossbar Fabric XBR v18.9.1 [00000]
 
-    Copyright (c) 2013-2018 Crossbar.io Technologies GmbH. All rights reserved.
+    Copyright (c) 2013-2018 typedef int GmbH. All rights reserved.
 
  Crossbar.io        : 18.9.2
    Autobahn         : 18.9.2

@@ -56,8 +56,8 @@ all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate Intell
 
 --------------
 
-*Copyright (C) 2013-2021 Crossbar.io Technologies GmbH. All rights reserved.
-WAMP, Crossbar.io and XBR are trademarks of Crossbar.io Technologies GmbH.*
+*Copyright (C) 2013-2021 typedef int GmbH. All rights reserved.
+WAMP, Crossbar.io and XBR are trademarks of typedef int GmbH.*
 
 .. |Version| image:: https://img.shields.io/pypi/v/crossbar.svg
    :target: https://pypi.python.org/pypi/crossbar

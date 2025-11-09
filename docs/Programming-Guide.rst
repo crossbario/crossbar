@@ -10,7 +10,7 @@ libraries `here <http://wamp.ws/implementations/#libraries>`__.
 
 We also operate a public :doc:`Crossbar.io Demo Instance <../Demo-Instance>`
 and offer a range of materials for `IoT devices, components and
-applications <http://crossbario.com/iotcookbook>`__.
+applications <https://github.com/typedefint/iotcookbook>`__.
 
     For administrators, we provide a :doc:`Administration Manual <Administration>` that provides documentation about
     administration aspects related to Crossbar.io.

@@ -170,7 +170,7 @@ components - in real-time.
 *Read more:*
 
 -  `Arduino Yun with
-   Autobahn <https://crossbario.com/blog/Arduino-Yun-With-Autobahn/>`__
+   Autobahn <https://github.com/typedefint/blog/Arduino-Yun-With-Autobahn/>`__
 -  `Getting started with the RaspberryPi and
-   Autobahn <https://crossbario.com/blog/Pypy-on-the-Pi/>`__
+   Autobahn <https://github.com/typedefint/blog/Pypy-on-the-Pi/>`__
 -  `Why WAMP? <https://wamp-proto.org/intro.html#wamp>`__

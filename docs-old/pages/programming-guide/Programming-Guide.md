@@ -5,7 +5,7 @@ toc: [Documentation, Programming Guide]
 
 Programming WAMP application components is tied to the particular client library you're using. The [Autobahn](/autobahn) family of WAMP client libraries is provided by us, whereas you can find more WAMP client libraries [here](http://wamp.ws/implementations/#libraries).
 
-We also operate a public [Crossbar.io Demo Instance](Demo Instance) and offer a range of materials for [IoT devices, components and applications](http://crossbario.com/iotcookbook).
+We also operate a public [Crossbar.io Demo Instance](Demo Instance) and offer a range of materials for [IoT devices, components and applications](https://github.com/typedefint/iotcookbook).
 
 > For administrators, we provide a [Administration Manual](Administration) that provides documentation about administration aspects related to Crossbar.io.
 

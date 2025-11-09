@@ -7,7 +7,7 @@ Results
 WAMP message serialization
 ..........................
 
-* **Intel Core i7**: `S3 hosted results <https://s3.eu-central-1.amazonaws.com/crossbario.com/docs/benchmarks/serialization/index.html>`__ | `Cloudfront hosted results <https://crossbario.com/docs/benchmarks/serialization/index.html>`__
+* **Intel Core i7**: `S3 hosted results <https://s3.eu-central-1.amazonaws.com/crossbario.com/docs/benchmarks/serialization/index.html>`__ | `Cloudfront hosted results <https://github.com/typedefint/docs/benchmarks/serialization/index.html>`__
 
 
 RPC roundtrip, single CPU core
@@ -15,9 +15,9 @@ RPC roundtrip, single CPU core
 
 Measured is the WAMP RPC performance of CrossbarFX using a **single CPU core** for WAMP routing.
 
-* **Intel Core i7**: `S3 hosted results <https://s3.eu-central-1.amazonaws.com/crossbario.com/docs/benchmarks/rpc_roundtrip/intel-nuci7.html>`__ | `Cloudfront hosted results <https://crossbario.com/docs/benchmarks/rpc_roundtrip/intel-nuci7.html>`__
-* **Intel Xeon E3**: `S3 hosted results <https://s3.eu-central-1.amazonaws.com/crossbario.com/docs/benchmarks/rpc_roundtrip/brummer1.html>`__ | `Cloudfront hosted results <https://crossbario.com/docs/benchmarks/rpc_roundtrip/brummer1.html>`__
-* **Intel Xeon D**: `S3 hosted results <https://s3.eu-central-1.amazonaws.com/crossbario.com/docs/benchmarks/rpc_roundtrip/matterhorn.html>`__ | `Cloudfront hosted results <https://crossbario.com/docs/benchmarks/rpc_roundtrip/matterhorn.html>`__
+* **Intel Core i7**: `S3 hosted results <https://s3.eu-central-1.amazonaws.com/crossbario.com/docs/benchmarks/rpc_roundtrip/intel-nuci7.html>`__ | `Cloudfront hosted results <https://github.com/typedefint/docs/benchmarks/rpc_roundtrip/intel-nuci7.html>`__
+* **Intel Xeon E3**: `S3 hosted results <https://s3.eu-central-1.amazonaws.com/crossbario.com/docs/benchmarks/rpc_roundtrip/brummer1.html>`__ | `Cloudfront hosted results <https://github.com/typedefint/docs/benchmarks/rpc_roundtrip/brummer1.html>`__
+* **Intel Xeon D**: `S3 hosted results <https://s3.eu-central-1.amazonaws.com/crossbario.com/docs/benchmarks/rpc_roundtrip/matterhorn.html>`__ | `Cloudfront hosted results <https://github.com/typedefint/docs/benchmarks/rpc_roundtrip/matterhorn.html>`__
 
 For issuing WAMP calls, we use 4 caller workers and on the receiving end, we use 2 callee workers.
 

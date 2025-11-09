@@ -20,7 +20,7 @@ Changelog
 * new: expand WAP web service (#1878)
 * fix: various adjustments and fixes after integration of FX code base
 * new: open-source code for "Crossbar.io" (~26k LOC), incl. router-to-router links
-* new: changed license from AGPLv3 to [EUPLv1.2](https://eupl.eu/1.2/en) (under IP ownership of Crossbar.io Technologies GmbH)
+* new: changed license from AGPLv3 to [EUPLv1.2](https://eupl.eu/1.2/en) (under IP ownership of typedef int GmbH)
 
 21.3.1
 ------

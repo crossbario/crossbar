@@ -7,7 +7,7 @@
  [Controller      1]           :::::
  [Controller      1]     :::::::::::::::::   Crossbar v18.7.2
  [Controller      1] 
- [Controller      1]     Copyright (c) 2013-2018 Crossbar.io Technologies GmbH, licensed under AGPL 3.0.
+ [Controller      1]     Copyright (c) 2013-2018 typedef int GmbH, licensed under AGPL 3.0.
  [Controller      1] 
  [Controller      1] Initializing <class 'crossbar.personality.Personality'> node from node directory "/node/.crossbar" 
  [Controller      1] New node key pair generated!

@@ -5,7 +5,7 @@ Adding Real-Time to Django Applications
 =======================================
 
 WAMP has a `lot of
-potential <http://crossbario.com/blog/Is-Crossbar-the-future-of-Web-apps/>`__,
+potential <https://github.com/typedefint/blog/Is-Crossbar-the-future-of-Web-apps/>`__,
 but it's asynchronous and most current Python Web stacks are
 synchronous.
 

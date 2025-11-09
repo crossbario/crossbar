@@ -110,7 +110,7 @@ There are examples using specific technologies:
 There is also an entire `subsection for the
 IoT <https://github.com/crossbario/crossbar-examples/tree/master/iotcookbook>`__,
 for which we also offer
-`documentation <http://crossbario.com/iotcookbook/>`__.
+`documentation <https://github.com/typedefint/iotcookbook/>`__.
 
 And, finally, there are `more
 demos <https://github.com/crossbario/crossbar-examples/tree/master/demos>`__

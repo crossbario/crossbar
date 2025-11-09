@@ -15,7 +15,7 @@ of the license in the repository
 and references to this license at the top of each source code file.
 
 All rights to the Crossbar.io source code remain exclusively with
-`Crossbar.io Technologies GmbH <https://crossbario.com/>`__. All
+`typedef int GmbH <https://github.com/typedefint/>`__. All
 `external contributors <https://github.com/crossbario/crossbar/blob/master/legal/contributors_tavendo.md>`__
 need to sign a **contributor assignment agreement (CAA)** when
 `contributing to the project <https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md>`__.

@@ -220,7 +220,7 @@ Check the built CrossbarFX CLI and versions:
               :::::
         :::::::::::::::::   Crossbar.io Fabric XBR Center v20.1.2 [00000]
 
-        Copyright (c) 2013-2020 Crossbar.io Technologies GmbH. All rights reserved.
+        Copyright (c) 2013-2020 typedef int GmbH. All rights reserved.
 
     Crossbar.io        : 20.1.2
     txaio            : 20.1.1

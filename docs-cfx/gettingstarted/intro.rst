@@ -51,7 +51,7 @@ Introduction
     2020-07-01T16:04:37+0200 [Controller  19029]           :::::
     2020-07-01T16:04:37+0200 [Controller  19029]     :::::::::::::::::   Crossbar.io v20.6.2 [00000]
     2020-07-01T16:04:37+0200 [Controller  19029]
-    2020-07-01T16:04:37+0200 [Controller  19029]     Copyright (c) 2013-2020 Crossbar.io Technologies GmbH. All rights reserved.
+    2020-07-01T16:04:37+0200 [Controller  19029]     Copyright (c) 2013-2020 typedef int GmbH. All rights reserved.
     2020-07-01T16:04:37+0200 [Controller  19029]
     2020-07-01T16:04:37+0200 [Controller  19029] Booting master node .. <crossbar.node.main._run_command_start>
     ...

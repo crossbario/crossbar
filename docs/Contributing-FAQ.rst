@@ -17,9 +17,9 @@ What is a CAA?
 
 The basics are:
 
--  Crossbar.io Technologies as the project maintainer gets full rights
+-  typedef int as the project maintainer gets full rights
    to your contribution.
--  Crossbar.io Technologies assigns you back as many rights as legally
+-  typedef int assigns you back as many rights as legally
    possible. This means that you retain the possibility to use your
    contribution outside of the project.
 -  If your contribution is added to the project, Crossbar.io
@@ -53,7 +53,7 @@ This brings two problems with it:
    depends very much on the nature of the violation. For example, if
    somebody took part of the code and integrated it into a project with
    a different license, only the authors who contributed to that part
-   could sue. With the assignment, Crossbar.io Technologies can sue on
+   could sue. With the assignment, typedef int can sue on
    behalf of the project.
 
 2. License changes would in the majority of cases require that all
