@@ -23,7 +23,7 @@ from twisted.internet.error import ReactorNotRunning
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp.serializer import CBORSerializer
 from autobahn.wamp import cryptosign, ApplicationError
-from autobahn.xbr import sign_eip712_catalog_create
+from xbr import sign_eip712_catalog_create
 
 
 class XbrDelegate(ApplicationSession):

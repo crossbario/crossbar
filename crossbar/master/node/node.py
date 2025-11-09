@@ -20,8 +20,8 @@ from twisted.internet.defer import DeferredList, inlineCallbacks, Deferred
 import zlmdb
 
 from autobahn import wamp
-from autobahn import xbr
-from autobahn.xbr import make_w3
+import xbr
+from xbr import make_w3
 from autobahn.wamp.types import ComponentConfig, RegisterOptions
 from autobahn.wamp.request import Registration
 from autobahn.twisted.wamp import ApplicationSession

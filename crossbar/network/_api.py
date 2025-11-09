@@ -29,8 +29,8 @@ from autobahn.wamp.types import RegisterOptions, CallResult, PublishOptions, Cal
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn import wamp
-from autobahn import xbr
-from autobahn.xbr import pack_uint256, make_w3, is_address, is_bytes16, is_chain_id, \
+import xbr
+from xbr import pack_uint256, make_w3, is_address, is_bytes16, is_chain_id, \
     is_block_number, is_signature, is_cs_pubkey
 
 import treq

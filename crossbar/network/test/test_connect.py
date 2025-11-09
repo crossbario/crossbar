@@ -10,7 +10,7 @@ txaio.use_twisted()
 
 import web3
 import autobahn
-from autobahn import xbr
+import xbr
 
 
 def main(accounts):

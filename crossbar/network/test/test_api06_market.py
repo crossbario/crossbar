@@ -24,7 +24,7 @@ from twisted.internet.error import ReactorNotRunning
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp.serializer import CBORSerializer
 from autobahn.wamp import cryptosign
-from autobahn.xbr import sign_eip712_market_join
+from xbr import sign_eip712_market_join
 
 from cfxdb.xbr import ActorType
 

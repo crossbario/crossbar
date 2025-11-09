@@ -9,7 +9,7 @@ import txaio
 
 txaio.use_twisted()  # noqa
 
-from autobahn import xbr
+import xbr
 from crossbar._version import __version__, __build__
 from crossbar.edge.personality import Personality
 

@@ -27,7 +27,7 @@ from txaio import make_logger, time_ns
 from twisted.web import resource
 
 from autobahn.wamp.serializer import JsonObjectSerializer
-from autobahn.xbr import FbsRepository
+from xbr import FbsRepository
 
 from crossbar.webservice.base import RootResource, RouterWebService
 from crossbar.common.checkconfig import InvalidConfigException, check_dict_args

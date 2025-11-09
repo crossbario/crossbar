@@ -14,7 +14,7 @@ from txaio import make_logger
 
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import CallOptions, ComponentConfig
-from autobahn.xbr._secmod import SecurityModuleMemory
+from xbr._secmod import SecurityModuleMemory
 
 from crossbar._util import hltype, hlid, hluserid, hl
 
@@ -101,7 +101,7 @@ class Node(object):
         # source(s) of the config of this node
         self._config_source = 0
 
-        # node security module autobahn.xbr._secmod.SecurityModuleMemory, this allows
+        # node security module xbr._secmod.SecurityModuleMemory, this allows
         # access to node private key :class:`autobahn.wamp.cryptosign.CryptosignKey`
         self._node_secmod = None
 
@@ -154,7 +154,7 @@ class Node(object):
         Returns the node security module, which provides access to node key signing.
 
         :return: The node security module.
-        :rtype: :class:`autobahn.xbr._secmod.SecurityModuleMemory`
+        :rtype: :class:`xbr._secmod.SecurityModuleMemory`
         """
         return self._node_secmod
 

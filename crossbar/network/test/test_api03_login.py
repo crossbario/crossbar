@@ -23,7 +23,7 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp.serializer import CBORSerializer
 from autobahn.wamp import cryptosign
 
-from autobahn.xbr import sign_eip712_member_login
+from xbr import sign_eip712_member_login
 
 
 class XbrDelegate(ApplicationSession):

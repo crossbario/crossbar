@@ -27,8 +27,8 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp.serializer import CBORSerializer
 from autobahn.wamp import cryptosign
 
-from autobahn.xbr import pack_uint256
-from autobahn.xbr import sign_eip712_market_create
+from xbr import pack_uint256
+from xbr import sign_eip712_market_create
 
 
 class XbrDelegate(ApplicationSession):

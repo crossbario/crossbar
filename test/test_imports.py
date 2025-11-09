@@ -10,7 +10,7 @@ def test_import_1():
 
 def test_import_2():
     started = time.monotonic_ns()
-    from autobahn import xbr
+    import xbr
     ended = time.monotonic_ns()
     return ended - started
 

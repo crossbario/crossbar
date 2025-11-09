@@ -50,7 +50,7 @@ from autobahn.wamp.types import RegisterOptions, PublishOptions
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
 from autobahn.wamp.types import CallDetails
-from autobahn.xbr import unpack_uint256, pack_uint256, recover_eip712_consent, \
+from xbr import unpack_uint256, pack_uint256, recover_eip712_consent, \
     is_address
 from autobahn.util import without_0x
 
@@ -58,7 +58,7 @@ from crossbar._util import hl, hlid, hltype
 from crossbar.edge.worker.xbr._util import hlval, hlcontract
 from crossbar.edge.worker.xbr._authenticator import Authenticator
 
-from autobahn import xbr
+import xbr
 import zlmdb
 import cfxdb
 from cfxdb.xbr import ActorType

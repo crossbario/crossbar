@@ -16,7 +16,7 @@ from autobahn.util import hltype, hlid, hlval
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError, InvalidPayload
 from autobahn.wamp.interfaces import ISession
-from autobahn.xbr import FbsObject
+from xbr import FbsObject
 
 from crossbar.router import RouterOptions
 from crossbar.router.broker import Broker

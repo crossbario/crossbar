@@ -19,7 +19,7 @@ from txaio import use_twisted  # noqa
 from txaio import make_logger
 
 from autobahn.util import hltype
-from autobahn.xbr import FbsRepository, FbsSchema
+from xbr import FbsRepository, FbsSchema
 
 from crossbar.common.checkconfig import check_dict_args
 from crossbar.interfaces import IInventory

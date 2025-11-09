@@ -30,7 +30,7 @@ from autobahn.websocket.util import parse_url
 from autobahn.wamp.types import ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationRunner
-from autobahn.xbr import UserKey
+from xbr import UserKey
 
 from crossbar.common.twisted.endpoint import _create_tls_client_context
 

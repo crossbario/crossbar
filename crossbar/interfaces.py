@@ -19,7 +19,7 @@ from typing import Union, Dict, List, Any, Optional, Tuple
 from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails, SessionDetails, ComponentConfig
 from autobahn.wamp.message import Publish
-from autobahn.xbr._schema import FbsRepository
+from xbr._schema import FbsRepository
 
 from crossbar.router.observation import UriObservationMap
 

@@ -24,7 +24,7 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.serializer import CBORSerializer
 from autobahn.wamp import cryptosign
-from autobahn.xbr import sign_eip712_member_register
+from xbr import sign_eip712_member_register
 
 
 class XbrDelegate(ApplicationSession):

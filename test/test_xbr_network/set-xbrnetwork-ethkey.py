@@ -5,7 +5,7 @@ import binascii
 import txaio
 txaio.use_twisted()
 
-from autobahn.xbr import account_from_seedphrase
+from xbr import account_from_seedphrase
 
 
 seedphrase = os.environ['XBR_HDWALLET_SEED']

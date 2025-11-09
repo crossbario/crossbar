@@ -639,6 +639,53 @@ deps venv="": (install venv)
     echo "To see detailed dependency tree, install 'pipdeptree' and run:"
     echo "  ${VENV_PYTHON} -m pipdeptree"
 
+# Run a command in the venv (usage: `just run cpy312 crossbar version` or `just run cpy312 python -m pytest`)
+run venv *ARGS:
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+
+    # Check if venv exists
+    if [ ! -d "${VENV_PATH}" ]; then
+        echo "Error: venv ${VENV_NAME} does not exist. Create it with: just create ${VENV_NAME}"
+        exit 1
+    fi
+
+    # Get the command - first arg becomes the executable, rest are arguments
+    COMMAND_ARGS="{{ ARGS }}"
+    if [ -z "${COMMAND_ARGS}" ]; then
+        echo "Error: No command specified. Usage: just run <venv> <command> [args...]"
+        echo "Examples:"
+        echo "  just run cpy312 crossbar version"
+        echo "  just run cpy312 python -m pytest"
+        echo "  just run cpy312 python -c 'import crossbar; print(crossbar.__version__)'"
+        exit 1
+    fi
+
+    # Try to find the command in venv/bin first, otherwise use it as-is
+    FIRST_ARG=$(echo ${COMMAND_ARGS} | awk '{print $1}')
+    if [ -f "${VENV_PATH}/bin/${FIRST_ARG}" ]; then
+        # Command exists in venv/bin, use it
+        FULL_COMMAND="${VENV_PATH}/bin/${COMMAND_ARGS}"
+    elif [ "${FIRST_ARG}" = "python" ] || [ "${FIRST_ARG}" = "python3" ]; then
+        # Special case for python - always use venv's python
+        REST_ARGS=$(echo ${COMMAND_ARGS} | cut -d' ' -f2-)
+        FULL_COMMAND="${VENV_PATH}/bin/python ${REST_ARGS}"
+    else
+        # Command not in venv/bin, use PATH (venv will be prepended)
+        FULL_COMMAND="${COMMAND_ARGS}"
+    fi
+
+    # Activate venv and run command
+    source "${VENV_PATH}/bin/activate"
+    eval ${FULL_COMMAND}
+
 # Run crossbar version command (smoke test)
 smoke venv="": (install venv)
     #!/usr/bin/env bash

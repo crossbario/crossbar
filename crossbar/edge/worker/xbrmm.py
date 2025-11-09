@@ -30,8 +30,8 @@ import cfxdb
 from autobahn import wamp
 from autobahn.wamp.exception import ApplicationError
 
-from autobahn import xbr
-from autobahn.xbr import unpack_uint256, pack_uint256, make_w3
+import xbr
+from xbr import unpack_uint256, pack_uint256, make_w3
 
 from crossbar.node.worker import NativeWorkerProcess
 from crossbar.worker.controller import WorkerController

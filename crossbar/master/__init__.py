@@ -5,7 +5,7 @@
 #
 ###############################################################################
 
-from autobahn import xbr
+import xbr
 from crossbar._version import __version__, __build__
 
 import txaio

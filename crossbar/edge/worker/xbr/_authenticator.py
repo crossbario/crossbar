@@ -13,7 +13,7 @@ from txaio import make_logger, time_ns
 import numpy as np
 
 from autobahn.wamp import register, CallDetails
-from autobahn.xbr import recover_eip712_market_member_login, is_cs_pubkey, is_signature, \
+from xbr import recover_eip712_market_member_login, is_cs_pubkey, is_signature, \
     is_address
 from autobahn.util import generate_serial_number, without_0x
 from autobahn.wamp.exception import ApplicationError
