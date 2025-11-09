@@ -1,11 +1,34 @@
 # Crossbar.io justfile
 # See: https://github.com/casey/just
 
-set windows-shell := ["pwsh", "-NoLogo", "-Command"]
+# -----------------------------------------------------------------------------
+# -- just global configuration
+# -----------------------------------------------------------------------------
 
-# Default recipe (list all recipes)
-_default:
+set unstable := true
+set positional-arguments := true
+
+# project base directory = directory of this justfile
+PROJECT_DIR := justfile_directory()
+
+# Default recipe: list all recipes
+default:
+    @echo ""
     @just --list
+    @echo ""
+
+# Tell uv to use project-local cache directory.
+export UV_CACHE_DIR := './.uv-cache'
+
+# Use this common single directory for all uv venvs.
+VENV_DIR := './.venvs'
+
+# Define a justfile-local variable for our environments.
+ENVS := 'cpy314 cpy313 cpy312 cpy311 pypy311'
+
+# -----------------------------------------------------------------------------
+# -- Helper recipes
+# -----------------------------------------------------------------------------
 
 # Internal helper to map Python version short name to full uv version spec
 _get-spec short_name:
@@ -22,31 +45,72 @@ _get-spec short_name:
         *)       echo "Unknown environment: {{short_name}}" >&2; exit 1;;
     esac
 
-# Internal helper to get the system's default Python venv name
+# Internal helper that calculates and prints the system-matching venv name.
 _get-system-venv-name:
     #!/usr/bin/env bash
     set -e
-    python_version=$(python3 --version 2>&1 | awk '{print $2}')
-    major=$(echo $python_version | cut -d. -f1)
-    minor=$(echo $python_version | cut -d. -f2)
-    echo "cpy${major}${minor}"
+    SYSTEM_VERSION=$(/usr/bin/python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    ENV_NAME="cpy$(echo ${SYSTEM_VERSION} | tr -d '.')"
 
-# Internal helper to get the Python executable from a venv
-_get-venv-python venv:
+    if ! echo "{{ ENVS }}" | grep -q -w "${ENV_NAME}"; then
+        echo "Error: System Python (${SYSTEM_VERSION}) maps to '${ENV_NAME}', which is not a supported environment in this project." >&2
+        exit 1
+    fi
+    # The only output of this recipe is the name itself.
+    echo "${ENV_NAME}"
+
+# Helper recipe to get the python executable path for a venv
+_get-venv-python venv="":
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        # Use system Python
-        which python3
-    else
-        # Use venv Python
-        if [ -f "{{venv}}/bin/python" ]; then
-            echo "{{venv}}/bin/python"
-        else
-            echo "Error: venv {{venv}} not found or not a valid Python venv" >&2
-            exit 1
-        fi
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        VENV_NAME=$(just --quiet _get-system-venv-name)
     fi
+    VENV_PATH="{{VENV_DIR}}/${VENV_NAME}"
+
+    if [[ "$OS" == "Windows_NT" ]]; then
+        echo "${VENV_PATH}/Scripts/python.exe"
+    else
+        echo "${VENV_PATH}/bin/python3"
+    fi
+
+# -----------------------------------------------------------------------------
+# -- General/global helper recipes
+# -----------------------------------------------------------------------------
+
+# Remove ALL generated files, including venvs, caches, and build artifacts. WARNING: This is a destructive operation.
+distclean:
+    #!/usr/bin/env bash
+    set -e
+
+    echo "==> Performing a deep clean (distclean)..."
+
+    # 1. Remove top-level directories known to us.
+    echo "--> Removing venvs, cache, and build/dist directories..."
+    rm -rf {{UV_CACHE_DIR}} {{VENV_DIR}} build/ dist/ wheelhouse/ .pytest_cache/ .ruff_cache/ .mypy_cache/
+    rm -rf docs/_build/
+
+    rm -f ./*.so
+    rm -f ./.coverage.*
+    rm -rf ./_trial_temp
+
+    # 2. Use `find` to hunt down and destroy nested artifacts
+    echo "--> Searching for and removing nested Python caches..."
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+    echo "--> Searching for and removing compiled Python files..."
+    find . -type f -name "*.pyc" -delete 2>/dev/null || true
+    find . -type f -name "*.pyo" -delete 2>/dev/null || true
+
+    echo "--> Searching for and removing setuptools egg-info directories..."
+    find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+
+    echo "--> Searching for and removing coverage data..."
+    rm -f .coverage
+    find . -type f -name ".coverage.*" -delete 2>/dev/null || true
+
+    echo "==> Distclean complete. The project is now pristine."
 
 # Display project version
 version:
@@ -70,307 +134,463 @@ clean:
     rm -rf ./.mypy_cache
     rm -rf ./.pytest_cache
     rm -rf ./.ruff_cache
-    find . -name "*.db" -exec rm -f {} \;
-    find . -name "*.pyc" -exec rm -f {} \;
-    find . -name "*.log" -exec rm -f {} \;
-    find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
-    -find . -type d -name _trial_temp -exec rm -rf {} \;
+    find . -name "*.db" -exec rm -f {} \; 2>/dev/null || true
+    find . -name "*.pyc" -exec rm -f {} \; 2>/dev/null || true
+    find . -name "*.log" -exec rm -f {} \; 2>/dev/null || true
+    find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} + 2>/dev/null || true
+    -find . -type d -name _trial_temp -exec rm -rf {} \; 2>/dev/null || true
 
-# Create a new virtual environment using uv (e.g., cpy311, cpy312, pypy310)
-create venv_name:
+# -----------------------------------------------------------------------------
+# -- Python virtual environments
+# -----------------------------------------------------------------------------
+
+# List all Python virtual environments
+list-all:
     #!/usr/bin/env bash
-    set -euo pipefail
-    spec=$(just _get-spec {{venv_name}})
-    echo "Creating virtual environment {{venv_name}} with Python $spec"
-    uv venv --python "$spec" {{venv_name}}
+    set -e
+    echo
+    echo "Available CPython run-times:"
+    echo "============================"
+    echo
+    uv python list --all-platforms cpython
+    echo
+    echo "Available PyPy run-times:"
+    echo "========================="
+    echo
+    uv python list --all-platforms pypy
+    echo
+    echo "Mapped Python run-time shortname => full version:"
+    echo "================================================="
+    echo
+    for env in {{ENVS}}; do
+        spec=$(just --quiet _get-spec "$env")
+        echo "  - $env => $spec"
+    done
+    echo
+    echo "Create a Python venv using: just create <shortname>"
 
-# Install package and dependencies into venv
+# Create a single Python virtual environment (usage: `just create cpy312` or `just create`)
+create venv="":
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+
+    # This is the "default parameter" logic.
+    # If VENV_NAME is empty (because `just create` was run), calculate the default.
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+
+    # Only create the venv if it doesn't already exist
+    if [ ! -d "${VENV_PATH}" ]; then
+        # Get the Python spec just-in-time
+        PYTHON_SPEC=$(just --quiet _get-spec "${VENV_NAME}")
+
+        echo "==> Creating Python virtual environment '${VENV_NAME}' using ${PYTHON_SPEC} in ${VENV_PATH}..."
+        mkdir -p "{{ VENV_DIR }}"
+        uv venv --seed --python "${PYTHON_SPEC}" "${VENV_PATH}"
+        echo "==> Successfully created venv '${VENV_NAME}'."
+    else
+        echo "==> Python virtual environment '${VENV_NAME}' already exists in ${VENV_PATH}."
+    fi
+
+    ${VENV_PYTHON} -V
+    ${VENV_PYTHON} -m pip -V
+
+    echo "==> Activate Python virtual environment with: source ${VENV_PATH}/bin/activate"
+
+# Meta-recipe to run `create` on all environments
+create-all:
+    #!/usr/bin/env bash
+    for venv in {{ENVS}}; do
+        just create ${venv}
+    done
+
+# Get the version of a single virtual environment's Python (usage: `just version-venv cpy312`)
+version-venv venv="":
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+
+    if [ -d "{{ VENV_DIR }}/${VENV_NAME}" ]; then
+        echo "==> Python virtual environment '${VENV_NAME}' exists:"
+        "{{VENV_DIR}}/${VENV_NAME}/bin/python" -V
+    else
+        echo "==> Python virtual environment '${VENV_NAME}' does not exist."
+    fi
+    echo ""
+
+# Get versions of all Python virtual environments
+version-all:
+    #!/usr/bin/env bash
+    for venv in {{ENVS}}; do
+        just version-venv ${venv}
+    done
+
+# -----------------------------------------------------------------------------
+# -- Installation
+# -----------------------------------------------------------------------------
+
+# Install this package and its run-time dependencies in a single environment (usage: `just install cpy312` or `just install`)
 install venv="": (create venv)
     #!/usr/bin/env bash
     set -e
-    venv_to_use="{{venv}}"
-    if [ -z "$venv_to_use" ]; then
-        venv_to_use=$(just _get-system-venv-name)
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Installing crossbar into $venv_to_use"
-    uv pip install --python "$venv_to_use" -e .
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Installing package with package runtime dependencies in ${VENV_NAME}..."
+    ${VENV_PYTHON} -m pip install .
 
-# Install development dependencies into venv
+# Install this package in development (editable) mode and its run-time dependencies in a single environment (usage: `just install-dev cpy312` or `just install-dev`)
 install-dev venv="": (create venv)
     #!/usr/bin/env bash
     set -e
-    venv_to_use="{{venv}}"
-    if [ -z "$venv_to_use" ]; then
-        venv_to_use=$(just _get-system-venv-name)
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Installing crossbar[dev] into $venv_to_use"
-    uv pip install --python "$venv_to_use" -e ".[dev]"
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Installing package - in editable mode - with package runtime dependencies in ${VENV_NAME}..."
+    ${VENV_PYTHON} -m pip install -e .[dev]
 
-# Install build tools (build, twine) into venv
-install-build-tools venv="":
+# Meta-recipe to run `install` on all environments
+install-all:
     #!/usr/bin/env bash
     set -e
-    venv_to_use="{{venv}}"
-    if [ -z "$venv_to_use" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-    fi
-    echo "Installing build tools into $venv_to_use"
-    uv pip install --python "$venv_to_use" build twine
+    for venv in {{ENVS}}; do
+        just install ${venv}
+    done
 
-# Format code using ruff
-format venv="":
+# Meta-recipe to run `install-dev` on all environments
+install-dev-all:
+    #!/usr/bin/env bash
+    for venv in {{ENVS}}; do
+        just install-dev ${venv}
+    done
+
+# Install minimal build tools for building wheels (usage: `just install-build-tools cpy312`)
+install-build-tools venv="": (create venv)
     #!/usr/bin/env bash
     set -e
-    python_exe=$(just _get-venv-python "{{venv}}")
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="$venv_to_use/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Formatting with $python_exe"
-    $python_exe -m ruff format crossbar
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Installing minimal build tools in ${VENV_NAME}..."
 
-# Lint code using ruff
-lint venv="":
+    ${VENV_PYTHON} -V
+    ${VENV_PYTHON} -m pip -V
+
+    ${VENV_PYTHON} -m pip install build twine
+
+# Install the development tools for this Package in a single environment (usage: `just install-tools cpy312`)
+install-tools venv="": (create venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="$venv_to_use/bin/python"
-    else
-        python_exe="{{venv}}/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Linting with $python_exe"
-    $python_exe -m ruff check crossbar
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Installing package development tools in ${VENV_NAME}..."
 
-# Auto-format code (ruff format + fix)
-autoformat venv="":
+    ${VENV_PYTHON} -V
+    ${VENV_PYTHON} -m pip -V
+
+    ${VENV_PYTHON} -m pip install -e .[dev]
+
+# Meta-recipe to run `install-tools` on all environments
+install-tools-all:
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="$venv_to_use/bin/python"
-    else
-        python_exe="{{venv}}/bin/python"
-    fi
-    echo "Auto-formatting with $python_exe"
-    $python_exe -m ruff check --fix crossbar
-    $python_exe -m ruff format crossbar
+    for venv in {{ENVS}}; do
+        just install-tools ${venv}
+    done
 
-# Check code format (without modifying)
-check-format venv="":
+# -----------------------------------------------------------------------------
+# -- Linting, Static Typechecking
+# -----------------------------------------------------------------------------
+
+# Automatically fix all formatting and code style issues.
+autoformat venv="": (install-tools venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="$venv_to_use/bin/python"
-    else
-        python_exe="{{venv}}/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Checking format with $python_exe"
-    $python_exe -m ruff format --check crossbar
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
 
-# Type check with mypy (CPython only)
-check-types venv="":
+    echo "==> Automatically formatting code with ${VENV_NAME}..."
+
+    # 1. Run the FORMATTER first
+    "${VENV_PATH}/bin/ruff" format crossbar
+
+    # 2. Run the LINTER'S FIXER second
+    "${VENV_PATH}/bin/ruff" check --fix crossbar
+    echo "--> Formatting complete."
+
+# Lint code using Ruff in a single environment
+check-format venv="": (install-tools venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="$venv_to_use/bin/python"
-    else
-        python_exe="{{venv}}/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Type checking with $python_exe"
-    $python_exe -m mypy crossbar
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    echo "==> Linting code with ${VENV_NAME}..."
+    "${VENV_PATH}/bin/ruff" check crossbar
 
-# Security check with bandit
-check-security venv="":
+# Run static type checking with mypy
+check-typing venv="": (install-tools venv) (install venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="$venv_to_use/bin/python"
-    else
-        python_exe="{{venv}}/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Security checking with $python_exe"
-    $python_exe -m bandit -r crossbar
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    echo "==> Running static type checks with ${VENV_NAME}..."
+    "${VENV_PATH}/bin/mypy" crossbar/
 
-# Run all checks (format, lint, types, security)
-check venv="": (check-format venv) (lint venv) (check-types venv) (check-security venv)
+# Run all checks in single environment (usage: `just check cpy312`)
+check venv="": (check-format venv) (check-typing venv)
 
-# Run unit tests with trial (Twisted)
-test-trial venv="":
+# -----------------------------------------------------------------------------
+# -- Unit tests
+# -----------------------------------------------------------------------------
+
+# Run the test suite for Twisted using trial (usage: `just test-trial cpy312`)
+test-trial venv="": (install-tools venv) (install venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="$venv_to_use/bin/python"
-    else
-        python_exe="{{venv}}/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Running trial tests with $python_exe"
-    $python_exe -m twisted.trial crossbar
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
 
-# Run unit tests with pytest
-test-pytest venv="":
+    echo "==> Running test suite for Twisted using trial in ${VENV_NAME}..."
+
+    ${VENV_PYTHON} -m twisted.trial crossbar
+
+# Run the test suite for pytest (usage: `just test-pytest cpy312`)
+test-pytest venv="": (install-tools venv) (install venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="$venv_to_use/bin/python"
-    else
-        python_exe="{{venv}}/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Running pytest tests with $python_exe"
-    $python_exe -m pytest -sv crossbar
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+
+    echo "==> Running test suite using pytest in ${VENV_NAME}..."
+
+    ${VENV_PYTHON} -m pytest -sv crossbar
 
 # Run all unit tests (trial + pytest)
 test venv="": (test-trial venv) (test-pytest venv)
 
 # Run functional tests
-test-functional venv="":
+test-functional venv="": (install-tools venv) (install venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="$venv_to_use/bin/python"
-    else
-        python_exe="{{venv}}/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Running functional tests with $python_exe"
-    $python_exe -m pytest -sv --no-install ./test/functests/cbtests
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Running functional tests with ${VENV_NAME}..."
+    ${VENV_PYTHON} -m pytest -sv --no-install ./test/functests/cbtests
 
 # Run all tests
 test-all venv="": (test venv) (test-functional venv)
 
-# Build documentation with Sphinx
+# -----------------------------------------------------------------------------
+# -- Documentation
+# -----------------------------------------------------------------------------
+
+# Build the HTML documentation using Sphinx
 docs venv="":
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="../$venv_to_use/bin/python"
-    else
-        python_exe="../{{venv}}/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Building docs with $python_exe"
-    cd docs && $python_exe -m sphinx -b html . _build
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    if [ ! -d "${VENV_PATH}" ]; then
+        just install-tools ${VENV_NAME}
+    fi
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Building documentation..."
+    "${VENV_PATH}/bin/sphinx-build" -b html docs/ docs/_build/html
 
 # Check documentation build
-docs-check venv="":
+docs-check venv="": (install-tools venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="../$venv_to_use/bin/python"
-    else
-        python_exe="../{{venv}}/bin/python"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Checking docs with $python_exe"
-    cd docs && $python_exe -m sphinx -nWT -b dummy . _build
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    echo "==> Checking documentation build..."
+    "${VENV_PATH}/bin/sphinx-build" -nWT -b dummy docs/ docs/_build
 
-# Check documentation spelling
-docs-spelling venv="":
-    #!/usr/bin/env bash
-    set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-        python_exe="../$venv_to_use/bin/python"
-    else
-        python_exe="../{{venv}}/bin/python"
-    fi
-    echo "Checking docs spelling with $python_exe"
-    cd docs && $python_exe -m sphinx -nWT -b spelling -d ./_build/doctrees . ./_build/spelling
-
-# Clean documentation build artifacts
+# Clean the generated documentation
 docs-clean:
-    rm -rf ./docs/_build
+    echo "==> Cleaning documentation build artifacts..."
+    rm -rf docs/_build
 
-# Serve documentation locally
-docs-serve: docs-clean
-    cd docs && python -m http.server 8090 --directory _build
+# -----------------------------------------------------------------------------
+# -- Building and Publishing
+# -----------------------------------------------------------------------------
 
-# Build distribution packages (wheel and sdist)
-dist venv="":
+# Build wheel only (usage: `just build cpy312`)
+build venv="": (install-build-tools venv)
     #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-    else
-        venv_to_use="{{venv}}"
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-
-    # Clean previous builds
-    rm -rf dist build *.egg-info
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Building wheel package..."
 
     # Set environment variables for build
     export LMDB_FORCE_CFFI=1
     export SODIUM_INSTALL=bundled
     export PYUBJSON_NO_EXTENSION=1
 
-    echo "Building distribution with $venv_to_use/bin/python"
-    $venv_to_use/bin/python -m build --outdir dist
+    ${VENV_PYTHON} -m build --wheel
+    ls -la dist/
+
+# Build source distribution only (no wheels)
+build-sourcedist venv="": (install-build-tools venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Building source distribution..."
+    ${VENV_PYTHON} -m build --sdist
+    ls -la dist/
+
+# Meta-recipe to run `build` on all environments
+build-all:
+    #!/usr/bin/env bash
+    for venv in {{ENVS}}; do
+        just build ${venv}
+    done
+    ls -la dist/
 
 # Verify distribution packages
-verify-dist venv="":
+verify-dist venv="": (install-build-tools venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-    else
-        venv_to_use="{{venv}}"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Verifying dist with $venv_to_use/bin/python"
-    $venv_to_use/bin/python -m twine check dist/*
-
-# Upload to PyPI (requires authentication)
-upload: dist
-    twine upload dist/*
-
-# Install from local wheel (useful for testing)
-install-wheel venv="" wheel_path="":
-    #!/usr/bin/env bash
-    set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-    else
-        venv_to_use="{{venv}}"
-    fi
-    echo "Installing wheel {{wheel_path}} into $venv_to_use"
-    uv pip install --python "$venv_to_use" --force-reinstall {{wheel_path}}
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Verifying dist with ${VENV_NAME}..."
+    ${VENV_PYTHON} -m twine check dist/*
 
 # Show dependency tree
-deps venv="":
+deps venv="": (install venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-    else
-        venv_to_use="{{venv}}"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Dependencies in $venv_to_use:"
-    $venv_to_use/bin/python -m pip list
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Dependencies in ${VENV_NAME}:"
+    ${VENV_PYTHON} -m pip list
     echo ""
     echo "To see detailed dependency tree, install 'pipdeptree' and run:"
-    echo "  $venv_to_use/bin/pipdeptree"
+    echo "  ${VENV_PYTHON} -m pipdeptree"
 
 # Run crossbar version command (smoke test)
-smoke venv="":
+smoke venv="": (install venv)
     #!/usr/bin/env bash
     set -e
-    if [ -z "{{venv}}" ]; then
-        venv_to_use=$(just _get-system-venv-name)
-    else
-        venv_to_use="{{venv}}"
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
-    echo "Running smoke test with $venv_to_use"
-    $venv_to_use/bin/crossbar version
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    echo "==> Running smoke test with ${VENV_NAME}..."
+    "${VENV_PATH}/bin/crossbar" version
 
-# Complete setup: create venv, install deps, run checks
-setup venv: (create venv) (install-dev venv) (check venv) (test venv) (smoke venv)
-    @echo "✓ Setup complete for {{venv}}"
+# Complete setup: create venv, install deps, run checks (usage: `just setup cpy312`)
+setup venv: (install-dev venv) (check venv) (test venv) (smoke venv)
+    @echo "✅ Setup complete for {{venv}}"
 
-# Quick development install (no tests)
-dev venv: (create venv) (install-dev venv)
-    @echo "✓ Development environment ready: {{venv}}"
+# Quick development install (no tests, usage: `just dev cpy312`)
+dev venv: (install-dev venv)
+    @echo "✅ Development environment ready: {{venv}}"
