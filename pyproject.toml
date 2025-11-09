@@ -70,8 +70,11 @@ dependencies = [
     "hexbytes>=0.3.0",
 
     # IPFS/IPLD (using upstream versions)
-    "py-cid>=0.3.1",
-    "py-multihash>=2.0.1",
+    # NOTE: py-cid and py-multihash temporarily removed due to dependency conflicts
+    # py-cid 0.3.1 (latest on PyPI) requires base58<2.0 which conflicts with base58>=2.1.1
+    # These can be installed manually if needed for XBR features
+    # "py-cid>=0.3.1",
+    # "py-multihash>=2.0.1",
 
     # HTTP/2 dependencies (with version constraints for Twisted compatibility)
     "h2>=3.2.0,<4.0.0",
@@ -185,12 +188,13 @@ dev = [
 # For testing with unreleased WAMP packages from GitHub master branches
 # Usage: pip install -e .[dev,dev-latest]
 # This installs the latest development versions from GitHub instead of PyPI
+# NOTE: wamp-xbr excluded for now (setup.py bug fix not yet on GitHub, use dev-local instead)
 dev-latest = [
     "txaio @ git+https://github.com/crossbario/txaio.git@master",
     "autobahn[twisted,encryption,compress,serialization,scram] @ git+https://github.com/crossbario/autobahn-python.git@master",
     "zlmdb @ git+https://github.com/crossbario/zlmdb.git@master",
     "cfxdb @ git+https://github.com/crossbario/cfxdb.git@master",
-    "wamp-xbr @ git+https://github.com/wamp-proto/wamp-xbr.git@master",
+    # "wamp-xbr @ git+https://github.com/wamp-proto/wamp-xbr.git@master",  # Excluded - setup.py needs fix on GitHub
 ]
 
 # For testing with locally editable WAMP packages (cross-repo development)

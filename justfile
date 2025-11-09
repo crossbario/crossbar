@@ -318,28 +318,28 @@ install-dev-local venv="": (create venv)
     VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
 
     echo "==> Installing WAMP packages in editable mode from local repos..."
-    echo "==> Looking for repos in /home/oberstet/work/wamp/..."
+    echo "==> Looking for sibling repos (../txaio, ../autobahn-python, etc.)..."
 
     # Install local WAMP packages in editable mode
     # txaio - no extras needed
-    if [ -d "/home/oberstet/work/wamp/txaio" ]; then
-        echo "  ✓ Installing txaio from /home/oberstet/work/wamp/txaio"
-        ${VENV_PYTHON} -m pip install -e "/home/oberstet/work/wamp/txaio"
+    if [ -d "../txaio" ]; then
+        echo "  ✓ Installing txaio from ../txaio"
+        ${VENV_PYTHON} -m pip install -e "../txaio"
     else
-        echo "  ⚠ Warning: txaio not found, skipping"
+        echo "  ⚠ Warning: ../txaio not found, skipping"
     fi
 
     # autobahn-python - install with extras needed by crossbar
-    if [ -d "/home/oberstet/work/wamp/autobahn-python" ]; then
-        echo "  ✓ Installing autobahn-python with extras from /home/oberstet/work/wamp/autobahn-python"
-        ${VENV_PYTHON} -m pip install -e "/home/oberstet/work/wamp/autobahn-python[twisted,encryption,compress,serialization,scram]"
+    if [ -d "../autobahn-python" ]; then
+        echo "  ✓ Installing autobahn-python with extras from ../autobahn-python"
+        ${VENV_PYTHON} -m pip install -e "../autobahn-python[twisted,encryption,compress,serialization,scram]"
     else
-        echo "  ⚠ Warning: autobahn-python not found, skipping"
+        echo "  ⚠ Warning: ../autobahn-python not found, skipping"
     fi
 
     # zlmdb, cfxdb, wamp-xbr - no extras needed
     for pkg in zlmdb cfxdb wamp-xbr; do
-        pkg_path="/home/oberstet/work/wamp/${pkg}"
+        pkg_path="../${pkg}"
         if [ -d "${pkg_path}" ]; then
             echo "  ✓ Installing ${pkg} from ${pkg_path}"
             ${VENV_PYTHON} -m pip install -e "${pkg_path}"
