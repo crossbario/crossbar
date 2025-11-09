@@ -7,7 +7,7 @@
 
 import os
 import importlib
-import pkg_resources
+from importlib.resources import files
 from pprint import pformat
 
 from collections.abc import Mapping, Sequence
@@ -152,8 +152,7 @@ class WapResource(resource.Resource):
             else:
                 try:
                     # resolve template directory from package resource
-                    templates_dir = os.path.abspath(
-                        pkg_resources.resource_filename(templates_config['package'], templates_config['resource']))
+                    templates_dir = os.path.abspath(str(files(templates_config['package']) / templates_config['resource']))
                 except Exception as e:
                     emsg = 'Could not import resource {} from package {}: {}'.format(
                         templates_config['resource'], templates_config['package'], e)

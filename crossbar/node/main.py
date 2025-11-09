@@ -13,7 +13,8 @@ import os
 import platform
 import signal
 import sys
-import pkg_resources
+from importlib.metadata import version
+from importlib.resources import files
 
 import txaio
 
@@ -85,7 +86,7 @@ def _get_version(name_or_module):
         v = name_or_module.version
     else:
         try:
-            v = pkg_resources.get_distribution(name_or_module.__name__).version
+            v = version(name_or_module.__name__)
         except:
             # eg flatbuffers when run from single file EXE (pyinstaller): https://github.com/google/flatbuffers/issues/5299
             v = '?.?.?'
@@ -218,7 +219,7 @@ def _run_command_legal(options, reactor, personality, verbose=True):
 
     print(hl('*' * 120, bold=True, color='yellow'))
     for package, resource_name in docs:
-        filename = pkg_resources.resource_filename(package, resource_name)
+        filename = str(files(package) / resource_name)
         filepath = os.path.abspath(filename)
         print(hl('   ' + filepath + ' :\n', bold=False, color='yellow'))
         with open(filepath) as f:

@@ -7,9 +7,8 @@
 
 import os
 import time
-
-import pkg_resources
 import importlib
+from importlib.resources import files
 
 from autobahn.wamp import ApplicationError
 from twisted.web import http
@@ -93,8 +92,7 @@ class RouterWebServiceStatic(RouterWebService):
                 raise ApplicationError("crossbar.error.invalid_configuration", emsg)
             else:
                 try:
-                    static_dir = os.path.abspath(pkg_resources.resource_filename(config['package'],
-                                                                                 config['resource']))
+                    static_dir = os.path.abspath(str(files(config['package']) / config['resource']))
                 except Exception as e:
                     emsg = "Could not import resource {} from package {}: {}".format(
                         config['resource'], config['package'], e)

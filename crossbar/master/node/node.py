@@ -9,7 +9,7 @@ import os
 import uuid
 import json
 import binascii
-import pkg_resources
+from importlib.resources import files
 from pprint import pformat
 
 import requests
@@ -410,7 +410,7 @@ class FabricCenterNode(node.FabricNode):
 
         # 1/4: load builtin master node configuration as default
         #
-        config_path = pkg_resources.resource_filename('crossbar', self.DEFAULT_CONFIG_PATH)
+        config_path = str(files('crossbar') / self.DEFAULT_CONFIG_PATH)
         with open(config_path) as f:
             config = json.load(f)
 

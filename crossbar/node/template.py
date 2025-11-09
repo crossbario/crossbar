@@ -8,7 +8,7 @@
 import sys
 import os
 import shutil
-import pkg_resources
+from importlib.resources import files
 import jinja2
 
 from txaio import make_logger
@@ -70,7 +70,7 @@ class Templates:
         if not template:
             raise Exception('no such application directory template: "{}"'.format(template))
 
-        basedir = pkg_resources.resource_filename("crossbar", template['basedir'])
+        basedir = str(files("crossbar") / template['basedir'])
         if IS_WIN:
             basedir = basedir.replace('\\', '/')  # Jinja need forward slashes even on Windows
         log.info("Using template from '{dir}'", dir=basedir)
