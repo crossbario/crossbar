@@ -870,6 +870,303 @@ test-crossbar-keys venv="": (install venv)
     echo "==> Running crossbar keys test with ${VENV_NAME}..."
     "${VENV_PATH}/bin/crossbar" keys
 
+# Quick smoke test: test crossbar CLI commands only (no node lifecycle)
+test-smoke-cli venv="": (install venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    CB="${VENV_PATH}/bin/crossbar"
+
+    echo "========================================================================"
+    echo "Crossbar CLI Smoke Tests"
+    echo "========================================================================"
+    echo "Testing with venv: ${VENV_NAME}"
+    echo ""
+
+    FAILURES=0
+
+    # Test: crossbar version
+    echo "Testing: crossbar version"
+    if ${CB} version >/dev/null 2>&1; then
+        echo "✓ crossbar version"
+    else
+        echo "❌ FAIL: crossbar version"
+        ((++FAILURES))
+    fi
+
+    # Test: crossbar legal
+    echo "Testing: crossbar legal"
+    if ${CB} legal >/dev/null 2>&1; then
+        echo "✓ crossbar legal"
+    else
+        echo "❌ FAIL: crossbar legal"
+        ((++FAILURES))
+    fi
+
+    # Test: crossbar keys
+    echo "Testing: crossbar keys"
+    if ${CB} keys >/dev/null 2>&1; then
+        echo "✓ crossbar keys"
+    else
+        echo "❌ FAIL: crossbar keys"
+        ((++FAILURES))
+    fi
+
+    # Test: crossbar shell --help
+    echo "Testing: crossbar shell --help"
+    if ${CB} shell --help >/dev/null 2>&1; then
+        echo "✓ crossbar shell --help"
+    else
+        echo "❌ FAIL: crossbar shell --help"
+        ((++FAILURES))
+    fi
+
+    echo ""
+    if [ $FAILURES -gt 0 ]; then
+        echo "❌ SMOKE TEST FAILED: $FAILURES command(s) failed"
+        exit 1
+    else
+        echo "✅ ALL CLI SMOKE TESTS PASSED"
+    fi
+
+# Quick smoke test: test node initialization and file creation
+test-smoke-init venv="": (install venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    CB="${VENV_PATH}/bin/crossbar"
+    TESTDIR="/tmp/crossbar-smoke-test-$$"
+
+    echo "========================================================================"
+    echo "Crossbar Node Initialization Smoke Test"
+    echo "========================================================================"
+    echo "Testing with venv: ${VENV_NAME}"
+    echo "Test directory: ${TESTDIR}"
+    echo ""
+
+    FAILURES=0
+
+    # Clean up any existing test directory
+    rm -rf "${TESTDIR}"
+
+    # Test: crossbar init
+    echo "Testing: crossbar init --appdir ${TESTDIR}"
+    if ${CB} init --appdir "${TESTDIR}" >/dev/null 2>&1; then
+        echo "✓ crossbar init"
+    else
+        echo "❌ FAIL: crossbar init"
+        ((++FAILURES))
+    fi
+
+    # Verify directory structure
+    echo "Verifying directory structure..."
+    if [ -d "${TESTDIR}/.crossbar" ]; then
+        echo "✓ .crossbar/ directory created"
+    else
+        echo "❌ FAIL: .crossbar/ directory missing"
+        ((++FAILURES))
+    fi
+
+    if [ -d "${TESTDIR}/web" ]; then
+        echo "✓ web/ directory created"
+    else
+        echo "❌ FAIL: web/ directory missing"
+        ((++FAILURES))
+    fi
+
+    # Verify required files
+    echo "Verifying required files..."
+    REQUIRED_FILES=(
+        "${TESTDIR}/.crossbar/config.json"
+        "${TESTDIR}/README.md"
+        "${TESTDIR}/web/README.md"
+    )
+
+    for file in "${REQUIRED_FILES[@]}"; do
+        if [ -f "$file" ]; then
+            echo "✓ $(basename $file) exists"
+        else
+            echo "❌ FAIL: $file missing"
+            ((++FAILURES))
+        fi
+    done
+
+    # Test: crossbar check
+    echo "Testing: crossbar check --cbdir ${TESTDIR}/.crossbar/"
+    if ${CB} check --cbdir "${TESTDIR}/.crossbar/" >/dev/null 2>&1; then
+        echo "✓ crossbar check"
+    else
+        echo "❌ FAIL: crossbar check"
+        ((++FAILURES))
+    fi
+
+    # Cleanup
+    echo "Cleaning up test directory..."
+    rm -rf "${TESTDIR}"
+
+    echo ""
+    if [ $FAILURES -gt 0 ]; then
+        echo "❌ SMOKE TEST FAILED: $FAILURES check(s) failed"
+        exit 1
+    else
+        echo "✅ ALL INIT SMOKE TESTS PASSED"
+    fi
+
+# Quick smoke test: test node lifecycle (init, start, status, stop)
+test-smoke-lifecycle venv="": (install venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    CB="${VENV_PATH}/bin/crossbar"
+    TESTDIR="/tmp/crossbar-smoke-lifecycle-$$"
+    CBDIR="${TESTDIR}/.crossbar"
+
+    echo "========================================================================"
+    echo "Crossbar Node Lifecycle Smoke Test"
+    echo "========================================================================"
+    echo "Testing with venv: ${VENV_NAME}"
+    echo "Test directory: ${TESTDIR}"
+    echo ""
+
+    FAILURES=0
+
+    # Cleanup function
+    cleanup() {
+        echo "Cleaning up..."
+        ${CB} stop --cbdir "${CBDIR}" 2>/dev/null || true
+        sleep 1
+        rm -rf "${TESTDIR}"
+    }
+
+    # Set trap to ensure cleanup on exit
+    trap cleanup EXIT
+
+    # Clean up any existing test directory
+    rm -rf "${TESTDIR}"
+
+    # Initialize node
+    echo "Initializing test node..."
+    if ${CB} init --appdir "${TESTDIR}" >/dev/null 2>&1; then
+        echo "✓ Node initialized"
+    else
+        echo "❌ FAIL: Node initialization failed"
+        exit 1
+    fi
+
+    # Test: status before start (should be stopped)
+    echo "Testing: crossbar status (should be stopped)"
+    if ${CB} status --cbdir "${CBDIR}" --assert=stopped >/dev/null 2>&1; then
+        echo "✓ Node status: stopped (before start)"
+    else
+        echo "❌ FAIL: Node should be stopped before start"
+        ((++FAILURES))
+    fi
+
+    # Test: start node
+    echo "Starting node in background..."
+    ${CB} start --cbdir "${CBDIR}" >/dev/null 2>&1 &
+    CB_PID=$!
+    sleep 3  # Give node time to start
+
+    # Test: status after start (should be running)
+    echo "Testing: crossbar status (should be running)"
+    if ${CB} status --cbdir "${CBDIR}" --assert=running >/dev/null 2>&1; then
+        echo "✓ Node status: running (after start)"
+    else
+        echo "❌ FAIL: Node should be running after start"
+        ((++FAILURES))
+    fi
+
+    # Verify PID file exists
+    if [ -f "${CBDIR}/node.pid" ]; then
+        echo "✓ node.pid file created"
+    else
+        echo "❌ FAIL: node.pid file missing"
+        ((++FAILURES))
+    fi
+
+    # Check listening ports (Web on 8080, RawSocket on 8081)
+    echo "Checking listening ports..."
+    if ss -tln 2>/dev/null | grep -q ':8080 ' || netstat -tln 2>/dev/null | grep -q ':8080 '; then
+        echo "✓ Port 8080 listening (Web transport)"
+    else
+        echo "⚠ WARNING: Port 8080 not detected (may be timing issue)"
+    fi
+
+    if ss -tln 2>/dev/null | grep -q ':8081 ' || netstat -tln 2>/dev/null | grep -q ':8081 '; then
+        echo "✓ Port 8081 listening (RawSocket transport)"
+    else
+        echo "⚠ WARNING: Port 8081 not detected (may be timing issue)"
+    fi
+
+    # Test: HTTP root endpoint
+    echo "Testing HTTP endpoints..."
+    if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ 2>/dev/null | grep -q "200"; then
+        echo "✓ HTTP endpoint / responding"
+    else
+        echo "⚠ WARNING: HTTP endpoint / not responding (may be timing issue)"
+    fi
+
+    # Test: HTTP info endpoint
+    if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/info 2>/dev/null | grep -q "200"; then
+        echo "✓ HTTP endpoint /info responding"
+    else
+        echo "⚠ WARNING: HTTP endpoint /info not responding (may be timing issue)"
+    fi
+
+    # Test: stop node
+    echo "Stopping node..."
+    if ${CB} stop --cbdir "${CBDIR}" >/dev/null 2>&1; then
+        echo "✓ Node stopped successfully"
+    else
+        echo "❌ FAIL: Node stop failed"
+        ((++FAILURES))
+    fi
+
+    sleep 1
+
+    # Test: status after stop (should be stopped)
+    echo "Testing: crossbar status (should be stopped after stop)"
+    if ${CB} status --cbdir "${CBDIR}" --assert=stopped >/dev/null 2>&1; then
+        echo "✓ Node status: stopped (after stop)"
+    else
+        echo "❌ FAIL: Node should be stopped after stop command"
+        ((++FAILURES))
+    fi
+
+    echo ""
+    if [ $FAILURES -gt 0 ]; then
+        echo "❌ SMOKE TEST FAILED: $FAILURES check(s) failed"
+        exit 1
+    else
+        echo "✅ ALL LIFECYCLE SMOKE TESTS PASSED"
+    fi
+
+# Run all smoke tests
+test-smoke venv="": (test-smoke-cli venv) (test-smoke-init venv) (test-smoke-lifecycle venv)
+    @echo ""
+    @echo "========================================================================"
+    @echo "✅ ALL SMOKE TESTS PASSED"
+    @echo "========================================================================"
+
 # Complete setup: create venv, install deps, run checks (usage: `just setup cpy312`)
 setup venv: (install-dev venv) (check venv) (test venv) (test-crossbar-version venv)
     @echo "✅ Setup complete for {{venv}}"
