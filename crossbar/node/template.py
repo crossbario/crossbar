@@ -93,7 +93,7 @@ class Templates:
 
         created = []
         try:
-            for root, dirs, files in os.walk(basedir):
+            for root, dirs, filenames in os.walk(basedir):
                 for d in dirs:
                     reldir = os.path.relpath(os.path.join(root, d), basedir)
                     if "appname" in _params:
@@ -113,7 +113,7 @@ class Templates:
                             os.mkdir(create_dir_path)
                         created.append(("dir", create_dir_path))
 
-                for f in files:
+                for f in filenames:
                     if not f.endswith(Templates.SKIP_FILES):
                         src_file = os.path.abspath(os.path.join(root, f))
                         src_file_rel_path = os.path.relpath(src_file, basedir)
