@@ -1,6 +1,6 @@
 include README.rst
 include crossbar/LICENSE
-include crossbar/LICENSES-OSS
+include LICENSES-OSS
 include requirements.txt
 include requirements-min.txt
 include requirements-latest.txt
