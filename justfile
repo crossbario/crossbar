@@ -628,8 +628,8 @@ build-all:
     done
     ls -la dist/
 
-# Verify distribution packages
-verify-dist venv="": (install-build-tools venv)
+# Verify distribution packages (wheel and source dist)
+build-verifydist venv="": (install-build-tools venv)
     #!/usr/bin/env bash
     set -e
     VENV_NAME="{{ venv }}"
@@ -640,8 +640,128 @@ verify-dist venv="": (install-build-tools venv)
     fi
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
-    echo "==> Verifying dist with ${VENV_NAME}..."
-    ${VENV_PYTHON} -m twine check dist/*
+
+    echo "==> Verifying built distributions with ${VENV_NAME}..."
+    echo ""
+
+    # Check if dist/ exists
+    if [ ! -d "dist" ]; then
+        echo "ERROR: dist/ directory not found"
+        exit 1
+    fi
+
+    FAILURES=0
+
+    # Count distributions
+    WHEEL_COUNT=$(ls dist/*.whl 2>/dev/null | wc -l)
+    SDIST_COUNT=$(ls dist/*.tar.gz 2>/dev/null | wc -l)
+
+    echo "========================================================================"
+    echo "Distribution Check"
+    echo "========================================================================"
+    echo "Wheels found: $WHEEL_COUNT"
+    echo "Source dists found: $SDIST_COUNT"
+    echo ""
+
+    if [ "$WHEEL_COUNT" -eq 0 ]; then
+        echo "❌ FAIL: No wheel found"
+        ((++FAILURES))
+    fi
+
+    if [ "$SDIST_COUNT" -eq 0 ]; then
+        echo "❌ FAIL: No source distribution found"
+        ((++FAILURES))
+    fi
+
+    # Verify wheels
+    if [ "$WHEEL_COUNT" -gt 0 ]; then
+        for wheel in dist/*.whl; do
+            WHEEL_NAME=$(basename "$wheel")
+            echo "========================================================================"
+            echo "Checking wheel: $WHEEL_NAME"
+            echo "========================================================================"
+
+            # Check if it's a pure Python wheel (should be!)
+            if [[ "$WHEEL_NAME" == *"-py2.py3-none-any.whl" ]]; then
+                echo "✓ Pure Python wheel (universal compatibility)"
+            elif [[ "$WHEEL_NAME" == *"-py3-none-any.whl" ]]; then
+                echo "✓ Pure Python wheel (Python 3 only)"
+            else
+                echo "⚠ WARNING: Not a pure Python wheel naming format"
+                echo "   Expected: *-py2.py3-none-any.whl or *-py3-none-any.whl"
+                ((++FAILURES))
+            fi
+
+            # Check wheel contents for license files
+            echo ""
+            echo "Checking for required license files:"
+            if ${VENV_PYTHON} -m zipfile -l "$wheel" | grep -q "crossbar/LICENSE"; then
+                echo "  ✓ Found: crossbar/LICENSE"
+            else
+                echo "  ❌ FAIL: crossbar/LICENSE not found in wheel"
+                ((++FAILURES))
+            fi
+
+            if ${VENV_PYTHON} -m zipfile -l "$wheel" | grep -q "crossbar/LICENSES-OSS"; then
+                echo "  ✓ Found: crossbar/LICENSES-OSS"
+            else
+                echo "  ❌ FAIL: crossbar/LICENSES-OSS not found in wheel"
+                ((++FAILURES))
+            fi
+
+            echo ""
+        done
+    fi
+
+    # Verify source distributions
+    if [ "$SDIST_COUNT" -gt 0 ]; then
+        for sdist in dist/*.tar.gz; do
+            SDIST_NAME=$(basename "$sdist")
+            echo "========================================================================"
+            echo "Checking source dist: $SDIST_NAME"
+            echo "========================================================================"
+
+            # Check naming convention
+            if [[ "$SDIST_NAME" =~ ^crossbar-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz$ ]]; then
+                echo "✓ Valid source dist naming"
+            else
+                echo "⚠ WARNING: Unexpected naming format"
+            fi
+
+            echo ""
+        done
+    fi
+
+    # Run twine check on all distributions
+    echo "========================================================================"
+    echo "Running twine check"
+    echo "========================================================================"
+    if ${VENV_PYTHON} -m twine check dist/*; then
+        echo "✓ Twine check passed"
+    else
+        echo "❌ FAIL: Twine check failed"
+        ((++FAILURES))
+    fi
+    echo ""
+
+    # Summary
+    echo "========================================================================"
+    echo "Summary"
+    echo "========================================================================"
+    echo "Wheels: $WHEEL_COUNT"
+    echo "Source dists: $SDIST_COUNT"
+    echo "Failures: $FAILURES"
+    echo ""
+
+    if [ $FAILURES -gt 0 ]; then
+        echo "❌ VERIFICATION FAILED"
+        exit 1
+    else
+        echo "✅ ALL DISTRIBUTIONS VERIFIED SUCCESSFULLY"
+    fi
+
+# Legacy alias for build-verifydist
+verify-dist venv="": (build-verifydist venv)
 
 # Show dependency tree
 deps venv="": (install venv)
@@ -735,6 +855,20 @@ test-crossbar-legal venv="": (install venv)
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     echo "==> Running crossbar legal test with ${VENV_NAME}..."
     "${VENV_PATH}/bin/crossbar" legal
+
+# Run crossbar keys command (verify release signing keys)
+test-crossbar-keys venv="": (install venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    echo "==> Running crossbar keys test with ${VENV_NAME}..."
+    "${VENV_PATH}/bin/crossbar" keys
 
 # Complete setup: create venv, install deps, run checks (usage: `just setup cpy312`)
 setup venv: (install-dev venv) (check venv) (test venv) (test-crossbar-version venv)
