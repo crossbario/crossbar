@@ -59,12 +59,7 @@ jobs:
     - name: Install Python package dependencies
       run: |
         python -m pip install --upgrade pip setuptools
-        pip install -r requirements-dev.txt
-
-    - name: Install Crossbar.io package dependencies & Crossbar.io
-      run: |
-        pip install -U -r requirements-latest.txt
-        pip install .
+        pip install -e .[dev,dev-latest]
 
     - name: Display Crossbar.io version
       run: |

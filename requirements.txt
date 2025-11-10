@@ -1,2 +1,0 @@
-py-cid @ git+https://github.com/crossbario/py-cid.git@e1dc52a43ced53845679405f78d92fb18f093653
-py-multihash @ git+https://github.com/crossbario/py-multihash.git@86b54b8f9f0cf14c7370f38ae32f2b4b14f5b5e0
