@@ -695,14 +695,14 @@ build-verifydist venv="": (install-build-tools venv)
             # Check wheel contents for license files
             echo ""
             echo "Checking for required license files:"
-            if ${VENV_PYTHON} -m zipfile -l "$wheel" | grep -q "crossbar/LICENSE"; then
+            if ${VENV_PYTHON} -m zipfile -l "$wheel" 2>/dev/null | grep -q "crossbar/LICENSE"; then
                 echo "  ✓ Found: crossbar/LICENSE"
             else
                 echo "  ❌ FAIL: crossbar/LICENSE not found in wheel"
                 ((++FAILURES))
             fi
 
-            if ${VENV_PYTHON} -m zipfile -l "$wheel" | grep -q "crossbar/LICENSES-OSS"; then
+            if ${VENV_PYTHON} -m zipfile -l "$wheel" 2>/dev/null | grep -q "crossbar/LICENSES-OSS"; then
                 echo "  ✓ Found: crossbar/LICENSES-OSS"
             else
                 echo "  ❌ FAIL: crossbar/LICENSES-OSS not found in wheel"
