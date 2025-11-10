@@ -1167,6 +1167,131 @@ test-smoke venv="": (test-smoke-cli venv) (test-smoke-init venv) (test-smoke-lif
     @echo "✅ ALL SMOKE TESTS PASSED"
     @echo "========================================================================"
 
+# Integration test: run autobahn-python examples against crossbar (WebSocket and RawSocket)
+test-integration-ab-examples venv="" ab_python_path="":
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+
+    # Get absolute paths
+    WORKDIR=$(pwd)
+    CB_BIN="${WORKDIR}/${VENV_PATH}/bin"
+    PYTHON="${CB_BIN}/python"
+
+    # Determine autobahn-python path
+    AB_PATH="{{ ab_python_path }}"
+    if [ -z "${AB_PATH}" ]; then
+        # Try environment variable first
+        if [ -n "${AB_PYTHON_PATH}" ]; then
+            AB_PATH="${AB_PYTHON_PATH}"
+        else
+            # Default: sibling directory (local development)
+            AB_PATH="../autobahn-python"
+        fi
+    fi
+
+    # Make path absolute
+    AB_PATH=$(cd "$(dirname "${AB_PATH}")" && pwd)/$(basename "${AB_PATH}")
+
+    echo "========================================================================"
+    echo "Crossbar Integration Test: Autobahn|Python Examples"
+    echo "========================================================================"
+    echo "Crossbar venv: ${VENV_NAME}"
+    echo "Autobahn|Python path: ${AB_PATH}"
+    echo ""
+
+    FAILURES=0
+
+    # Verify autobahn-python path exists
+    if [ ! -d "${AB_PATH}" ]; then
+        echo "❌ ERROR: Autobahn|Python not found at: ${AB_PATH}"
+        echo ""
+        echo "Please specify the path to autobahn-python:"
+        echo "  1. Set environment variable: export AB_PYTHON_PATH=/path/to/autobahn-python"
+        echo "  2. Pass as argument: just test-integration-ab-examples cpy311 /path/to/autobahn-python"
+        echo "  3. Clone as sibling: git clone https://github.com/crossbario/autobahn-python.git ../autobahn-python"
+        exit 1
+    fi
+
+    EXAMPLES_DIR="${AB_PATH}/examples"
+    RUN_SCRIPT="${EXAMPLES_DIR}/run-all-examples.py"
+
+    if [ ! -f "${RUN_SCRIPT}" ]; then
+        echo "❌ ERROR: run-all-examples.py not found at: ${RUN_SCRIPT}"
+        exit 1
+    fi
+
+    if [ ! -d "${EXAMPLES_DIR}/router/.crossbar" ]; then
+        echo "❌ ERROR: router/.crossbar not found in examples directory"
+        exit 1
+    fi
+
+    echo "✓ Found run-all-examples.py and router configuration"
+
+    # Check if colorama is installed (required by run-all-examples.py)
+    if ! ${PYTHON} -c "import colorama" 2>/dev/null; then
+        echo "Installing colorama (required by run-all-examples.py)..."
+        ${PYTHON} -m pip install -q colorama
+    fi
+
+    # Change to examples directory - run-all-examples.py expects to run from there
+    cd "${EXAMPLES_DIR}"
+
+    # Add crossbar to PATH so run-all-examples.py can find it
+    export PATH="${CB_BIN}:${PATH}"
+
+    # Test 1: RawSocket transport
+    echo ""
+    echo "========================================================================"
+    echo "Test 1: RawSocket Transport (rs://127.0.0.1:8080)"
+    echo "========================================================================"
+    echo "Note: run-all-examples.py starts its own crossbar instance"
+    echo ""
+    if AUTOBAHN_DEMO_ROUTER=rs://127.0.0.1:8080 ${PYTHON} run-all-examples.py; then
+        echo ""
+        echo "✓ RawSocket transport tests passed"
+    else
+        echo ""
+        echo "❌ FAIL: RawSocket transport tests failed"
+        ((++FAILURES))
+    fi
+
+    # Test 2: WebSocket transport
+    echo ""
+    echo "========================================================================"
+    echo "Test 2: WebSocket Transport (ws://127.0.0.1:8080/ws)"
+    echo "========================================================================"
+    echo "Note: run-all-examples.py starts its own crossbar instance"
+    echo ""
+    if AUTOBAHN_DEMO_ROUTER=ws://127.0.0.1:8080/ws ${PYTHON} run-all-examples.py; then
+        echo ""
+        echo "✓ WebSocket transport tests passed"
+    else
+        echo ""
+        echo "❌ FAIL: WebSocket transport tests failed"
+        ((++FAILURES))
+    fi
+
+    # Summary
+    echo ""
+    echo "========================================================================"
+    echo "Summary"
+    echo "========================================================================"
+    if [ $FAILURES -gt 0 ]; then
+        echo "❌ INTEGRATION TEST FAILED: $FAILURES transport(s) failed"
+        exit 1
+    else
+        echo "✅ ALL INTEGRATION TESTS PASSED"
+        echo "   - RawSocket transport: PASS"
+        echo "   - WebSocket transport: PASS"
+    fi
+
 # Complete setup: create venv, install deps, run checks (usage: `just setup cpy312`)
 setup venv: (install-dev venv) (check venv) (test venv) (test-crossbar-version venv)
     @echo "✅ Setup complete for {{venv}}"
