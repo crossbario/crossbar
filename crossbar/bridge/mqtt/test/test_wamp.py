@@ -227,7 +227,7 @@ class MQTTAdapterTests(TestCase):
             {
                 "type": "tcp",
                 "port": 1099,
-                "interface": "0.0.0.0",
+                "interface": "0.0.0.0",  # nosec B104 - test code binding to all interfaces
                 "tls": {
                     "certificate": "server.crt",
                     "key": "server.key",
@@ -342,7 +342,7 @@ class MQTTAdapterTests(TestCase):
             {
                 "type": "tcp",
                 "port": 1099,
-                "interface": "0.0.0.0",
+                "interface": "0.0.0.0",  # nosec B104 - test code binding to all interfaces
                 "tls": {
                     "certificate": "server.crt",
                     "key": "server.key",

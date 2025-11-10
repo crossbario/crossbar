@@ -12,7 +12,7 @@ license.
 
 Licenses for the Crossbar.io Fabric router and the Crossbar.io Fabric
 Shell are granted to any legal user of the Crossbar.io Fabric service.
-The company behind Crossbar.io Fabric, Crossbar.io GmbH (a German
+The company behind Crossbar.io Fabric, typedef int GmbH (a German
 limited company), which has been funding the development of the open
 source Crossbar.io router, hold the necessary rights to dual-license the
 Crossbar.io code for the Crossbar.io Fabric router (which is an extended

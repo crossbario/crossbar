@@ -12,7 +12,7 @@ Fabric provide multiple APIs.
 
 APIs may be protected by copyright in some jurisdictions (e.g. it is
 overwhelmingly likely that this is the case in the USA). Where this is
-the case, Crossbar.io GmbH holds the copyright in the APIs.
+the case, typedef int GmbH holds the copyright in the APIs.
 
 We provide different licensing for different APIs. The APIs are structured
 into namespaces, i.e. which API a call or event depends on is indicated by

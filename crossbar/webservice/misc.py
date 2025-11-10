@@ -13,7 +13,7 @@ from twisted.python.filepath import FilePath
 from twisted.web import server
 from twisted.web.resource import NoResource, Resource
 from twisted.web.static import File
-from twisted.web.twcgi import CGIProcessProtocol, CGIScript
+from twisted.web.twcgi import CGIProcessProtocol, CGIScript  # nosec B412 - CGI is a legitimate web service feature
 
 import crossbar
 from crossbar.webservice.base import Resource404, RouterWebService, set_cross_origin_headers

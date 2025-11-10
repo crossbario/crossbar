@@ -458,8 +458,25 @@ check-typing venv="": (install-tools venv) (install venv)
         --disable-error-code=attr-defined \
         crossbar/
 
+# Run security checks with bandit
+check-bandit venv="": (install-tools venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    echo "==> Running security checks with bandit in ${VENV_NAME}..."
+    "${VENV_PATH}/bin/bandit" -r crossbar/ \
+        --exclude crossbar/worker/test/examples/ \
+        -ll -f txt
+    echo "✓ Security checks passed (severity: MEDIUM or higher)"
+
 # Run all checks in single environment (usage: `just check cpy312`)
-check venv="": (check-format venv) (check-typing venv)
+check venv="": (check-format venv) (check-typing venv) (check-bandit venv)
 
 # -----------------------------------------------------------------------------
 # -- Unit tests
@@ -728,18 +745,18 @@ generate-license-metadata venv="":
     echo "==> Generating OSS license metadata..."
 
     # Generate plain text license list
-    ${VENV_PATH}/bin/pip-licenses --from=classifier -a -o name > LICENSES-OSS
+    ${VENV_PATH}/bin/pip-licenses -a -o name > LICENSES-OSS
     echo "  ✓ Generated LICENSES-OSS"
 
     # Generate RST formatted license table for docs
-    ${VENV_PATH}/bin/pip-licenses --from=classifier -a -o name --format=rst > docs/oss_licenses_table.rst
+    ${VENV_PATH}/bin/pip-licenses -a -o name --format=rst > docs/oss_licenses_table.rst
 
     # Add header to RST file
     sed -i '1s;^;OSS Licenses\n============\n\n;' docs/oss_licenses_table.rst
     echo "  ✓ Generated docs/oss_licenses_table.rst"
 
     # Also generate for soss (if needed)
-    ${VENV_PATH}/bin/pip-licenses --from=classifier -a -o name --format=rst > docs/soss_licenses_table.rst
+    ${VENV_PATH}/bin/pip-licenses -a -o name --format=rst > docs/soss_licenses_table.rst
     sed -i '1s;^;OSS Licenses\n============\n\n;' docs/soss_licenses_table.rst
     echo "  ✓ Generated docs/soss_licenses_table.rst"
     
