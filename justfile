@@ -709,7 +709,7 @@ run venv *ARGS:
     eval ${FULL_COMMAND}
 
 # Run crossbar version command (smoke test)
-smoke venv="": (install venv)
+test-crossbar-version venv="": (install venv)
     #!/usr/bin/env bash
     set -e
     VENV_NAME="{{ venv }}"
@@ -719,11 +719,25 @@ smoke venv="": (install venv)
         echo "==> Defaulting to venv: '${VENV_NAME}'"
     fi
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
-    echo "==> Running smoke test with ${VENV_NAME}..."
+    echo "==> Running crossbar version test with ${VENV_NAME}..."
     "${VENV_PATH}/bin/crossbar" version
 
+# Run crossbar legal command (verify license files)
+test-crossbar-legal venv="": (install venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    echo "==> Running crossbar legal test with ${VENV_NAME}..."
+    "${VENV_PATH}/bin/crossbar" legal
+
 # Complete setup: create venv, install deps, run checks (usage: `just setup cpy312`)
-setup venv: (install-dev venv) (check venv) (test venv) (smoke venv)
+setup venv: (install-dev venv) (check venv) (test venv) (test-crossbar-version venv)
     @echo "✅ Setup complete for {{venv}}"
 
 # Quick development install (no tests, usage: `just dev cpy312`)
@@ -745,8 +759,8 @@ generate-license-metadata venv="":
     echo "==> Generating OSS license metadata..."
 
     # Generate plain text license list
-    ${VENV_PATH}/bin/pip-licenses -a -o name > LICENSES-OSS
-    echo "  ✓ Generated LICENSES-OSS"
+    ${VENV_PATH}/bin/pip-licenses -a -o name > crossbar/LICENSES-OSS
+    echo "  ✓ Generated crossbar/LICENSES-OSS"
 
     # Generate RST formatted license table for docs
     ${VENV_PATH}/bin/pip-licenses -a -o name --format=rst > docs/oss_licenses_table.rst

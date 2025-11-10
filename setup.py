@@ -91,7 +91,7 @@ setup(
     },
     packages=find_packages(),
     include_package_data=True,
-    data_files=[('.', ['crossbar/LICENSE', 'LICENSES-OSS', 'crossbar.ico', 'requirements-dev.txt',
+    data_files=[('.', ['crossbar/LICENSE', 'crossbar/LICENSES-OSS', 'crossbar.ico', 'requirements-dev.txt',
                        'requirements-latest.txt', 'requirements-min.txt', 'requirements-pinned.txt', 'requirements.txt'])],
     zip_safe=False,
     python_requires='>=3.7',
