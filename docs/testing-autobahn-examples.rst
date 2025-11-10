@@ -8,7 +8,7 @@ Overview
 
 Crossbar.io includes integration tests that run the comprehensive Autobahn|Python example suite to verify compatibility and functionality between the router and client library implementations.
 
-These tests execute ~29 WAMP examples covering both **Twisted** and **asyncio** backends, testing **PubSub** and **RPC** patterns across both **WebSocket** and **RawSocket** transports.
+These tests execute 28 WAMP examples covering both **Twisted** (14 examples) and **asyncio** (14 examples) backends, testing **PubSub** and **RPC** patterns across both **WebSocket** and **RawSocket** transports. The test suite provides detailed categorization and reporting with pass/fail statistics.
 
 Running the Tests
 -----------------
@@ -57,7 +57,7 @@ To run the integration tests locally:
 Test Output
 ~~~~~~~~~~~
 
-The test provides clear pass/fail output:
+The test provides comprehensive pass/fail output with detailed categorization:
 
 .. code-block:: none
 
@@ -74,8 +74,58 @@ The test provides clear pass/fail output:
    ========================================================================
    Note: run-all-examples.py starts its own crossbar instance
 
-   Success!
-     ...all the examples neither crashed nor burned...
+   [... individual example execution output ...]
+
+   ================================================================================
+   Test Results Summary
+   ================================================================================
+
+   Individual Examples:
+   --------------------------------------------------------------------------------
+   ✓ twisted  overview ./twisted/wamp/overview
+   ✓ twisted  pubsub   ./twisted/wamp/pubsub/basic/
+   ✓ twisted  pubsub   ./twisted/wamp/pubsub/complex/
+   ✓ twisted  pubsub   ./twisted/wamp/pubsub/decorators/
+   ✓ twisted  pubsub   ./twisted/wamp/pubsub/options/
+   ✓ twisted  pubsub   ./twisted/wamp/pubsub/unsubscribe/
+   ✓ twisted  rpc      ./twisted/wamp/rpc/timeservice/
+   ✓ twisted  rpc      ./twisted/wamp/rpc/slowsquare/
+   ✓ twisted  rpc      ./twisted/wamp/rpc/progress/
+   ✓ twisted  rpc      ./twisted/wamp/rpc/options/
+   ✓ twisted  rpc      ./twisted/wamp/rpc/errors/
+   ✓ twisted  rpc      ./twisted/wamp/rpc/decorators/
+   ✓ twisted  rpc      ./twisted/wamp/rpc/complex/
+   ✓ twisted  rpc      ./twisted/wamp/rpc/arguments/
+   ✓ asyncio  overview ./asyncio/wamp/overview
+   ✓ asyncio  pubsub   ./asyncio/wamp/pubsub/unsubscribe/
+   ✓ asyncio  pubsub   ./asyncio/wamp/pubsub/options/
+   ✓ asyncio  pubsub   ./asyncio/wamp/pubsub/decorators/
+   ✓ asyncio  pubsub   ./asyncio/wamp/pubsub/complex/
+   ✓ asyncio  pubsub   ./asyncio/wamp/pubsub/basic/
+   ✓ asyncio  rpc      ./asyncio/wamp/rpc/timeservice/
+   ✓ asyncio  rpc      ./asyncio/wamp/rpc/slowsquare/
+   ✓ asyncio  rpc      ./asyncio/wamp/rpc/progress/
+   ✓ asyncio  rpc      ./asyncio/wamp/rpc/options/
+   ✓ asyncio  rpc      ./asyncio/wamp/rpc/errors/
+   ✓ asyncio  rpc      ./asyncio/wamp/rpc/decorators/
+   ✓ asyncio  rpc      ./asyncio/wamp/rpc/complex/
+   ✓ asyncio  rpc      ./asyncio/wamp/rpc/arguments/
+
+   By Backend:
+   --------------------------------------------------------------------------------
+   ✓ twisted : 14/14 passed, 0 failed
+   ✓ asyncio : 14/14 passed, 0 failed
+
+   By WAMP Feature:
+   --------------------------------------------------------------------------------
+   ✓ overview: 2/2 passed, 0 failed
+   ✓ pubsub  : 10/10 passed, 0 failed
+   ✓ rpc     : 16/16 passed, 0 failed
+
+   ================================================================================
+   ✓ ALL TESTS PASSED
+     Total: 28/28 examples completed successfully
+   ================================================================================
 
    ✓ RawSocket transport tests passed
 
@@ -84,8 +134,7 @@ The test provides clear pass/fail output:
    ========================================================================
    Note: run-all-examples.py starts its own crossbar instance
 
-   Success!
-     ...all the examples neither crashed nor burned...
+   [... similar detailed output for WebSocket transport ...]
 
    ✓ WebSocket transport tests passed
 
@@ -102,6 +151,8 @@ Examples Tested
 Twisted Examples (14 total)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The test suite covers 14 Twisted examples: 1 overview, 5 pubsub (TLS skipped on RawSocket), and 8 RPC examples.
+
 **WAMP Overview**
 
 .. code-block:: none
@@ -110,7 +161,7 @@ Twisted Examples (14 total)
 
 Basic WAMP client demonstrating connection, pub/sub, and RPC.
 
-**PubSub Patterns** (6 examples)
+**PubSub Patterns** (5 examples tested)
 
 .. code-block:: none
 
@@ -150,8 +201,10 @@ Basic WAMP client demonstrating connection, pub/sub, and RPC.
 * **complex**: Advanced RPC patterns
 * **arguments**: Positional and keyword arguments
 
-Asyncio Examples (15 total)
+Asyncio Examples (14 total)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The test suite covers 14 asyncio examples: 1 overview, 5 pubsub (TLS skipped on RawSocket), and 8 RPC examples.
 
 **WAMP Overview**
 
@@ -161,7 +214,7 @@ Asyncio Examples (15 total)
 
 Basic WAMP client demonstrating connection, pub/sub, and RPC using asyncio.
 
-**PubSub Patterns** (6 examples)
+**PubSub Patterns** (5 examples tested)
 
 .. code-block:: none
 
