@@ -35,6 +35,16 @@ version = release = __version__
 
 # -- General configuration ---------------------------------------------------
 
+# Add the _extensions directory to Python path for custom lexers
+sys.path.insert(0, os.path.abspath('_extensions'))
+
+# Import and register the Just lexer
+from just_lexer import JustLexer
+from sphinx.highlighting import lexers
+
+# Register the lexer
+lexers['just'] = JustLexer()
+
 extensions = [
     'sphinxcontrib.spelling',
     'sphinx.ext.autodoc',
@@ -81,48 +91,58 @@ language = 'en'
 exclude_patterns = ['_build', '_work', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
-#pygments_style = 'sphinx'
-#pygments_style = 'monokai'
-#pygments_style = 'native'
-#pygments_style = 'pastie'
-#pygments_style = 'friendly'
+# https://pradyunsg.me/furo/customisation/colors/#code-block-styling
 pygments_style = 'sphinx'
+pygments_dark_style = 'monokai'
 
 
 # -- Options for HTML output -------------------------------------------------
 
-# the following trickery is to make it build both locally and on RTD
-#
-# see: https://blog.deimos.fr/2014/10/02/sphinxdoc-and-readthedocs-theme-tricks-2/
-#
-if RTD_BUILD:
-    html_context = {
-        'css_files': [
-            'https://media.readthedocs.org/css/sphinx_rtd_theme.css',
-            'https://media.readthedocs.org/css/readthedocs-doc-embed.css',
-            '_static/custom.css'
-        ]
-    }
-else:
-    if sphinx_rtd_theme:
-        html_theme = 'sphinx_rtd_theme'
-        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+# Use Furo theme for modern, clean documentation
+html_theme = 'furo'
 
-        # add custom CSS on top of Sphinx RTD standard CSS
-        def setup(app):
-            app.add_css_file('css/custom.css')
-    else:
-        html_theme = 'default'
+# Web fonts for consistent typography across browsers
+# The issue is that web fonts need to be explicitly loaded. Your system has
+# Noto fonts installed, but browsers can't access system fonts directly
+html_css_files = [
+    'https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Noto+Sans+Mono:wght@100..900&family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap',
+]
 
+# Note: Keep old logo for backwards compatibility, but Furo will use light_logo/dark_logo
 html_logo = '_static/img/crossbar.svg'
-full_logo = True
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
+# Furo theme options
+# https://pradyunsg.me/furo/customisation/
 html_theme_options = {
-    'collapse_navigation': False,
+    'sidebar_hide_name': True,
+    # Note: DO NOT use _static/ prefix here (Furo requirement)
+    'light_logo': 'img/typedefint-vectorized.svg',
+    'dark_logo': 'img/typedefint-vectorized-white.svg',
+    'light_css_variables': {
+        'color-brand-primary': '#0077FF',  # Light blue
+        'color-brand-content': '#0077FF',
+        'color-background-primary': '#fafafa',  # Refined white
+        'color-foreground-primary': '#1a1a1a',  # Anthracite
+        # Noto fonts from Google Fonts
+        # https://pradyunsg.me/furo/customisation/fonts/
+        'font-stack': "'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        'font-stack--headings': "'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        'font-stack--monospace': "'Noto Sans Mono', Monaco, Consolas, monospace",
+    },
+    'dark_css_variables': {
+        'color-background-primary': '#1A1A1A',  # Anthracite
+        'color-foreground-primary': '#FAFAFA',  # Refined white
+        'color-link': '#F0C359',
+        'color-link--hover': '#FFBC1D',
+        'color-link--visited': '#B98406',
+        'color-link--visited--hover': '#EAB128',
+        'color-brand-primary': '#F0C359',
+        'color-brand-content': '#F0C359',
+        # Noto fonts from Google Fonts
+        'font-stack': "'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        'font-stack--headings': "'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        'font-stack--monospace': "'Noto Sans Mono', Monaco, Consolas, monospace",
+    },
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
