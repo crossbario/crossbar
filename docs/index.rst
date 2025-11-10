@@ -24,6 +24,7 @@ If you are new to Crossbar.io development in general you should start here at :r
     Installation
     Administration
     personalities
+    testing-autobahn-examples
 
     Programming-Guide
     integration-guide
