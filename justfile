@@ -516,8 +516,8 @@ test-pytest venv="": (install-tools venv) (install venv)
 
     ${VENV_PYTHON} -m pytest -sv crossbar
 
-# Run all unit tests (trial + pytest)
-test venv="": (test-trial venv) (test-pytest venv)
+# Run all tests (trial + pytest + functional)
+test venv="": (test-trial venv) (test-pytest venv) (test-functional venv)
 
 # Run functional tests
 test-functional venv="": (install-tools venv) (install venv)
