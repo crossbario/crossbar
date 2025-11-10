@@ -1,0 +1,66 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+dist
+build
+*.egg
+.pytest_cache
+.tox
+.coverage
+.coverage.*
+htmlcov
+*.log
+
+# Virtual environments
+venv
+env
+ENV
+.venv
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+docs/_build
+docs/_static
+docs/_templates
+*.md
+!README.md
+
+# Testing
+test/
+.crossbar/
+*.log
+
+# CI/CD
+.github
+.travis.yml
+.gitlab-ci.yml
+
+# Development files
+Makefile
+tox.ini
+pytest.ini
+setup.cfg
+*.txt
+!requirements*.txt
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.bak

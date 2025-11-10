@@ -61,8 +61,26 @@ class RouterClusterMonitor(object):
         """
         assert self._loop is None
 
-        self._loop = LoopingCall(self._check_and_apply)
+        def _check_and_apply_wrapper():
+            """Wrapper to add errback for error handling"""
+            d = self._check_and_apply()
+            d.addErrback(self._handle_check_and_apply_error)
+            return d
+
+        self._loop = LoopingCall(_check_and_apply_wrapper)
         self._loop.start(self._interval)
+
+    def _handle_check_and_apply_error(self, failure):
+        """
+        Handle any unhandled errors from _check_and_apply to ensure the flag is reset.
+        """
+        self.log.failure(
+            '{func} Unhandled error in check & apply for routercluster {routercluster} - will retry in next iteration',
+            func=hltype(self._check_and_apply),
+            routercluster=hlid(self._routercluster_oid),
+            failure=failure)
+        # Always reset the flag so next iteration can run
+        self._check_and_apply_in_progress = False
 
     def stop(self):
         """
@@ -128,6 +146,41 @@ class RouterClusterMonitor(object):
                                   status=hl(node.status if node else 'offline'))
                     is_running_completely = False
 
+            # Check for workergroups without placements and create them if nodes are available
+            # This handles the case where workergroups were created before nodes joined the cluster
+            if active_memberships:
+                with self._manager.db.begin(write=True) as txn:
+                    # Get all workergroups for this cluster
+                    workergroups = list(
+                        self._manager.schema.idx_workergroup_by_cluster.select(txn,
+                                                                               from_key=(self._routercluster_oid, ''),
+                                                                               return_keys=False))
+
+                    for wg_oid in workergroups:
+                        workergroup = self._manager.schema.router_workergroups[txn, wg_oid]
+
+                        # Create missing placements (function handles counting, node selection, and availability)
+                        created_placements = self._manager._create_missing_placements(
+                            txn, workergroup, session_nodes=self._manager._session.nodes)
+
+                        if created_placements:
+                            self.log.info('{func} Created {count} placement(s) for workergroup {wg_name}',
+                                          func=hltype(self._check_and_apply),
+                                          count=hlval(len(created_placements)),
+                                          wg_name=hlval(workergroup.name))
+
+            # Start workers for all placements
+            # This ensures workers are running before we update transport principals
+            success = yield self._start_placement_workers()
+            if not success:
+                is_running_completely = False
+
+            # Update transport principals for all workergroups in this cluster
+            # This ensures router and proxy nodes can authenticate to transports
+            success = yield self._update_workergroup_transports()
+            if not success:
+                is_running_completely = False
+
             if routercluster.status in [cluster.STATUS_STARTING] and is_running_completely:
                 with self._manager.db.begin(write=True) as txn:
                     routercluster = self._manager.schema.routerclusters[txn, self._routercluster_oid]
@@ -158,6 +211,425 @@ class RouterClusterMonitor(object):
                       action=hl(action, color=color, bold=True),
                       func=hltype(self._check_and_apply),
                       routercluster=hlid(self._routercluster_oid))
+
+    @inlineCallbacks
+    def _start_placement_workers(self):
+        """
+        Start workers for all placements in this router cluster.
+
+        This is called before _update_workergroup_transport_principals to ensure
+        workers are running before we try to configure transports on them.
+
+        :return: True if all workers started successfully, False if any failed
+        """
+        is_success = True
+
+        # Get all workergroups for this router cluster
+        with self._manager.db.begin() as txn:
+            workergroup_oids = list(
+                self._manager.schema.idx_workergroup_by_cluster.select(txn,
+                                                                       from_key=(self._routercluster_oid, ''),
+                                                                       return_keys=False))
+
+        # Process each workergroup
+        for workergroup_oid in workergroup_oids:
+            with self._manager.db.begin() as txn:
+                workergroup = self._manager.schema.router_workergroups[txn, workergroup_oid]
+
+                # Get all placements for this workergroup
+                placements = []
+                for placement_oid in self._manager.schema.idx_clusterplacement_by_workername.select(
+                        txn,
+                        from_key=(workergroup.oid, uuid.UUID(bytes=b'\0' * 16), uuid.UUID(bytes=b'\0' * 16), ''),
+                        to_key=(uuid.UUID(int=(int(workergroup.oid) + 1)), uuid.UUID(bytes=b'\0' * 16),
+                                uuid.UUID(bytes=b'\0' * 16), ''),
+                        return_keys=False):
+                    placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
+                    placements.append(placement)
+
+            # Start worker for each placement
+            for placement in placements:
+                node_oid = placement.node_oid
+                worker_name = placement.worker_name
+
+                # Skip if node not online
+                node = self._manager._session.nodes.get(str(node_oid), None)
+                if not node or node.status != 'online':
+                    self.log.debug('{func} Skipping worker {worker_name} - node {node_oid} not online',
+                                   func=hltype(self._start_placement_workers),
+                                   worker_name=hlid(worker_name),
+                                   node_oid=hlid(node_oid))
+                    is_success = False
+                    continue
+
+                # Check if worker already exists
+                try:
+                    yield self._manager._session.call('crossbarfabriccenter.remote.node.get_worker', str(node_oid),
+                                                      worker_name)
+
+                    self.log.debug('{func} Worker {worker_name} already running on node {node_oid}',
+                                   func=hltype(self._start_placement_workers),
+                                   worker_name=hlid(worker_name),
+                                   node_oid=hlid(node_oid))
+                except ApplicationError as e:
+                    if e.error == 'crossbar.error.no_such_worker':
+                        # Worker doesn't exist - create it
+                        self.log.info('{func} Starting worker {worker_name} on node {node_oid}',
+                                      func=hltype(self._start_placement_workers),
+                                      worker_name=hlid(worker_name),
+                                      node_oid=hlid(node_oid))
+
+                        worker_options = {
+                            'env': {
+                                'inherit': ['PYTHONPATH']
+                            },
+                            'title': 'Managed router worker {}'.format(worker_name),
+                            'extra': {}
+                        }
+
+                        try:
+                            yield self._manager._session.call('crossbarfabriccenter.remote.node.start_worker',
+                                                              str(node_oid), worker_name, 'router', worker_options)
+
+                            self.log.info('{func} Worker {worker_name} started on node {node_oid}',
+                                          func=hltype(self._start_placement_workers),
+                                          worker_name=hlid(worker_name),
+                                          node_oid=hlid(node_oid))
+                        except Exception as ex:
+                            self.log.error('{func} Failed to start worker {worker_name}: {error}',
+                                           func=hltype(self._start_placement_workers),
+                                           worker_name=hlid(worker_name),
+                                           error=str(ex))
+                            is_success = False
+                    else:
+                        raise
+
+        return is_success
+
+    @inlineCallbacks
+    def _update_workergroup_transports(self):
+        """
+        Update transports and their principals for all workergroups in this router cluster.
+
+        This is called at the RouterCluster level (not per-realm) because:
+        1. Transports are SHARED across all application realms on the same workergroup
+        2. We need a single owner to manage the shared resource
+        3. We can collect ALL application realms using each workergroup and set principals once
+
+        For each workergroup, we:
+        1. Collect all router nodes from placements
+        2. Collect all application realms using this workergroup
+        3. For each realm's webcluster, collect proxy nodes and router nodes
+        4. Build complete principals
+        5. Update transport on each placement if principals changed
+
+        :return: True if all updates succeeded, False if any failed
+        """
+        is_success = True
+
+        # Get all nodes from global database (we need pubkey and authid attributes)
+        all_nodes = {}
+        with self._manager.gdb.begin() as txn:
+            for node in self._manager.gschema.nodes.select(txn, return_keys=False):
+                # Only include nodes that are currently online (in session)
+                if str(node.oid) in self._manager._session.nodes:
+                    all_nodes[node.oid] = node
+
+        self.log.info('{func} Found {count} online nodes in all_nodes: {node_list}',
+                      func=hltype(self._update_workergroup_transports),
+                      count=len(all_nodes),
+                      node_list=[str(oid) for oid in all_nodes.keys()])
+
+        # Get all workergroups for this router cluster
+        with self._manager.db.begin() as txn:
+            workergroup_oids = list(
+                self._manager.schema.idx_workergroup_by_cluster.select(txn,
+                                                                       from_key=(self._routercluster_oid, ''),
+                                                                       return_keys=False))
+
+        self.log.debug('{func} Checking transport principals for {count} workergroup(s)',
+                       func=hltype(self._update_workergroup_transports),
+                       count=len(workergroup_oids))
+
+        # Process each workergroup
+        for workergroup_oid in workergroup_oids:
+            with self._manager.db.begin() as txn:
+                workergroup = self._manager.schema.router_workergroups[txn, workergroup_oid]
+
+                # Get all placements for this workergroup
+                placements = []
+                for placement_oid in self._manager.schema.idx_clusterplacement_by_workername.select(
+                        txn,
+                        from_key=(workergroup.oid, uuid.UUID(bytes=b'\0' * 16), uuid.UUID(bytes=b'\0' * 16), ''),
+                        to_key=(uuid.UUID(int=(int(workergroup.oid) + 1)), uuid.UUID(bytes=b'\0' * 16),
+                                uuid.UUID(bytes=b'\0' * 16), ''),
+                        return_keys=False):
+                    placement = self._manager.schema.router_workergroup_placements[txn, placement_oid]
+                    placements.append(placement)
+
+                # Get all application realms using this workergroup
+                # Since there's no index, we need to iterate all arealms and filter
+                arealm_oids = []
+                for arealm in self._manager.schema.arealms.select(txn, return_keys=False):
+                    if arealm.workergroup_oid == workergroup.oid:
+                        arealm_oids.append(arealm.oid)
+
+            if not placements:
+                self.log.debug('{func} No placements for workergroup {wg_name}, skipping',
+                               func=hltype(self._update_workergroup_transports),
+                               wg_name=hlval(workergroup.name))
+                continue
+
+            # Build router node set from placements
+            router_node_oids = set(p.node_oid for p in placements)
+            router_nodes = {oid: all_nodes[oid] for oid in router_node_oids if oid in all_nodes}
+
+            # Build rlink principals for this workergroup
+            # Rlinks are realm-dependent but use the same principal for each realm - they authenticate at transport level,
+            # then specify the realm in their HELLO message
+            all_router_pubkeys = sorted([n.pubkey for n in router_nodes.values()])
+            rlink_principals = {}
+            for router_node in router_nodes.values():
+                rlink_principals[router_node.authid] = {
+                    'role': 'rlink',
+                    'authorized_keys': all_router_pubkeys,
+                }
+
+            # Collect webcluster node OIDs across all realms (for proxy principals)
+            all_webcluster_node_oids = set()
+
+            # Collect webcluster nodes from all realms using this workergroup
+            for arealm_oid in arealm_oids:
+                with self._manager.db.begin() as txn:
+                    arealm = self._manager.schema.arealms[txn, arealm_oid]
+                    if not arealm:
+                        continue
+
+                # Collect webcluster nodes for this realm
+                if arealm.webcluster_oid:
+                    try:
+                        wc_workers = self._manager._session._webcluster_manager.get_webcluster_workers(
+                            arealm.webcluster_oid, filter_online=True)
+                        for wc_node_oid, _wc_worker_id in wc_workers:
+                            all_webcluster_node_oids.add(wc_node_oid)
+                    except Exception:
+                        # Fallback to DB membership if manager not available
+                        with self._manager.db.begin() as txn:
+                            for node_oid in self._manager.schema.idx_webcluster_node_memberships.select(
+                                    txn,
+                                    from_key=(arealm.webcluster_oid, uuid.UUID(bytes=b'\0' * 16)),
+                                    to_key=(uuid.UUID(int=(int(arealm.webcluster_oid) + 1)),
+                                            uuid.UUID(bytes=b'\0' * 16)),
+                                    return_keys=False):
+                                all_webcluster_node_oids.add(node_oid)
+
+            # Build proxy principals (shared across all realms on this workergroup)
+            # Proxy nodes authenticate via cryptosign-proxy which REPLACES the realm value
+            # with the forwarded proxy_realm from authextra, so the realm field here doesn't matter
+            proxy_principals = {}
+            # Collect all authids from rlink principals to avoid overlap
+            router_authids = set(rlink_principals.keys())
+
+            self.log.info(
+                '{func} Collected webcluster nodes for workergroup {wg_name}: {wc_count} nodes, router_authids={router_authids}',
+                func=hltype(self._update_workergroup_transports),
+                wg_name=hlid(workergroup.name),
+                wc_count=len(all_webcluster_node_oids),
+                router_authids=router_authids)
+
+            for wc_node_oid in all_webcluster_node_oids:
+                # Convert to UUID if it's a string (webcluster returns strings, all_nodes keyed by UUIDs)
+                if isinstance(wc_node_oid, str):
+                    wc_node_oid = uuid.UUID(wc_node_oid)
+
+                if wc_node_oid in all_nodes:
+                    wc_node = all_nodes[wc_node_oid]
+                    # Only add if not already a router node (avoid overlap)
+                    if wc_node.authid not in router_authids:
+                        # For cryptosign-proxy: omit 'realm' (use HELLO realm), but set placeholder 'role'
+                        # The cryptosign-proxy will replace the role with proxy_authrole from authextra
+                        proxy_principals[wc_node.authid] = {
+                            'role': 'proxy',  # Placeholder - will be replaced with proxy_authrole from authextra
+                            'authorized_keys': [wc_node.pubkey],
+                        }
+                else:
+                    self.log.warn('{func} Webcluster node {node_oid} not in all_nodes dict',
+                                  func=hltype(self._update_workergroup_transports),
+                                  node_oid=wc_node_oid)
+
+            self.log.info(
+                '{func} Built proxy_principals for workergroup {wg_name}: {principals}',
+                func=hltype(self._update_workergroup_transports),
+                wg_name=hlid(workergroup.name),
+                principals=list(proxy_principals.keys()))
+
+            # Update transport on each placement
+            for placement in placements:
+                node_oid = placement.node_oid
+                worker_name = placement.worker_name
+                transport_id = 'tnp_{}'.format(worker_name)
+
+                # Skip if node not online
+                node = self._manager._session.nodes.get(str(node_oid), None)
+                if not node or node.status != 'online':
+                    self.log.warn(
+                        '{func} Node {node_oid} for worker {worker_name} not online (status={status}) - skipping transport update',
+                        func=hltype(self._update_workergroup_transports),
+                        node_oid=hlid(str(node_oid)),
+                        worker_name=hlid(worker_name),
+                        status=hl(node.status if node else 'not_in_nodes_dict'))
+                    is_success = False
+                    continue
+
+                # Worker should already be running (started by _start_placement_workers)
+                # If not, skip this placement
+                try:
+                    yield self._manager._session.call('crossbarfabriccenter.remote.node.get_worker', str(node_oid),
+                                                      worker_name)
+                except ApplicationError as e:
+                    if e.error == 'crossbar.error.no_such_worker':
+                        self.log.warn(
+                            '{func} Worker {worker_name} not running on node {node_oid} - skipping transport update',
+                            func=hltype(self._update_workergroup_transports),
+                            worker_name=hlid(worker_name),
+                            node_oid=hlid(node_oid))
+                        is_success = False
+                        continue
+                    else:
+                        raise
+
+                try:
+                    # Get current transport configuration
+                    transport = yield self._manager._session.call(
+                        'crossbarfabriccenter.remote.router.get_router_transport', str(node_oid), worker_name,
+                        transport_id)
+
+                    # If transport doesn't exist, get_router_transport should raise ApplicationError('crossbar.error.no_such_object')
+                    # which will be caught below and trigger transport creation.
+                    # If it returns a transport, verify it's the right type
+                    if transport and transport.get('type') != 'rawsocket':
+                        self.log.warn(
+                            '{func} Transport {transport_id} on worker {worker_name} is not rawsocket (type={ttype}) - skipping',
+                            func=hltype(self._update_workergroup_transports),
+                            transport_id=hlid(transport_id),
+                            worker_name=hlid(worker_name),
+                            ttype=hl(transport.get('type')))
+                        is_success = False
+                        continue
+
+                    # Build combined desired principals (rlinks + proxy)
+                    desired_principals = {}
+                    desired_principals.update(rlink_principals)
+                    desired_principals.update(proxy_principals)
+
+                    # Hot-reload principals without restarting transport
+                    # This avoids dropping connections and changing the port
+                    # With hot-reload, we can just push the desired state directly
+                    # Note: We call this every iteration to ensure eventual consistency
+                    if not desired_principals:
+                        self.log.warn(
+                            '{func} No principals to update for transport {transport_id} - skipping',
+                            func=hltype(self._update_workergroup_transports),
+                            transport_id=hlid(transport_id))
+                        continue
+                    
+                    try:
+                        yield self._manager._session.call(
+                            'crossbarfabriccenter.remote.router.update_router_transport_principals',
+                            str(node_oid), worker_name, transport_id, desired_principals)
+
+                        self.log.info(
+                            '{func} Successfully hot-updated transport {transport_id} principals: {principal_authids}',
+                            func=hltype(self._update_workergroup_transports),
+                            transport_id=hlid(transport_id),
+                            principal_authids=list(desired_principals.keys()))
+                    except Exception as e:
+                        self.log.error(
+                            '{func} Failed to hot-update transport {transport_id} principals: {error}',
+                            func=hltype(self._update_workergroup_transports),
+                            transport_id=hlid(transport_id),
+                            error=str(e))
+                        is_success = False
+
+                except ApplicationError as e:
+                    if e.error == 'crossbar.error.no_such_object':
+                        # Transport not yet created - create it now
+                        self.log.info(
+                            '{func} Transport {transport_id} does not exist on worker {worker_name} - creating it',
+                            func=hltype(self._update_workergroup_transports),
+                            transport_id=hlid(transport_id),
+                            worker_name=hlid(worker_name))
+
+                        # Build combined desired principals (rlinks + proxy)
+                        desired_principals = {}
+                        desired_principals.update(rlink_principals)
+                        desired_principals.update(proxy_principals)
+
+                        # Create transport configuration
+                        transport_config = {
+                            'id': transport_id,
+                            'type': 'rawsocket',
+                            'endpoint': {
+                                'type': 'tcp',
+                                'portrange': [10000, 10100]  # Auto-assign port
+                            },
+                            'options': {},
+                            'serializers': ['cbor'],
+                            'auth': {
+                                'cryptosign-proxy': {
+                                    'type': 'static',
+                                    'default-role': 'proxy',  # Placeholder - replaced by proxy_authrole from authextra
+                                    'principals': desired_principals
+                                }
+                            }
+                        }
+
+                        try:
+                            # Start transport with initial principals
+                            transport_started = yield self._manager._session.call(
+                                'crossbarfabriccenter.remote.router.start_router_transport', str(node_oid),
+                                worker_name, transport_id, transport_config)
+
+                            self.log.info(
+                                '{func} Successfully created transport {transport_id} on worker {worker_name} with {count} principals',
+                                func=hltype(self._update_workergroup_transports),
+                                transport_id=hlid(transport_id),
+                                worker_name=hlid(worker_name),
+                                count=len(desired_principals))
+
+                            # Update placement status with assigned port
+                            tcp_listening_port = transport_started.get('config', {}).get('endpoint', {}).get('port', 0)
+                            if tcp_listening_port:
+                                with self._manager.db.begin(write=True) as txn:
+                                    placement_obj = self._manager.schema.router_workergroup_placements[txn,
+                                                                                                       placement.oid]
+                                    if placement_obj:
+                                        placement_obj.tcp_listening_port = tcp_listening_port
+                                        placement_obj.status = WorkerGroupStatus.RUNNING
+                                        placement_obj.changed = time_ns()
+                                        self._manager.schema.router_workergroup_placements[
+                                            txn, placement.oid] = placement_obj
+
+                        except Exception as e:
+                            self.log.error('{func} Failed to create transport {transport_id}: {error}',
+                                           func=hltype(self._update_workergroup_transports),
+                                           transport_id=hlid(transport_id),
+                                           error=str(e))
+                            is_success = False
+                    else:
+                        self.log.error('{func} Error checking transport {transport_id}: {error}',
+                                       func=hltype(self._update_workergroup_transports),
+                                       transport_id=hlid(transport_id),
+                                       error=str(e))
+                        is_success = False
+                except Exception as e:
+                    self.log.error('{func} Unexpected error updating transport {transport_id}: {error}',
+                                   func=hltype(self._update_workergroup_transports),
+                                   transport_id=hlid(transport_id),
+                                   error=str(e))
+                    is_success = False
+
+        return is_success
 
 
 class RouterClusterManager(object):
@@ -230,6 +702,135 @@ class RouterClusterManager(object):
         # router cluster monitors, containing a map, for every routercluster in state STARTING or RUNNING
         # with objects of class RouterClusterMonitor
         self._monitors = {}
+
+    def _create_worker_placement(self, txn, workergroup, routercluster_oid, node_oid, worker_name):
+        """
+        Create a single worker group placement on a specific node.
+
+        This is a helper function used by _create_missing_placements.
+
+        :param txn: Database transaction
+        :param workergroup: RouterWorkerGroup object
+        :param routercluster_oid: OID of the router cluster
+        :param node_oid: OID of the node on which to create the placement
+        :param worker_name: Name for the worker (e.g., "workergroup_realm1_1")
+        :return: Created RouterWorkerGroupClusterPlacement object
+        """
+        placement = RouterWorkerGroupClusterPlacement()
+        placement.oid = uuid.uuid4()
+        placement.worker_group_oid = workergroup.oid
+        placement.cluster_oid = routercluster_oid
+        placement.node_oid = node_oid
+        placement.worker_name = worker_name
+        placement.status = WorkerGroupStatus.STOPPED
+        placement.changed = time_ns()
+        placement.tcp_listening_port = 0
+
+        self.schema.router_workergroup_placements[txn, placement.oid] = placement
+
+        self.log.info('Created placement {worker_name} on node {node_oid} for workergroup {wg_name}',
+                      worker_name=hlval(placement.worker_name),
+                      node_oid=hlid(node_oid),
+                      wg_name=hlval(workergroup.name))
+
+        return placement
+
+    def _create_missing_placements(self, txn, workergroup, session_nodes=None):
+        """
+        Create missing worker placements for a workergroup, distributing them across available nodes.
+
+        This function:
+        1. Counts existing placements for the workergroup
+        2. Determines how many placements are needed (workergroup.scale - existing)
+        3. Collects available online nodes with their current placement counts
+        4. Creates missing placements, distributing them evenly across nodes
+
+        This implements the placement distribution strategy: placements are distributed
+        evenly across nodes by always selecting the node with the fewest current placements.
+
+        This is used by both add_routercluster_workergroup (during initial workergroup creation)
+        and RouterClusterMonitor._check_and_apply (when creating placements for existing workergroups).
+
+        :param txn: Database transaction
+        :param workergroup: RouterWorkerGroup object
+        :param session_nodes: Optional session.nodes dict for checking online status (used by monitor)
+        :return: List of created placement objects (empty list if no placements needed/possible)
+        """
+        # Count existing placements for this workergroup
+        existing_placements = list(
+            self.schema.idx_clusterplacement_by_workername.select(txn,
+                                                                  from_key=(workergroup.oid,
+                                                                            uuid.UUID(bytes=b'\0' * 16),
+                                                                            uuid.UUID(bytes=b'\0' * 16), ''),
+                                                                  to_key=(uuid.UUID(int=(int(workergroup.oid) + 1)),
+                                                                          uuid.UUID(bytes=b'\0' * 16),
+                                                                          uuid.UUID(bytes=b'\0' * 16), ''),
+                                                                  return_keys=False))
+
+        placements_needed = workergroup.scale - len(existing_placements)
+
+        # No placements needed
+        if placements_needed <= 0:
+            return []
+
+        # Collect all nodes in the cluster with their current placement counts
+        nodes = SortedDict()
+        for _, node_oid in self.schema.routercluster_node_memberships.select(
+                txn,
+                from_key=(workergroup.cluster_oid, uuid.UUID(bytes=b'\0' * 16)),
+                to_key=(uuid.UUID(int=(int(workergroup.cluster_oid) + 1)), uuid.UUID(bytes=b'\0' * 16)),
+                return_values=False):
+
+            # If session_nodes provided, only include online nodes
+            if session_nodes:
+                node_oid_str = str(node_oid)
+                node_obj = session_nodes.get(node_oid_str, None)
+                if not node_obj or node_obj.status != 'online':
+                    continue
+
+            # Count existing placements on this node for this workergroup
+            node_placement_count = len(
+                list(
+                    self.schema.idx_clusterplacement_by_workername.select(
+                        txn,
+                        from_key=(workergroup.oid, workergroup.cluster_oid, node_oid, ''),
+                        to_key=(workergroup.oid, workergroup.cluster_oid, uuid.UUID(int=(int(node_oid) + 1)), ''),
+                        return_keys=False)))
+            nodes[node_oid] = node_placement_count
+
+        # No nodes available
+        if not nodes:
+            self.log.warn('Cannot create placements for workergroup {wg_name} - no nodes available',
+                          wg_name=hlval(workergroup.name))
+            return []
+
+        # Create the missing placements
+        created_placements = []
+        next_worker_index = len(existing_placements) + 1
+
+        for i in range(placements_needed):
+            # Select node with fewest placements (strategy: load balancing)
+            placement_node_oid, placement_node_cnt = nodes.peekitem(0)
+
+            # Generate worker name
+            worker_name = '{}_{}'.format(workergroup.name, next_worker_index + i)
+
+            # Create the placement
+            placement = self._create_worker_placement(txn, workergroup, workergroup.cluster_oid, placement_node_oid,
+                                                      worker_name)
+
+            created_placements.append(placement)
+
+            # Update node count for next iteration
+            nodes[placement_node_oid] += 1
+
+        self.log.info('Created {count} placement(s) for workergroup {wg_name} (now has {existing}/{scale} placements)',
+                      count=hlval(len(created_placements)),
+                      wg_name=hlval(workergroup.name),
+                      existing=hlval(len(existing_placements) + len(created_placements)),
+                      scale=hlval(workergroup.scale))
+
+        return created_placements
 
     @inlineCallbacks
     def start(self, prefix):
@@ -947,7 +1548,43 @@ class RouterClusterManager(object):
                     'crossbar.error.no_such_object',
                     'no association between node {} and routercluster {} found'.format(node_oid_, routercluster_oid_))
 
+            # Delete the node membership from the cluster
             del self.schema.routercluster_node_memberships[txn, (routercluster_oid_, node_oid_)]
+
+            # CRITICAL FIX: Delete all worker placements for this node in all workergroups of this cluster
+            # This fixes the bug where stale placements prevent realms from redistributing when nodes rejoin
+            deleted_placements = 0
+
+            # Get all workergroups in this router cluster
+            for workergroup_oid in self.schema.idx_router_workergroups_by_cluster.select(
+                    txn, from_key=(routercluster_oid_, ), return_values=False):
+
+                # Find all placements for this workergroup on the node being removed
+                # idx_clusterplacement_by_workername: (workergroup_oid, cluster_oid, node_oid, worker_name) -> placement_oid
+                placement_oids_to_delete = []
+                for placement_oid in self.schema.idx_clusterplacement_by_workername.select(
+                        txn,
+                        from_key=(workergroup_oid, routercluster_oid_, node_oid_, ''),
+                        to_key=(workergroup_oid, routercluster_oid_, uuid.UUID(int=(int(node_oid_) + 1)), ''),
+                        return_keys=False):
+                    placement_oids_to_delete.append(placement_oid)
+
+                # Delete each placement
+                for placement_oid in placement_oids_to_delete:
+                    del self.schema.router_workergroup_placements[txn, placement_oid]
+                    deleted_placements += 1
+                    self.log.debug(
+                        'Deleted stale worker placement {placement_oid} for node {node_oid} in workergroup {workergroup_oid}',
+                        placement_oid=hlid(placement_oid),
+                        node_oid=hlid(node_oid_),
+                        workergroup_oid=hlid(workergroup_oid))
+
+            if deleted_placements > 0:
+                self.log.info(
+                    'Cleaned up {count} stale worker placement(s) for node {node_oid} being removed from router cluster {cluster_oid}',
+                    count=hlval(deleted_placements),
+                    node_oid=hlid(node_oid_),
+                    cluster_oid=hlid(routercluster_oid_))
 
         res_obj = membership.marshal()
         self.log.info('node removed from router cluster:\n{res_obj}', membership=res_obj)
@@ -1147,56 +1784,20 @@ class RouterClusterManager(object):
             self.log.info('New router worker group object stored in database:\n{workergroup}',
                           workergroup=pformat(workergroup_obj.marshal()))
 
-            # collect all node OIDs currently associated with the router cluster
-            # into a dict sorted by the current number of placements
-            nodes = SortedDict()
-            for _, node_oid in self.schema.routercluster_node_memberships.select(
-                    txn,
-                    from_key=(routercluster_oid_, uuid.UUID(bytes=b'\0' * 16)),
-                    to_key=(uuid.UUID(int=(int(routercluster_oid_) + 1)), uuid.UUID(bytes=b'\0' * 16)),
-                    return_values=False):
+            # Create and store workergroup worker placements on nodes for the new workergroup
+            # NOTE: If no nodes are in the cluster yet, we skip creating placements here.
+            # The monitor will automatically create placements when nodes join the cluster later.
+            created_placements = self._create_missing_placements(txn, workergroup_obj)
 
-                # count current number of placements associated with given node
-                cnt = 0
-                for _ in self.schema.idx_workergroup_by_placement.select(
-                        txn,
-                        from_key=(workergroup_obj.cluster_oid, node_oid, uuid.UUID(bytes=b'\0' * 16)),
-                        to_key=(workergroup_obj.cluster_oid, uuid.UUID(int=(int(node_oid) + 1)),
-                                uuid.UUID(bytes=b'\0' * 16)),
-                        return_keys=False):
-                    cnt += 1
-
-                # the dict is sorted ascending by cnt, that is nodes.peekitem(0)
-                # will be a node with the smallest current number of placements
-                nodes[node_oid] = cnt
-
-            # create and store workergroup worker placements on nodes for the new workergroup
-            for i in range(workergroup_obj.scale):
-                # new placement on a node with smallest number of current placements
-                placement_node_oid, placement_node_cnt = nodes.peekitem(0)
-
-                self.log.info(
-                    'Router worker placement selected node {placement_node_oid} with current worker count {placement_node_cnt}',
-                    placement_node_oid=hlid(placement_node_oid),
-                    placement_node_cnt=hlval(placement_node_cnt))
-
-                placement = RouterWorkerGroupClusterPlacement()
-                placement.oid = uuid.uuid4()
-                placement.worker_group_oid = workergroup_obj.oid
-                placement.cluster_oid = routercluster_oid_
-                placement.node_oid = placement_node_oid
-                placement.worker_name = '{}_{}'.format(workergroup_obj.name, i + 1)
-                placement.status = WorkerGroupStatus.STOPPED
-                placement.changed = time_ns()
-                placement.tcp_listening_port = 0
-
-                self.schema.router_workergroup_placements[txn, placement.oid] = placement
-
-                # keep track of new placement in our sorted dict
-                nodes[placement_node_oid] += 1
-
-                self.log.info('New router worker group placement object stored in database:\n{placement}',
-                              placement=pformat(placement.marshal()))
+            if created_placements:
+                self.log.info('Created {count} worker placement(s) for new workergroup {workergroup_name}',
+                              count=hlval(len(created_placements)),
+                              workergroup_name=hlval(workergroup_obj.name))
+            else:
+                self.log.warn(
+                    'No nodes currently in router cluster {routercluster_oid} - placements for workergroup {workergroup_name} will be created automatically when nodes join',
+                    routercluster_oid=hlid(routercluster_oid_),
+                    workergroup_name=hlval(workergroup_obj.name))
 
         res_obj = workergroup_obj.marshal()
 
@@ -1277,7 +1878,34 @@ class RouterClusterManager(object):
                                        'no workergroup with oid {} found'.format(workergroup_oid_))
 
             # FIXME: check that the worker group has no running application realms
-            # FIXME: remove all router worker group placements from self.schema.router_workergroup_placements
+
+            # CRITICAL FIX: Delete all worker placements for this workergroup
+            # This fixes the bug where stale placements remain when workergroups are deleted
+            deleted_placements = 0
+
+            # Find all placements for this workergroup
+            # idx_clusterplacement_by_workername: (workergroup_oid, cluster_oid, node_oid, worker_name) -> placement_oid
+            placement_oids_to_delete = []
+            for placement_oid in self.schema.idx_clusterplacement_by_workername.select(
+                    txn,
+                    from_key=(workergroup_oid_, uuid.UUID(bytes=b'\0' * 16), uuid.UUID(bytes=b'\0' * 16), ''),
+                    to_key=(uuid.UUID(int=(int(workergroup_oid_) + 1)), uuid.UUID(bytes=b'\0' * 16),
+                            uuid.UUID(bytes=b'\0' * 16), ''),
+                    return_keys=False):
+                placement_oids_to_delete.append(placement_oid)
+
+            # Delete each placement
+            for placement_oid in placement_oids_to_delete:
+                del self.schema.router_workergroup_placements[txn, placement_oid]
+                deleted_placements += 1
+                self.log.debug('Deleted worker placement {placement_oid} for workergroup {workergroup_oid}',
+                               placement_oid=hlid(placement_oid),
+                               workergroup_oid=hlid(workergroup_oid_))
+
+            if deleted_placements > 0:
+                self.log.info('Cleaned up {count} worker placement(s) for workergroup {workergroup_oid} being removed',
+                              count=hlval(deleted_placements),
+                              workergroup_oid=hlid(workergroup_oid_))
 
             del self.schema.router_workergroups[txn, workergroup_oid_]
 

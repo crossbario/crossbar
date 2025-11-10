@@ -1,0 +1,43 @@
+# Working Crossbar.io Docker image based on the original dev approach
+FROM python:3.11-slim-bookworm
+
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
+    git \
+    libgirepository1.0-dev gcc libcairo2-dev pkg-config python3-dev gir1.2-gtk-3.0 \
+    build-essential \
+    libsnappy-dev \
+    libunwind-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /crossbar
+
+COPY requirements-pinned.txt .
+# Install with pinned dependencies which includes everything we need:
+# - autobahn==23.1.1 (with XBR support)
+# - web3 from git
+# - eth-abi from git (v4.0.0-beta.2)
+# - all other dependencies at exact versions
+# Note: crossbar/__init__.py has monkey patches for eth-abi API changes (encode_single -> encode)
+RUN pip install --no-cache-dir -r requirements-pinned.txt
+
+# Copy the entire source
+COPY . /crossbar
+
+# Build in the source directory  
+
+# Install crossbar from source WITHOUT resolving dependencies
+# This preserves all the pinned versions from requirements-pinned.txt
+RUN pip install --no-cache-dir --no-deps .
+
+# # Verify versions
+# RUN python3 -c "import crossbar; import autobahn; print('Crossbar', crossbar.__version__, 'with autobahn', autobahn.__version__)"
+
+# # Test XBR import for master personality
+# # Note: Must import crossbar first to apply monkey patches for eth-abi compatibility
+# RUN python3 -c "import crossbar; from autobahn import xbr; print('XBR module loaded successfully')"
+
+# Create working directory for running
+WORKDIR /opt/crossbar
+
+# Default command
+CMD ["crossbar", "start"]

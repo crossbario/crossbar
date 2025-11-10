@@ -26,8 +26,9 @@ import txaio
 
 txaio.use_twisted()
 from txaio import time_ns, sleep, make_logger  # noqa
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, TimeoutError
 from twisted.internet.task import LoopingCall
+from twisted.internet import reactor as _reactor
 
 
 class WebClusterMonitor(object):
@@ -64,8 +65,28 @@ class WebClusterMonitor(object):
         """
         assert self._loop is None
 
-        self._loop = LoopingCall(self._check_and_apply)
-        self._loop.start(self._interval)
+        def _check_and_apply_wrapper():
+            """Wrapper to add errback for error handling"""
+            d = self._check_and_apply()
+            d.addErrback(self._handle_check_and_apply_error)
+            return d
+
+        self._loop = LoopingCall(_check_and_apply_wrapper)
+        self._loop.start(self._interval, now=False)
+        # Schedule first start a bit after arealm monitor to speed up initial startup
+        _reactor.callLater(self._interval * 2 / 3.0, self._loop)
+
+    def _handle_check_and_apply_error(self, failure):
+        """
+        Handle any unhandled errors from _check_and_apply to ensure the flag is reset.
+        """
+        self.log.failure(
+            '{func} Unhandled error in check & apply for webcluster {webcluster} - will retry in next iteration',
+            func=hltype(self._check_and_apply),
+            webcluster=hlid(self._webcluster_oid),
+            failure=failure)
+        # Always reset the flag so next iteration can run
+        self._check_and_apply_in_progress = False
 
     def stop(self):
         """
@@ -183,6 +204,7 @@ class WebClusterMonitor(object):
                                     worker_options)
                                 worker = yield self._manager._session.call(
                                     'crossbarfabriccenter.remote.node.get_worker', node_oid, worker_id)
+                                
                                 self.log.info(
                                     '{func} Web cluster worker {worker_id} started on node {node_oid} [{worker_started}]',
                                     func=hltype(self._check_and_apply),
@@ -316,15 +338,56 @@ class WebClusterMonitor(object):
                                         # FIXME: this shouldn't be there (but should be cluster_oid)
                                         webservice_config.pop('webcluster_oid', None)
                                         try:
-                                            webservice_started = yield self._manager._session.call(
+                                            call_d = self._manager._session.call(
                                                 'crossbarfabriccenter.remote.proxy.start_web_transport_service',
                                                 node_oid, worker_id, transport_id, path, webservice_config)
+
+                                            # Add client-side timeout to prevent monitor from hanging
+                                            call_d.addTimeout(30, _reactor)
+
+                                            webservice_started = yield call_d
+
                                             self.log.info(
                                                 '{func} Web service started on transport {transport_id} and path "{path}" [{webservice_started}]',
                                                 func=hltype(self._check_and_apply),
                                                 transport_id=hlid(transport_id),
                                                 path=hlval(path),
                                                 webservice_started=webservice_started)
+                                        except TimeoutError:
+                                            # Client-side timeout - proxy worker not responding
+                                            self.log.warn(
+                                                '{func} Timeout starting web service on path "{path}" for worker {worker_id} (node {node_oid}) - worker may not be ready yet, will retry',
+                                                func=hltype(self._check_and_apply),
+                                                path=hlval(path),
+                                                worker_id=hlid(worker_id),
+                                                node_oid=hlid(node_oid))
+                                            is_running_completely = False
+                                        except ApplicationError as e:
+                                            # Handle case where realm routes are not configured yet on proxy worker
+                                            # This can happen during node restart when ApplicationRealmMonitor hasn't
+                                            # configured routes yet. We log a warning and retry in next iteration.
+                                            if e.error == 'crossbar.error.no_such_object' and 'in configured routes' in str(
+                                                    e.args[0] if e.args else ''):
+                                                self.log.warn(
+                                                    '{func} Proxy worker realm routes not configured yet for path "{path}" - will retry: {error}',
+                                                    func=hltype(self._check_and_apply),
+                                                    path=hlval(path),
+                                                    error=str(e))
+                                                is_running_completely = False
+                                            elif e.error == 'crossbar.error.cannot_start' and 'could not attach service session' in str(
+                                                    e.args[0] if e.args else ''):
+                                                # Handle case where service session cannot be attached because realm/role not ready yet
+                                                # This happens when ApplicationRealmMonitor hasn't configured the realm on the proxy yet
+                                                self.log.warn(
+                                                    '{func} Cannot attach service session for path "{path}" - realm/role not ready yet, will retry: {error}',
+                                                    func=hltype(self._check_and_apply),
+                                                    path=hlval(path),
+                                                    error=str(e))
+                                                is_running_completely = False
+                                            else:
+                                                # Other errors should still be logged as failures
+                                                self.log.failure()
+                                                is_running_completely = False
                                         except:
                                             self.log.failure()
                                             is_running_completely = False
@@ -347,8 +410,7 @@ class WebClusterMonitor(object):
                                             arealm_oid=hlid(arealm_oid),
                                             workergroup_oid=hlid(arealm.workergroup_oid))
 
-                        wk = (node_oid, worker['id'])
-                        workers[wk] = worker
+                        workers[(node_oid, worker['id'])] = worker
                 else:
                     self.log.warn('{func} Web cluster node {node_oid} not running [status={status}]',
                                   func=hltype(self._check_and_apply),
@@ -375,19 +437,6 @@ class WebClusterMonitor(object):
             self.log.failure()
 
         self._workers = workers
-        for node_oid, worker_id in self._workers:
-            worker = self._workers[(node_oid, worker_id)]
-            if worker:
-                status = worker['status'].upper()
-            else:
-                status = 'MISSING'
-            self.log.info(
-                '{func} webcluster {webcluster_oid} worker {worker_id} on node {node_oid} has status {status}',
-                func=hltype(self._check_and_apply),
-                worker_id=hlid(worker_id),
-                node_oid=hlid(node_oid),
-                webcluster_oid=hlid(self._webcluster_oid),
-                status=hlval(status))
 
         if is_running_completely:
             color = 'green'

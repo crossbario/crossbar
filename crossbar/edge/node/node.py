@@ -727,6 +727,8 @@ class FabricNode(node.Node):
                         self._manager, self._management_realm, self._management_session_id, self._node_id, self._node_extra = res
                         if self._bridge_session:
                             try:
+                                # Wait for bridge session to complete onJoin before attaching manager
+                                yield self._bridge_session._on_ready
                                 yield self._bridge_session.attach_manager(
                                     self._manager, self._management_realm, self._node_id)
                             except:

@@ -108,3 +108,14 @@ print(u'{} {}'.format(type(val), val))
 Above will work on all *nix operating systems (both Python 2 and 3), as well as on Windows/Python3 (it doesn't work in Windows/Python2! Getting that work is really tricky - Python 3 has code for that, which wasn't backported to Python 2).
 
 > Note that environment variables identifiers MUST match the regular expression `^\$([a-zA-Z_][a-zA-Z0-9_]*)$` for portability. However, for uniform treatment across Py2/3, the identifier should nevertheless be processed as a Unicode type. Hence the use of `u'MYTICKET` in above.
+
+
+## Work with the development container
+
+To avoid setting up a local development envrionment on your laptop you can use the Dockerfile to build a container to quickly start developing on the project:
+
+
+```
+docker build -t crossbar-dev .
+docker run --rm -it --name=crossbar -v $PWD:/crossbar -u root --entrypoint /bin/bash crossbar-dev
+```

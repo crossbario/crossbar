@@ -98,6 +98,75 @@ if not hasattr(abi, 'process_type'):
 
 # https://stackoverflow.com/a/40846742/884770
 # https://github.com/numpy/numpy/pull/432/commits/170ed4e33d6196d724dc18ddcd42311c291b4587?diff=split
+
+# monkey patch autobahn to include forward_for in CallDetails
+# This is needed for RLink forwarding to propagate forward_for metadata for loop detection
+import autobahn.wamp.types as wamp_types
+_original_calldetails_init = wamp_types.CallDetails.__init__
+
+
+def _patched_calldetails_init(self,
+                              registration,
+                              progress=None,
+                              caller=None,
+                              caller_authid=None,
+                              caller_authrole=None,
+                              procedure=None,
+                              transaction_hash=None,
+                              enc_algo=None,
+                              forward_for=None):
+    """Patched CallDetails.__init__ that accepts forward_for parameter"""
+    _original_calldetails_init(self, registration, progress, caller, caller_authid, caller_authrole, procedure,
+                               transaction_hash, enc_algo, forward_for)
+
+
+wamp_types.CallDetails.__init__ = _patched_calldetails_init
+
+# Now patch autobahn protocol to pass forward_for when creating CallDetails
+import autobahn.wamp.protocol
+_original_onmessage = autobahn.wamp.protocol.ApplicationSession.onMessage
+
+
+def _patched_onmessage(self, msg):
+    """Patched onMessage that passes forward_for to CallDetails for Invocation messages"""
+    from autobahn.wamp import message
+
+    # Intercept Invocation messages and ensure forward_for is passed to CallDetails
+    if isinstance(msg, message.Invocation) and hasattr(msg, 'forward_for') and msg.forward_for:
+        # Patch the types.CallDetails temporarily to capture the forward_for
+        original_cd_class = wamp_types.CallDetails
+
+        class CallDetailsWithForwardFor(original_cd_class):
+            def __init__(cd_self,
+                         registration,
+                         progress=None,
+                         caller=None,
+                         caller_authid=None,
+                         caller_authrole=None,
+                         procedure=None,
+                         transaction_hash=None,
+                         enc_algo=None,
+                         forward_for=None):
+                # If forward_for not provided but msg has it, use msg's forward_for
+                if forward_for is None:
+                    forward_for = msg.forward_for
+                super().__init__(registration, progress, caller, caller_authid, caller_authrole, procedure,
+                                 transaction_hash, enc_algo, forward_for)
+
+        # Temporarily replace CallDetails class
+        autobahn.wamp.types.CallDetails = CallDetailsWithForwardFor
+        wamp_types.CallDetails = CallDetailsWithForwardFor
+        try:
+            return _original_onmessage(self, msg)
+        finally:
+            autobahn.wamp.types.CallDetails = original_cd_class
+            wamp_types.CallDetails = original_cd_class
+    else:
+        return _original_onmessage(self, msg)
+
+
+autobahn.wamp.protocol.ApplicationSession.onMessage = _patched_onmessage
+
 # https://docs.python.org/3/library/warnings.html
 # /opt/pypy3/lib-python/3/importlib/_bootstrap.py:223: builtins.UserWarning: builtins.type size changed, may indicate binary incompatibility. Expected 872, got 416
 warnings.filterwarnings("ignore", message="builtins.type size changed, may indicate binary incompatibility")

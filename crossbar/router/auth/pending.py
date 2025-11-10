@@ -122,6 +122,17 @@ class PendingAuth:
         if 'extra' in principal:
             self._authextra = principal['extra']
 
+        # For cryptosign-proxy, skip realm/role validation because these will be replaced
+        # by the assign() callback with forwarded credentials from authextra
+        if self.AUTHMETHOD == 'cryptosign-proxy':
+            self.log.debug('Skipping realm/role validation for cryptosign-proxy - '
+                           'will be replaced by forwarded credentials')
+            # Still need authid to be set
+            if not self._authid:
+                return Deny(ApplicationError.NO_SUCH_PRINCIPAL, message='no authid assigned')
+            # Skip realm/role validation - they will be set by cryptosign-proxy's assign() callback
+            return None
+
         # a realm must have been assigned by now, otherwise bail out!
         if not self._realm:
             return Deny(ApplicationError.NO_SUCH_REALM, message='no realm assigned')
@@ -136,8 +147,11 @@ class PendingAuth:
 
         # if realm is not started on router, bail out now!
         if not self._realm_container.has_realm(self._realm):
-            return Deny(ApplicationError.NO_SUCH_REALM,
-                        message='no realm "{}" exists on this router'.format(self._realm))
+            # During startup/reconfiguration, routes may not be ready yet
+            return Deny(
+                ApplicationError.NO_SUCH_REALM,
+                message='no realm "{}" exists on this router - routes may still be initializing, please retry'.format(
+                    self._realm))
 
         # if role is not running on realm, bail out now!
         if self._authrole not in ['trusted', 'anonymous'
@@ -162,9 +176,12 @@ class PendingAuth:
                            realm=hlid(self._authenticator_realm))
 
         if not self._realm_container.has_realm(self._authenticator_realm):
+            # During startup/reconfiguration, routes may not be ready yet. Return a friendly error
+            # that indicates the client should retry.
             return Deny(ApplicationError.NO_SUCH_REALM,
                         message=("explicit realm <{}> configured for dynamic "
-                                 "authenticator does not exist".format(self._authenticator_realm)))
+                                 "authenticator does not exist - proxy routes may still be "
+                                 "initializing, please retry connection".format(self._authenticator_realm)))
 
         # authenticator role
         if 'authenticator-role' in self._config:
@@ -205,18 +222,39 @@ class PendingAuth:
         d_ready = Deferred()
 
         def connect_success(session):
-            self.log.info(
-                'authenticator service session {session_id} attached to realm "{realm}" with authrole "{authrole}" {func}',
-                func=hltype(self._init_dynamic_authenticator),
-                session_id=hlid(session._session_id),
-                authrole=hlid(session._authrole),
-                realm=hlid(session._realm))
-            self._authenticator_session = session
-            d_ready.callback(None)
+            if session is None:
+                # Session is None when realm or role doesn't exist in the realm container
+                # (not due to connection/authentication errors - those would raise exceptions)
+                err = ApplicationError(
+                    ApplicationError.NO_SUCH_REALM,
+                    'authenticator realm "{}" with authrole "{}" not available - realm or role may not be configured'.
+                    format(self._authenticator_realm, self._authenticator_role))
+                self.log.error(
+                    'authenticator service session unavailable for realm "{realm}" with authrole "{authrole}" - '
+                    'check that realm exists and role is configured in proxy routes {func}',
+                    func=hltype(self._init_dynamic_authenticator),
+                    authrole=hlid(self._authenticator_role),
+                    realm=hlid(self._authenticator_realm))
+                d_ready.errback(err)
+            else:
+                self.log.info(
+                    'authenticator service session {session_id} attached to realm "{realm}" with authrole "{authrole}" {func}',
+                    func=hltype(self._init_dynamic_authenticator),
+                    session_id=hlid(session._session_id),
+                    authrole=hlid(session._authrole),
+                    realm=hlid(session._realm))
+                self._authenticator_session = session
+                d_ready.callback(None)
 
         def connect_error(err):
-            self.log.failure()
-            d_ready.callback(err)
+            # This handles actual connection/authentication errors from the Deferred
+            self.log.error(
+                'authenticator service session failed to connect for realm "{realm}" with authrole "{authrole}": {error} {func}',
+                func=hltype(self._init_dynamic_authenticator),
+                authrole=hlid(self._authenticator_role),
+                realm=hlid(self._authenticator_realm),
+                error=err)
+            d_ready.errback(err)
 
         d_connected.addCallbacks(connect_success, connect_error)
         return d_ready

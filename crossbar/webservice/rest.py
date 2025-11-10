@@ -57,7 +57,8 @@ def _create_resource(resource_klass: Union[PublisherResource, CallerResource, We
         if not session or not session.is_attached():
             raise ApplicationError(
                 'crossbar.error.cannot_start',
-                'could not attach service session for HTTP bridge (role "{}" on realm "{}")'.format(authrole, realm))
+                'could not attach service session for HTTP bridge (role "{}" on realm "{}") for RestCaller'.format(
+                    authrole, realm))
 
         # session.authextra:
         # {'x_cb_node': 'intel-nuci7-61704', 'x_cb_worker': 'worker001', 'x_cb_peer': 'unix:None', 'x_cb_pid': 61714}

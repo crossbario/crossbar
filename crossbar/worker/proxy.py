@@ -189,10 +189,10 @@ class ProxyFrontendSession(object):
         :param wasClean: Indicates if the transport has been closed regularly.
         :type wasClean: bool
         """
-        self.log.info('{func} proxy frontend session {sessionId} closed (wasClean={wasClean})',
-                      func=hltype(self.onClose),
-                      sessionId=hlid(self._session_id),
-                      wasClean=wasClean)
+        self.log.debug('{func} proxy frontend session {sessionId} closed (wasClean={wasClean})',
+                       func=hltype(self.onClose),
+                       sessionId=hlid(self._session_id),
+                       wasClean=wasClean)
 
         # actually, at this point, the backend session should already be gone, but better check!
         if self._backend_session:
@@ -1025,16 +1025,17 @@ def make_backend_connection(reactor: ReactorBase, controller: 'ProxyController',
     transport_d = endpoint.connect(factory)
 
     def _connected(proto):
-        proto._proxy_other_side = frontend_session
+        if proto is not None:
+            proto._proxy_other_side = frontend_session
         return proto
 
     def _error(f):
         # backend session disconnected without ever having joined before
         if not ready.called:
             ready.errback(f)
+        return None  # Return None to prevent further callback processing
 
-    transport_d.addErrback(_error)
-    transport_d.addCallback(_connected)
+    transport_d.addCallbacks(_connected, _error)
 
     return ready
 
@@ -1077,7 +1078,7 @@ class AuthenticatorSession(ApplicationSession):
                                                               channel_id=channel_id,
                                                               channel_id_type=channel_id_type)
             return signed_challenge
-        except:
+        except Exception:
             self.log.failure()
             raise
 
@@ -1596,7 +1597,8 @@ class ProxyController(TransportController):
         self.log.debug('{func}(realm="{realm}") -> {result}',
                        func=hltype(ProxyController.has_realm),
                        realm=hlid(realm),
-                       result=hlval(result))
+                       result=hlval(result),
+                       realms=list(self._routes.keys()))
         return result
 
     def has_role(self, realm: str, authrole: str) -> bool:
@@ -1669,9 +1671,19 @@ class ProxyController(TransportController):
                 else:
                     # mark as non-existing!
                     self._service_sessions[realm] = None
+            elif self._service_sessions[realm] is None:
+                if self.has_realm(realm):
+                    self.log.info(
+                        '{klass}.get_service_session(realm="{realm}", authrole="{authrole}") -> '
+                        'realm became available, resetting cache',
+                        klass=self.__class__.__name__,
+                        realm=realm,
+                        authrole=authrole)
+                    self._service_sessions[realm] = {}
 
             # .. check for (realm, authrole)
-            if self._service_sessions[realm] is not None and authrole not in self._service_sessions[realm]:
+            if self._service_sessions[realm] is not None and (authrole not in self._service_sessions[realm]
+                                                              or self._service_sessions[realm][authrole] is None):
                 if self.has_role(realm, authrole):
                     # get backend connection configuration selected (round-robin or randomly) from all routes
                     # for the desired (realm, authrole)
@@ -1684,16 +1696,35 @@ class ProxyController(TransportController):
                     # mark as non-existing!
                     self._service_sessions[realm][authrole] = None
 
+            # Try to get and resolve the service session
+            service_session = None
             if self._service_sessions[realm] and self._service_sessions[realm][authrole]:
                 service_session_or_deferred = self._service_sessions[realm][authrole]
                 if isinstance(service_session_or_deferred, Deferred):
-                    service_session = yield service_session_or_deferred
-                    if service_session is not None:
-                        self._service_sessions[realm][authrole] = service_session
+                    try:
+                        service_session = yield service_session_or_deferred
+                        if service_session is not None:
+                            self._service_sessions[realm][authrole] = service_session
+                    except Exception as e:
+                        # Connection failed - clear the cache so we can retry
+                        self._service_sessions[realm][authrole] = None
+                        self.log.error(
+                            '{klass}.get_service_session(realm="{realm}", authrole="{authrole}") -> '
+                            'service session connection failed: {error}',
+                            klass=self.__class__.__name__,
+                            realm=realm,
+                            authrole=authrole,
+                            error=str(e))
+                        return None
+                else:
+                    service_session = service_session_or_deferred
 
-            # return cached service session
-            if self._service_sessions[realm] and self._service_sessions[realm][authrole]:
-                service_session = self._service_sessions[realm][authrole]
+            # Return the resolved service session
+            # Check both that we got a session AND that it's still properly cached
+            # (the cache check protects against race conditions where another coroutine
+            # might have invalidated the session between yield and here)
+            if (service_session is not None and not isinstance(service_session, Deferred)
+                    and self._service_sessions.get(realm) and self._service_sessions[realm].get(authrole) is not None):
                 self.log.info(
                     '{klass}.get_service_session(realm="{realm}", authrole="{authrole}") -> found cached service '
                     'session {session} with authid "{session_authid}" and authrole "{session_authrole}"',
@@ -1705,8 +1736,11 @@ class ProxyController(TransportController):
                     session_authrole=service_session.authrole)
                 return service_session
             else:
-                self.log.warn(
-                    '{klass}.get_service_session(realm="{realm}", authrole="{authrole}") -> no such realm/authrole!',
+                # Realm and role exist (checked earlier), but service session is None
+                # This means either: connection failed, session not yet ready, or was invalidated
+                self.log.error(
+                    '{klass}.get_service_session(realm="{realm}", authrole="{authrole}") -> '
+                    'service session is None (connection may have failed or session not yet established)',
                     klass=self.__class__.__name__,
                     realm=realm,
                     authrole=authrole)

@@ -43,6 +43,7 @@ vers/
 .DS_Store
 _build
 pip-wheel-metadata
+.venv
 
 # vscode
 .vscode/*

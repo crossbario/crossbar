@@ -373,7 +373,13 @@ class MrealmController(ApplicationSession):
         self._tick_loop = LoopingCall(on_tick)
         self._tick_loop.start(5)
 
-        self._check_and_apply_loop = LoopingCall(self.check_and_apply)
+        def _check_and_apply_wrapper():
+            """Wrapper to add errback for error handling"""
+            d = self.check_and_apply()
+            d.addErrback(self._handle_check_and_apply_error)
+            return d
+
+        self._check_and_apply_loop = LoopingCall(_check_and_apply_wrapper)
         self._check_and_apply_loop.start(10)
 
         # CFC public API
@@ -423,6 +429,18 @@ class MrealmController(ApplicationSession):
         # initialize tracing API
         yield self._init_trace_api()
 
+    def _handle_check_and_apply_error(self, failure):
+        """
+        Handle any unhandled errors from check_and_apply to ensure the flag is reset.
+        """
+        self.log.failure(
+            '{func} Unhandled error in check & apply for mrealm {mrealm} - will retry in next iteration',
+            func=hltype(self.check_and_apply),
+            mrealm=hlid(self._mrealm_oid),
+            failure=failure)
+        # Always reset the flag so next iteration can run
+        self._check_and_apply_in_progress = False
+
     @inlineCallbacks
     def check_and_apply(self):
         if self._check_and_apply_in_progress:
@@ -449,12 +467,14 @@ class MrealmController(ApplicationSession):
                 node_status = yield self.call('crossbarfabriccenter.remote.node.get_status', node_id)
             except Exception as e:
                 cnt_nodes_offline += 1
-                is_running_completely = False
+                # Only set is_running_completely = False if we expected the node to be online but it's not responding
+                # If the node is already marked as offline, this is expected and not a problem
 
                 if isinstance(e, ApplicationError) and e.error == 'wamp.error.no_such_procedure':
                     if self._nodes[node_id].status == 'offline':
                         # this is "expected" - we already knew that the node is offline, and hence the call is failing
                         # because of "no_such_procedure" is exactly what will happen as the node is offline
+                        # This is NOT a problem - offline nodes don't need management
                         self.log.warn(
                             '{action} [status={status}] {func}',
                             action=hl('Warning, managed node "{}" still not connected or operational'.format(node_id),
@@ -463,6 +483,9 @@ class MrealmController(ApplicationSession):
                             status=hlval(self._nodes[node_id].status),
                             func=hltype(self.check_and_apply))
                     else:
+                        # Node was expected to be online but is now offline - THIS IS A PROBLEM
+                        is_running_completely = False
+                        
                         if self._nodes[node_id].status == 'online':
                             self._nodes_shutdown[node_id] = time_ns()
 
@@ -488,6 +511,8 @@ class MrealmController(ApplicationSession):
                                           status=hlval(self._nodes[node_id].status))
                         self._nodes[node_id].status = 'offline'
                 else:
+                    # Unexpected error - mark as offline and report as problem
+                    is_running_completely = False
                     self._nodes[node_id].status = 'offline'
                     self.log.warn('{action} [status={status}] {func}',
                                   action=hl('Warning: check on managed node "{}" failed: {}'.format(node_id, e),

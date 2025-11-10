@@ -701,3 +701,80 @@ class TestDealer(unittest.TestCase):
         result_msg = caller_messages[-1]
         self.assertIsInstance(result_msg, message.Result)
         self.assertEqual(result_msg.args, ['a result'])
+
+    def test_cleanup_on_caller_disconnect_without_call_canceling(self):
+        """
+        Test that invocation tracking is properly cleaned up when a caller
+        disconnects before receiving a response, even if the callee doesn't
+        support call_canceling.
+
+        This test verifies the fix for the bug where stale invocation tracking
+        would cause errors when the callee returned a result after the caller
+        had already disconnected.
+
+        Regression test for: When a client calls a remote procedure and exits
+        before the call is returned, the callee should not get an exception.
+        """
+        # Create mock sessions
+        caller_session = mock.Mock()
+        caller_session._session_id = 12345
+        caller_session._transport = None  # Caller already disconnected
+        caller_session._session_roles = {'caller': role.RoleCallerFeatures()}
+
+        callee_session = mock.Mock()
+        callee_session._session_id = 67890
+        callee_session._transport = mock.Mock()
+        # Callee does NOT support call_canceling
+        callee_session._session_roles = {'callee': role.RoleCalleeFeatures()}
+
+        dealer = self.router._dealer
+        dealer.attach(callee_session)
+
+        # Create a mock invocation request to simulate an active call
+        from crossbar.router.dealer import InvocationRequest
+
+        call_msg = mock.Mock()
+        call_msg.request = 999
+
+        registration = mock.Mock()
+        registration.id = 1
+
+        invocation_request = InvocationRequest(id=1,
+                                               registration=registration,
+                                               caller=caller_session,
+                                               call=call_msg,
+                                               callee=callee_session,
+                                               forward_for=None,
+                                               authorization={})
+        invocation_request.timeout_call = None
+        invocation_request.canceled = False
+
+        # Manually add to all four tracking structures (simulating active invocation)
+        dealer._invocations[1] = invocation_request
+        dealer._callee_to_invocations[callee_session] = [invocation_request]
+        dealer._caller_to_invocations[caller_session] = [invocation_request]
+        dealer._invocations_by_call[(caller_session._session_id, call_msg.request)] = invocation_request
+
+        # Verify all tracking structures have the invocation
+        self.assertEqual(len(dealer._invocations), 1)
+        self.assertEqual(len(dealer._callee_to_invocations), 1)
+        self.assertEqual(len(dealer._caller_to_invocations), 1)
+        self.assertEqual(len(dealer._invocations_by_call), 1)
+
+        # Now simulate caller disconnect by calling detach
+        dealer.detach(caller_session)
+
+        # THE FIX: Verify that ALL tracking structures are cleaned up,
+        # even though callee doesn't support call_canceling
+        self.assertEqual(len(dealer._invocations), 0, "Invocations map should be empty after caller disconnect")
+        self.assertEqual(len(dealer._callee_to_invocations), 0,
+                         "Callee-to-invocations map should be empty after caller disconnect")
+        self.assertEqual(len(dealer._caller_to_invocations), 0,
+                         "Caller-to-invocations map should be empty after caller disconnect")
+        self.assertEqual(len(dealer._invocations_by_call), 0,
+                         "Invocations-by-call map should be empty after caller disconnect")
+
+        # Verify no messages were sent to callee (no INTERRUPT since call_canceling not supported)
+        # The callee's transport.send should not have been called
+        self.assertEqual(callee_session._transport.send.call_count, 0,
+                         "No INTERRUPT should be sent when callee doesn't support call_canceling")

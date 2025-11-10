@@ -457,6 +457,7 @@ class RouterSession(BaseSession):
             if not self._pending_session_id:
                 self._pending_session_id = util.id()
 
+            @inlineCallbacks
             def welcome(realm,
                         authid=None,
                         authrole=None,
@@ -478,10 +479,31 @@ class RouterSession(BaseSession):
                 self._pending_session_id = None
                 self._goodbye_sent = False
 
-                self._router = self._router_factory.get(realm)
+                # Handle race condition where realm is being initialized but not yet registered in router factory
+                # Retry for up to 5 seconds with exponential backoff
+                self._router = None
+                max_retries = 10
+                retry_delay = 0.1  # Start with 100ms
+
+                for attempt in range(max_retries):
+                    self._router = self._router_factory.get(realm)
+                    if self._router:
+                        break
+
+                    if attempt < max_retries - 1:
+                        self.log.debug(
+                            'Realm "{realm}" not yet available in router factory (attempt {attempt}/{max_retries}), retrying in {delay}s...',
+                            realm=realm,
+                            attempt=attempt + 1,
+                            max_retries=max_retries,
+                            delay=retry_delay)
+                        yield txaio.sleep(retry_delay)
+                        retry_delay = min(retry_delay * 1.5, 1.0)  # Exponential backoff, max 1s
+
                 if not self._router:
-                    # should not arrive here
-                    raise Exception("logic error (no realm at a stage were we should have one)")
+                    # Realm still not available after retries
+                    raise Exception("Realm '{}' not available in router factory after {} retry attempts".format(
+                        realm, max_retries))
 
                 self._authid = authid
                 self._authrole = authrole
@@ -563,8 +585,9 @@ class RouterSession(BaseSession):
                             'x_cb_peer': str(self._transport.peer),
                             'x_cb_pid': os.getpid(),
                         }
-                        welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra,
-                                custom)
+                        # welcome() now returns a Deferred, return it to chain properly
+                        return welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider,
+                                       res.authextra, custom)
 
                     elif isinstance(res, Challenge):
                         msg = message.Challenge(res.method, res.extra)
@@ -608,8 +631,9 @@ class RouterSession(BaseSession):
                             'x_cb_peer': str(self._transport.peer),
                             'x_cb_pid': os.getpid(),
                         }
-                        welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra,
-                                custom)
+                        # welcome() now returns a Deferred, return it to chain properly
+                        return welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider,
+                                       res.authextra, custom)
 
                     elif isinstance(res, Deny):
                         msg = message.Abort(res.reason, res.message)

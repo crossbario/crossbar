@@ -187,9 +187,14 @@ class NodeManagementBridgeSession(ApplicationSession):
         self._heartbeat_time_ns = None
         self._heartbeat = 0
         self._heartbeat_call = None
+        from twisted.internet.defer import Deferred
+        self._on_ready = Deferred()
 
     def onJoin(self, details):
         self.log.debug('{klass}.onJoin(details={details})', klass=self.__class__.__name__, details=details)
+        # Signal that bridge session is ready for attach_manager
+        if not self._on_ready.called:
+            self._on_ready.callback(None)
 
     @inlineCallbacks
     def attach_manager(self, manager, management_realm, node_id):
