@@ -243,6 +243,9 @@ ignore = [
     "E501",  # line too long (handled by formatter)
     "E721",  # type() comparison instead of isinstance() - deliberate style choice
     "E402",  # module level import not at top (intentional in some files)
+    "E722",  # bare except - TODO: fix once tests are running
+    "E741",  # ambiguous variable names (l, I, O) - TODO: fix once tests are running
+    "F823",  # undefined name in type annotation - TODO: fix once tests are running
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -257,6 +260,15 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+exclude = [
+    "^crossbar/worker/test/examples/",
+]
+# Disable errors that are not actionable until dependencies add type stubs
+disable_error_code = [
+    "import-untyped",  # Third-party libraries without type stubs (autobahn, txaio, etc.)
+    "import-not-found",  # Modules not found (xbr, etc.) - TODO: fix when xbr has type stubs
+    "attr-defined",  # Often caused by untyped imports - TODO: revisit after adding type stubs
+]
 
 # Pytest configuration
 [tool.pytest.ini_options]

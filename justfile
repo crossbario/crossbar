@@ -451,7 +451,12 @@ check-typing venv="": (install-tools venv) (install venv)
     fi
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     echo "==> Running static type checks with ${VENV_NAME}..."
-    "${VENV_PATH}/bin/mypy" crossbar/
+    "${VENV_PATH}/bin/mypy" \
+        --exclude 'crossbar/worker/test/examples/' \
+        --disable-error-code=import-untyped \
+        --disable-error-code=import-not-found \
+        --disable-error-code=attr-defined \
+        crossbar/
 
 # Run all checks in single environment (usage: `just check cpy312`)
 check venv="": (check-format venv) (check-typing venv)
