@@ -11,12 +11,11 @@ from pprint import pformat
 import txaio
 
 txaio.use_twisted()
-from txaio import sleep, time_ns
-from twisted.internet.defer import inlineCallbacks
-
 from autobahn import wamp
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import RegisterOptions
+from twisted.internet.defer import inlineCallbacks
+from txaio import sleep, time_ns
 
 from crossbar._util import hl, hlid, hltype
 
@@ -39,6 +38,7 @@ class Documentation(object):
     """
     FIXME.
     """
+
     def __init__(self):
         pass
 
@@ -60,10 +60,11 @@ class MetadataManager(object):
         - Documentation
         - Comments
     """
+
     log = None
 
     otype_to_slot = {
-        'docs': META_DOC_OTYPE_TO_SLOT,
+        "docs": META_DOC_OTYPE_TO_SLOT,
     }
 
     def __init__(self, session, db, schema):
@@ -106,20 +107,24 @@ class MetadataManager(object):
 
         :return:
         """
-        assert self._started is None, 'cannot start Metadata manager - already running!'
+        assert self._started is None, "cannot start Metadata manager - already running!"
 
-        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg='details'))
+        regs = yield self._session.register(self, prefix=prefix, options=RegisterOptions(details_arg="details"))
         self._prefix = prefix
         procs = [reg.procedure for reg in regs]
-        self.log.debug('Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n',
-                       api=hl('Metadata manager API', color='green', bold=True),
-                       func=hltype(self.start),
-                       procs=hl(pformat(procs), color='white', bold=True))
+        self.log.debug(
+            "Mrealm controller {api} registered management procedures [{func}]:\n\n{procs}\n",
+            api=hl("Metadata manager API", color="green", bold=True),
+            func=hltype(self.start),
+            procs=hl(pformat(procs), color="white", bold=True),
+        )
 
         self._started = time_ns()
-        self.log.info('Metadata manager ready for management realm {mrealm_oid}! [{func}]',
-                      mrealm_oid=hlid(self._mrealm_oid),
-                      func=hltype(self.start))
+        self.log.info(
+            "Metadata manager ready for management realm {mrealm_oid}! [{func}]",
+            mrealm_oid=hlid(self._mrealm_oid),
+            func=hltype(self.start),
+        )
 
     @inlineCallbacks
     def stop(self):
@@ -128,7 +133,7 @@ class MetadataManager(object):
 
         :return:
         """
-        assert self._started > 0, 'cannot stop Metadata manager - currently not running!'
+        assert self._started > 0, "cannot stop Metadata manager - currently not running!"
         yield sleep(0)
         self._started = None
 
@@ -153,7 +158,7 @@ class MetadataManager(object):
         try:
             oid = uuid.UUID(oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid object_id: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid object_id: {}".format(str(e)))
 
         with self.db.begin() as txn:
             documentation = self.schema.documentation[txn, oid]
@@ -179,11 +184,11 @@ class MetadataManager(object):
         try:
             oid = uuid.UUID(oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid object_id: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid object_id: {}".format(str(e)))
 
         docs = Documentation.parse(docs)
 
-        result = {'object': oid}
+        result = {"object": oid}
 
         with self.db.begin(write=True) as txn:
             # get current docs attached to OID
@@ -194,13 +199,13 @@ class MetadataManager(object):
                 if docs.modified != current_docs.modified:
                     raise Exception
                 docs.oid = current_docs.oid
-                result['new'] = False
+                result["new"] = False
             else:
                 docs.oid = uuid.uuid4()
-                result['new'] = True
+                result["new"] = True
 
             # the OID of the doc (vs the OID of the object the doc is for!)
-            result['docs'] = str(docs.oid)
+            result["docs"] = str(docs.oid)
 
             # save the doc object itself
             self.schema.docs[txn, docs.oid] = docs
@@ -208,7 +213,7 @@ class MetadataManager(object):
             # save the mapping from object to doc object
             self.schema.obj2docs[txn, oid] = docs.oid
 
-        self._session.publish(result, u'{}.on_docs_added'.format(self.prefix))
+        self._session.publish(result, "{}.on_docs_added".format(self.prefix))
 
         return result
 

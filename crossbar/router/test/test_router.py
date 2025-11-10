@@ -5,51 +5,43 @@
 #
 #####################################################################################
 
+import mock
+import txaio
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp import message, role, types
+from autobahn.wamp.types import TransportDetails
 from twisted.trial import unittest
 
-import txaio
-import mock
-
-from autobahn.wamp import types
-from autobahn.wamp import message
-from autobahn.wamp import role
-from autobahn.wamp.types import TransportDetails
-from autobahn.twisted.wamp import ApplicationSession
-
+from crossbar.router.role import RouterRoleStaticAuth
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.worker.types import RouterRealm
-from crossbar.router.role import RouterRoleStaticAuth
 
 
 class TestEmbeddedSessions(unittest.TestCase):
     """
     Test cases for application session running embedded in router.
     """
+
     def setUp(self):
         """
         Setup router and router session factories.
         """
 
         # create a router factory
-        self.router_factory = RouterFactory('node1', 'router1', None)
+        self.router_factory = RouterFactory("node1", "router1", None)
 
         # start a realm
-        self.router_factory.start_realm(RouterRealm(None, None, {'name': 'realm1'}))
+        self.router_factory.start_realm(RouterRealm(None, None, {"name": "realm1"}))
 
         # allow everything
         default_permissions = {
-            'uri': '',
-            'match': 'prefix',
-            'allow': {
-                'call': True,
-                'register': True,
-                'publish': True,
-                'subscribe': True
-            }
+            "uri": "",
+            "match": "prefix",
+            "allow": {"call": True, "register": True, "publish": True, "subscribe": True},
         }
-        self.router = self.router_factory.get('realm1')
-        self.router.add_role(RouterRoleStaticAuth(self.router, 'test_role', default_permissions=default_permissions))
+        self.router = self.router_factory.get("realm1")
+        self.router.add_role(RouterRoleStaticAuth(self.router, "test_role", default_permissions=default_permissions))
         self.router.add_role(RouterRoleStaticAuth(self.router, None, default_permissions=default_permissions))
 
         # create a router session factory
@@ -63,23 +55,23 @@ class TestEmbeddedSessions(unittest.TestCase):
         When a dynamic authorizor throws an exception (during processCall)
         we log it.
         """
-        raise unittest.SkipTest('FIXME: the mock may be wrong here ..')
+        raise unittest.SkipTest("FIXME: the mock may be wrong here ..")
 
         the_exception = RuntimeError("authorizer bug")
 
         def boom(*args, **kw):
             raise the_exception
 
-        self.router._roles['test_role'].authorize = boom
+        self.router._roles["test_role"].authorize = boom
 
         class TestSession(ApplicationSession):
             def __init__(self, *args, **kw):
                 super(TestSession, self).__init__(*args, **kw)
-                self._authrole = 'test_role'
+                self._authrole = "test_role"
                 self._transport = mock.MagicMock()
 
         session0 = TestSession()
-        self.router._dealer._registration_map.add_observer(session0, 'test.proc')
+        self.router._dealer._registration_map.add_observer(session0, "test.proc")
 
         # okay, we have an authorizer that will always explode and a
         # single procedure registered; when we call it, then
@@ -88,7 +80,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         call = message.Call(
             request=1234,
-            procedure='test.proc',
+            procedure="test.proc",
             args=tuple(),
             kwargs=dict(),
         )
@@ -100,7 +92,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         self.assertEqual(1, len(session0._transport.mock_calls))
         call = session0._transport.mock_calls[0]
-        self.assertEqual('send', call[0])
+        self.assertEqual("send", call[0])
         # ensure we logged our error (flushLoggedErrors also causes
         # trial to *not* fail the unit-test despite an error logged)
         errors = self.flushLoggedErrors()
@@ -111,26 +103,26 @@ class TestEmbeddedSessions(unittest.TestCase):
         When a dynamic authorizor throws an exception (during processRegister)
         we log it.
         """
-        raise unittest.SkipTest('FIXME: the mock may be wrong here ..')
+        raise unittest.SkipTest("FIXME: the mock may be wrong here ..")
 
         the_exception = RuntimeError("authorizer bug")
 
         def boom(*args, **kw):
             raise the_exception
 
-        self.router._roles['test_role'].authorize = boom
+        self.router._roles["test_role"].authorize = boom
 
         class TestSession(ApplicationSession):
             def __init__(self, *args, **kw):
                 super(TestSession, self).__init__(*args, **kw)
-                self._authrole = 'test_role'
+                self._authrole = "test_role"
                 self._transport = mock.MagicMock()
 
         session0 = TestSession()
 
         call = message.Register(
             request=1234,
-            procedure='test.proc_reg',
+            procedure="test.proc_reg",
         )
         # this should produce an error -- however processCall doesn't
         # itself return the Deferred, so we look for the side-effect
@@ -140,7 +132,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         self.assertEqual(1, len(session0._transport.mock_calls))
         call = session0._transport.mock_calls[0]
-        self.assertEqual('send', call[0])
+        self.assertEqual("send", call[0])
         # ensure we logged our error (flushLoggedErrors also causes
         # trial to *not* fail the unit-test despite an error logged)
         errors = self.flushLoggedErrors()
@@ -157,7 +149,7 @@ class TestEmbeddedSessions(unittest.TestCase):
             def onJoin(self, details):
                 txaio.resolve(d, None)
 
-        session = TestSession(types.ComponentConfig('realm1'))
+        session = TestSession(types.ComponentConfig("realm1"))
 
         self.session_factory.add(session, self.router)
 
@@ -179,7 +171,7 @@ class TestEmbeddedSessions(unittest.TestCase):
             def onUserError(self, *args, **kw):
                 errors.append((args, kw))
 
-        session = TestSession(types.ComponentConfig('realm1'))
+        session = TestSession(types.ComponentConfig("realm1"))
 
         # in this test, we are just looking for onUserError to get
         # called so we don't need to patch the logger. this should
@@ -196,11 +188,11 @@ class TestEmbeddedSessions(unittest.TestCase):
         similar to above, but during _RouterSession's onMessage handling,
         where it calls self.onHello
         """
-        raise unittest.SkipTest('FIXME: Adjust unit test mocks #1567')
+        raise unittest.SkipTest("FIXME: Adjust unit test mocks #1567")
 
         # setup
         transport = mock.MagicMock()
-        transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
+        transport.transport_details = TransportDetails(channel_id={"tls-unique": b"deadbeef"})
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -209,11 +201,12 @@ class TestEmbeddedSessions(unittest.TestCase):
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onHello = boom
         session.onOpen(transport)
-        msg = message.Hello('realm1', dict(caller=role.RoleCallerFeatures()))
+        msg = message.Hello("realm1", dict(caller=role.RoleCallerFeatures()))
 
         # XXX think: why isn't this using _RouterSession.log?
         from crossbar.router.session import RouterSession
-        with mock.patch.object(RouterSession, 'log') as logger:
+
+        with mock.patch.object(RouterSession, "log") as logger:
             # do the test; should call onHello which is now "boom", above
             session.onMessage(msg)
 
@@ -222,20 +215,20 @@ class TestEmbeddedSessions(unittest.TestCase):
             call = logger.method_calls[0]
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
-            self.assertEqual(call[0], 'failure')
-            self.assertTrue('failure' in call[2])
-            self.assertEqual(call[2]['failure'].value, the_exception)
+            self.assertEqual(call[0], "failure")
+            self.assertTrue("failure" in call[2])
+            self.assertEqual(call[2]["failure"].value, the_exception)
 
     def test_router_session_internal_error_onAuthenticate(self):
         """
         similar to above, but during _RouterSession's onMessage handling,
         where it calls self.onAuthenticate)
         """
-        raise unittest.SkipTest('FIXME: Adjust unit test mocks #1567')
+        raise unittest.SkipTest("FIXME: Adjust unit test mocks #1567")
 
         # setup
         transport = mock.MagicMock()
-        transport.transport_details = TransportDetails(channel_id={'tls-unique': b'deadbeef'})
+        transport.transport_details = TransportDetails(channel_id={"tls-unique": b"deadbeef"})
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -244,11 +237,12 @@ class TestEmbeddedSessions(unittest.TestCase):
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onAuthenticate = boom
         session.onOpen(transport)
-        msg = message.Authenticate('bogus signature')
+        msg = message.Authenticate("bogus signature")
 
         # XXX think: why isn't this using _RouterSession.log?
         from crossbar.router.session import RouterSession
-        with mock.patch.object(RouterSession, 'log') as logger:
+
+        with mock.patch.object(RouterSession, "log") as logger:
             # do the test; should call onHello which is now "boom", above
             session.onMessage(msg)
 
@@ -257,9 +251,9 @@ class TestEmbeddedSessions(unittest.TestCase):
             call = logger.method_calls[0]
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
-            self.assertEqual(call[0], 'failure')
-            self.assertTrue('failure' in call[2])
-            self.assertEqual(call[2]['failure'].value, the_exception)
+            self.assertEqual(call[0], "failure")
+            self.assertTrue("failure" in call[2])
+            self.assertEqual(call[2]["failure"].value, the_exception)
 
     def test_add_and_subscribe(self):
         """
@@ -274,7 +268,7 @@ class TestEmbeddedSessions(unittest.TestCase):
                 def on_event(*arg, **kwargs):
                     pass
 
-                d2 = self.subscribe(on_event, 'com.example.topic1')
+                d2 = self.subscribe(on_event, "com.example.topic1")
 
                 def ok(_):
                     txaio.resolve(d, None)
@@ -284,7 +278,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
                 txaio.add_callbacks(d2, ok, error)
 
-        session = TestSession(types.ComponentConfig('realm1'))
+        session = TestSession(types.ComponentConfig("realm1"))
 
         self.session_factory.add(session, self.router)
 

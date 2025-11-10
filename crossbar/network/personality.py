@@ -7,15 +7,14 @@
 
 import txaio
 
-from crossbar.network.node.node import XbrNetworkNode
 from crossbar.edge.personality import Personality as _Personality
+from crossbar.network.node.node import XbrNetworkNode
 
 
 class Personality(_Personality):
-
     log = txaio.make_logger()
 
-    NAME = 'network'
+    NAME = "network"
 
     Node = XbrNetworkNode
 

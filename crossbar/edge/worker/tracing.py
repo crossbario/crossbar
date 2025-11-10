@@ -5,20 +5,18 @@
 #
 ##############################################################################
 
-import six
-import uuid
 import math
-from datetime import datetime
+import uuid
 from collections import deque
+from datetime import datetime
 
-from txaio import make_logger, time_ns, perf_counter_ns
-
-from twisted.internet.task import LoopingCall
-
+import six
 from autobahn import util
 from autobahn.wamp import message
+from twisted.internet.task import LoopingCall
+from txaio import make_logger, perf_counter_ns, time_ns
 
-__all__ = ('FabricRouterTrace', )
+__all__ = ("FabricRouterTrace",)
 
 # import pyarrow as pa
 # import pyarrow.parquet as pq
@@ -37,17 +35,16 @@ __all__ = ('FabricRouterTrace', )
 
 
 class TracedMessage(object):
-
     __slots__ = (
-        'ts',
-        'pc',
-        'seq',
-        'realm',
-        'direction',
-        'session_id',
-        'authid',
-        'authrole',
-        'msg',
+        "ts",
+        "pc",
+        "seq",
+        "realm",
+        "direction",
+        "session_id",
+        "authid",
+        "authrole",
+        "msg",
     )
 
     def __init__(self, seq, realm, direction, session_id, authid, authrole, msg):
@@ -63,41 +60,52 @@ class TracedMessage(object):
 
     def marshal(self, include_message=False):
         obj = {
-            u'ts': self.ts,
-            u'pc': self.pc,
-            u'seq': self.seq,
-            u'realm': self.realm,
-            u'direction': self.direction,
-            u'session_id': self.session_id,
-            u'authid': self.authid,
-            u'authrole': self.authrole,
-            u'msg_type': six.text_type(self.msg.__class__.__name__),
-            u'correlation': self.msg.correlation_id,
-            u'correlation_uri': self.msg.correlation_uri,
-            u'correlation_is_anchor': self.msg.correlation_is_anchor,
-            u'correlation_is_last': self.msg.correlation_is_last,
-            u'enc_algo': self.msg.enc_algo if hasattr(self.msg, 'enc_algo') else None,
-            u'enc_key': self.msg.enc_key if hasattr(self.msg, 'enc_key') else None,
-            u'enc_serializer': self.msg.enc_serializer if hasattr(self.msg, 'enc_serializer') else None,
+            "ts": self.ts,
+            "pc": self.pc,
+            "seq": self.seq,
+            "realm": self.realm,
+            "direction": self.direction,
+            "session_id": self.session_id,
+            "authid": self.authid,
+            "authrole": self.authrole,
+            "msg_type": six.text_type(self.msg.__class__.__name__),
+            "correlation": self.msg.correlation_id,
+            "correlation_uri": self.msg.correlation_uri,
+            "correlation_is_anchor": self.msg.correlation_is_anchor,
+            "correlation_is_last": self.msg.correlation_is_last,
+            "enc_algo": self.msg.enc_algo if hasattr(self.msg, "enc_algo") else None,
+            "enc_key": self.msg.enc_key if hasattr(self.msg, "enc_key") else None,
+            "enc_serializer": self.msg.enc_serializer if hasattr(self.msg, "enc_serializer") else None,
         }
 
         # track msg serialization sizes
         serializations = {}
         for ser, val in self.msg._serialized.items():
             serializations[ser.NAME] = len(val)
-        obj[u'serializations'] = serializations
+        obj["serializations"] = serializations
 
         if include_message:
             # forward raw WAMP message
-            obj[u'msg'] = self.msg.marshal()
+            obj["msg"] = self.msg.marshal()
 
         return obj
 
 
 class TracedAction(object):
-
-    __slots__ = ('correlation_id', 'correlation_uri', 'ts', 'pc', 'seq', 'realm', 'action', 'originator', 'responders',
-                 'originator_enc', 'responders_enc', 'success')
+    __slots__ = (
+        "correlation_id",
+        "correlation_uri",
+        "ts",
+        "pc",
+        "seq",
+        "realm",
+        "action",
+        "originator",
+        "responders",
+        "originator_enc",
+        "responders_enc",
+        "success",
+    )
 
     def __init__(self, correlation_id, correlation_uri, seq, realm, action, originator, responders):
         self.correlation_id = correlation_id
@@ -113,16 +121,16 @@ class TracedAction(object):
 
     def marshal(self):
         obj = {
-            u'ts': self.ts,
-            u'pc': self.pc,
-            u'seq': self.seq,
-            u'realm': self.realm,
-            u'action': self.action,
-            u'correlation_id': self.correlation_id,
-            u'correlation_uri': self.correlation_uri,
-            u'originator': self.originator,
-            u'responders': self.responders,
-            u'success': self.success,
+            "ts": self.ts,
+            "pc": self.pc,
+            "seq": self.seq,
+            "realm": self.realm,
+            "action": self.action,
+            "correlation_id": self.correlation_id,
+            "correlation_uri": self.correlation_uri,
+            "originator": self.originator,
+            "responders": self.responders,
+            "success": self.success,
         }
 
         return obj
@@ -144,16 +152,18 @@ class FabricRouterTrace(object):
 
     log = make_logger()
 
-    def __init__(self,
-                 session,
-                 trace_id,
-                 on_trace_period_finished=None,
-                 trace_level=u'message',
-                 trace_app_payload=False,
-                 batching_period=200,
-                 persist=False,
-                 duration=None,
-                 limit=60):
+    def __init__(
+        self,
+        session,
+        trace_id,
+        on_trace_period_finished=None,
+        trace_level="message",
+        trace_app_payload=False,
+        batching_period=200,
+        persist=False,
+        duration=None,
+        limit=60,
+    ):
         """
 
         :param trace_id: The ID assigned to the trace within the router-realm.
@@ -185,7 +195,7 @@ class FabricRouterTrace(object):
         self._persist = persist
         self._duration = duration
         self._limit = limit
-        self._status = u'created'
+        self._status = "created"
 
         if persist:
             self._persistent_id = str(uuid.uuid4())
@@ -207,29 +217,28 @@ class FabricRouterTrace(object):
         self._open_actions = {}
 
         # the accumulated data for the trace
-        max_periods = int(math.ceil(float(limit) * 1000. / float(batching_period)))
+        max_periods = int(math.ceil(float(limit) * 1000.0 / float(batching_period)))
         self._trace = deque(maxlen=max_periods)
 
         # the looping call the accumulates the current batch
         self._batch_looper = None
 
     def _batch_loop(self):
-
         period = {
-            u'finished_ts': time_ns(),
-            u'finished_pc': perf_counter_ns(),
-            u'period': self._period,
-            u'period_start': util.utcstr(self._period_ts),
+            "finished_ts": time_ns(),
+            "finished_pc": perf_counter_ns(),
+            "period": self._period,
+            "period_start": util.utcstr(self._period_ts),
         }
 
         current_batch = self._current_batch
 
         if current_batch:
-            period[u'first_seq'] = current_batch[0].seq
-            period[u'last_seq'] = current_batch[-1].seq
+            period["first_seq"] = current_batch[0].seq
+            period["last_seq"] = current_batch[-1].seq
         else:
-            period[u'first_seq'] = None
-            period[u'last_seq'] = None
+            period["first_seq"] = None
+            period["last_seq"] = None
 
         # fire user callback with current batch
         if self._on_trace_period_finished:
@@ -245,22 +254,22 @@ class FabricRouterTrace(object):
             self._current_batch = []
 
     def start(self):
-        if self._status == u'created':
-            self._status = u'running'
+        if self._status == "created":
+            self._status = "running"
             self._started = datetime.utcnow()
             self._period_ts = self._started
             self._batch_looper = LoopingCall(self._batch_loop)
-            self._batch_looper.start(float(self._batching_period) / 1000.)
+            self._batch_looper.start(float(self._batching_period) / 1000.0)
         else:
             self.log.warn('skip starting of Trace not in status "created", but "{status}"', status=self._status)
 
     def stop(self):
-        if self._status == u'running':
+        if self._status == "running":
             if self._batch_looper:
                 if self._batch_looper.running:
                     self._batch_looper.stop()
                 self._batch_looper = None
-            self._status = u'stopped'
+            self._status = "stopped"
             self._ended = datetime.utcnow()
         else:
             self.log.warn('skip stopping of Trace not in status "running", but "{status}"', status=self._status)
@@ -275,24 +284,24 @@ class FabricRouterTrace(object):
             runtime = None
 
         data = {
-            u'id': self._trace_id,
-            u'node_id': self._session._node_id,
-            u'worker_id': self._session._worker_id,
-            u'persistent_id': self._persistent_id,
-            u'status': self._status,
-            u'started': util.utcstr(self._started) if self._started else None,
-            u'ended': util.utcstr(self._ended) if self._ended else None,
-            u'runtime': runtime,
-            u'options': {
-                u'trace_level': self._trace_level,
-                u'trace_app_payload': self._trace_app_payload,
-                u'batching_period': self._batching_period,
-                u'persist': self._persist,
-                u'duration': self._duration,
-                u'limit': self._limit
+            "id": self._trace_id,
+            "node_id": self._session._node_id,
+            "worker_id": self._session._worker_id,
+            "persistent_id": self._persistent_id,
+            "status": self._status,
+            "started": util.utcstr(self._started) if self._started else None,
+            "ended": util.utcstr(self._ended) if self._ended else None,
+            "runtime": runtime,
+            "options": {
+                "trace_level": self._trace_level,
+                "trace_app_payload": self._trace_app_payload,
+                "batching_period": self._batching_period,
+                "persist": self._persist,
+                "duration": self._duration,
+                "limit": self._limit,
             },
-            u'next_period': self._period,
-            u'next_seq': self._seq,
+            "next_period": self._period,
+            "next_seq": self._seq,
         }
         return data
 
@@ -301,68 +310,77 @@ class FabricRouterTrace(object):
         res = []
         for period, batch in self._trace:
             if batch:
-                if self._trace_level == u'message':
+                if self._trace_level == "message":
                     res.extend([trace_record.marshal(self._trace_app_payload) for trace_record in batch])
-                elif self._trace_level == u'action':
+                elif self._trace_level == "action":
                     res.extend([traced_action.marshal() for traced_action in batch])
                 else:
-                    raise Exception('logic error')
+                    raise Exception("logic error")
             if len(res) > limit:
                 res = res[:limit]
                 break
         return res
 
     def maybe_trace_rx_msg(self, session, msg):
-        self._maybe_trace_msg(session, msg, u'rx')
+        self._maybe_trace_msg(session, msg, "rx")
 
     def maybe_trace_tx_msg(self, session, msg):
-        self._maybe_trace_msg(session, msg, u'tx')
+        self._maybe_trace_msg(session, msg, "tx")
 
     def _maybe_trace_msg(self, session, msg, direction):
         # FIXME: implement tracing filters
-        is_traced = self._status == u'running'
+        is_traced = self._status == "running"
 
         if is_traced:
-            self.log.debug('{direction}: {msg}', direction=direction.upper(), msg=msg)
+            self.log.debug("{direction}: {msg}", direction=direction.upper(), msg=msg)
 
-            if self._trace_level == u'message':
-                trace_record = TracedMessage(self._seq, session._realm, direction, session._session_id,
-                                             session._authid, session._authrole, msg)
+            if self._trace_level == "message":
+                trace_record = TracedMessage(
+                    self._seq, session._realm, direction, session._session_id, session._authid, session._authrole, msg
+                )
 
                 self._current_batch.append(trace_record)
                 self._seq += 1
 
-            elif self._trace_level == u'action':
+            elif self._trace_level == "action":
                 if msg.correlation_is_anchor:
-
                     # RPC/PubSub related actions
-                    if isinstance(msg, message.Call) or \
-                       isinstance(msg, message.Register) or \
-                       isinstance(msg, message.Unregister) or \
-                       isinstance(msg, message.Publish) or \
-                       isinstance(msg, message.Subscribe) or \
-                       isinstance(msg, message.Unsubscribe):
+                    if (
+                        isinstance(msg, message.Call)
+                        or isinstance(msg, message.Register)
+                        or isinstance(msg, message.Unregister)
+                        or isinstance(msg, message.Publish)
+                        or isinstance(msg, message.Subscribe)
+                        or isinstance(msg, message.Unsubscribe)
+                    ):
                         _action = six.text_type(msg.__class__.__name__)
                     else:
                         _action = None
 
                     if _action:
-                        traced_action = TracedAction(msg.correlation_id, msg.correlation_uri, self._seq,
-                                                     session._realm, _action, session._session_id, [])
+                        traced_action = TracedAction(
+                            msg.correlation_id,
+                            msg.correlation_uri,
+                            self._seq,
+                            session._realm,
+                            _action,
+                            session._session_id,
+                            [],
+                        )
 
                         self._open_actions[msg.correlation_id] = traced_action
                         self._seq += 1
-                        self.log.debug('New TRACE ACTION: {traced_action}', traced_action=traced_action)
+                        self.log.debug("New TRACE ACTION: {traced_action}", traced_action=traced_action)
 
                 if isinstance(msg, message.Invocation) or isinstance(msg, message.Event):
                     if msg.correlation_id in self._open_actions:
                         response = {
-                            'session_id': session._session_id,
-                            'authid': session._authid,
-                            'authrole': session._authid,
-                            'enc_algo': msg.enc_algo,
-                            'enc_key': msg.enc_key,
-                            'enc_serializer': msg.enc_serializer,
+                            "session_id": session._session_id,
+                            "authid": session._authid,
+                            "authrole": session._authid,
+                            "enc_algo": msg.enc_algo,
+                            "enc_key": msg.enc_key,
+                            "enc_serializer": msg.enc_serializer,
                         }
                         self._open_actions[msg.correlation_id].responders.append(response)
 
@@ -372,7 +390,7 @@ class FabricRouterTrace(object):
                         traced_action.success = not isinstance(msg, message.Error)
                         del self._open_actions[msg.correlation_id]
                         self._current_batch.append(traced_action)
-                        self.log.debug('TRACE ACTION finished: {traced_action}', traced_action=traced_action)
+                        self.log.debug("TRACE ACTION finished: {traced_action}", traced_action=traced_action)
 
             else:
                 raise Exception('internal error: invalid trace level "{}"'.format(self._trace_level))

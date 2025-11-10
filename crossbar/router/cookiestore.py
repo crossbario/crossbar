@@ -5,37 +5,32 @@
 #
 #####################################################################################
 
-import os
-import json
-import uuid
 import datetime
-from pprint import pformat
-from typing import Optional, Tuple, Dict, Any, List, Set
-
+import json
+import os
+import uuid
 from http import cookies as http_cookies
+from pprint import pformat
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
-
+import txaio
 import zlmdb
 
-import txaio
-
 txaio.use_twisted()  # noqa
+from autobahn import util
+from autobahn.util import hlid, hltype, hlval
+from autobahn.wamp.interfaces import ISession
+
+# from crossbar.router.protocol import WampWebSocketServerProtocol
+from cfxdb import cookiestore
 from txaio import make_logger, time_ns
 
-from autobahn import util
-from autobahn.util import hltype, hlval, hlid
-
-from autobahn.wamp.interfaces import ISession
-# from crossbar.router.protocol import WampWebSocketServerProtocol
-
-from cfxdb import cookiestore
-
 __all__ = (
-    'CookieStore',
-    'CookieStoreMemoryBacked',
-    'CookieStoreFileBacked',
-    'CookieStoreDatabaseBacked',
+    "CookieStore",
+    "CookieStoreMemoryBacked",
+    "CookieStoreFileBacked",
+    "CookieStoreDatabaseBacked",
 )
 
 
@@ -63,13 +58,13 @@ class CookieStore(object):
         self._config = config
 
         # name of the HTTP cookie in use
-        self._cookie_id_field = config.get('name', 'cbtid')
+        self._cookie_id_field = config.get("name", "cbtid")
 
         # length of the cookie (random) ID value
-        self._cookie_id_field_length = int(config.get('length', 24))
+        self._cookie_id_field_length = int(config.get("length", 24))
 
         # lifetime of the cookie in seconds (http://tools.ietf.org/html/rfc6265#page-20)
-        self._cookie_max_age = int(config.get('max_age', 86400 * 7))
+        self._cookie_max_age = int(config.get("max_age", 86400 * 7))
 
         # transient sessions per cookie database
         self._connections: Dict[str, Set[ISession]] = {}
@@ -79,13 +74,13 @@ class CookieStore(object):
         Parse HTTP request header for cookie. If cookie is found, return cookie ID,
         else return None.
         """
-        self.log.debug('{func} parsing cookie from {headers}', func=hltype(self.parse), headers=headers)
+        self.log.debug("{func} parsing cookie from {headers}", func=hltype(self.parse), headers=headers)
 
         # see if there already is a cookie set in the HTTP request
-        if 'cookie' in headers:
+        if "cookie" in headers:
             try:
                 cookie = http_cookies.SimpleCookie()
-                header_cookie = str(headers['cookie'])
+                header_cookie = str(headers["cookie"])
                 cookie.load(header_cookie)
 
                 if self._cookie_id_field not in cookie and self._cookie_id_field in header_cookie:
@@ -115,10 +110,12 @@ class CookieStore(object):
         with the cookie having the given ID. Return the new count of
         connections associated with the cookie.
         """
-        self.log.debug('{func} adding proto {proto} for cookie "{cbtid}"',
-                       func=hltype(self.addProto),
-                       proto=proto,
-                       cbtid=hlid(cbtid))
+        self.log.debug(
+            '{func} adding proto {proto} for cookie "{cbtid}"',
+            func=hltype(self.addProto),
+            proto=proto,
+            cbtid=hlid(cbtid),
+        )
 
         if self.exists(cbtid):
             if cbtid not in self._connections:
@@ -136,10 +133,12 @@ class CookieStore(object):
         with the cookie having the given ID. Return the new count of
         connections associated with the cookie.
         """
-        self.log.debug('{func} removing proto {proto} from cookie "{cbtid}"',
-                       func=hltype(self.dropProto),
-                       proto=proto,
-                       cbtid=hlid(cbtid))
+        self.log.debug(
+            '{func} removing proto {proto} from cookie "{cbtid}"',
+            func=hltype(self.dropProto),
+            proto=proto,
+            cbtid=hlid(cbtid),
+        )
 
         if self.exists(cbtid):
             if cbtid in self._connections:
@@ -170,15 +169,18 @@ class CookieStoreMemoryBacked(CookieStore):
     """
     Memory-backed cookie store.
     """
+
     def __init__(self, config: Dict[str, Any]):
         CookieStore.__init__(self, config)
 
         # transient cookie database
         self._cookies: Dict[str, Dict[str, Any]] = {}
 
-        self.log.info('{func} cookie stored created with config=\n{config}',
-                      func=hltype(CookieStoreMemoryBacked.__init__),
-                      config=pformat(config))
+        self.log.info(
+            "{func} cookie stored created with config=\n{config}",
+            func=hltype(CookieStoreMemoryBacked.__init__),
+            config=pformat(config),
+        )
 
     def exists(self, cbtid):
         """
@@ -201,22 +203,19 @@ class CookieStoreMemoryBacked(CookieStore):
         # cookie tracking data
         cbtData = {
             # cookie ID
-            'cbtid': cbtid,
-
+            "cbtid": cbtid,
             # UTC timestamp when the cookie was created
-            'created': util.utcnow(),
-
+            "created": util.utcnow(),
             # maximum lifetime of the tracking/authenticating cookie
-            'max_age': self._cookie_max_age,
-
+            "max_age": self._cookie_max_age,
             # when a cookie has been set, and the WAMP session
             # was successfully authenticated thereafter, the latter
             # auth info is store here
-            'authid': None,
-            'authrole': None,
-            'authrealm': None,
-            'authmethod': None,
-            'authextra': None,
+            "authid": None,
+            "authrole": None,
+            "authrealm": None,
+            "authmethod": None,
+            "authextra": None,
         }
 
         self._cookies[cbtid] = cbtData
@@ -230,7 +229,7 @@ class CookieStoreMemoryBacked(CookieStore):
         # do NOT add the "secure" cookie attribute! "secure" refers to the
         # scheme of the Web page that triggered the WS, not WS itself!!
         #
-        return cbtid, '%s=%s;max-age=%d' % (self._cookie_id_field, cbtid, cbtData['max_age'])
+        return cbtid, "%s=%s;max-age=%d" % (self._cookie_id_field, cbtid, cbtData["max_age"])
 
     def getAuth(self, cbtid):
         """
@@ -238,13 +237,15 @@ class CookieStoreMemoryBacked(CookieStore):
         """
         if cbtid in self._cookies:
             c = self._cookies[cbtid]
-            cookie_auth_info = c['authid'], c['authrole'], c['authmethod'], c['authrealm'], c['authextra']
+            cookie_auth_info = c["authid"], c["authrole"], c["authmethod"], c["authrealm"], c["authextra"]
         else:
             cookie_auth_info = None, None, None, None, None
 
-        self.log.debug("Cookie auth info for {cbtid} retrieved: {cookie_auth_info}",
-                       cbtid=cbtid,
-                       cookie_auth_info=cookie_auth_info)
+        self.log.debug(
+            "Cookie auth info for {cbtid} retrieved: {cookie_auth_info}",
+            cbtid=cbtid,
+            cookie_auth_info=cookie_auth_info,
+        )
 
         return cookie_auth_info
 
@@ -254,11 +255,11 @@ class CookieStoreMemoryBacked(CookieStore):
         """
         if cbtid in self._cookies:
             c = self._cookies[cbtid]
-            c['authid'] = authid
-            c['authrole'] = authrole
-            c['authrealm'] = authrealm
-            c['authmethod'] = authmethod
-            c['authextra'] = authextra
+            c["authid"] = authid
+            c["authrole"] = authrole
+            c["authrealm"] = authrealm
+            c["authmethod"] = authmethod
+            c["authextra"] = authextra
 
     def delAuth(self, cbtid: str) -> bool:
         """
@@ -273,9 +274,11 @@ class CookieStoreMemoryBacked(CookieStore):
             was_existing = True
 
         if was_existing:
-            self.log.info('{func} cookie with cbtid="{cbtid}" did exist and was deleted',
-                          func=hltype(self.setAuth),
-                          cbtid=hlid(cbtid))
+            self.log.info(
+                '{func} cookie with cbtid="{cbtid}" did exist and was deleted',
+                func=hltype(self.setAuth),
+                cbtid=hlid(cbtid),
+            )
         else:
             self.log.info('{func} no cookie with cbtid="{cbtid}" exists', func=hltype(self.setAuth), cbtid=hlid(cbtid))
 
@@ -292,6 +295,7 @@ class CookieStoreFileBacked(CookieStoreMemoryBacked):
     record is appended. When the store is booting, the file is sequentially scanned.
     The last record for a given cookie ID is remembered in memory.
     """
+
     def __init__(self, cookie_file_name, config):
         CookieStoreMemoryBacked.__init__(self, config)
 
@@ -302,16 +306,16 @@ class CookieStoreFileBacked(CookieStoreMemoryBacked):
         else:
             self.log.debug("File-backed cookie store already exists")
 
-        self._cookie_file = open(self._cookie_file_name, 'a')
+        self._cookie_file = open(self._cookie_file_name, "a")
 
         # initialize cookie database
         self._init_store()
 
-        if config['store'].get('purge_on_startup', False):
+        if config["store"].get("purge_on_startup", False):
             self._clean_cookie_file()
 
     def _iter_persisted(self):
-        with open(self._cookie_file_name, 'r') as f:
+        with open(self._cookie_file_name, "r") as f:
             for c in f.readlines():
                 d = json.loads(c)
 
@@ -319,27 +323,30 @@ class CookieStoreFileBacked(CookieStoreMemoryBacked):
                 # here make sure the cookie loaded has a
                 # default connections key to avoid key errors
                 # other keys that aren't persisted should be set here
-                d['connections'] = set()
+                d["connections"] = set()
 
                 yield d
 
     def _persist(self, cbtid, c, status):
-
         self._cookie_file.write(
-            json.dumps({
-                'cbtid': cbtid,
-                'status': status,
-                # created, modified and deleted are set depending on status:
-                'created': c.get('created', None),
-                'modified': c.get('modified', None),
-                'deleted': c.get('deleted', None),
-                'max_age': c['max_age'],
-                'authid': c['authid'],
-                'authrole': c['authrole'],
-                'authmethod': c['authmethod'],
-                'authrealm': c['authrealm'],
-                'authextra': c['authextra'],
-            }) + '\n')
+            json.dumps(
+                {
+                    "cbtid": cbtid,
+                    "status": status,
+                    # created, modified and deleted are set depending on status:
+                    "created": c.get("created", None),
+                    "modified": c.get("modified", None),
+                    "deleted": c.get("deleted", None),
+                    "max_age": c["max_age"],
+                    "authid": c["authid"],
+                    "authrole": c["authrole"],
+                    "authmethod": c["authmethod"],
+                    "authrealm": c["authrealm"],
+                    "authextra": c["authextra"],
+                }
+            )
+            + "\n"
+        )
         self._cookie_file.flush()
         os.fsync(self._cookie_file.fileno())
 
@@ -347,35 +354,41 @@ class CookieStoreFileBacked(CookieStoreMemoryBacked):
         n = 0
         for cookie in self._iter_persisted():
             # only load records in status == "created" | "modified", that is deleted == None
-            if not cookie.get('deleted', None):
-                cbtid = cookie.pop('cbtid')
+            if not cookie.get("deleted", None):
+                cbtid = cookie.pop("cbtid")
                 if cbtid not in self._cookies:
                     self._cookies[cbtid] = {}
                 self._cookies[cbtid].update(cookie)
                 n += 1
 
-        self.log.info("Loaded {cnt_cookie_records} cookie records from file. Cookie store has {cnt_cookies} entries.",
-                      cnt_cookie_records=n,
-                      cnt_cookies=len(self._cookies))
+        self.log.info(
+            "Loaded {cnt_cookie_records} cookie records from file. Cookie store has {cnt_cookies} entries.",
+            cnt_cookie_records=n,
+            cnt_cookies=len(self._cookies),
+        )
 
     def create(self):
         cbtid, header = CookieStoreMemoryBacked.create(self)
         cookie = self._cookies[cbtid]
-        self._persist(cbtid, cookie, status='created')
+        self._persist(cbtid, cookie, status="created")
         self.log.debug("Cookie {cbtid} stored", cbtid=cbtid)
         return cbtid, header
 
     def setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm):
-
         if self.exists(cbtid):
             cookie = self._cookies[cbtid]
 
             # only set the changes and write them to the file if any of the values changed
-            if (authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']
-                    or authrealm != cookie['authrealm'] or authextra != cookie['authextra']):
+            if (
+                authid != cookie["authid"]
+                or authrole != cookie["authrole"]
+                or authmethod != cookie["authmethod"]
+                or authrealm != cookie["authrealm"]
+                or authextra != cookie["authextra"]
+            ):
                 CookieStoreMemoryBacked.setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm)
-                cookie['modified'] = util.utcnow()
-                self._persist(cbtid, cookie, status='modified')
+                cookie["modified"] = util.utcnow()
+                self._persist(cbtid, cookie, status="modified")
                 return True
 
     def delAuth(self, cbtid: str) -> bool:
@@ -387,36 +400,43 @@ class CookieStoreFileBacked(CookieStoreMemoryBacked):
         """
         if self.exists(cbtid):
             cookie = self._cookies[cbtid]
-            cookie['deleted'] = util.utcnow()
+            cookie["deleted"] = util.utcnow()
             del self._cookies[cbtid]
-            self._persist(cbtid, cookie, status='deleted')
-            self.log.info('{func} cookie with cbtid="{cbtid}" did exist and was deleted',
-                          func=hltype(self.delAuth),
-                          cbtid=hlid(cbtid))
+            self._persist(cbtid, cookie, status="deleted")
+            self.log.info(
+                '{func} cookie with cbtid="{cbtid}" did exist and was deleted',
+                func=hltype(self.delAuth),
+                cbtid=hlid(cbtid),
+            )
             return True
         else:
             self.log.info('{func} no cookie with cbtid="{cbtid}" exists', func=hltype(self.delAuth), cbtid=hlid(cbtid))
             return False
 
     def _clean_cookie_file(self):
-        with open(self._cookie_file_name, 'w') as cookie_file:
+        with open(self._cookie_file_name, "w") as cookie_file:
             for cbtid, cookie in self._cookies.items():
-                expiration_delta = datetime.timedelta(seconds=int(cookie['max_age']))
+                expiration_delta = datetime.timedelta(seconds=int(cookie["max_age"]))
                 upper_limit = util.utcstr(datetime.datetime.now() - expiration_delta)
-                if cookie['created'] < upper_limit:
+                if cookie["created"] < upper_limit:
                     # This cookie is expired, discard
                     continue
 
-                cookie_record = json.dumps({
-                    'cbtid': cbtid,
-                    'created': cookie['created'],
-                    'max_age': cookie['max_age'],
-                    'authid': cookie['authid'],
-                    'authrole': cookie['authrole'],
-                    'authmethod': cookie['authmethod'],
-                    'authrealm': cookie['authrealm'],
-                    'authextra': cookie['authextra'],
-                }) + '\n'
+                cookie_record = (
+                    json.dumps(
+                        {
+                            "cbtid": cbtid,
+                            "created": cookie["created"],
+                            "max_age": cookie["max_age"],
+                            "authid": cookie["authid"],
+                            "authrole": cookie["authrole"],
+                            "authmethod": cookie["authmethod"],
+                            "authrealm": cookie["authrealm"],
+                            "authextra": cookie["authextra"],
+                        }
+                    )
+                    + "\n"
+                )
                 cookie_file.write(cookie_record)
 
             cookie_file.flush()
@@ -428,6 +448,7 @@ class CookieStoreDatabaseBacked(CookieStore):
     A persistent, database-backed cookie store. This implementation uses a zLMDB
     based embedded database with Flatbuffers data serialization.
     """
+
     def __init__(self, dbpath: str, config: Dict[str, Any]):
         """
         Initialize a database-backed cookiestore. Example configuration:
@@ -446,27 +467,32 @@ class CookieStoreDatabaseBacked(CookieStore):
         :param dbpath: Filesystem path to database.
         :param config: Database cookie store configuration.
         """
-        self.log.info('{func}: initializing database-backed cookiestore with config=\n{config}',
-                      func=hltype(CookieStoreDatabaseBacked.__init__),
-                      config=pformat(config))
+        self.log.info(
+            "{func}: initializing database-backed cookiestore with config=\n{config}",
+            func=hltype(CookieStoreDatabaseBacked.__init__),
+            config=pformat(config),
+        )
         CookieStore.__init__(self, config)
 
-        maxsize = config['store'].get('maxsize', 1024 * 2**20)
+        maxsize = config["store"].get("maxsize", 1024 * 2**20)
         assert isinstance(maxsize, int), "maxsize must be an int, was {}".format(type(maxsize))
         # allow maxsize 128kiB to 128GiB
-        assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30, "maxsize must be >=128kiB and <=128GiB, was {}".format(
-            maxsize)
+        assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30, (
+            "maxsize must be >=128kiB and <=128GiB, was {}".format(maxsize)
+        )
 
-        readonly = config['store'].get('readonly', False)
+        readonly = config["store"].get("readonly", False)
         assert isinstance(readonly, bool), "readonly must be a bool, was {}".format(type(readonly))
 
-        sync = config['store'].get('sync', True)
+        sync = config["store"].get("sync", True)
         assert isinstance(sync, bool), "sync must be a bool, was {}".format(type(sync))
 
-        if config['store'].get('purge_on_startup', False):
+        if config["store"].get("purge_on_startup", False):
             zlmdb.Database.scratch(dbpath)
-            self.log.warn('{func}: scratched embedded database (purge_on_startup is enabled)!',
-                          func=hltype(CookieStoreDatabaseBacked.__init__))
+            self.log.warn(
+                "{func}: scratched embedded database (purge_on_startup is enabled)!",
+                func=hltype(CookieStoreDatabaseBacked.__init__),
+            )
 
         # self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
         self._db = zlmdb.Database.open(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
@@ -475,10 +501,12 @@ class CookieStoreDatabaseBacked(CookieStore):
 
         dbstats = self._db.stats(include_slots=True)
 
-        self.log.info('{func}: database-backed cookiestore opened from dbpath="{dbpath}" - dbstats=\n{dbstats}',
-                      func=hltype(CookieStoreDatabaseBacked.__init__),
-                      dbpath=hlval(dbpath),
-                      dbstats=pformat(dbstats))
+        self.log.info(
+            '{func}: database-backed cookiestore opened from dbpath="{dbpath}" - dbstats=\n{dbstats}',
+            func=hltype(CookieStoreDatabaseBacked.__init__),
+            dbpath=hlval(dbpath),
+            dbstats=pformat(dbstats),
+        )
 
     def exists(self, cbtid: str) -> bool:
         """
@@ -490,10 +518,12 @@ class CookieStoreDatabaseBacked(CookieStore):
         # check if a cookie with the given value exists
         with self._db.begin() as txn:
             cookie_exists = self._schema.idx_cookies_by_value[txn, cbtid] is not None
-        self.log.debug('{func}(cbtid="{cbtid}") -> {cookie_exists}',
-                       func=hltype(self.exists),
-                       cbtid=hlval(cbtid),
-                       cookie_exists=hlval(cookie_exists))
+        self.log.debug(
+            '{func}(cbtid="{cbtid}") -> {cookie_exists}',
+            func=hltype(self.exists),
+            cbtid=hlval(cbtid),
+            cookie_exists=hlval(cookie_exists),
+        )
         return cookie_exists
 
     def create(self) -> Tuple[str, str]:
@@ -505,7 +535,7 @@ class CookieStoreDatabaseBacked(CookieStore):
         # create new cookie
         cookie = cookiestore.Cookie()
         cookie.oid = uuid.uuid4()
-        cookie.created = np.datetime64(time_ns(), 'ns')
+        cookie.created = np.datetime64(time_ns(), "ns")
         cookie.max_age = self._cookie_max_age
         cookie.name = self._cookie_id_field
         cookie.value = util.newid(self._cookie_id_field_length)
@@ -514,13 +544,13 @@ class CookieStoreDatabaseBacked(CookieStore):
         with self._db.begin(write=True) as txn:
             self._schema.cookies[txn, cookie.oid] = cookie
 
-        self.log.info('{func} new cookie {cbtid} stored in database', func=hltype(self.create), cbtid=cookie.value)
+        self.log.info("{func} new cookie {cbtid} stored in database", func=hltype(self.create), cbtid=cookie.value)
 
-        return cookie.value, '%s=%s;max-age=%d' % (cookie.name, cookie.value, cookie.max_age)
+        return cookie.value, "%s=%s;max-age=%d" % (cookie.name, cookie.value, cookie.max_age)
 
     def getAuth(
-            self,
-            cbtid: str) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[Dict[str, Any]]]:
+        self, cbtid: str
+    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[Dict[str, Any]]]:
         """
         Get the authentication info (if any) for a cookie stored in the database.
 
@@ -537,25 +567,42 @@ class CookieStoreDatabaseBacked(CookieStore):
                 cookie = self._schema.cookies[txn, cookie_oid]
                 assert cookie
                 cbtid_ = cookie.value
-                cookie_auth_info = cookie.authid, cookie.authrole, cookie.authmethod, cookie.authrealm, cookie.authextra
+                cookie_auth_info = (
+                    cookie.authid,
+                    cookie.authrole,
+                    cookie.authmethod,
+                    cookie.authrealm,
+                    cookie.authextra,
+                )
             else:
                 cbtid_ = None
                 cookie_auth_info = None, None, None, None, None
 
         if cbtid_:
-            self.log.info('{func} cookie auth info for "{cbtid}" retrieved: {cookie_auth_info}',
-                          func=hltype(self.getAuth),
-                          cbtid=hlid(cbtid_),
-                          cookie_auth_info=cookie_auth_info)
+            self.log.info(
+                '{func} cookie auth info for "{cbtid}" retrieved: {cookie_auth_info}',
+                func=hltype(self.getAuth),
+                cbtid=hlid(cbtid_),
+                cookie_auth_info=cookie_auth_info,
+            )
         else:
-            self.log.info('{func} no cookie for "{cbtid}" stored in cookiestore database',
-                          func=hltype(self.getAuth),
-                          cbtid=hlid(cbtid))
+            self.log.info(
+                '{func} no cookie for "{cbtid}" stored in cookiestore database',
+                func=hltype(self.getAuth),
+                cbtid=hlid(cbtid),
+            )
 
         return cookie_auth_info
 
-    def setAuth(self, cbtid: str, authid: Optional[str], authrole: Optional[str], authmethod: Optional[str],
-                authextra: Optional[Dict[str, Any]], authrealm: Optional[str]) -> bool:
+    def setAuth(
+        self,
+        cbtid: str,
+        authid: Optional[str],
+        authrole: Optional[str],
+        authmethod: Optional[str],
+        authextra: Optional[Dict[str, Any]],
+        authrealm: Optional[str],
+    ) -> bool:
         """
         Update the authentication information associated and stored for an existing cookie (if any).
 
@@ -579,8 +626,13 @@ class CookieStoreDatabaseBacked(CookieStore):
                 cookie = self._schema.cookies[txn, cookie_oid]
                 assert cookie
                 was_existing = True
-                if (authid != cookie.authid or authrole != cookie.authrole or authmethod != cookie.authmethod
-                        or authrealm != cookie.authrealm or authextra != cookie.authextra):
+                if (
+                    authid != cookie.authid
+                    or authrole != cookie.authrole
+                    or authmethod != cookie.authmethod
+                    or authrealm != cookie.authrealm
+                    or authextra != cookie.authextra
+                ):
                     cookie.authid = authid
                     cookie.authrole = authrole
                     cookie.authmethod = authmethod
@@ -601,15 +653,18 @@ class CookieStoreDatabaseBacked(CookieStore):
                     authrole=hlid(authrole),
                     authmethod=hlval(authmethod),
                     authrealm=hlval(authrealm),
-                    authextra=pformat(authextra))
+                    authextra=pformat(authextra),
+                )
             else:
-                self.log.info('{func} cookie with cbtid="{cbtid}" exists and needs no update',
-                              func=hltype(self.setAuth),
-                              cbtid=hlid(cbtid))
+                self.log.info(
+                    '{func} cookie with cbtid="{cbtid}" exists and needs no update',
+                    func=hltype(self.setAuth),
+                    cbtid=hlid(cbtid),
+                )
         else:
-            self.log.info('{func} no cookie to modify with cbtid="{cbtid}" exists',
-                          func=hltype(self.setAuth),
-                          cbtid=hlid(cbtid))
+            self.log.info(
+                '{func} no cookie to modify with cbtid="{cbtid}" exists', func=hltype(self.setAuth), cbtid=hlid(cbtid)
+            )
 
         return was_modified
 
@@ -628,9 +683,11 @@ class CookieStoreDatabaseBacked(CookieStore):
                 was_existing = True
 
         if was_existing:
-            self.log.info('{func} cookie with cbtid="{cbtid}" did exist and was deleted',
-                          func=hltype(self.delAuth),
-                          cbtid=hlid(cbtid))
+            self.log.info(
+                '{func} cookie with cbtid="{cbtid}" did exist and was deleted',
+                func=hltype(self.delAuth),
+                cbtid=hlid(cbtid),
+            )
         else:
             self.log.info('{func} no cookie with cbtid="{cbtid}" exists', func=hltype(self.delAuth), cbtid=hlid(cbtid))
 

@@ -16,7 +16,7 @@ except NameError:
     # Python 3
     from importlib import reload
 
-__all__ = ('TrackingModuleReloader', )
+__all__ = ("TrackingModuleReloader",)
 
 
 def get_module_path_and_mtime(m):
@@ -27,9 +27,9 @@ def get_module_path_and_mtime(m):
     :type m: obj
     """
     res = (None, None)
-    if m and getattr(m, '__file__', None) and (m.__file__.endswith('.py') or m.__file__.endswith('.pyc')):
+    if m and getattr(m, "__file__", None) and (m.__file__.endswith(".py") or m.__file__.endswith(".pyc")):
         f = m.__file__
-        if f.endswith('.pyc'):
+        if f.endswith(".pyc"):
             f = f[:-1]
         try:
             mtime = os.stat(f)[8]
@@ -96,7 +96,6 @@ class TrackingModuleReloader:
                 m = current_modules[mod_name]
 
                 if mod_name in self._module_mtimes:
-
                     f, new_mtime = get_module_path_and_mtime(m)
                     _, old_mtime = self._module_mtimes[mod_name]
 

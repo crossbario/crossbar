@@ -7,36 +7,35 @@
 
 from crossbar.master.api.remote import RemoteApi
 
-__all__ = ('RemoteWorkerApi', )
+__all__ = ("RemoteWorkerApi",)
 
 
 class RemoteWorkerApi(RemoteApi):
-
-    PREFIX = u'crossbarfabriccenter.remote.worker.'
+    PREFIX = "crossbarfabriccenter.remote.worker."
 
     PROCS = {
         # these are worker level procedures
-        u'worker': [
-            u'shutdown',
-            u'get_status',
-            u'get_pythonpath',
-            u'add_pythonpath',
-            u'get_cpu_affinity',
-            u'set_cpu_affinity',
-            u'get_profilers',
-            u'start_profiler',
-            u'get_profile',
-            u'get_process_info',
-            u'get_process_stats',
-            u'set_process_stats_monitoring',
+        "worker": [
+            "shutdown",
+            "get_status",
+            "get_pythonpath",
+            "add_pythonpath",
+            "get_cpu_affinity",
+            "set_cpu_affinity",
+            "get_profilers",
+            "start_profiler",
+            "get_profile",
+            "get_process_info",
+            "get_process_stats",
+            "set_process_stats_monitoring",
         ],
     }
 
     EVENTS = {
         # these are worker level topics
-        u'worker': [
-            u'on_worker_log',
-            u'on_profile_started',
-            u'on_profile_finished',
+        "worker": [
+            "on_worker_log",
+            "on_profile_started",
+            "on_profile_finished",
         ]
     }

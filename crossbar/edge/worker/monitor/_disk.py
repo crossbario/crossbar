@@ -9,7 +9,7 @@ from autobahn.util import utcnow
 
 from crossbar.edge.worker.monitor._base import Monitor
 
-__all__ = ('IOMonitor', )
+__all__ = ("IOMonitor",)
 
 
 class IOMonitor(Monitor):
@@ -17,18 +17,18 @@ class IOMonitor(Monitor):
     IO monitoring. This is using Linux procfs to get measurements.
     """
 
-    ID = u'diskio'
+    ID = "diskio"
 
     def __init__(self, config=None):
         Monitor.__init__(self, config)
 
-        self._storage = self._config.get(u'storage', [])
+        self._storage = self._config.get("storage", [])
 
         # flat list of block devices
         #
         self._devices = []
         for subsystem in self._storage:
-            for device, _ in subsystem['devices']:
+            for device, _ in subsystem["devices"]:
                 self._devices.append(device)
 
         # map indexed by device holding last raw (cumulative) values
@@ -51,23 +51,21 @@ class IOMonitor(Monitor):
         #
         current = {
             # the UTC timestamp when measurement was taken
-            u'timestamp': utcnow(),
-
+            "timestamp": utcnow(),
             # the effective last period in secods
-            u'last_period': self._last_period,
-
+            "last_period": self._last_period,
             # storage subsystem measurements
-            u'subsystems': []
+            "subsystems": [],
         }
 
         # normalize with effective period
-        diff = self._last_period or 1.
+        diff = self._last_period or 1.0
 
         # get IO stats per device from procfs (/sys/block/<device>/stat)
         # see: https://www.kernel.org/doc/Documentation/block/stat.txt
         #
         for device in self._devices:
-            with open('/sys/block/{}/stat'.format(device)) as fd:
+            with open("/sys/block/{}/stat".format(device)) as fd:
                 res = fd.read()
 
                 new = [int(s.strip()) for s in res.split()]
@@ -78,17 +76,17 @@ class IOMonitor(Monitor):
                 last = self._last[device]
 
                 self._values[device] = {
-                    u'read_ios': int((new[0] - last[0]) / diff),
-                    u'read_merges': int((new[1] - last[1]) / diff),
-                    u'read_bytes': int(512 * (new[2] - last[2]) / diff),
-                    u'read_ticks': int((new[3] - last[3]) / diff),
-                    u'write_ios': int((new[4] - last[4]) / diff),
-                    u'write_merges': int((new[5] - last[5]) / diff),
-                    u'write_bytes': int(512 * (new[6] - last[6]) / diff),
-                    u'write_ticks': int((new[7] - last[7]) / diff),
-                    u'in_flight': new[8],
-                    u'io_ticks': int((new[9] - last[9]) / diff),
-                    u'time_in_queue': int((new[10] - last[10]) / diff)
+                    "read_ios": int((new[0] - last[0]) / diff),
+                    "read_merges": int((new[1] - last[1]) / diff),
+                    "read_bytes": int(512 * (new[2] - last[2]) / diff),
+                    "read_ticks": int((new[3] - last[3]) / diff),
+                    "write_ios": int((new[4] - last[4]) / diff),
+                    "write_merges": int((new[5] - last[5]) / diff),
+                    "write_bytes": int(512 * (new[6] - last[6]) / diff),
+                    "write_ticks": int((new[7] - last[7]) / diff),
+                    "in_flight": new[8],
+                    "io_ticks": int((new[9] - last[9]) / diff),
+                    "time_in_queue": int((new[10] - last[10]) / diff),
                 }
 
                 self._last[device] = new
@@ -96,26 +94,26 @@ class IOMonitor(Monitor):
         # transform raw measurements into target event structure
         #
         for subsys in self._storage:
-            subsystem = {u'id': subsys[u'id'], u'devices': []}
+            subsystem = {"id": subsys["id"], "devices": []}
 
-            for device_id, device_label in subsys[u'devices']:
+            for device_id, device_label in subsys["devices"]:
                 values = self._values[device_id]
                 device = {
-                    u'id': device_id,
-                    u'type': device_label,
-                    u'read_ios': values['read_ios'],
-                    u'read_bytes': values['read_bytes'],
-                    u'read_ms': values['read_ticks'],
-                    u'write_ios': values['write_ios'],
-                    u'write_bytes': values['write_bytes'],
-                    u'write_ms': values['write_ticks'],
-                    u'in_flight': values['in_flight'],
-                    u'active_ms': values['io_ticks'],
-                    u'wait_ms': values['time_in_queue'],
+                    "id": device_id,
+                    "type": device_label,
+                    "read_ios": values["read_ios"],
+                    "read_bytes": values["read_bytes"],
+                    "read_ms": values["read_ticks"],
+                    "write_ios": values["write_ios"],
+                    "write_bytes": values["write_bytes"],
+                    "write_ms": values["write_ticks"],
+                    "in_flight": values["in_flight"],
+                    "active_ms": values["io_ticks"],
+                    "wait_ms": values["time_in_queue"],
                 }
-                subsystem[u'devices'].append(device)
+                subsystem["devices"].append(device)
 
-            current[u'subsystems'].append(subsystem)
+            current["subsystems"].append(subsystem)
 
         self._last_value = current
 

@@ -9,26 +9,27 @@ import json
 from collections.abc import Sequence
 
 import crossbar
-from crossbar.test import TestCase
 from crossbar.common import checkconfig
+from crossbar.test import TestCase
 
-_DEFAULT_PERSONALITY_CLASS = crossbar.personalities()['standalone']
+_DEFAULT_PERSONALITY_CLASS = crossbar.personalities()["standalone"]
 
 
 class CheckDictArgsTests(TestCase):
     """
     Tests for L{crossbar.common.checkconfig.check_dict_args}.
     """
+
     def test_sequence_string(self):
         """
         A Sequence should not imply we accept strings
         """
         with self.assertRaises(checkconfig.InvalidConfigException) as e:
-            checkconfig.check_dict_args({"foo": (True, [Sequence])}, {"foo": "not really a Sequence"},
-                                        "Nice message for the user")
+            checkconfig.check_dict_args(
+                {"foo": (True, [Sequence])}, {"foo": "not really a Sequence"}, "Nice message for the user"
+            )
         self.assertEqual(
-            "Nice message for the user - invalid type str encountered for "
-            "attribute 'foo', must be one of (Sequence)",
+            "Nice message for the user - invalid type str encountered for attribute 'foo', must be one of (Sequence)",
             str(e.exception),
         )
 
@@ -36,8 +37,9 @@ class CheckDictArgsTests(TestCase):
         """
         A Sequence should accept list
         """
-        checkconfig.check_dict_args({"foo": (True, [Sequence])}, {"foo": ["a", "real", "sequence"]},
-                                    "Nice message for the user")
+        checkconfig.check_dict_args(
+            {"foo": (True, [Sequence])}, {"foo": ["a", "real", "sequence"]}, "Nice message for the user"
+        )
         # should work, with no exceptions
 
     def test_notDict(self):
@@ -58,14 +60,17 @@ class CheckDictArgsTests(TestCase):
         with self.assertRaises(checkconfig.InvalidConfigException) as e:
             checkconfig.check_dict_args({"foo": (False, [list, set])}, {"foo": {}}, "msghere")
 
-        self.assertEqual(("msghere - invalid type dict encountered for "
-                          "attribute 'foo', must be one of (list, set)"), str(e.exception))
+        self.assertEqual(
+            ("msghere - invalid type dict encountered for attribute 'foo', must be one of (list, set)"),
+            str(e.exception),
+        )
 
 
 class CheckContainerTests(TestCase):
     """
     Tests for L{crossbar.common.checkconfig.check_container}.
     """
+
     def setUp(self):
         self.personality = _DEFAULT_PERSONALITY_CLASS
         return super(TestCase, self).setUp()
@@ -75,7 +80,7 @@ class CheckContainerTests(TestCase):
         The config provided by the hello:python template should validate
         successfully.
         """
-        config = json.loads('''{
+        config = json.loads("""{
             "type": "container",
             "options": {
                 "pythonpath": [".."]
@@ -96,14 +101,14 @@ class CheckContainerTests(TestCase):
                     }
                 }
             ]
-        }''')
+        }""")
         self.personality.check_container(self.personality, config)
 
     def test_extraKeys(self):
         """
         A component with extra keys will fail.
         """
-        config = json.loads('''{
+        config = json.loads("""{
             "type": "container",
             "options": {
                 "pythonpath": [".."]
@@ -125,7 +130,7 @@ class CheckContainerTests(TestCase):
                     }
                 }
             ]
-        }''')
+        }""")
         with self.assertRaises(checkconfig.InvalidConfigException) as e:
             self.personality.check_container(self.personality, config)
 
@@ -135,7 +140,7 @@ class CheckContainerTests(TestCase):
         """
         A component with missing keys fails.
         """
-        config = json.loads('''{
+        config = json.loads("""{
             "type": "container",
             "options": {
                 "pythonpath": [".."]
@@ -147,7 +152,7 @@ class CheckContainerTests(TestCase):
                     "realm": "realm1"
                 }
             ]
-        }''')
+        }""")
         with self.assertRaises(checkconfig.InvalidConfigException) as e:
             self.personality.check_container(self.personality, config)
 
@@ -158,6 +163,7 @@ class CheckEndpointTests(TestCase):
     """
     check_listening_endpoint and check_connecting_endpoint
     """
+
     def setUp(self):
         self.personality = _DEFAULT_PERSONALITY_CLASS
         return super(TestCase, self).setUp()
@@ -215,6 +221,7 @@ class CheckRealmTests(TestCase):
     """
     Tests for check_router_realm, check_router_realm_role
     """
+
     def setUp(self):
         self.personality = _DEFAULT_PERSONALITY_CLASS
         return super(TestCase, self).setUp()
@@ -226,42 +233,33 @@ class CheckRealmTests(TestCase):
 
     def test_static_permissions(self):
         config_realm = {
-            "name":
-            "realm1",
-            "roles": [{
-                "name":
-                "backend",
-                "permissions": [{
-                    "uri": "*",
-                    "allow": {
-                        "publish": True,
-                        "subscribe": True,
-                        "call": True,
-                        "register": True
-                    }
-                }]
-            }]
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": [
+                        {"uri": "*", "allow": {"publish": True, "subscribe": True, "call": True, "register": True}}
+                    ],
+                }
+            ],
         }
 
         self.personality.check_router_realm(self.personality, config_realm)
 
     def test_static_permissions_invalid_uri(self):
         config_realm = {
-            "name":
-            "realm1",
-            "roles": [{
-                "name":
-                "backend",
-                "permissions": [{
-                    "uri": "foo bar 666",
-                    "allow": {
-                        "publish": True,
-                        "subscribe": True,
-                        "call": True,
-                        "register": True
-                    }
-                }]
-            }]
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": [
+                        {
+                            "uri": "foo bar 666",
+                            "allow": {"publish": True, "subscribe": True, "call": True, "register": True},
+                        }
+                    ],
+                }
+            ],
         }
 
         self.assertRaises(
@@ -274,11 +272,13 @@ class CheckRealmTests(TestCase):
     def test_static_permissions_and_authorizer(self):
         config_realm = {
             "name": "realm1",
-            "roles": [{
-                "name": "backend",
-                "authorizer": "com.example.foo",
-                "permissions": [],
-            }]
+            "roles": [
+                {
+                    "name": "backend",
+                    "authorizer": "com.example.foo",
+                    "permissions": [],
+                }
+            ],
         }
 
         self.assertRaises(
@@ -291,10 +291,12 @@ class CheckRealmTests(TestCase):
     def test_static_permissions_isnt_list(self):
         config_realm = {
             "name": "realm1",
-            "roles": [{
-                "name": "backend",
-                "permissions": {},
-            }]
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": {},
+                }
+            ],
         }
 
         self.assertRaises(
@@ -316,19 +318,13 @@ class CheckRealmTests(TestCase):
 
     def test_static_permissions_lacks_uri(self):
         config_realm = {
-            "name":
-            "realm1",
-            "roles": [{
-                "name": "backend",
-                "permissions": [{
-                    "allow": {
-                        "publish": True,
-                        "subscribe": True,
-                        "call": True,
-                        "register": True
-                    }
-                }]
-            }]
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": [{"allow": {"publish": True, "subscribe": True, "call": True, "register": True}}],
+                }
+            ],
         }
 
         self.assertRaises(
@@ -356,29 +352,37 @@ class CheckOnion(TestCase):
 
     def test_unknown_attr(self):
         with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
-            self.personality.check_listening_endpoint_onion(self.personality, {
-                "type": "onion",
-                "foo": 42,
-            })
+            self.personality.check_listening_endpoint_onion(
+                self.personality,
+                {
+                    "type": "onion",
+                    "foo": 42,
+                },
+            )
         self.assertIn("unknown attribute", str(ctx.exception))
 
     def test_success(self):
         self.personality.check_listening_endpoint_onion(
-            self.personality, {
+            self.personality,
+            {
                 "type": "onion",
                 "private_key_file": "something",
                 "port": 1234,
                 "tor_control_endpoint": {
                     "type": "unix",
                     "path": "/dev/null",
-                }
-            })
+                },
+            },
+        )
 
     def test_port_wrong_type(self):
         with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
-            self.personality.check_listening_endpoint_onion(self.personality, {
-                "type": "onion",
-                "port": "1234",
-            })
+            self.personality.check_listening_endpoint_onion(
+                self.personality,
+                {
+                    "type": "onion",
+                    "port": "1234",
+                },
+            )
         self.assertIn("invalid type", str(ctx.exception))
         self.assertIn("encountered for attribute 'port'", str(ctx.exception))

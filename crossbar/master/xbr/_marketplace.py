@@ -7,13 +7,14 @@
 
 from autobahn import wamp
 
-__all__ = ('MarketPlace', )
+__all__ = ("MarketPlace",)
 
 
 class MarketPlace(object):
     """
     XBR Market Maker.
     """
+
     @wamp.register(None)
     def publish(self, publisher_id, api_id, service_id, price=None, details=None):
         """

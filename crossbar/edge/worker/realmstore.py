@@ -7,37 +7,37 @@
 
 import uuid
 from collections import deque
-from typing import Dict, List, Any, Optional, Tuple
-
-import zlmdb
-import numpy as np
-
-from txaio import use_twisted  # noqa
-from txaio import make_logger, time_ns
-
-from twisted.internet.defer import inlineCallbacks
-
-from autobahn.util import hltype, hlval
-from autobahn.twisted.util import sleep
-from autobahn.wamp import message
-from autobahn.wamp.types import CloseDetails, SessionDetails, TransportDetails
-from autobahn.wamp.message import Publish
-from autobahn.wamp.interfaces import ISession
-
-from crossbar.router.observation import UriObservationMap
-from crossbar.router.realmstore import QueuedCall
-from crossbar.interfaces import IRealmStore
+from typing import Any, Dict, List, Optional, Tuple
 
 import cfxdb
-from cfxdb.realmstore import RealmStore, Publication
+import numpy as np
+import zlmdb
+from autobahn.twisted.util import sleep
+from autobahn.util import hltype, hlval
+from autobahn.wamp import message
+from autobahn.wamp.interfaces import ISession
+from autobahn.wamp.message import Publish
+from autobahn.wamp.types import CloseDetails, SessionDetails, TransportDetails
+from cfxdb.realmstore import Publication, RealmStore
+from twisted.internet.defer import inlineCallbacks
+from txaio import (
+    make_logger,
+    time_ns,
+    use_twisted,  # noqa
+)
 
-__all__ = ('RealmStoreDatabase', )
+from crossbar.interfaces import IRealmStore
+from crossbar.router.observation import UriObservationMap
+from crossbar.router.realmstore import QueuedCall
+
+__all__ = ("RealmStoreDatabase",)
 
 
 class RealmStoreDatabase(object):
     """
     Database-backed realm store.
     """
+
     log = make_logger()
 
     GLOBAL_HISTORY_LIMIT = 100
@@ -45,7 +45,7 @@ class RealmStoreDatabase(object):
     The global history limit, in case not overridden.
     """
 
-    STORE_TYPE = 'cfxdb'
+    STORE_TYPE = "cfxdb"
 
     def __init__(self, personality, factory, config):
         """
@@ -60,23 +60,23 @@ class RealmStoreDatabase(object):
         self._personality = personality
         self._factory = factory
 
-        dbpath = config.get('path', None)
+        dbpath = config.get("path", None)
         assert isinstance(dbpath, str)
 
-        maxsize = config.get('maxsize', 128 * 2**20)
+        maxsize = config.get("maxsize", 128 * 2**20)
         assert isinstance(maxsize, int)
         # allow maxsize 128kiB to 128GiB
         assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30
 
-        readonly = config.get('readonly', False)
+        readonly = config.get("readonly", False)
         assert isinstance(readonly, bool)
 
-        sync = config.get('sync', True)
+        sync = config.get("sync", True)
         assert isinstance(sync, bool)
 
         self._config = config
 
-        self._type = self._config.get('type', None)
+        self._type = self._config.get("type", None)
         assert self._type == self.STORE_TYPE
 
         # self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
@@ -87,8 +87,8 @@ class RealmStoreDatabase(object):
         self._running = False
         self._process_buffers_thread = None
 
-        self._max_buffer = config.get('max-buffer', 10000)
-        self._buffer_flush = config.get('buffer-flush', 200)
+        self._max_buffer = config.get("max-buffer", 10000)
+        self._buffer_flush = config.get("buffer-flush", 200)
         self._buffer = []
         self._log_counter = 0
 
@@ -97,13 +97,14 @@ class RealmStoreDatabase(object):
 
         self.log.info(
             '{func} realm store initialized (type="{stype}", dbpath="{dbpath}", maxsize={maxsize}, '
-            'readonly={readonly}, sync={sync})',
+            "readonly={readonly}, sync={sync})",
             func=hltype(self.__init__),
             stype=hlval(self._type),
             dbpath=dbpath,
             maxsize=maxsize,
             readonly=readonly,
-            sync=sync)
+            sync=sync,
+        )
 
     def type(self) -> str:
         """
@@ -123,7 +124,7 @@ class RealmStoreDatabase(object):
         Implements :meth:`crossbar._interfaces.IRealmStore.start`
         """
         if self._running:
-            raise RuntimeError('store is already running')
+            raise RuntimeError("store is already running")
         else:
             self.log.info(
                 '{func} starting realm store type="{stype}"',
@@ -135,16 +136,16 @@ class RealmStoreDatabase(object):
         self._log_counter = 0
         self._running = True
         self._process_buffers_thread = yield self._reactor.callInThread(self._process_buffers)
-        self.log.info('{func} realm store ready!', func=hltype(self.start))
+        self.log.info("{func} realm store ready!", func=hltype(self.start))
 
     def stop(self):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.stop`
         """
         if not self._running:
-            raise RuntimeError('store is not running')
+            raise RuntimeError("store is not running")
         else:
-            self.log.info('{func} stopping realm store', func=hltype(self.start))
+            self.log.info("{func} stopping realm store", func=hltype(self.start))
 
         self._running = False
 
@@ -155,27 +156,29 @@ class RealmStoreDatabase(object):
 
     @inlineCallbacks
     def _process_buffers(self):
-        self.log.debug('ZLMDB buffer background writer starting')
+        self.log.debug("ZLMDB buffer background writer starting")
         while self._running:
             cnt, errs, duration_ms = self._process_buffer()
             if cnt > 0:
-                self.log.debug('ZLMDB buffer background writer processed {cnt} records in {duration_ms} ms',
-                               cnt=cnt,
-                               duration_ms=duration_ms)
+                self.log.debug(
+                    "ZLMDB buffer background writer processed {cnt} records in {duration_ms} ms",
+                    cnt=cnt,
+                    duration_ms=duration_ms,
+                )
             if errs > 0:
-                self.log.warn('ZLMDB buffer background writer encountered {errs} errors', errs=errs)
+                self.log.warn("ZLMDB buffer background writer encountered {errs} errors", errs=errs)
             if duration_ms < self._buffer_flush:
                 sleep_ms = int(self._buffer_flush - duration_ms)
             else:
                 sleep_ms = self._buffer_flush
-            self.log.debug('Throttling buffer background writer (sleeping {sleep_ms} ms)', sleep_ms=sleep_ms)
-            yield sleep(float(sleep_ms) / 1000.)
-        self.log.debug('ZLMDB buffer background writer ended')
+            self.log.debug("Throttling buffer background writer (sleeping {sleep_ms} ms)", sleep_ms=sleep_ms)
+            yield sleep(float(sleep_ms) / 1000.0)
+        self.log.debug("ZLMDB buffer background writer ended")
 
     def _process_buffer(self):
         buffer = self._buffer
         self._buffer = []
-        self.log.debug('Processing {cnt} buffered records', cnt=len(buffer))
+        self.log.debug("Processing {cnt} buffered records", cnt=len(buffer))
         cnt = 0
         errs = 0
         started = time_ns()
@@ -197,14 +200,16 @@ class RealmStoreDatabase(object):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
         """
-        self.log.debug('{func} new session joined session={session}, details={details}',
-                       func=hltype(self.store_session_joined),
-                       session=session,
-                       details=details)
+        self.log.debug(
+            "{func} new session joined session={session}, details={details}",
+            func=hltype(self.store_session_joined),
+            session=session,
+            details=details,
+        )
 
         ses = cfxdb.realmstore.Session()
         ses.oid = uuid.uuid4()
-        ses.joined_at = np.datetime64(time_ns(), 'ns')
+        ses.joined_at = np.datetime64(time_ns(), "ns")
         ses.session = details.session
         ses.realm = details.realm
         ses.authid = details.authid
@@ -233,47 +238,46 @@ class RealmStoreDatabase(object):
         self._buffer.append([self._store_session_joined, ses])
 
     def _store_session_joined(self, txn: zlmdb.Transaction, ses: cfxdb.realmstore.Session):
-
         # FIXME: use idx_sessions_by_session_id to check there is no session with (session_id, joined_at) yet
 
         self._schema.sessions[txn, ses.oid] = ses
 
         cnt = self._schema.sessions.count(txn)
-        self.log.info('{func} database record inserted [total={total}] session={session}',
-                      func=hltype(self._store_session_joined),
-                      total=hlval(cnt),
-                      session=ses)
+        self.log.info(
+            "{func} database record inserted [total={total}] session={session}",
+            func=hltype(self._store_session_joined),
+            total=hlval(cnt),
+            session=ses,
+        )
 
     def store_session_left(self, session: ISession, details: CloseDetails):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
         """
-        self.log.debug('{func} session left session={session}, details={details}',
-                       func=hltype(self.store_session_left),
-                       session=session,
-                       details=details)
+        self.log.debug(
+            "{func} session left session={session}, details={details}",
+            func=hltype(self.store_session_left),
+            session=session,
+            details=details,
+        )
 
         self._buffer.append([self._store_session_left, session, details])
 
     def _store_session_left(self, txn: zlmdb.Transaction, session: ISession, details: CloseDetails):
-
         # FIXME: apparently, session ID is already erased at this point:(
         _session_id = session._session_id
 
         # FIXME: move left_at to autobahn.wamp.types.CloseDetails
-        _left_at = np.datetime64(time_ns(), 'ns')
+        _left_at = np.datetime64(time_ns(), "ns")
 
         # lookup session by WAMP session ID and find the most recent session
         # according to joined_at timestamp
         session_obj = None
-        _from_key = (_session_id, np.datetime64(0, 'ns'))
-        _to_key = (_session_id, np.datetime64(time_ns(), 'ns'))
-        for session_oid in self._schema.idx_sessions_by_session_id.select(txn,
-                                                                          from_key=_from_key,
-                                                                          to_key=_to_key,
-                                                                          reverse=True,
-                                                                          return_keys=False,
-                                                                          return_values=True):
+        _from_key = (_session_id, np.datetime64(0, "ns"))
+        _to_key = (_session_id, np.datetime64(time_ns(), "ns"))
+        for session_oid in self._schema.idx_sessions_by_session_id.select(
+            txn, from_key=_from_key, to_key=_to_key, reverse=True, return_keys=False, return_values=True
+        ):
             session_obj = self._schema.sessions[txn, session_oid]
 
             # if we have an index, that index must always resolve to an indexed record
@@ -286,26 +290,30 @@ class RealmStoreDatabase(object):
             # FIXME: also store other CloseDetails attributes
             session_obj.left_at = _left_at
 
-            self.log.info('{func} database record session={session} updated: left_at={left_at}',
-                          func=hltype(self._store_session_left),
-                          left_at=hlval(_left_at),
-                          session=hlval(_session_id))
+            self.log.info(
+                "{func} database record session={session} updated: left_at={left_at}",
+                func=hltype(self._store_session_left),
+                left_at=hlval(_left_at),
+                session=hlval(_session_id),
+            )
         else:
-            self.log.warn('{func} could not update database record for session={session}: record not found!',
-                          func=hltype(self._store_session_left),
-                          session=hlval(_session_id))
+            self.log.warn(
+                "{func} could not update database record for session={session}: record not found!",
+                func=hltype(self._store_session_left),
+                session=hlval(_session_id),
+            )
 
-    def get_session_by_session_id(self,
-                                  session_id: int,
-                                  joined_before: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    def get_session_by_session_id(
+        self, session_id: int, joined_before: Optional[int] = None
+    ) -> Optional[Dict[str, Any]]:
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_session_by_session_id`
         """
         if joined_before:
-            _joined_before = np.datetime64(joined_before, 'ns')
+            _joined_before = np.datetime64(joined_before, "ns")
         else:
-            _joined_before = np.datetime64(time_ns(), 'ns')
-        _from_key = (session_id, np.datetime64(0, 'ns'))
+            _joined_before = np.datetime64(time_ns(), "ns")
+        _from_key = (session_id, np.datetime64(0, "ns"))
         _to_key = (session_id, _joined_before)
 
         # check if we have a record store for the session
@@ -313,12 +321,9 @@ class RealmStoreDatabase(object):
         with self._db.begin() as txn:
             # lookup session by WAMP session ID and find the most recent session
             # according to joined_at timestamp
-            for session_oid in self._schema.idx_sessions_by_session_id.select(txn,
-                                                                              from_key=_from_key,
-                                                                              to_key=_to_key,
-                                                                              reverse=True,
-                                                                              return_keys=False,
-                                                                              return_values=True):
+            for session_oid in self._schema.idx_sessions_by_session_id.select(
+                txn, from_key=_from_key, to_key=_to_key, reverse=True, return_keys=False, return_values=True
+            ):
                 session = self._schema.sessions[txn, session_oid]
 
                 # if we have an index, that index must always resolve to an indexed record
@@ -343,7 +348,8 @@ class RealmStoreDatabase(object):
                 resumed=False,
                 resumable=False,
                 resume_token=None,
-                transport=td)
+                transport=td,
+            )
             res = sd.marshal()
             return res
         else:
@@ -358,9 +364,9 @@ class RealmStoreDatabase(object):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.attach_subscription_map`
         """
-        for sub in self._config.get('event-history', []):
-            uri = sub['uri']
-            match = sub.get('match', u'exact')
+        for sub in self._config.get("event-history", []):
+            uri = sub["uri"]
+            match = sub.get("match", "exact")
             # observation, was_already_observed, was_first_observer
             subscription_map.add_observer(self, uri=uri, match=match)
             # subscription_id = observation.id
@@ -377,10 +383,9 @@ class RealmStoreDatabase(object):
         self._buffer.append([self._store_event, session, publication_id, publish])
 
     def _store_event(self, txn, session, publication_id, publish):
-
         pub = self._schema.publications[txn, publication_id]
         if pub:
-            raise Exception('duplicate event for publication_id={}'.format(publication_id))
+            raise Exception("duplicate event for publication_id={}".format(publication_id))
 
         # FIXME: use idx_sessions_by_session_id
         # ses = self._schema.sessions[txn, session._session_id] if session._session_id else None
@@ -435,12 +440,12 @@ class RealmStoreDatabase(object):
         self._buffer.append([self._store_event_history, publication_id, subscription_id, receiver])
 
     def _store_event_history(self, txn, publication_id, subscription_id, receiver):
-
         # FIXME
         pub = self._schema.publications[txn, publication_id]
         if not pub:
-            self.log.debug('no publication {publication_id} in store (schema.publications)',
-                           publication_id=publication_id)
+            self.log.debug(
+                "no publication {publication_id} in store (schema.publications)", publication_id=publication_id
+            )
             return
 
         # FIXME
@@ -451,7 +456,7 @@ class RealmStoreDatabase(object):
 
         receiver_session_id = receiver._session_id
         if not receiver_session_id:
-            self.log.warn('no session ID for receiver (anymore) - will not store event!')
+            self.log.warn("no session ID for receiver (anymore) - will not store event!")
             return
 
         evt = cfxdb.realmstore.Event()
@@ -464,7 +469,7 @@ class RealmStoreDatabase(object):
         # evt.retained = None
         # evt.acknowledged_delivery = None
 
-        evt_key = (evt.subscription, np.datetime64(evt.timestamp, 'ns'))
+        evt_key = (evt.subscription, np.datetime64(evt.timestamp, "ns"))
 
         self._schema.events[txn, evt_key] = evt
 
@@ -477,12 +482,14 @@ class RealmStoreDatabase(object):
 
         return self.get_event_history(subscription_id, from_ts=0, until_ts=time_ns(), reverse=True, limit=limit)
 
-    def get_event_history(self,
-                          subscription_id: int,
-                          from_ts: int,
-                          until_ts: int,
-                          reverse: Optional[bool] = None,
-                          limit: Optional[int] = None) -> Optional[List[Dict[str, Any]]]:
+    def get_event_history(
+        self,
+        subscription_id: int,
+        from_ts: int,
+        until_ts: int,
+        reverse: Optional[bool] = None,
+        limit: Optional[int] = None,
+    ) -> Optional[List[Dict[str, Any]]]:
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.get_event_history`
         """
@@ -502,13 +509,9 @@ class RealmStoreDatabase(object):
             res = []
             i = 0
 
-            for evt in self._schema.events.select(txn,
-                                                  from_key=from_key,
-                                                  to_key=to_key,
-                                                  return_keys=False,
-                                                  reverse=True,
-                                                  limit=limit):
-
+            for evt in self._schema.events.select(
+                txn, from_key=from_key, to_key=to_key, return_keys=False, reverse=True, limit=limit
+            ):
                 pub: Publication = self._schema.publications.select(txn, evt.publication)
                 if pub:
                     res.append(pub.marshal())

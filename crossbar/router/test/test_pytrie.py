@@ -5,9 +5,8 @@
 #
 #####################################################################################
 
-from twisted import trial
-
 from pytrie import StringTrie
+from twisted import trial
 
 
 class TestPyTrie(trial.unittest.TestCase):
@@ -16,7 +15,7 @@ class TestPyTrie(trial.unittest.TestCase):
         Test trie ctor, and that is doesn't match on "any" prefix.
         """
         t = StringTrie()
-        for key in ['', 'f', 'foo', 'foobar']:
+        for key in ["", "f", "foo", "foobar"]:
             with self.assertRaises(KeyError):
                 t.longest_prefix_value(key)
 
@@ -25,12 +24,12 @@ class TestPyTrie(trial.unittest.TestCase):
         Test the contains operator.
         """
         t = StringTrie()
-        test_keys = ['', 'f', 'foo', 'foobar', 'baz']
+        test_keys = ["", "f", "foo", "foobar", "baz"]
         for key in test_keys:
             t[key] = key
         for key in test_keys:
             self.assertTrue(key in t)
-        for key in ['x', 'fb', 'foob', 'fooba', 'bazz']:
+        for key in ["x", "fb", "foob", "fooba", "bazz"]:
             self.assertFalse(key in t)
 
     def test_longest_prefix_1(self):
@@ -38,7 +37,7 @@ class TestPyTrie(trial.unittest.TestCase):
         Test that keys are detected as prefix of themselfes.
         """
         t = StringTrie()
-        test_keys = ['f', 'foo', 'foobar', 'baz']
+        test_keys = ["f", "foo", "foobar", "baz"]
         for key in test_keys:
             t[key] = key
         for key in test_keys:
@@ -49,19 +48,19 @@ class TestPyTrie(trial.unittest.TestCase):
         Test matching prefix lookups.
         """
         t = StringTrie()
-        test_keys = ['f', 'foo', 'foobar']
+        test_keys = ["f", "foo", "foobar"]
         for key in test_keys:
             t[key] = key
 
         test_keys = {
-            'foobarbaz': 'foobar',
-            'foobaz': 'foo',
-            'fool': 'foo',
-            'foo': 'foo',
-            'fob': 'f',
-            'fo': 'f',
-            'fx': 'f',
-            'f': 'f',
+            "foobarbaz": "foobar",
+            "foobaz": "foo",
+            "fool": "foo",
+            "foo": "foo",
+            "fob": "f",
+            "fo": "f",
+            "fx": "f",
+            "f": "f",
         }
         for key in test_keys:
             self.assertEqual(t.longest_prefix_value(key), test_keys[key])
@@ -72,10 +71,10 @@ class TestPyTrie(trial.unittest.TestCase):
         """
         t = StringTrie()
 
-        for key in ['x', 'fop', 'foobar']:
+        for key in ["x", "fop", "foobar"]:
             t[key] = key
 
-        for key in ['y', 'yfoo', 'fox', 'fooba']:
+        for key in ["y", "yfoo", "fox", "fooba"]:
             with self.assertRaises(KeyError):
                 t.longest_prefix_value(key)
 

@@ -5,17 +5,16 @@
 #
 #####################################################################################
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 import txaio
+from autobahn.wamp.types import Deny, TransportDetails
 from txaio import make_logger
 
-from autobahn.wamp.types import Deny, TransportDetails
-
+from crossbar.interfaces import IPendingAuth, IRealmContainer
 from crossbar.router.auth.pending import PendingAuth
-from crossbar.interfaces import IRealmContainer, IPendingAuth
 
-__all__ = ('PendingAuthTLS', )
+__all__ = ("PendingAuthTLS",)
 
 
 class PendingAuthTLS(PendingAuth):
@@ -23,12 +22,17 @@ class PendingAuthTLS(PendingAuth):
     Pending WAMP-TLS authentication.
     """
 
-    AUTHMETHOD = 'tls'
+    AUTHMETHOD = "tls"
 
     log = make_logger()
 
-    def __init__(self, pending_session_id: int, transport_details: TransportDetails, realm_container: IRealmContainer,
-                 config: Dict[str, Any]):
+    def __init__(
+        self,
+        pending_session_id: int,
+        transport_details: TransportDetails,
+        realm_container: IRealmContainer,
+        config: Dict[str, Any],
+    ):
         super(PendingAuthTLS, self).__init__(
             pending_session_id,
             transport_details,
@@ -39,27 +43,27 @@ class PendingAuthTLS(PendingAuth):
         # https://tools.ietf.org/html/rfc5056
         # https://tools.ietf.org/html/rfc5929
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
-        self._channel_id = transport_details.channel_id.get('tls-unique',
-                                                            None) if transport_details.channel_id else None
+        self._channel_id = (
+            transport_details.channel_id.get("tls-unique", None) if transport_details.channel_id else None
+        )
         self._peer_cert = transport_details.peer_cert
 
         # for static-mode, the config has principals as a dict indexed
         # by authid, but we need the reverse map: cert-sha1 -> principal
         self._cert_sha1_to_principal = None
-        if self._config['type'] == 'static':
+        if self._config["type"] == "static":
             self._cert_sha1_to_principal = {}
-            if 'principals' in self._config:
-                for authid, principal in self._config['principals'].items():
-                    self._cert_sha1_to_principal[principal['certificate-sha1']] = {
-                        'authid': authid,
-                        'role': principal['role']
+            if "principals" in self._config:
+                for authid, principal in self._config["principals"].items():
+                    self._cert_sha1_to_principal[principal["certificate-sha1"]] = {
+                        "authid": authid,
+                        "role": principal["role"],
                     }
 
     def hello(self, realm, details):
-
         # we must have a client TLS certificate to continue
         if not self._peer_cert:
-            return Deny(message='client did not send a TLS client certificate')
+            return Deny(message="client did not send a TLS client certificate")
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
@@ -68,11 +72,10 @@ class PendingAuthTLS(PendingAuth):
         self._authid = details.authid
 
         # use static principal database from configuration
-        if self._config['type'] == 'static':
+        if self._config["type"] == "static":
+            self._authprovider = "static"
 
-            self._authprovider = 'static'
-
-            client_cert_sha1 = self._peer_cert['sha1']
+            client_cert_sha1 = self._peer_cert["sha1"]
             if client_cert_sha1 in self._cert_sha1_to_principal:
                 principal = self._cert_sha1_to_principal[client_cert_sha1]
                 error = self._assign_principal(principal)
@@ -83,9 +86,8 @@ class PendingAuthTLS(PendingAuth):
                 return Deny(message='no principal with authid "{}" exists'.format(client_cert_sha1))
 
         # use configured procedure to dynamically get a ticket for the principal
-        elif self._config['type'] == 'dynamic':
-
-            self._authprovider = 'dynamic'
+        elif self._config["type"] == "dynamic":
+            self._authprovider = "dynamic"
 
             init_d = txaio.as_future(self._init_dynamic_authenticator)
 
@@ -93,8 +95,8 @@ class PendingAuthTLS(PendingAuth):
                 if result:
                     return result
 
-                self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-                self._session_details['authextra'] = details.authextra
+                self._session_details["authmethod"] = self._authmethod  # from AUTHMETHOD, via base
+                self._session_details["authextra"] = details.authextra
 
                 d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
@@ -123,8 +125,11 @@ class PendingAuthTLS(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
-                self._config['type']))
+            return Deny(
+                message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
+                    self._config["type"]
+                )
+            )
 
     def authenticate(self, signature):
         # should not arrive here!

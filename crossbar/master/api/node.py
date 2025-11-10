@@ -7,7 +7,7 @@
 
 from crossbar.master.api.remote import RemoteApi
 
-__all__ = ('RemoteNodeApi', )
+__all__ = ("RemoteNodeApi",)
 
 
 class RemoteNodeApi(RemoteApi):
@@ -15,7 +15,7 @@ class RemoteNodeApi(RemoteApi):
     Remote API to CF node controller.
     """
 
-    PREFIX = u'crossbarfabriccenter.remote.node.'
+    PREFIX = "crossbarfabriccenter.remote.node."
 
     PROCS = {
         # these are node level procedures
@@ -43,21 +43,21 @@ class RemoteNodeApi(RemoteApi):
 
     EVENTS = {
         # these are node level topics
-        u'node': [
-            u'on_node_starting',
-            u'on_node_started',
-            u'on_node_heartbeat',
-            u'on_node_stopping',
-            u'on_node_stopped',
-            u'on_router_starting',
-            u'on_router_started',
-            u'on_container_starting',
-            u'on_container_started',
-            u'on_guest_starting',
-            u'on_guest_started',
-            u'on_proxy_starting',
-            u'on_proxy_started',
-            u'on_xbrmm_starting',
-            u'on_xbrmm_started',
+        "node": [
+            "on_node_starting",
+            "on_node_started",
+            "on_node_heartbeat",
+            "on_node_stopping",
+            "on_node_stopped",
+            "on_router_starting",
+            "on_router_started",
+            "on_container_starting",
+            "on_container_started",
+            "on_guest_starting",
+            "on_guest_started",
+            "on_proxy_starting",
+            "on_proxy_started",
+            "on_xbrmm_starting",
+            "on_xbrmm_started",
         ],
     }

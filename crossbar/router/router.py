@@ -5,45 +5,43 @@
 #
 #####################################################################################
 
-import txaio
 import uuid
 from pprint import pformat
-from typing import Optional, Dict, Any, Set, Tuple, List
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from txaio import make_logger
-
-from autobahn.util import hltype, hlid, hlval
+import txaio
+from autobahn.util import hlid, hltype, hlval
 from autobahn.wamp import message
-from autobahn.wamp.exception import ProtocolError, InvalidPayload
+from autobahn.wamp.exception import InvalidPayload, ProtocolError
 from autobahn.wamp.interfaces import ISession
+from txaio import make_logger
 from xbr import FbsObject
 
+from crossbar.interfaces import IInventory, IRealmStore
 from crossbar.router import RouterOptions
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
-from crossbar.router.role import RouterRole, \
-    RouterTrustedRole, RouterRoleStaticAuth, \
-    RouterRoleDynamicAuth
-from crossbar.interfaces import IRealmStore, IInventory
+from crossbar.router.role import RouterRole, RouterRoleDynamicAuth, RouterRoleStaticAuth, RouterTrustedRole
 from crossbar.worker.types import RouterRealm
 
 __all__ = (
-    'RouterFactory',
-    'Router',
+    "RouterFactory",
+    "Router",
 )
 
 
 def _is_client_session(session):
-    return hasattr(session, '_session_details')
+    return hasattr(session, "_session_details")
 
 
 class Router(object):
     """
     Crossbar.io core router class.
     """
+
     log = make_logger()
 
-    RESERVED_ROLES = ['trusted']
+    RESERVED_ROLES = ["trusted"]
     """
     Roles with these URIs are built-in and cannot be added/dropped.
     """
@@ -57,12 +55,15 @@ class Router(object):
     """
     The dealer class this router will use.
     """
-    def __init__(self,
-                 factory,
-                 realm,
-                 options: Optional[RouterOptions] = None,
-                 store: Optional[IRealmStore] = None,
-                 inventory: Optional[IInventory] = None):
+
+    def __init__(
+        self,
+        factory,
+        realm,
+        options: Optional[RouterOptions] = None,
+        store: Optional[IRealmStore] = None,
+        inventory: Optional[IInventory] = None,
+    ):
         """
 
         :param factory: The router factory this router was created by.
@@ -80,11 +81,11 @@ class Router(object):
         self._store: Optional[IRealmStore] = store
         self._inventory: Optional[IInventory] = inventory
 
-        self.realm = realm.config['name']
+        self.realm = realm.config["name"]
 
         self._trace_traffic = False
         self._trace_traffic_roles_include = None
-        self._trace_traffic_roles_exclude = ['trusted']
+        self._trace_traffic_roles_exclude = ["trusted"]
 
         # map: session_id -> session
         self._session_id_to_session: Dict[int, ISession] = {}
@@ -102,7 +103,7 @@ class Router(object):
         self._dealer = self.dealer(self, factory._reactor, self._options)
         self._attached = 0
 
-        self._roles = {'trusted': RouterTrustedRole(self, 'trusted')}
+        self._roles = {"trusted": RouterTrustedRole(self, "trusted")}
 
         # FIXME: this was previously just checking for existence of
         # self._factory._worker._maybe_trace_tx_msg / _maybe_trace_rx_msg
@@ -122,13 +123,11 @@ class Router(object):
         """
         stats = {
             # number of WAMP authentication roles defined on this realm
-            'roles': len(self._roles),
-
+            "roles": len(self._roles),
             # number of WAMP sessions currently joined on this realm
-            'sessions': self._attached,
-
+            "sessions": self._attached,
             # WAMP message routing statistics
-            'messages': self._message_stats
+            "messages": self._message_stats,
         }
         if reset:
             self.reset_stats()
@@ -140,10 +139,9 @@ class Router(object):
         """
         self._message_stats = {
             # number of WAMP messages (by type) sent on total by the router
-            'sent': {},
-
+            "sent": {},
             # number of WAMP messages (by type) received in total by the router
-            'received': {},
+            "received": {},
         }
 
     @property
@@ -160,7 +158,7 @@ class Router(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.attach`
         """
-        self.log.debug('{func}(session={session})', func=hltype(self.attach), session=session)
+        self.log.debug("{func}(session={session})", func=hltype(self.attach), session=session)
 
         if session._session_id not in self._session_id_to_session:
             self._session_id_to_session[session._session_id] = session
@@ -176,15 +174,16 @@ class Router(object):
             '{func} new session attached for realm="{realm}", session={session}, authid="{authid}", '
             'authrole="{authrole}", authmethod="{authmethod}", authprovider="{authprovider}", authextra=\n{authextra}',
             func=hltype(self.attach),
-            session=hlid(session._session_id) if session else '',
+            session=hlid(session._session_id) if session else "",
             authid=hlid(session._authid),
             authrole=hlid(session._authrole),
             authmethod=hlval(session._authmethod),
             authprovider=hlval(session._authprovider),
             authextra=pformat(session._authextra) if session._authextra else None,
-            realm=hlid(session._realm))
+            realm=hlid(session._realm),
+        )
 
-        return {'broker': self._broker._role_features, 'dealer': self._dealer._role_features}
+        return {"broker": self._broker._role_features, "dealer": self._dealer._role_features}
 
     def _session_joined(self, session, session_details):
         """
@@ -204,13 +203,13 @@ class Router(object):
             self._store.store_session_joined(session, session_details)
 
         # log session details, but skip Crossbar.io internal sessions
-        if self.realm != 'crossbar':
+        if self.realm != "crossbar":
             self.log.debug(
                 'session "{session_id}" joined realm "{realm}"',
                 session_id=session_details.session,
                 realm=self.realm,
             )
-            self.log.trace('{session_details}', details=session_details)
+            self.log.trace("{session_details}", details=session_details)
 
     def _session_left(self, session, session_details, close_details):
         """
@@ -225,16 +224,16 @@ class Router(object):
             self._store.store_session_left(session, close_details)
 
         # log session details, but skip Crossbar.io internal sessions
-        if self.realm != 'crossbar':
+        if self.realm != "crossbar":
             self.log.debug(
                 'session "{session_id}" left realm "{realm}"',
                 session_id=session_details.session,
                 realm=self.realm,
             )
-            self.log.trace('{details}', details=session_details)
+            self.log.trace("{details}", details=session_details)
 
     def detach(self, session=None) -> List[int]:
-        self.log.debug('{func}(session={session})', func=hltype(self.detach), session=session)
+        self.log.debug("{func}(session={session})", func=hltype(self.detach), session=session)
 
         detached_session_ids = []
         if session is None:
@@ -252,13 +251,14 @@ class Router(object):
             'detached_session_ids={detached_session_ids}, authid="{authid}", authrole="{authrole}", '
             'authmethod="{authmethod}", authprovider="{authprovider}")',
             func=hltype(self.detach),
-            session=hlid(session._session_id) if session else '',
+            session=hlid(session._session_id) if session else "",
             authid=hlid(session._authid),
             authrole=hlid(session._authrole),
             authmethod=hlval(session._authmethod),
             authprovider=hlval(session._authprovider),
             detached_session_ids=hlval(len(detached_session_ids)),
-            realm=hlid(session._realm))
+            realm=hlid(session._realm),
+        )
 
         return detached_session_ids
 
@@ -299,13 +299,13 @@ class Router(object):
             if self._is_traced:
                 self._factory._worker._maybe_trace_tx_msg(session, msg)
         else:
-            self.log.debug('skip sending msg - transport already closed')
+            self.log.debug("skip sending msg - transport already closed")
 
         # update WAMP message routing statistics
         msg_type = msg.__class__.__name__.lower()
-        if msg_type not in self._message_stats['sent']:
-            self._message_stats['sent'][msg_type] = 0
-        self._message_stats['sent'][msg_type] += 1
+        if msg_type not in self._message_stats["sent"]:
+            self._message_stats["sent"][msg_type] = 0
+        self._message_stats["sent"][msg_type] += 1
 
     def process(self, session, msg):
         """
@@ -355,14 +355,14 @@ class Router(object):
         except ProtocolError:
             raise
         except:
-            self.log.error('INTERNAL ERROR in router incoming message processing')
+            self.log.error("INTERNAL ERROR in router incoming message processing")
             self.log.failure()
 
         # update WAMP message routing statistics
         msg_type = msg.__class__.__name__.lower()
-        if msg_type not in self._message_stats['received']:
-            self._message_stats['received'][msg_type] = 0
-        self._message_stats['received'][msg_type] += 1
+        if msg_type not in self._message_stats["received"]:
+            self._message_stats["received"][msg_type] = 0
+        self._message_stats["received"][msg_type] += 1
 
     def has_role(self, uri):
         """
@@ -370,10 +370,12 @@ class Router(object):
 
         :returns: bool - `True` if a role under the given URI exists on this router.
         """
-        self.log.info('{func}: uri="{uri}", exists={exists}',
-                      func=hltype(self.has_role),
-                      uri=hlval(uri),
-                      exists=(uri in self._roles))
+        self.log.info(
+            '{func}: uri="{uri}", exists={exists}',
+            func=hltype(self.has_role),
+            uri=hlval(uri),
+            exists=(uri in self._roles),
+        )
         return uri in self._roles
 
     def add_role(self, role):
@@ -422,7 +424,7 @@ class Router(object):
 
         Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
         """
-        assert (action in ['call', 'register', 'publish', 'subscribe'])
+        assert action in ["call", "register", "publish", "subscribe"]
 
         # the realm, authid and authrole under which the session that wishes to perform the
         # given action on the given URI was authenticated under
@@ -441,10 +443,12 @@ class Router(object):
         # here), but the role might have been dynamically removed - and anyway, safety first!
         if authrole in self._roles:
             if cached_authorization:
-                self.log.debug('{func} authorization cache entry found key {cache_key}:\n{authorization}',
-                               func=hltype(self.authorize),
-                               cache_key=hlval(cache_key),
-                               authorization=pformat(cached_authorization))
+                self.log.debug(
+                    "{func} authorization cache entry found key {cache_key}:\n{authorization}",
+                    func=hltype(self.authorize),
+                    cache_key=hlval(cache_key),
+                    authorization=pformat(cached_authorization),
+                )
                 d = txaio.create_future_success(cached_authorization)
             else:
                 # the authorizer procedure of the role which we will call
@@ -466,20 +470,22 @@ class Router(object):
         def got_authorization(authorization):
             # backward compatibility
             if isinstance(authorization, bool):
-                authorization = {'allow': authorization, 'cache': False}
-                if action in ['call', 'publish']:
-                    authorization['disclose'] = False
+                authorization = {"allow": authorization, "cache": False}
+                if action in ["call", "publish"]:
+                    authorization["disclose"] = False
 
             auto_disclose_trusted = True
-            if auto_disclose_trusted and authrole == 'trusted' and action in ['call', 'publish']:
-                authorization['disclose'] = True
+            if auto_disclose_trusted and authrole == "trusted" and action in ["call", "publish"]:
+                authorization["disclose"] = True
 
-            if not cached_authorization and authorization.get('cache', False):
+            if not cached_authorization and authorization.get("cache", False):
                 self._authorization_cache[cache_key] = authorization
-                self.log.debug('{func} add authorization cache entry for key {cache_key}:\n{authorization}',
-                               func=hltype(got_authorization),
-                               cache_key=hlval(cache_key),
-                               authorization=pformat(authorization))
+                self.log.debug(
+                    "{func} add authorization cache entry for key {cache_key}:\n{authorization}",
+                    func=hltype(got_authorization),
+                    cache_key=hlval(cache_key),
+                    authorization=pformat(authorization),
+                )
 
             self.log.debug(
                 "Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and "
@@ -489,19 +495,22 @@ class Router(object):
                 action=action,
                 authid=session._authid,
                 authrole=session._authrole,
-                authorization=authorization)
+                authorization=authorization,
+            )
 
             return authorization
 
         d.addCallback(got_authorization)
         return d
 
-    def validate(self,
-                 payload_type: str,
-                 uri: str,
-                 args: Optional[List[Any]],
-                 kwargs: Optional[Dict[str, Any]],
-                 validate: Optional[Dict[str, Any]] = None):
+    def validate(
+        self,
+        payload_type: str,
+        uri: str,
+        args: Optional[List[Any]],
+        kwargs: Optional[Dict[str, Any]],
+        validate: Optional[Dict[str, Any]] = None,
+    ):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
 
@@ -528,31 +537,23 @@ class Router(object):
         """
         assert payload_type in [
             # rpc_service.RequestType ##############################################################
-
             # WAMP event published either using normal or router-acknowledged publications
-            'event',
-
+            "event",
             # WAMP call, the (only or the initial) caller request
-            'call',
-
+            "call",
             # WAMP call, any call updates sent by the caller subsequently and while the call is
             # still active
-            'call_progress',
-
+            "call_progress",
             # rpc_service.ResponseType #############################################################
-
             # WAMP event confirmation sent by subscribers for subscribed-confirmed publications
-            'event_result',
-
+            "event_result",
             # WAMP call result, the (only or the initial) callee response
-            'call_result',
-
+            "call_result",
             # WAMP call progressive result, any call result updates sent by the callee subsequently
             # and while the call is still active
-            'call_result_progress',
-
+            "call_result_progress",
             # WAMP call error result, the callee error response payload
-            'call_error',
+            "call_error",
         ]
 
         if self._inventory:
@@ -565,56 +566,67 @@ class Router(object):
                         '{func} validate "{payload_type}" on URI "{uri}" for payload with '
                         'len(args)={args}, len(kwargs)={kwargs} using validation_type="{validation_type}"',
                         func=hltype(self.validate),
-                        payload_type=hlval(payload_type.upper(), color='blue'),
-                        uri=hlval(uri, color='magenta'),
-                        args=hlval(len(args) if args is not None else '-'),
-                        kwargs=hlval(len(kwargs) if kwargs is not None else '-'),
-                        validation_type=hlval(validation_type, color='blue'),
-                        cb_level="trace")
+                        payload_type=hlval(payload_type.upper(), color="blue"),
+                        uri=hlval(uri, color="magenta"),
+                        args=hlval(len(args) if args is not None else "-"),
+                        kwargs=hlval(len(kwargs) if kwargs is not None else "-"),
+                        validation_type=hlval(validation_type, color="blue"),
+                        cb_level="trace",
+                    )
 
                     try:
                         vt: FbsObject = self._inventory.repo.validate(validation_type, args, kwargs)
                     except InvalidPayload as e:
-                        self.log.warn('{func} {msg}',
-                                      func=hltype(self.validate),
-                                      msg=hlval('validation error: {}'.format(e), color='red'))
+                        self.log.warn(
+                            "{func} {msg}",
+                            func=hltype(self.validate),
+                            msg=hlval("validation error: {}".format(e), color="red"),
+                        )
                         raise
                     else:
-                        self.log.info('{func} {msg} (used validation type "{vt_name}" from "{vt_decl_fn}")',
-                                      func=hltype(self.validate),
-                                      msg=hlval('validation success!', color='green'),
-                                      vt_name=hlval(vt.name),
-                                      vt_decl_fn=hlval(vt.declaration_file))
-                        self.log.debug('validated args={args}\nand kwargs={kwargs}\nagainst vt({vt_name})={vt}',
-                                       args=pformat(args),
-                                       kwargs=pformat(kwargs),
-                                       vt_name=vt.name,
-                                       vt=pformat(vt.marshal()))
+                        self.log.info(
+                            '{func} {msg} (used validation type "{vt_name}" from "{vt_decl_fn}")',
+                            func=hltype(self.validate),
+                            msg=hlval("validation success!", color="green"),
+                            vt_name=hlval(vt.name),
+                            vt_decl_fn=hlval(vt.declaration_file),
+                        )
+                        self.log.debug(
+                            "validated args={args}\nand kwargs={kwargs}\nagainst vt({vt_name})={vt}",
+                            args=pformat(args),
+                            kwargs=pformat(kwargs),
+                            vt_name=vt.name,
+                            vt=pformat(vt.marshal()),
+                        )
                 else:
                     self.log.warn(
                         '{func} {msg} (type inventory active, but no payload configuration for payload_type "{payload_type}" in validate for URI "{uri}"',
                         func=hltype(self.validate),
-                        payload_type=hlval(payload_type, color='yellow'),
+                        payload_type=hlval(payload_type, color="yellow"),
                         uri=hlval(uri),
-                        msg=hlval('validation skipped!', color='yellow'))
+                        msg=hlval("validation skipped!", color="yellow"),
+                    )
             else:
                 self.log.warn(
                     '{func} {msg} (type inventory active, but missing configuration for payload_type "{payload_type}" on URI "{uri}"',
                     func=hltype(self.validate),
                     uri=hlval(uri),
-                    payload_type=hlval(payload_type, color='yellow'),
-                    msg=hlval('validation skipped!', color='yellow'))
+                    payload_type=hlval(payload_type, color="yellow"),
+                    msg=hlval("validation skipped!", color="yellow"),
+                )
 
 
 class RouterFactory(object):
     """
     Factory for creating router instances operating for application realms.
     """
+
     log = make_logger()
     router = Router
     """
     The router class this factory will create router instances from.
     """
+
     def __init__(self, node_id: str, worker_id: str, worker, options: Optional[RouterOptions] = None):
         """
 
@@ -630,10 +642,12 @@ class RouterFactory(object):
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         # XXX this should get passed in from somewhere
         from twisted.internet import reactor
+
         self._reactor = reactor
 
-        from crossbar.worker.router import RouterController
         from crossbar.worker.proxy import ProxyController
+        from crossbar.worker.router import RouterController
+
         assert worker is None or isinstance(worker, RouterController) or isinstance(worker, ProxyController)
 
     @property
@@ -659,15 +673,18 @@ class RouterFactory(object):
     def on_last_detach(self, router):
         if router.realm in self._routers:
             del self._routers[router.realm]
-            self.log.debug('{klass}.on_last_detach: router removed for realm "{realm}"',
-                           klass=self.__class__.__name__,
-                           realm=router.realm)
+            self.log.debug(
+                '{klass}.on_last_detach: router removed for realm "{realm}"',
+                klass=self.__class__.__name__,
+                realm=router.realm,
+            )
         else:
             self.log.warn(
                 '{klass}.on_last_detach: realm "{realm}" not in router realms (skipped removal) - current realms: {realms}',
                 klass=self.__class__.__name__,
                 realm=router.realm,
-                realms=sorted(self._routers.keys()))
+                realms=sorted(self._routers.keys()),
+            )
 
     def start_realm(self, realm: RouterRealm) -> Router:
         """
@@ -678,52 +695,54 @@ class RouterFactory(object):
         :rtype: instance of :class:`crossbar.router.session.CrossbarRouter`
         """
         # extract name (URI in general) of realm from realm configuration
-        assert 'name' in realm.config
-        uri = realm.config['name']
+        assert "name" in realm.config
+        uri = realm.config["name"]
         assert isinstance(uri, str)
-        self.log.info('{func}: realm={realm} with URI "{uri}"',
-                      func=hltype(self.start_realm),
-                      realm=realm,
-                      uri=hlval(uri))
+        self.log.info(
+            '{func}: realm={realm} with URI "{uri}"', func=hltype(self.start_realm), realm=realm, uri=hlval(uri)
+        )
 
         if realm in self._routers:
             raise RuntimeError('router for realm "{}" already running'.format(uri))
 
         # setup optional store for realm persistence features
         store: Optional[IRealmStore] = None
-        if 'store' in realm.config and realm.config['store']:
+        if "store" in realm.config and realm.config["store"]:
             # the worker's node personality
             psn = self._worker.personality
-            store = psn.create_realm_store(psn, self, realm.config['store'])
-            self.log.info('{func}: initialized realm store {store_class} for realm "{realm}"',
-                          func=hltype(self.start_realm),
-                          store_class=hlval(store.__class__, color='green'),
-                          realm=hlval(uri))
+            store = psn.create_realm_store(psn, self, realm.config["store"])
+            self.log.info(
+                '{func}: initialized realm store {store_class} for realm "{realm}"',
+                func=hltype(self.start_realm),
+                store_class=hlval(store.__class__, color="green"),
+                realm=hlval(uri),
+            )
 
         # setup optional inventory for realm API catalogs
         inventory: Optional[IInventory] = None
-        if 'inventory' in realm.config and realm.config['inventory']:
+        if "inventory" in realm.config and realm.config["inventory"]:
             # the worker's node personality
             psn = self._worker.personality
-            inventory = psn.create_realm_inventory(psn, self, realm.config['inventory'])
+            inventory = psn.create_realm_inventory(psn, self, realm.config["inventory"])
             assert inventory
             self.log.info(
                 '{func}: initialized realm inventory <{inventory_type}> for realm "{realm}", '
-                'loaded {total_count} types, from config:\n{config}',
+                "loaded {total_count} types, from config:\n{config}",
                 func=hltype(self.start_realm),
-                inventory_type=hlval(inventory.type, color='green'),
+                inventory_type=hlval(inventory.type, color="green"),
                 total_count=hlval(inventory.repo.total_count),
                 realm=hlval(uri),
-                config=pformat(realm.config['inventory']))
+                config=pformat(realm.config["inventory"]),
+            )
 
         # setup realm options
         options = RouterOptions(
             uri_check=self._options.uri_check,
             event_dispatching_chunk_size=self._options.event_dispatching_chunk_size,
         )
-        for arg in ['uri_check', 'event_dispatching_chunk_size']:
-            if arg in realm.config.get('options', {}):
-                setattr(options, arg, realm.config['options'][arg])
+        for arg in ["uri_check", "event_dispatching_chunk_size"]:
+            if arg in realm.config.get("options", {}):
+                setattr(options, arg, realm.config["options"][arg])
 
         # now create a router for the realm
         router = self.router(self, realm, options, store=store, inventory=inventory)
@@ -758,24 +777,26 @@ class RouterFactory(object):
         :param config: The role configuration.
         :return: The new role object.
         """
-        self.log.info('{func}: realm="{realm}", config=\n{config}',
-                      func=hltype(self.add_role),
-                      realm=hlval(realm),
-                      config=pformat(config))
+        self.log.info(
+            '{func}: realm="{realm}", config=\n{config}',
+            func=hltype(self.add_role),
+            realm=hlval(realm),
+            config=pformat(config),
+        )
 
         if realm not in self._routers:
             raise RuntimeError('no router started for realm "{}"'.format(realm))
 
         router = self._routers[realm]
-        uri = config['name']
+        uri = config["name"]
 
         role: RouterRole
-        if 'permissions' in config:
-            role = RouterRoleStaticAuth(router, uri, config['permissions'])
-        elif 'authorizer' in config:
-            role = RouterRoleDynamicAuth(router, uri, config['authorizer'])
+        if "permissions" in config:
+            role = RouterRoleStaticAuth(router, uri, config["permissions"])
+        elif "authorizer" in config:
+            role = RouterRoleDynamicAuth(router, uri, config["authorizer"])
         else:
-            allow_by_default = config.get('allow-by-default', False)
+            allow_by_default = config.get("allow-by-default", False)
             role = RouterRole(router, uri, allow_by_default=allow_by_default)
 
         router.add_role(role)
@@ -789,10 +810,9 @@ class RouterFactory(object):
         :param role: The URI of the role (on the realm) to drop.
         :return: The dropped role object.
         """
-        self.log.info('{func}: realm="{realm}", role="{role}"',
-                      func=hltype(self.drop_role),
-                      realm=hlval(realm),
-                      role=hlval(role))
+        self.log.info(
+            '{func}: realm="{realm}", role="{role}"', func=hltype(self.drop_role), realm=hlval(realm), role=hlval(role)
+        )
 
         if realm not in self._routers:
             raise RuntimeError('no router started for realm "{}"'.format(realm))

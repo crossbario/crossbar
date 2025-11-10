@@ -6,11 +6,11 @@
 ##############################################################################
 
 import psutil
-
-from crossbar.edge.worker.monitor._base import Monitor
 from txaio import perf_counter_ns
 
-__all__ = ('HWMonitor', )
+from crossbar.edge.worker.monitor._base import Monitor
+
+__all__ = ("HWMonitor",)
 
 
 class HWMonitor(Monitor):
@@ -18,7 +18,7 @@ class HWMonitor(Monitor):
     Hardware monitoring. This monitor is reading hardware sensor data via psutil.
     """
 
-    ID = u'hardware'
+    ID = "hardware"
 
     def poll(self):
         """
@@ -37,21 +37,21 @@ class HWMonitor(Monitor):
         for key, val in (psutil.sensors_fans() or {}).items():
             for item in val:
                 item = item._asdict()
-                item['device'] = key
+                item["device"] = key
                 fans.append(item)
 
         temperatures = []
         for key, val in (psutil.sensors_temperatures() or {}).items():
             for item in val:
                 item = item._asdict()
-                item['device'] = key
+                item["device"] = key
                 temperatures.append(item)
 
-        hdata['battery'] = battery
-        hdata['fans'] = fans
-        hdata['temperatures'] = temperatures
+        hdata["battery"] = battery
+        hdata["fans"] = fans
+        hdata["temperatures"] = temperatures
 
-        hdata[u'elapsed'] = perf_counter_ns() - start
+        hdata["elapsed"] = perf_counter_ns() - start
 
         self._last_value = hdata
 

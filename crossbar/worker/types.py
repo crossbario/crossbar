@@ -14,6 +14,7 @@ class RouterComponent(object):
     """
     A application component hosted and running inside a router worker.
     """
+
     def __init__(self, id, config, session):
         """
 
@@ -37,12 +38,12 @@ class RouterComponent(object):
         """
         now = datetime.utcnow()
         return {
-            'id': self.id,
+            "id": self.id,
             # 'started' is used by container-components; keeping it
             # for consistency in the public API
-            'started': utcstr(self.created),
-            'uptime': (now - self.created).total_seconds(),
-            'config': self.config
+            "started": utcstr(self.created),
+            "uptime": (now - self.created).total_seconds(),
+            "config": self.config,
         }
 
 
@@ -50,10 +51,11 @@ class RouterRealm(object):
     """
     A realm running in a router worker.
     """
-    CATEGORY_STANDALONE = 'standalone'
-    CATEGORY_ETH = 'eth'
-    CATEGORY_ENS = 'ens'
-    CATEGORY_REVERSE_ENS = 'reverse_ens'
+
+    CATEGORY_STANDALONE = "standalone"
+    CATEGORY_ETH = "eth"
+    CATEGORY_ENS = "ens"
+    CATEGORY_REVERSE_ENS = "reverse_ens"
     VALID_CATEGORIES = [CATEGORY_STANDALONE, CATEGORY_ETH, CATEGORY_ENS, CATEGORY_REVERSE_ENS]
 
     def __init__(self, controller, id, config, category=None, router=None, session=None):
@@ -106,20 +108,20 @@ class RouterRealm(object):
 
     def marshal(self):
         marshalled = {
-            'id': self.id,
-            'config': self.config,
-            'category': self.category,
-            'created': utcstr(self.created),
-            'roles': [self.roles[role].marshal() for role in self.roles if self.roles],
-            'has_router': self.router is not None,
-            'has_service_session': self.session is not None,
+            "id": self.id,
+            "config": self.config,
+            "category": self.category,
+            "created": utcstr(self.created),
+            "roles": [self.roles[role].marshal() for role in self.roles if self.roles],
+            "has_router": self.router is not None,
+            "has_service_session": self.session is not None,
         }
 
         rlinks = []
         for link_id in self.rlink_manager.keys():
             rlinks.append(self.rlink_manager[link_id].marshal())
 
-        marshalled['rlinks'] = rlinks
+        marshalled["rlinks"] = rlinks
 
         return marshalled
 
@@ -128,6 +130,7 @@ class RouterRealmRole(object):
     """
     A role in a realm running in a router worker.
     """
+
     def __init__(self, id, config):
         """
 
@@ -142,6 +145,6 @@ class RouterRealmRole(object):
 
     def marshal(self):
         return {
-            'id': self.id,
-            'config': self.config,
+            "id": self.id,
+            "config": self.config,
         }

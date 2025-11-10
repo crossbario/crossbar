@@ -4,8 +4,9 @@
 
 import flatbuffers
 
+
 class Object(object):
-    __slots__ = ['_tab']
+    __slots__ = ["_tab"]
 
     @classmethod
     def GetRootAsObject(cls, buf, offset):
@@ -33,6 +34,7 @@ class Object(object):
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
             from .Field import Field
+
             obj = Field()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -74,6 +76,7 @@ class Object(object):
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
             from .KeyValue import KeyValue
+
             obj = KeyValue()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -101,15 +104,50 @@ class Object(object):
             return self._tab.VectorLen(o)
         return 0
 
-def ObjectStart(builder): builder.StartObject(7)
-def ObjectAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
-def ObjectAddFields(builder, fields): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(fields), 0)
-def ObjectStartFieldsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def ObjectAddIsStruct(builder, isStruct): builder.PrependBoolSlot(2, isStruct, 0)
-def ObjectAddMinalign(builder, minalign): builder.PrependInt32Slot(3, minalign, 0)
-def ObjectAddBytesize(builder, bytesize): builder.PrependInt32Slot(4, bytesize, 0)
-def ObjectAddAttributes(builder, attributes): builder.PrependUOffsetTRelativeSlot(5, flatbuffers.number_types.UOffsetTFlags.py_type(attributes), 0)
-def ObjectStartAttributesVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def ObjectAddDocumentation(builder, documentation): builder.PrependUOffsetTRelativeSlot(6, flatbuffers.number_types.UOffsetTFlags.py_type(documentation), 0)
-def ObjectStartDocumentationVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def ObjectEnd(builder): return builder.EndObject()
+
+def ObjectStart(builder):
+    builder.StartObject(7)
+
+
+def ObjectAddName(builder, name):
+    builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
+
+
+def ObjectAddFields(builder, fields):
+    builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(fields), 0)
+
+
+def ObjectStartFieldsVector(builder, numElems):
+    return builder.StartVector(4, numElems, 4)
+
+
+def ObjectAddIsStruct(builder, isStruct):
+    builder.PrependBoolSlot(2, isStruct, 0)
+
+
+def ObjectAddMinalign(builder, minalign):
+    builder.PrependInt32Slot(3, minalign, 0)
+
+
+def ObjectAddBytesize(builder, bytesize):
+    builder.PrependInt32Slot(4, bytesize, 0)
+
+
+def ObjectAddAttributes(builder, attributes):
+    builder.PrependUOffsetTRelativeSlot(5, flatbuffers.number_types.UOffsetTFlags.py_type(attributes), 0)
+
+
+def ObjectStartAttributesVector(builder, numElems):
+    return builder.StartVector(4, numElems, 4)
+
+
+def ObjectAddDocumentation(builder, documentation):
+    builder.PrependUOffsetTRelativeSlot(6, flatbuffers.number_types.UOffsetTFlags.py_type(documentation), 0)
+
+
+def ObjectStartDocumentationVector(builder, numElems):
+    return builder.StartVector(4, numElems, 4)
+
+
+def ObjectEnd(builder):
+    return builder.EndObject()

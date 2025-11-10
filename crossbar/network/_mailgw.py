@@ -8,17 +8,17 @@
 ##############################################################################
 
 import re
-import requests
 
+import requests
 from cfxdb.xbrnetwork import VerificationType
 
-_USERNAME_PAT_STR = r'^[a-z][a-z0-9_]{4,14}$'
+_USERNAME_PAT_STR = r"^[a-z][a-z0-9_]{4,14}$"
 
 _USERNAME_PAT = re.compile(_USERNAME_PAT_STR)
 
-_ONBOARD_MEMBER_LOG_VERIFICATION_CODE_START = '>>>>> ONBOARD_MEMBER_VERIFICATION_CODE_START >>>>>'
+_ONBOARD_MEMBER_LOG_VERIFICATION_CODE_START = ">>>>> ONBOARD_MEMBER_VERIFICATION_CODE_START >>>>>"
 
-_ONBOARD_MEMBER_LOG_VERIFICATION_CODE_END = '<<<<< ONBOARD_MEMBER_VERIFICATION_CODE_END <<<<<'
+_ONBOARD_MEMBER_LOG_VERIFICATION_CODE_END = "<<<<< ONBOARD_MEMBER_VERIFICATION_CODE_END <<<<<"
 
 _ONBOARD_VERIFICATION_EMAIL_TITLE = "XBR Network: confirm account creation"
 
@@ -55,9 +55,9 @@ If the above links do not work, or you have any other issues regarding
 your account, please contact administration at {operator_email}.
 """
 
-_LOGIN_MEMBER_LOG_VERIFICATION_CODE_START = '>>>>> LOGIN_MEMBER_VERIFICATION_CODE_START >>>>>'
+_LOGIN_MEMBER_LOG_VERIFICATION_CODE_START = ">>>>> LOGIN_MEMBER_VERIFICATION_CODE_START >>>>>"
 
-_LOGIN_MEMBER_LOG_VERIFICATION_CODE_END = '<<<<< LOGIN_MEMBER_VERIFICATION_CODE_END <<<<<'
+_LOGIN_MEMBER_LOG_VERIFICATION_CODE_END = "<<<<< LOGIN_MEMBER_VERIFICATION_CODE_END <<<<<"
 
 _LOGIN_VERIFICATION_EMAIL_TITLE = "XBR Network: confirm login"
 
@@ -109,9 +109,9 @@ to XBR Network.
 Go to login page: {website_url}/login
 """
 
-_CREATE_MARKET_LOG_VERIFICATION_CODE_START = '>>>>> CREATE_MARKET_VERIFICATION_CODE_START >>>>>'
+_CREATE_MARKET_LOG_VERIFICATION_CODE_START = ">>>>> CREATE_MARKET_VERIFICATION_CODE_START >>>>>"
 
-_CREATE_MARKET_LOG_VERIFICATION_CODE_END = '<<<<< CREATE_MARKET_VERIFICATION_CODE_END <<<<<'
+_CREATE_MARKET_LOG_VERIFICATION_CODE_END = "<<<<< CREATE_MARKET_VERIFICATION_CODE_END <<<<<"
 
 _CREATE_MARKET_VERIFICATION_EMAIL_TITLE = "XBR Network: confirm market creation"
 
@@ -123,9 +123,9 @@ To complete this, please open the following link in the browser you used to star
 {website_url}/verify-action?action={vaction_oid}&code={vaction_code}&action_type={vaction_type}
 """
 
-_JOIN_MARKET_LOG_VERIFICATION_CODE_START = '>>>>> JOIN_MARKET_VERIFICATION_CODE_START >>>>>'
+_JOIN_MARKET_LOG_VERIFICATION_CODE_START = ">>>>> JOIN_MARKET_VERIFICATION_CODE_START >>>>>"
 
-_JOIN_MARKET_LOG_VERIFICATION_CODE_END = '<<<<< JOIN_MARKET_VERIFICATION_CODE_END <<<<<'
+_JOIN_MARKET_LOG_VERIFICATION_CODE_END = "<<<<< JOIN_MARKET_VERIFICATION_CODE_END <<<<<"
 
 _JOIN_MARKET_VERIFICATION_EMAIL_TITLE = "XBR Network: confirm joining market {market_id}"
 
@@ -137,9 +137,9 @@ To complete this, please open the following link in the browser you used to star
 {website_url}/verify-action?action={vaction_oid}&code={vaction_code}&action_type={vaction_type}
 """
 
-_CREATE_CATALOG_LOG_VERIFICATION_CODE_START = '>>>>> CREATE_CATALOG_VERIFICATION_CODE_START >>>>>'
+_CREATE_CATALOG_LOG_VERIFICATION_CODE_START = ">>>>> CREATE_CATALOG_VERIFICATION_CODE_START >>>>>"
 
-_CREATE_CATALOG_LOG_VERIFICATION_CODE_END = '<<<<< CREATE_CATALOG_VERIFICATION_CODE_END <<<<<'
+_CREATE_CATALOG_LOG_VERIFICATION_CODE_END = "<<<<< CREATE_CATALOG_VERIFICATION_CODE_END <<<<<"
 
 _CREATE_CATALOG_VERIFICATION_EMAIL_TITLE = "XBR Network: confirm catalog creation {catalog_id}"
 
@@ -151,9 +151,9 @@ To complete this, please open the following link in the browser you used to star
 {website_url}/verify-action?action={vaction_oid}&code={vaction_code}&action_type={vaction_type}
 """
 
-_PUBLISH_API_LOG_VERIFICATION_CODE_START = '>>>>> PUBLISH_API_VERIFICATION_CODE_START >>>>>'
+_PUBLISH_API_LOG_VERIFICATION_CODE_START = ">>>>> PUBLISH_API_VERIFICATION_CODE_START >>>>>"
 
-_PUBLISH_API_LOG_VERIFICATION_CODE_END = '<<<<< PUBLISH_API_VERIFICATION_CODE_END <<<<<'
+_PUBLISH_API_LOG_VERIFICATION_CODE_END = "<<<<< PUBLISH_API_VERIFICATION_CODE_END <<<<<"
 
 _PUBLISH_API_VERIFICATION_EMAIL_TITLE = "XBR Network: confirm catalog creation {catalog_id}"
 
@@ -181,7 +181,7 @@ class MailGateway(object):
         self._mailgun_from = mailgun_from
         self._website_url = website_url
 
-    def send_onboard_verification(self, receiver_email, vaction_oid, vaction_code, expiration_date=''):
+    def send_onboard_verification(self, receiver_email, vaction_oid, vaction_code, expiration_date=""):
         """
 
         :param receiver_email:
@@ -189,33 +189,34 @@ class MailGateway(object):
         :param vaction_code:
         :return:
         """
-        email_body = _ONBOARD_VERIFICATION_EMAIL_BODY.format(website_url=self._website_url,
-                                                             vaction_oid=vaction_oid,
-                                                             vaction_code=vaction_code,
-                                                             vaction_type=VerificationType.MEMBER_ONBOARD_EMAIL,
-                                                             expiration_date=expiration_date,
-                                                             member_email=receiver_email,
-                                                             operator_email='support@crossbario.com')
+        email_body = _ONBOARD_VERIFICATION_EMAIL_BODY.format(
+            website_url=self._website_url,
+            vaction_oid=vaction_oid,
+            vaction_code=vaction_code,
+            vaction_type=VerificationType.MEMBER_ONBOARD_EMAIL,
+            expiration_date=expiration_date,
+            member_email=receiver_email,
+            operator_email="support@crossbario.com",
+        )
 
         email_data = {
             "from": self._mailgun_from,
             "to": [receiver_email],
             "subject": _ONBOARD_VERIFICATION_EMAIL_TITLE,
-            "text": email_body
+            "text": email_body,
         }
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
-            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError(
+                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                    self._mailgun_url, self._mailgun_from, res.status_code
+                )
+            )
 
-    def send_login_verification(self,
-                                receiver_email,
-                                vaction_oid,
-                                vaction_code,
-                                wallet_address,
-                                expiration_date='',
-                                was_signup_request=False):
+    def send_login_verification(
+        self, receiver_email, vaction_oid, vaction_code, wallet_address, expiration_date="", was_signup_request=False
+    ):
         """
 
         :param receiver_email:
@@ -231,48 +232,59 @@ class MailGateway(object):
                 vaction_type=VerificationType.MEMBER_LOGIN_EMAIL,
                 expiration_date=expiration_date,
                 member_email=receiver_email,
-                operator_email='support@crossbario.com',
-                wallet_address=wallet_address)
+                operator_email="support@crossbario.com",
+                wallet_address=wallet_address,
+            )
         else:
-            email_body = _LOGIN_VERIFICATION_EMAIL_BODY.format(website_url=self._website_url,
-                                                               vaction_oid=vaction_oid,
-                                                               vaction_code=vaction_code,
-                                                               vaction_type=VerificationType.MEMBER_LOGIN_EMAIL,
-                                                               expiration_date=expiration_date,
-                                                               member_email=receiver_email,
-                                                               operator_email='support@crossbario.com')
+            email_body = _LOGIN_VERIFICATION_EMAIL_BODY.format(
+                website_url=self._website_url,
+                vaction_oid=vaction_oid,
+                vaction_code=vaction_code,
+                vaction_type=VerificationType.MEMBER_LOGIN_EMAIL,
+                expiration_date=expiration_date,
+                member_email=receiver_email,
+                operator_email="support@crossbario.com",
+            )
 
         email_data = {
             "from": self._mailgun_from,
             "to": [receiver_email],
             "subject": _LOGIN_VERIFICATION_EMAIL_TITLE,
-            "text": email_body
+            "text": email_body,
         }
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
-            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError(
+                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                    self._mailgun_url, self._mailgun_from, res.status_code
+                )
+            )
 
     def send_wrong_wallet_email(self, receiver_email, actual_address, address_used):
-        email_body = _ACCOUNT_EXISTS_EMAIL_BODY.format(website_url=self._website_url,
-                                                       address_used=address_used,
-                                                       address_associated=actual_address,
-                                                       email=receiver_email)
+        email_body = _ACCOUNT_EXISTS_EMAIL_BODY.format(
+            website_url=self._website_url,
+            address_used=address_used,
+            address_associated=actual_address,
+            email=receiver_email,
+        )
 
         email_data = {
             "from": self._mailgun_from,
             "to": [receiver_email],
             "subject": _ACCOUNT_EXISTS_EMAIL_TITLE,
-            "text": email_body
+            "text": email_body,
         }
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
-            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError(
+                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                    self._mailgun_url, self._mailgun_from, res.status_code
+                )
+            )
 
-    def send_create_market_verification(self, receiver_email, vaction_oid, vaction_code, expiration_date=''):
+    def send_create_market_verification(self, receiver_email, vaction_oid, vaction_code, expiration_date=""):
         """
 
         :param receiver_email:
@@ -287,28 +299,27 @@ class MailGateway(object):
             vaction_type=VerificationType.MEMBER_CREATEMARKET_EMAIL,
             expiration_date=expiration_date,
             member_email=receiver_email,
-            operator_email='support@crossbario.com')
+            operator_email="support@crossbario.com",
+        )
 
         email_data = {
             "from": self._mailgun_from,
             "to": [receiver_email],
             "subject": _CREATE_MARKET_VERIFICATION_EMAIL_TITLE,
-            "text": email_body
+            "text": email_body,
         }
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
-            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError(
+                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                    self._mailgun_url, self._mailgun_from, res.status_code
+                )
+            )
 
-    def send_join_market_verification(self,
-                                      receiver_email,
-                                      vaction_oid,
-                                      vaction_code,
-                                      expiration_date='',
-                                      member_id=None,
-                                      market_id=None,
-                                      roles=None):
+    def send_join_market_verification(
+        self, receiver_email, vaction_oid, vaction_code, expiration_date="", member_id=None, market_id=None, roles=None
+    ):
         """
 
         :param receiver_email:
@@ -316,27 +327,32 @@ class MailGateway(object):
         :param vaction_code:
         :return:
         """
-        email_body = _JOIN_MARKET_VERIFICATION_EMAIL_BODY.format(website_url=self._website_url,
-                                                                 vaction_oid=vaction_oid,
-                                                                 vaction_code=vaction_code,
-                                                                 vaction_type=VerificationType.MEMBER_JOINMARKET_EMAIL,
-                                                                 expiration_date=expiration_date,
-                                                                 member_email=receiver_email,
-                                                                 member_id=member_id,
-                                                                 market_id=market_id,
-                                                                 roles=roles,
-                                                                 operator_email='support@crossbario.com')
+        email_body = _JOIN_MARKET_VERIFICATION_EMAIL_BODY.format(
+            website_url=self._website_url,
+            vaction_oid=vaction_oid,
+            vaction_code=vaction_code,
+            vaction_type=VerificationType.MEMBER_JOINMARKET_EMAIL,
+            expiration_date=expiration_date,
+            member_email=receiver_email,
+            member_id=member_id,
+            market_id=market_id,
+            roles=roles,
+            operator_email="support@crossbario.com",
+        )
 
         email_data = {
             "from": self._mailgun_from,
             "to": [receiver_email],
-            "subject": _JOIN_MARKET_VERIFICATION_EMAIL_TITLE.format(member_id=member_id,
-                                                                    market_id=market_id,
-                                                                    roles=roles),
-            "text": email_body
+            "subject": _JOIN_MARKET_VERIFICATION_EMAIL_TITLE.format(
+                member_id=member_id, market_id=market_id, roles=roles
+            ),
+            "text": email_body,
         }
 
         res = requests.post(url=self._mailgun_url, auth=("api", self._mailgun_key), data=email_data, timeout=10)
         if res.status_code != 200:
-            raise RuntimeError('Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
-                self._mailgun_url, self._mailgun_from, res.status_code))
+            raise RuntimeError(
+                'Mailgun gateway HTTP/POST via "{}" failed for sender "{}" with status code {}'.format(
+                    self._mailgun_url, self._mailgun_from, res.status_code
+                )
+            )

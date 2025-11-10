@@ -6,30 +6,28 @@
 ##############################################################################
 
 import os
-import time
 import threading
+import time
 
-import six
 import psutil
-from twisted.internet.defer import inlineCallbacks, DeferredList
-from twisted.internet.threads import deferToThread
-
-from txaio import make_logger, time_ns
+import six
 from autobahn import wamp
-from autobahn.wamp.types import PublishOptions
 from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.types import PublishOptions
+from twisted.internet.defer import DeferredList, inlineCallbacks
+from twisted.internet.threads import deferToThread
+from txaio import make_logger, time_ns
+
+from crossbar.edge.worker.monitor import MONITORS
 from crossbar.node.worker import NativeWorkerProcess
 from crossbar.worker.controller import WorkerController
 
-from crossbar.edge.worker.monitor import MONITORS
-
-__all__ = ('HostMonitor', 'HostMonitorProcess')
+__all__ = ("HostMonitor", "HostMonitorProcess")
 
 
 class HostMonitorProcess(NativeWorkerProcess):
-
-    TYPE = 'hostmonitor'
-    LOGNAME = 'HostMon'
+    TYPE = "hostmonitor"
+    LOGNAME = "HostMon"
 
 
 class HostMonitor(WorkerController):
@@ -37,8 +35,8 @@ class HostMonitor(WorkerController):
     Gather resource usage statistics and feed them back to the client
     """
 
-    WORKER_TYPE = u'hostmonitor'
-    WORKER_TITLE = u'HostMonitor'
+    WORKER_TYPE = "hostmonitor"
+    WORKER_TITLE = "HostMonitor"
 
     log = make_logger()
 
@@ -54,24 +52,24 @@ class HostMonitor(WorkerController):
 
     @inlineCallbacks
     def onJoin(self, details):
-        self.log.info('HostMonitor connected (monitors available: {monitors})', monitors=sorted(MONITORS.keys()))
+        self.log.info("HostMonitor connected (monitors available: {monitors})", monitors=sorted(MONITORS.keys()))
 
         yield WorkerController.onJoin(self, details, publish_ready=False)
 
         # register monitor procedures
         dl = []
         for monitor in self._monitors.values():
-            d = self.register(monitor.get, u'{}.get_{}'.format(self._prefix, monitor.ID))
+            d = self.register(monitor.get, "{}.get_{}".format(self._prefix, monitor.ID))
             dl.append(d)
         res = yield DeferredList(dl, fireOnOneErrback=True)
         print(res)
-        self.log.info('HostMonitor {pcnt} procedures registered', pcnt=len(res))
+        self.log.info("HostMonitor {pcnt} procedures registered", pcnt=len(res))
 
         # signal this worker is done with setup and ready
         yield self.publish_ready()
 
     def onLeave(self, details):
-        self.log.info('HostMonitor shutting down ..')
+        self.log.info("HostMonitor shutting down ..")
         self.stop_monitoring()
         self.disconnect()
 
@@ -79,12 +77,12 @@ class HostMonitor(WorkerController):
     def get_monitoring(self, sensors=None, details=None):
         if self._run:
             if self._is_running:
-                status = u'running'
+                status = "running"
             else:
-                status = u'starting'
+                status = "starting"
             pass
         else:
-            status = u'stopped'
+            status = "stopped"
 
         if sensors is None:
             sensors = list(self._monitors.keys())
@@ -92,10 +90,9 @@ class HostMonitor(WorkerController):
             sensors = list(set(self._monitors.keys()).intersection(sensors))
 
         monitoring = {
-            u'status': status,
-            u'config': self._config,
-            u'current': {sensor: self._monitors[sensor].get()
-                         for sensor in sensors}
+            "status": status,
+            "config": self._config,
+            "current": {sensor: self._monitors[sensor].get() for sensor in sensors},
         }
         return monitoring
 
@@ -107,41 +104,45 @@ class HostMonitor(WorkerController):
         :param config: Monitoring configuration.
         :type config: dict
         """
-        self.log.info('HostMonitor start monitoring (config={config})', config=config)
+        self.log.info("HostMonitor start monitoring (config={config})", config=config)
 
         # after the worker is up and running, host monitoring must be started
         # (host monitoring can only be started or off, there is nothing to start instances of)
         if self._run:
             if self._is_running:
-                raise ApplicationError(u'crossbar.error.already_running',
-                                       u'cannot start host monitoring - monitoring already running')
+                raise ApplicationError(
+                    "crossbar.error.already_running", "cannot start host monitoring - monitoring already running"
+                )
             else:
-                raise ApplicationError(u'crossbar.error.already_running',
-                                       u'cannot start host monitoring - monitoring currently starting')
+                raise ApplicationError(
+                    "crossbar.error.already_running", "cannot start host monitoring - monitoring currently starting"
+                )
 
         # submonitors specified in the config
-        monitors = config.get('monitors', {})
+        monitors = config.get("monitors", {})
         if len(monitors) == 0:
-            raise ApplicationError(u'crossbar.error.invalid_configuration',
-                                   u'cannot start monitoring from empty monitors list')
+            raise ApplicationError(
+                "crossbar.error.invalid_configuration", "cannot start monitoring from empty monitors list"
+            )
 
         # save config for later access
         self._config = config
 
         # sensor polling interval in ms
-        self._interval = config.get('interval', 500)
+        self._interval = config.get("interval", 500)
 
         self._monitors = {}
         for monitor_key, monitor_config in monitors.items():
-
             if not isinstance(monitor_key, six.text_type):
-                raise ApplicationError(u'crossbar.error.invalid_configuration',
-                                       u'invalid monitor key type "{}"'.format(type(monitor_key)))
+                raise ApplicationError(
+                    "crossbar.error.invalid_configuration", 'invalid monitor key type "{}"'.format(type(monitor_key))
+                )
 
             if monitor_key not in MONITORS.keys():
                 raise ApplicationError(
-                    u'crossbar.error.invalid_configuration',
-                    u'unknown monitor type "{}" (available monitors: {})'.format(monitor_key, sorted(MONITORS.keys())))
+                    "crossbar.error.invalid_configuration",
+                    'unknown monitor type "{}" (available monitors: {})'.format(monitor_key, sorted(MONITORS.keys())),
+                )
 
             # get submonitor class
             klass = MONITORS[monitor_key]
@@ -159,32 +160,34 @@ class HostMonitor(WorkerController):
         d = deferToThread(self._loop)
         d.addCallbacks(after_exit_success, after_exit_error)
 
-        self.log.info('HostMonitor loop started _from_ main thread (PID={pid}, thread={tid})',
-                      pid=os.getpid(),
-                      tid=threading.get_ident())
+        self.log.info(
+            "HostMonitor loop started _from_ main thread (PID={pid}, thread={tid})",
+            pid=os.getpid(),
+            tid=threading.get_ident(),
+        )
 
-        started = {u'monitors': sorted(list(self._monitors.keys()))}
-        topic = u'{}.on_mon_started'.format(self._uri_prefix)
+        started = {"monitors": sorted(list(self._monitors.keys()))}
+        topic = "{}.on_mon_started".format(self._uri_prefix)
 
         self.publish(topic, started)
 
-        self.log.info('HostMonitor started monitoring (started={started})', started=started)
+        self.log.info("HostMonitor started monitoring (started={started})", started=started)
 
         return started
 
     @wamp.register(None)
     def stop_monitoring(self, details=None):
-        self.log.info('HostMonitor stop monitoring ..')
+        self.log.info("HostMonitor stop monitoring ..")
 
         if not self._run:
             if self._is_running:
-                self.log.warn('cannot stop host monitoring - monitoring already told to stop (but still running)')
+                self.log.warn("cannot stop host monitoring - monitoring already told to stop (but still running)")
             else:
-                self.log.info('cannot stop host monitoring - monitoring already stopped')
+                self.log.info("cannot stop host monitoring - monitoring already stopped")
             return None
 
-        stopped = {u'monitors': sorted(list(self._monitors.keys()))}
-        topic = u'{}.on_monitoring_stopped'.format(self._uri_prefix)
+        stopped = {"monitors": sorted(list(self._monitors.keys()))}
+        topic = "{}.on_monitoring_stopped".format(self._uri_prefix)
 
         self._run = False
         self._monitors = {}
@@ -192,7 +195,7 @@ class HostMonitor(WorkerController):
 
         self.publish(topic, stopped)
 
-        self.log.info('HostMonitor stopped monitoring (stopped={stopped})', stopped=stopped)
+        self.log.info("HostMonitor stopped monitoring (stopped={stopped})", stopped=stopped)
 
         return stopped
 
@@ -202,16 +205,20 @@ class HostMonitor(WorkerController):
         self._is_running = True
 
         try:
-            print('HostMonitor entering loop on background thread (PID={pid}, thread={tid})'.format(
-                pid=os.getpid(), tid=threading.get_ident()))
+            print(
+                "HostMonitor entering loop on background thread (PID={pid}, thread={tid})".format(
+                    pid=os.getpid(), tid=threading.get_ident()
+                )
+            )
             while self._run:
                 started = time_ns()
 
                 self.log.debug(
-                    'HostMonitor gather sensor data on background thread (started={started}, PID={pid}=thread {tid})',
+                    "HostMonitor gather sensor data on background thread (started={started}, PID={pid}=thread {tid})",
                     started=started,
                     pid=os.getpid(),
-                    tid=threading.get_ident())
+                    tid=threading.get_ident(),
+                )
 
                 # poll all configured submonitors and collect the data
                 hdata = {}
@@ -225,9 +232,9 @@ class HostMonitor(WorkerController):
 
                 # wake up every 100ms until we want to loop
                 while self._run and time_ns() < next_time:
-                    time.sleep(.1)
+                    time.sleep(0.1)
         except Exception as e:
-            print('HostMonitor ending loop because of exception: {}'.format(e))
+            print("HostMonitor ending loop because of exception: {}".format(e))
 
             # mark the thread as "done" when still on the background thread
             self._is_running = False
@@ -236,13 +243,15 @@ class HostMonitor(WorkerController):
             raise
 
         else:
-            print('HostMonitor ending loop gracefully')
+            print("HostMonitor ending loop gracefully")
             # the deferred return on the main thread from deferToThread will fire its callback
 
     def _publish(self, hdata):
-        self.log.debug('HostMonitor publish sensor data on main thread (PID {pid} thread {tid})',
-                       pid=os.getpid(),
-                       tid=threading.get_ident())
+        self.log.debug(
+            "HostMonitor publish sensor data on main thread (PID {pid} thread {tid})",
+            pid=os.getpid(),
+            tid=threading.get_ident(),
+        )
 
         # this is running on the main thread: doing the publishes here avoids a couple
         # of context switches, and this way the background thread doesn't touch any
@@ -251,7 +260,7 @@ class HostMonitor(WorkerController):
 
         dl = []
         for monitor_id, monitor_data in hdata.items():
-            d = self.publish(u'{}.on_{}_sample'.format(self._uri_prefix, monitor_id), monitor_data, options=options)
+            d = self.publish("{}.on_{}_sample".format(self._uri_prefix, monitor_id), monitor_data, options=options)
             dl.append(d)
 
         d = DeferredList(dl)
@@ -264,7 +273,7 @@ class HostMonitor(WorkerController):
                     ok += 1
                 else:
                     err += 1
-                    self.log.warn('HostMonitor publication failed with - {error}', error=result)
-            self.log.debug('HostMonitor publish: ok={ok}, err={err}', ok=ok, err=err)
+                    self.log.warn("HostMonitor publication failed with - {error}", error=result)
+            self.log.debug("HostMonitor publish: ok={ok}, err={err}", ok=ok, err=err)
 
         d.addCallback(done)

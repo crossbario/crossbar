@@ -7,7 +7,6 @@
 
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.types import PublishOptions
-
 from twisted.internet.defer import inlineCallbacks
 
 _ = []

@@ -4,8 +4,9 @@
 
 import flatbuffers
 
+
 class EnumVal(object):
-    __slots__ = ['_tab']
+    __slots__ = ["_tab"]
 
     @classmethod
     def GetRootAsEnumVal(cls, buf, offset):
@@ -38,6 +39,7 @@ class EnumVal(object):
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
             from .Object import Object
+
             obj = Object()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -49,6 +51,7 @@ class EnumVal(object):
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
             from .Type import Type
+
             obj = Type()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -69,11 +72,34 @@ class EnumVal(object):
             return self._tab.VectorLen(o)
         return 0
 
-def EnumValStart(builder): builder.StartObject(5)
-def EnumValAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
-def EnumValAddValue(builder, value): builder.PrependInt64Slot(1, value, 0)
-def EnumValAddObject(builder, object): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(object), 0)
-def EnumValAddUnionType(builder, unionType): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(unionType), 0)
-def EnumValAddDocumentation(builder, documentation): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(documentation), 0)
-def EnumValStartDocumentationVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def EnumValEnd(builder): return builder.EndObject()
+
+def EnumValStart(builder):
+    builder.StartObject(5)
+
+
+def EnumValAddName(builder, name):
+    builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
+
+
+def EnumValAddValue(builder, value):
+    builder.PrependInt64Slot(1, value, 0)
+
+
+def EnumValAddObject(builder, object):
+    builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(object), 0)
+
+
+def EnumValAddUnionType(builder, unionType):
+    builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(unionType), 0)
+
+
+def EnumValAddDocumentation(builder, documentation):
+    builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(documentation), 0)
+
+
+def EnumValStartDocumentationVector(builder, numElems):
+    return builder.StartVector(4, numElems, 4)
+
+
+def EnumValEnd(builder):
+    return builder.EndObject()

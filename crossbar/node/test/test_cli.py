@@ -5,26 +5,24 @@
 #
 #####################################################################################
 
+import os
+import platform
+import sys
 import unittest
 from io import StringIO as NativeStringIO
 
+import twisted
 from twisted.internet.selectreactor import SelectReactor
 
-from crossbar.test import TestCase
 from crossbar.node import main
-
-import os
-import sys
-import platform
-import twisted
+from crossbar.test import TestCase
 
 
 class CLITestBase(TestCase):
     def setUp(self):
-
         self._subprocess_timeout = 15
 
-        if platform.python_implementation() == 'PyPy':
+        if platform.python_implementation() == "PyPy":
             self._subprocess_timeout = 30
 
         self.stderr = NativeStringIO()
@@ -49,6 +47,7 @@ class VersionTests(CLITestBase):
     """
     Tests for `crossbar version`.
     """
+
     def test_basic(self):
         """
         Just running `crossbar version` gets us the versions.
@@ -58,8 +57,9 @@ class VersionTests(CLITestBase):
         main.main("crossbar", ["version"], reactor=reactor)
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
-        self.assertIn(("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"),
-                      self.stdout.getvalue())
+        self.assertIn(
+            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"), self.stdout.getvalue()
+        )
 
     def test_debug(self):
         """
@@ -71,8 +71,9 @@ class VersionTests(CLITestBase):
         main.main("crossbar", ["version", "--loglevel=debug"], reactor=reactor)
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
-        self.assertIn(("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"),
-                      self.stdout.getvalue())
+        self.assertIn(
+            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"), self.stdout.getvalue()
+        )
         self.assertIn(("[twisted.internet.selectreactor.SelectReactor]"), self.stdout.getvalue())
 
 
@@ -81,8 +82,8 @@ class StartTests(CLITestBase):
     """
     Tests for `crossbar start`.
     """
-    def setUp(self):
 
+    def setUp(self):
         CLITestBase.setUp(self)
 
         # Set up the configuration directories
@@ -143,7 +144,6 @@ class StartTests(CLITestBase):
         self.assertEqual("", self.stdout.getvalue())
 
     def test_stalePID(self):
-
         with open(self.config, "w") as f:
             f.write("""{"version": 2, "controller": {}}""")
 
@@ -155,9 +155,12 @@ class StartTests(CLITestBase):
 
         main.main("crossbar", ["start", "--cbdir={}".format(self.cbdir), "--logformat=syslogd"], reactor=reactor)
 
-        self.assertIn(("Stale Crossbar.io PID file (pointing to non-existing process "
-                       "with PID {pid}) {fp} removed").format(fp=os.path.abspath(os.path.join(self.cbdir, "node.pid")),
-                                                              pid=9999999), self.stdout.getvalue())
+        self.assertIn(
+            ("Stale Crossbar.io PID file (pointing to non-existing process with PID {pid}) {fp} removed").format(
+                fp=os.path.abspath(os.path.join(self.cbdir, "node.pid")), pid=9999999
+            ),
+            self.stdout.getvalue(),
+        )
 
 
 @unittest.skip("FIXME (broken unit test)")
@@ -165,6 +168,7 @@ class ConvertTests(CLITestBase):
     """
     Tests for `crossbar convert`.
     """
+
     def test_unknown_format(self):
         """
         Running `crossbar convert` with an unknown config file produces an
@@ -173,7 +177,7 @@ class ConvertTests(CLITestBase):
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.blah")
-        open(config_file, 'wb').close()
+        open(config_file, "wb").close()
 
         with self.assertRaises(SystemExit) as e:
             main.main("crossbar", ["convert", "--config={}".format(config_file)])
@@ -189,7 +193,7 @@ class ConvertTests(CLITestBase):
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.yaml")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write("""
 foo:
     bar: spam
@@ -201,16 +205,18 @@ foo:
 
         self.assertIn(("JSON formatted configuration written"), self.stdout.getvalue())
 
-        with open(os.path.join(cbdir, "config.json"), 'r') as f:
+        with open(os.path.join(cbdir, "config.json"), "r") as f:
             self.assertEqual(
-                f.read(), """{
+                f.read(),
+                """{
    "foo": {
       "bar": "spam",
       "baz": {
          "foo": "cat"
       }
    }
-}""")
+}""",
+            )
 
     def test_invalid_yaml_to_json(self):
         """
@@ -220,7 +226,7 @@ foo:
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.yaml")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write("""{{{{{{{{""")
 
         with self.assertRaises(SystemExit) as e:
@@ -237,7 +243,7 @@ foo:
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.json")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write("""{
    "foo": {
       "bar": "spam",
@@ -251,12 +257,15 @@ foo:
 
         self.assertIn(("YAML formatted configuration written"), self.stdout.getvalue())
 
-        with open(os.path.join(cbdir, "config.yaml"), 'r') as f:
-            self.assertEqual(f.read(), """foo:
+        with open(os.path.join(cbdir, "config.yaml"), "r") as f:
+            self.assertEqual(
+                f.read(),
+                """foo:
   bar: spam
   baz:
     foo: cat
-""")
+""",
+            )
 
     def test_invalid_json_to_yaml(self):
         """
@@ -266,7 +275,7 @@ foo:
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.json")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write("""{{{{{{{{""")
 
         with self.assertRaises(SystemExit) as e:

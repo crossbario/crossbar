@@ -17,15 +17,14 @@ class _Part(object):
     """
     A multipart "part".
     """
-    def __init__(self, name, content, filename=None, content_type=None):
 
+    def __init__(self, name, content, filename=None, content_type=None):
         self._content = content
         self._name = name
         self._content_type = content_type
         self._filename = filename
 
     def render(self):
-
         end_content = []
         end_content.append(b'Content-Disposition: form-data; name="')
         end_content.append(self._name)
@@ -36,7 +35,7 @@ class _Part(object):
             end_content.append(self._filename)
             end_content.append(b'"')
 
-        end_content.append(b'\r\n')
+        end_content.append(b"\r\n")
 
         if self._content_type:
             end_content.append(b"Content-Type: ")
@@ -54,12 +53,12 @@ class Multipart(object):
     """
     A multipart request.
     """
+
     def __init__(self):
         self._parts = []
-        self._boundary = uuid4().hex.encode('ascii')
+        self._boundary = uuid4().hex.encode("ascii")
 
     def add_part(self, name, content, filename=None, content_type=None):
-
         self._parts.append(_Part(name, content, content_type=content_type, filename=filename))
 
     def render(self):
@@ -77,7 +76,7 @@ class Multipart(object):
 
         headers = {
             b"content-type": [b"multipart/form-data; boundary=" + boundary],
-            b"content-length": [str(len(content)).encode('ascii')]
+            b"content-length": [str(len(content)).encode("ascii")],
         }
 
         return (content, headers)

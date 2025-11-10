@@ -6,21 +6,19 @@
 #####################################################################################
 
 import importlib
-from typing import Union, Dict, Any, Optional
+from typing import Any, Dict, Optional, Union
 
-from txaio import make_logger
-from twisted.internet.defer import Deferred
-
+import txaio
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, TransportDetails
 from autobahn.wamp.interfaces import ISession
+from autobahn.wamp.types import Accept, Challenge, Deny, HelloDetails, TransportDetails
+from twisted.internet.defer import Deferred
+from txaio import make_logger
 
 from crossbar._util import hlid, hltype
 from crossbar.interfaces import IRealmContainer
 
-import txaio
-
-__all__ = ('PendingAuth', )
+__all__ = ("PendingAuth",)
 
 _authenticators: Dict[str, object] = dict()
 
@@ -32,12 +30,18 @@ class PendingAuth:
     After creating a pending authentication first call ``open()`` and
     then ``verify()`` (each should be called exactly once, and in this order).
     """
+
     log = make_logger()
 
-    AUTHMETHOD = 'abstract'
+    AUTHMETHOD = "abstract"
 
-    def __init__(self, pending_session_id: int, transport_details: TransportDetails, realm_container: IRealmContainer,
-                 config: Dict[str, Any]):
+    def __init__(
+        self,
+        pending_session_id: int,
+        transport_details: TransportDetails,
+        realm_container: IRealmContainer,
+        config: Dict[str, Any],
+    ):
         """
 
         :param pending_session_id: The WAMP session ID if this authentication succeeds.
@@ -47,10 +51,10 @@ class PendingAuth:
         """
         # Details about the authenticating session
         self._session_details = {
-            'transport': transport_details.marshal(),
-            'session': pending_session_id,
-            'authmethod': None,
-            'authextra': None
+            "transport": transport_details.marshal(),
+            "session": pending_session_id,
+            "authmethod": None,
+            "authextra": None,
         }
 
         # The router factory we are working for
@@ -102,81 +106,98 @@ class PendingAuth:
         # backwards compatibility: dynamic authenticator
         # was expected to return a role directly
         if isinstance(principal, str):
-            principal = {'role': principal}
+            principal = {"role": principal}
 
         # allow to override realm request, redirect realm or set default realm
-        if 'realm' in principal:
-            self._realm = principal['realm']
+        if "realm" in principal:
+            self._realm = principal["realm"]
 
         # allow overriding effectively assigned authid
-        if 'authid' in principal:
-            self._authid = principal['authid']
+        if "authid" in principal:
+            self._authid = principal["authid"]
 
         # determine effectively assigned authrole
-        if 'role' in principal:
-            self._authrole = principal['role']
-        elif 'default-role' in self._config:
-            self._authrole = self._config['default-role']
+        if "role" in principal:
+            self._authrole = principal["role"]
+        elif "default-role" in self._config:
+            self._authrole = self._config["default-role"]
 
         # allow forwarding of application-specific "welcome data"
-        if 'extra' in principal:
-            self._authextra = principal['extra']
+        if "extra" in principal:
+            self._authextra = principal["extra"]
 
         # a realm must have been assigned by now, otherwise bail out!
         if not self._realm:
-            return Deny(ApplicationError.NO_SUCH_REALM, message='no realm assigned')
+            return Deny(ApplicationError.NO_SUCH_REALM, message="no realm assigned")
 
         # an authid MUST be set at least by here - otherwise bail out now!
         if not self._authid:
-            return Deny(ApplicationError.NO_SUCH_PRINCIPAL, message='no authid assigned')
+            return Deny(ApplicationError.NO_SUCH_PRINCIPAL, message="no authid assigned")
 
         # an authrole MUST be set at least by here - otherwise bail out now!
         if not self._authrole:
-            return Deny(ApplicationError.NO_SUCH_ROLE, message='no authrole assigned')
+            return Deny(ApplicationError.NO_SUCH_ROLE, message="no authrole assigned")
 
         # if realm is not started on router, bail out now!
         if not self._realm_container.has_realm(self._realm):
-            return Deny(ApplicationError.NO_SUCH_REALM,
-                        message='no realm "{}" exists on this router'.format(self._realm))
+            return Deny(
+                ApplicationError.NO_SUCH_REALM, message='no realm "{}" exists on this router'.format(self._realm)
+            )
 
         # if role is not running on realm, bail out now!
-        if self._authrole not in ['trusted', 'anonymous'
-                                  ] and not self._realm_container.has_role(self._realm, self._authrole):
-            return Deny(ApplicationError.NO_SUCH_ROLE,
-                        message='realm "{}" has no role "{}"'.format(self._realm, self._authrole))
+        if self._authrole not in ["trusted", "anonymous"] and not self._realm_container.has_role(
+            self._realm, self._authrole
+        ):
+            return Deny(
+                ApplicationError.NO_SUCH_ROLE,
+                message='realm "{}" has no role "{}"'.format(self._realm, self._authrole),
+            )
 
     def _init_dynamic_authenticator(self):
         # procedure URI to call
-        self._authenticator = self._config['authenticator']
+        self._authenticator = self._config["authenticator"]
 
         # authenticator realm
-        if 'authenticator-realm' in self._config:
-            self._authenticator_realm = self._config['authenticator-realm']
-            self.log.debug('{func} authenticator realm "{realm}" set from authenticator configuration',
-                           func=hltype(self._init_function_authenticator),
-                           realm=hlid(self._authenticator_realm))
+        if "authenticator-realm" in self._config:
+            self._authenticator_realm = self._config["authenticator-realm"]
+            self.log.debug(
+                '{func} authenticator realm "{realm}" set from authenticator configuration',
+                func=hltype(self._init_function_authenticator),
+                realm=hlid(self._authenticator_realm),
+            )
         else:
             self._authenticator_realm = self._realm
-            self.log.debug('{func} authenticator realm "{realm}" set from session',
-                           func=hltype(self._init_function_authenticator),
-                           realm=hlid(self._authenticator_realm))
+            self.log.debug(
+                '{func} authenticator realm "{realm}" set from session',
+                func=hltype(self._init_function_authenticator),
+                realm=hlid(self._authenticator_realm),
+            )
 
         if not self._realm_container.has_realm(self._authenticator_realm):
-            return Deny(ApplicationError.NO_SUCH_REALM,
-                        message=("explicit realm <{}> configured for dynamic "
-                                 "authenticator does not exist".format(self._authenticator_realm)))
+            return Deny(
+                ApplicationError.NO_SUCH_REALM,
+                message=(
+                    "explicit realm <{}> configured for dynamic authenticator does not exist".format(
+                        self._authenticator_realm
+                    )
+                ),
+            )
 
         # authenticator role
-        if 'authenticator-role' in self._config:
-            self._authenticator_role = self._config['authenticator-role']
-            self.log.debug('{func} authenticator role "{authrole}" set from authenticator configuration',
-                           func=hltype(self._init_function_authenticator),
-                           authrole=hlid(self._authenticator_role))
+        if "authenticator-role" in self._config:
+            self._authenticator_role = self._config["authenticator-role"]
+            self.log.debug(
+                '{func} authenticator role "{authrole}" set from authenticator configuration',
+                func=hltype(self._init_function_authenticator),
+                authrole=hlid(self._authenticator_role),
+            )
         else:
             self._authenticator_role = self._authrole
-            self.log.debug('{func} authenticator role "{authrole}" set from session',
-                           func=hltype(self._init_function_authenticator),
-                           authrole=hlid(self._authenticator_role))
+            self.log.debug(
+                '{func} authenticator role "{authrole}" set from session',
+                func=hltype(self._init_function_authenticator),
+                authrole=hlid(self._authenticator_role),
+            )
 
         if self._authenticator_realm is None:
             return Deny(
@@ -187,13 +208,16 @@ class PendingAuth:
             return Deny(
                 ApplicationError.NO_SUCH_ROLE,
                 message="explicit role <{}> on realm <{}> configured for dynamic authenticator does not exist".format(
-                    self._authenticator_role, self._authenticator_realm))
+                    self._authenticator_role, self._authenticator_realm
+                ),
+            )
 
         self.log.info(
             'initializing authenticator service session for realm "{realm}" with authrole "{authrole}" .. {func}',
             realm=hlid(self._authenticator_realm),
             authrole=hlid(self._authenticator_role),
-            func=hltype(self._init_dynamic_authenticator))
+            func=hltype(self._init_dynamic_authenticator),
+        )
 
         # get a dynamic authenticator session (where the dynamic authenticator procedure is registered and called):
         #
@@ -210,7 +234,8 @@ class PendingAuth:
                 func=hltype(self._init_dynamic_authenticator),
                 session_id=hlid(session._session_id),
                 authrole=hlid(session._authrole),
-                realm=hlid(session._realm))
+                realm=hlid(session._realm),
+            )
             self._authenticator_session = session
             d_ready.callback(None)
 
@@ -226,37 +251,44 @@ class PendingAuth:
             # forward the inner error URI and message (or coerce the first args item to str)
             msg = None
             if err.value.args:
-                msg = '{}'.format(err.value.args[0])
+                msg = "{}".format(err.value.args[0])
             return Deny(err.value.error, msg)
         else:
             # wrap the error
             error = ApplicationError.AUTHENTICATION_FAILED
-            message = 'dynamic authenticator failed: {}'.format(err.value)
+            message = "dynamic authenticator failed: {}".format(err.value)
             return Deny(error, message)
 
     def _accept(self):
-        return Accept(realm=self._realm,
-                      authid=self._authid,
-                      authrole=self._authrole,
-                      authmethod=self._authmethod,
-                      authprovider=self._authprovider,
-                      authextra=self._authextra)
+        return Accept(
+            realm=self._realm,
+            authid=self._authid,
+            authrole=self._authrole,
+            authmethod=self._authmethod,
+            authprovider=self._authprovider,
+            authextra=self._authextra,
+        )
 
     def _init_function_authenticator(self):
-        self.log.debug('{klass}._init_function_authenticator', klass=self.__class__.__name__)
+        self.log.debug("{klass}._init_function_authenticator", klass=self.__class__.__name__)
 
         # import the module for the function
-        create_fqn = self._config['create']
-        if '.' not in create_fqn:
-            return Deny(ApplicationError.NO_SUCH_PROCEDURE,
-                        "'function' authenticator has no module: '{}'".format(create_fqn))
+        create_fqn = self._config["create"]
+        if "." not in create_fqn:
+            return Deny(
+                ApplicationError.NO_SUCH_PROCEDURE, "'function' authenticator has no module: '{}'".format(create_fqn)
+            )
 
-        if self._config.get('expose_controller', None):
+        if self._config.get("expose_controller", None):
             from crossbar.worker.controller import WorkerController
+
             if not isinstance(self._realm_container, WorkerController):
-                excp = Exception("Internal Error: Our container '{}' is not a WorkerController".format(
-                    self._realm_container, ))
-                self.log.failure('{klass} could not expose controller', klass=self.__class__.__name__, failure=excp)
+                excp = Exception(
+                    "Internal Error: Our container '{}' is not a WorkerController".format(
+                        self._realm_container,
+                    )
+                )
+                self.log.failure("{klass} could not expose controller", klass=self.__class__.__name__, failure=excp)
                 raise excp
             controller = self._realm_container
         else:
@@ -296,17 +328,17 @@ def _authenticator_for_name(config, controller=None):
         (possibly freshly created)
     """
 
-    create_fqn = config['create']
+    create_fqn = config["create"]
     create_function = _authenticators.get(create_fqn, None)
 
     if create_function is None:
-        create_module, create_name = create_fqn.rsplit('.', 1)
+        create_module, create_name = create_fqn.rsplit(".", 1)
         _mod = importlib.import_module(create_module)
         try:
             create_authenticator = getattr(_mod, create_name)
         except AttributeError:
             raise RuntimeError("No function '{}' in module '{}'".format(create_name, create_module))
-        create_d = txaio.as_future(create_authenticator, config.get('config', dict()), controller)
+        create_d = txaio.as_future(create_authenticator, config.get("config", dict()), controller)
 
         def got_authenticator(authenticator):
             _authenticators[create_fqn] = authenticator

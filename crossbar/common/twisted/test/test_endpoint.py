@@ -7,25 +7,23 @@
 
 import os
 import shutil
-
 from uuid import uuid4
 
-from twisted.internet.endpoints import UNIXServerEndpoint, TCP4ServerEndpoint
-from twisted.internet.endpoints import TCP4ClientEndpoint
-from twisted.internet.selectreactor import SelectReactor
+from twisted.internet.endpoints import TCP4ClientEndpoint, TCP4ServerEndpoint, UNIXServerEndpoint
 from twisted.internet.protocol import Factory
+from twisted.internet.selectreactor import SelectReactor
 from twisted.protocols.wire import Echo
 from twisted.python.runtime import platform
-
-from crossbar.test import TestCase
-from crossbar.common.twisted.endpoint import create_listening_endpoint_from_config
-from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
-
 from txaio import make_logger
+
+from crossbar.common.twisted.endpoint import (
+    create_connecting_endpoint_from_config,
+    create_listening_endpoint_from_config,
+)
+from crossbar.test import TestCase
 
 
 class ListeningEndpointTests(TestCase):
-
     log = make_logger()
 
     def setUp(self):

@@ -6,50 +6,49 @@
 ###############################################################################
 
 import re
-import six
 import uuid
 from datetime import datetime
 
+import six
 from autobahn import wamp
 from autobahn.util import utcnow, utcstr
-from autobahn.wamp.types import PublishOptions, CallDetails
 from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.types import CallDetails, PublishOptions
+from cfxdb.mrealm import ManagementRealm, Node
+from cfxdb.user import UserMrealmRole, UserRole
 
 from crossbar.master.node.authenticator import Authenticator
 
-from cfxdb.mrealm import ManagementRealm, Node
-from cfxdb.user import UserRole, UserMrealmRole
-
 # users cannot use realm names starting with these:
 _PROTECTED_REALM_PREFIXES = [
-    'io.crossbar',
-    'com.crossbario',
-    'de.crossbario',
-    'crossbar',
-    'crossbar-wamp',
-    'crossbarfabric',
-    'crossbarfabric-wamp',
-    'crossbarfabriccenter',
-    'crossbario',
-    'fabric',
-    'autobahn',
-    'wamp',
-    'ws.wamp',
-    'io.wamp',
+    "io.crossbar",
+    "com.crossbario",
+    "de.crossbario",
+    "crossbar",
+    "crossbar-wamp",
+    "crossbarfabric",
+    "crossbarfabric-wamp",
+    "crossbarfabriccenter",
+    "crossbario",
+    "fabric",
+    "autobahn",
+    "wamp",
+    "ws.wamp",
+    "io.wamp",
 ]
 
-ERROR_INVALID_REALM = 'fabric.invalid-realm'
-ERROR_REALM_ALREADY_EXISTS = 'fabric.realm-already-exists'
-ERROR_NO_SUCH_REALM = 'fabric.no-such-realm'
-ERROR_NOT_AUTHORIZED = 'fabric.not-authorized'
-ERROR_NODE_ALREADY_PAIRED = 'fabric.node-already-paired'
-ERROR_NODE_NOT_PAIRED = 'fabric.node-not-paired'
-ERROR_NO_SUCH_NODE = 'fabric.node-not-exist'
+ERROR_INVALID_REALM = "fabric.invalid-realm"
+ERROR_REALM_ALREADY_EXISTS = "fabric.realm-already-exists"
+ERROR_NO_SUCH_REALM = "fabric.no-such-realm"
+ERROR_NOT_AUTHORIZED = "fabric.not-authorized"
+ERROR_NODE_ALREADY_PAIRED = "fabric.node-already-paired"
+ERROR_NODE_NOT_PAIRED = "fabric.node-not-paired"
+ERROR_NO_SUCH_NODE = "fabric.node-not-exist"
 
 _REALM_NAME_PAT_STR = r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$"
 _REALM_NAME_PAT = re.compile(_REALM_NAME_PAT_STR)
 
-ON_REALM_ASSIGNED = 'crossbarfabriccenter.mrealm.on_realm_created'
+ON_REALM_ASSIGNED = "crossbarfabriccenter.mrealm.on_realm_created"
 
 
 def _check_realm_name(name):
@@ -76,9 +75,9 @@ def _check_realm_name(name):
 
 
 def _rtype(realm_type):
-    if realm_type == 'realm':
+    if realm_type == "realm":
         return ManagementRealm.RTYPE_MREALM
-    elif realm_type == 'app':
+    elif realm_type == "app":
         return ManagementRealm.RTYPE_APP
     else:
         raise ValueError('invalid realm_type "{}"'.format(realm_type))
@@ -90,6 +89,7 @@ class MrealmManager(object):
 
     Prefix: ``crossbarfabriccenter.mrealm.``
     """
+
     def __init__(self, session, db, schema):
         """
 
@@ -138,10 +138,12 @@ class MrealmManager(object):
         assert return_names is None or isinstance(return_names, bool)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{klass}.list_mrealms(return_names={return_names}, details={details})',
-                      klass=self.__class__.__name__,
-                      return_names=return_names,
-                      details=details)
+        self.log.info(
+            "{klass}.list_mrealms(return_names={return_names}, details={details})",
+            klass=self.__class__.__name__,
+            return_names=return_names,
+            details=details,
+        )
 
         if details.caller_authrole != Authenticator.GLOBAL_USER_REALM_USER_ROLE:
             raise Exception('proc not implemented for caller role "{}"'.format(details.caller_authrole))
@@ -170,24 +172,26 @@ class MrealmManager(object):
         assert isinstance(mrealm_name, str)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{klass}.get_mrealm_by_name(mrealm_oid={mrealm_name}, details={details})',
-                      mrealm_name=mrealm_name,
-                      klass=self.__class__.__name__,
-                      details=details)
+        self.log.info(
+            "{klass}.get_mrealm_by_name(mrealm_oid={mrealm_name}, details={details})",
+            mrealm_name=mrealm_name,
+            klass=self.__class__.__name__,
+            details=details,
+        )
 
         if details.caller_authrole != Authenticator.GLOBAL_USER_REALM_USER_ROLE:
             raise Exception('proc not implemented for caller role "{}"'.format(details.caller_authrole))
 
         with self.db.begin() as txn:
-
             mrealm_oid = self.schema.idx_mrealms_by_name[txn, mrealm_name]
             if mrealm_oid:
                 mrealm = self.schema.mrealms[txn, mrealm_oid]
-                self.log.info('Management realm loaded:\n{mrealm}', mrealm=mrealm)
+                self.log.info("Management realm loaded:\n{mrealm}", mrealm=mrealm)
                 return mrealm.marshal()
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no management realm with name {}'.format(mrealm_name))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no management realm with name {}".format(mrealm_name)
+                )
 
     @wamp.register(None)
     def get_mrealm(self, mrealm_oid, details=None):
@@ -224,10 +228,12 @@ class MrealmManager(object):
         assert isinstance(mrealm_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{klass}.get_realm(mrealm_oid={mrealm_oid}, details={details})',
-                      mrealm_oid=mrealm_oid,
-                      klass=self.__class__.__name__,
-                      details=details)
+        self.log.info(
+            "{klass}.get_realm(mrealm_oid={mrealm_oid}, details={details})",
+            mrealm_oid=mrealm_oid,
+            klass=self.__class__.__name__,
+            details=details,
+        )
 
         if details.caller_authrole != Authenticator.GLOBAL_USER_REALM_USER_ROLE:
             raise Exception('proc not implemented for caller role "{}"'.format(details.caller_authrole))
@@ -235,14 +241,14 @@ class MrealmManager(object):
         mrealm_oid = uuid.UUID(mrealm_oid)
 
         with self.db.begin() as txn:
-
             mrealm = self.schema.mrealms[txn, mrealm_oid]
             if mrealm:
-                self.log.debug('Management realm loaded:\n{mrealm}', mrealm=mrealm)
+                self.log.debug("Management realm loaded:\n{mrealm}", mrealm=mrealm)
                 return mrealm.marshal()
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no management realm with oid {}'.format(mrealm_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no management realm with oid {}".format(mrealm_oid)
+                )
 
     @wamp.register(None)
     async def create_mrealm(self, mrealm, details=None):
@@ -299,10 +305,12 @@ class MrealmManager(object):
         arg_mrealm = ManagementRealm.parse(mrealm)
         new_mrealm = None
 
-        self.log.info('{klass}.create_realm(name={name}, details={details})',
-                      name=arg_mrealm.name,
-                      klass=self.__class__.__name__,
-                      details=details)
+        self.log.info(
+            "{klass}.create_realm(name={name}, details={details})",
+            name=arg_mrealm.name,
+            klass=self.__class__.__name__,
+            details=details,
+        )
 
         if details.caller_authrole != Authenticator.GLOBAL_USER_REALM_USER_ROLE:
             raise Exception('proc not implemented for caller role "{}"'.format(details.caller_authrole))
@@ -314,13 +322,16 @@ class MrealmManager(object):
             # get calling user
             user_oid = self.schema.idx_users_by_email[txn, details.caller_authid]
             if not user_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no user with authid "{}" exists'.format(details.caller_authid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", 'no user with authid "{}" exists'.format(details.caller_authid)
+                )
 
             mrealm_oid = self.schema.idx_mrealms_by_name[txn, arg_mrealm.name]
             if mrealm_oid:
-                raise ApplicationError('crossbar.error.already_exists',
-                                       'management realm with name "{}" already exists'.format(arg_mrealm.name))
+                raise ApplicationError(
+                    "crossbar.error.already_exists",
+                    'management realm with name "{}" already exists'.format(arg_mrealm.name),
+                )
 
             new_mrealm = ManagementRealm()
             new_mrealm.oid = uuid.uuid4()
@@ -330,8 +341,8 @@ class MrealmManager(object):
             new_mrealm.name = arg_mrealm.name
             new_mrealm.created = datetime.utcnow()
             new_mrealm.owner = user_oid
-            new_mrealm.cf_router = 'cfrouter1'
-            new_mrealm.cf_container = 'cfcontainer1'  # FIXME: dynamic placement of mrealm
+            new_mrealm.cf_router = "cfrouter1"
+            new_mrealm.cf_container = "cfcontainer1"  # FIXME: dynamic placement of mrealm
 
             # store new management realm
             self.schema.mrealms[txn, new_mrealm.oid] = new_mrealm
@@ -340,18 +351,18 @@ class MrealmManager(object):
             roles = UserMrealmRole([UserRole.OWNER, UserRole.ADMIN, UserRole.USER, UserRole.GUEST])
             self.schema.users_mrealm_roles[txn, (user_oid, new_mrealm.oid)] = roles
 
-        self.log.debug('Management realm stored:\n{mrealm}', mrealm=new_mrealm)
+        self.log.debug("Management realm stored:\n{mrealm}", mrealm=new_mrealm)
 
         mrealm_obj = new_mrealm.marshal()
 
-        started = await self._session.config.controller.call('crossbar.activate_realm', mrealm_obj)
-        self.log.info('Management realm started: \n{started}', started=started)
+        started = await self._session.config.controller.call("crossbar.activate_realm", mrealm_obj)
+        self.log.info("Management realm started: \n{started}", started=started)
 
-        await self._session.publish('crossbarfabriccenter.mrealm.on_mrealm_created',
-                                    mrealm_obj,
-                                    options=PublishOptions(acknowledge=True))
+        await self._session.publish(
+            "crossbarfabriccenter.mrealm.on_mrealm_created", mrealm_obj, options=PublishOptions(acknowledge=True)
+        )
 
-        self.log.debug('Management API event <on_realm_created> published:\n{mrealm_obj}', mrealm_obj=mrealm_obj)
+        self.log.debug("Management API event <on_realm_created> published:\n{mrealm_obj}", mrealm_obj=mrealm_obj)
 
         return mrealm_obj
 
@@ -426,10 +437,12 @@ class MrealmManager(object):
         :returns: deleted object
         :rtype: marshaled instance of :class:`cfxdb.mrealm.ManagementRealm`
         """
-        self.log.info('{klass}.delete_realm(mrealm_oid={mrealm_oid}, details={details})',
-                      klass=self.__class__.__name__,
-                      mrealm_oid=mrealm_oid,
-                      details=details)
+        self.log.info(
+            "{klass}.delete_realm(mrealm_oid={mrealm_oid}, details={details})",
+            klass=self.__class__.__name__,
+            mrealm_oid=mrealm_oid,
+            details=details,
+        )
 
         if details.caller_authrole != Authenticator.GLOBAL_USER_REALM_USER_ROLE:
             raise Exception('proc not implemented for caller role "{}"'.format(details.caller_authrole))
@@ -440,22 +453,23 @@ class MrealmManager(object):
         with self.db.begin() as txn:
             mrealm = self.schema.mrealms[txn, mrealm_oid]
             if not mrealm:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no management realm with ID "{}"'.format(mrealm_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", 'no management realm with ID "{}"'.format(mrealm_oid)
+                )
 
             # FIXME: check access to mrealm given resource-level access control system
             # FIXME: complete cascade delete:
             paired_nodes = []
-            for node_id in self.schema.idx_nodes_by_authid.select(txn,
-                                                                  from_key=(mrealm_oid, ''),
-                                                                  to_key=(uuid.UUID(int=mrealm_oid.int + 1), ''),
-                                                                  return_keys=False):
-
+            for node_id in self.schema.idx_nodes_by_authid.select(
+                txn, from_key=(mrealm_oid, ""), to_key=(uuid.UUID(int=mrealm_oid.int + 1), ""), return_keys=False
+            ):
                 if not cascade:
                     raise ApplicationError(
-                        'crossbar.error.dependent_objects',
-                        'cannot delete management - dependent object exists and cascade not set: paired node {}'.
-                        format(node_id))
+                        "crossbar.error.dependent_objects",
+                        "cannot delete management - dependent object exists and cascade not set: paired node {}".format(
+                            node_id
+                        ),
+                    )
                 paired_nodes.append(node_id)
 
         # cascade delete: unpair any nodes currently paired with the mrealm being deleted
@@ -467,24 +481,24 @@ class MrealmManager(object):
         else:
             assert not paired_nodes
 
-        await self._session.config.controller.call('crossbar.deactivate_realm', mrealm.marshal())
+        await self._session.config.controller.call("crossbar.deactivate_realm", mrealm.marshal())
 
         with self.db.begin(write=True) as txn:
             del self.schema.mrealms[txn, mrealm_oid]
 
         deleted = {
-            'oid': str(mrealm_oid),
-            'name': mrealm.name,
-            'created': utcstr(mrealm.created),
-            'deleted': utcnow(),
-            'owner': str(mrealm.owner),
-            'caller': details.caller_authid,
-            'unpaired': [node['oid'] for node in unpaired_nodes],
+            "oid": str(mrealm_oid),
+            "name": mrealm.name,
+            "created": utcstr(mrealm.created),
+            "deleted": utcnow(),
+            "owner": str(mrealm.owner),
+            "caller": details.caller_authid,
+            "unpaired": [node["oid"] for node in unpaired_nodes],
         }
 
-        await self._session.publish('crossbarfabriccenter.mrealm.on_realm_deleted',
-                                    deleted,
-                                    options=PublishOptions(acknowledge=True))
+        await self._session.publish(
+            "crossbarfabriccenter.mrealm.on_realm_deleted", deleted, options=PublishOptions(acknowledge=True)
+        )
 
         return deleted
 
@@ -505,11 +519,13 @@ class MrealmManager(object):
 
         :return:
         """
-        self.log.info('{klass}.delete_mrealm_by_name(mrealm_name={mrealm_name}, cascade={cascade}, details={details})',
-                      klass=self.__class__.__name__,
-                      mrealm_name=mrealm_name,
-                      cascade=cascade,
-                      details=details)
+        self.log.info(
+            "{klass}.delete_mrealm_by_name(mrealm_name={mrealm_name}, cascade={cascade}, details={details})",
+            klass=self.__class__.__name__,
+            mrealm_name=mrealm_name,
+            cascade=cascade,
+            details=details,
+        )
 
         with self.db.begin() as txn:
             mrealm_oid = self.schema.idx_mrealms_by_name[txn, mrealm_name]
@@ -518,8 +534,9 @@ class MrealmManager(object):
             deleted = await self.delete_mrealm(mrealm_oid, cascade=cascade, details=details)
             return deleted
         else:
-            raise ApplicationError('crossbar.error.no_such_object',
-                                   'no management realm with name "{}"'.format(mrealm_name))
+            raise ApplicationError(
+                "crossbar.error.no_such_object", 'no management realm with name "{}"'.format(mrealm_name)
+            )
 
     @wamp.register(None)
     def set_roles_on_mrealm_for_user(self, mrealm_oid, user_oid, user_roles, details=None):
@@ -649,30 +666,36 @@ class MrealmManager(object):
         assert isinstance(mrealm_name, str)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{klass}.get_mrealm_by_name(mrealm_oid={mrealm_name}, details={details})',
-                      mrealm_name=mrealm_name,
-                      klass=self.__class__.__name__,
-                      details=details)
+        self.log.info(
+            "{klass}.get_mrealm_by_name(mrealm_oid={mrealm_name}, details={details})",
+            mrealm_name=mrealm_name,
+            klass=self.__class__.__name__,
+            details=details,
+        )
 
         if details.caller_authrole != Authenticator.GLOBAL_USER_REALM_USER_ROLE:
             raise Exception('proc not implemented for caller role "{}"'.format(details.caller_authrole))
 
         with self.db.begin() as txn:
-
             mrealm_oid = self.schema.idx_mrealms_by_name[txn, mrealm_name]
             if not mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no management realm with name {}'.format(mrealm_name))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no management realm with name {}".format(mrealm_name)
+                )
 
             node_oid = self.schema.idx_nodes_by_name[txn, (mrealm_oid, node_name)]
             if not node_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no node named {} in management realm {}'.format(node_name, mrealm_name))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object",
+                    "no node named {} in management realm {}".format(node_name, mrealm_name),
+                )
 
             node = self.schema.nodes[node_oid]
             if node.mrealm_oid != mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no node named {} in management realm {}'.format(node_name, mrealm_name))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object",
+                    "no node named {} in management realm {}".format(node_name, mrealm_name),
+                )
 
         return node.marshal()
 
@@ -703,13 +726,14 @@ class MrealmManager(object):
         :rtype: dict
         """
         self.log.info(
-            '{klass}.pair_node(pubkey={pubkey}, realm_name={realm_name}, authid={authid}, authextra={authextra}, details={details})',
+            "{klass}.pair_node(pubkey={pubkey}, realm_name={realm_name}, authid={authid}, authextra={authextra}, details={details})",
             pubkey=pubkey,
             realm_name=realm_name,
             authid=authid,
             authextra=authextra,
             klass=self.__class__.__name__,
-            details=details)
+            details=details,
+        )
 
         if details.caller_authrole != Authenticator.GLOBAL_USER_REALM_USER_ROLE:
             raise Exception('proc not implemented for caller role "{}"'.format(details.caller_authrole))
@@ -720,7 +744,7 @@ class MrealmManager(object):
             # get calling user
             user_oid = self.schema.idx_users_by_email[txn, details.caller_authid]
             if not user_oid:
-                raise Exception('no such user')
+                raise Exception("no such user")
 
             # check that the mrealm exists
             mrealm_oid = self.schema.idx_mrealms_by_name[txn, realm_name]
@@ -737,26 +761,28 @@ class MrealmManager(object):
 
             if not roles:
                 msg = '"{}" not authorized to pair nodes to mrealm "{}" owned by {} (no roles assigned on mrealm)'.format(
-                    details.caller_authid, realm_name, owner.email)
+                    details.caller_authid, realm_name, owner.email
+                )
                 raise ApplicationError(ERROR_NOT_AUTHORIZED, msg)
 
             # FIXME: allow UserRole.SUPERUSER (depends on: https://github.com/crossbario/cfxdb/issues/52)
             elif UserRole.OWNER not in roles.roles:
                 msg = '"{}" not authorized to pair nodes to mrealm "{}" owned by {} (roles assigned on mrealm: {})'.format(
-                    details.caller_authid, realm_name, owner.email, roles.roles)
+                    details.caller_authid, realm_name, owner.email, roles.roles
+                )
                 raise ApplicationError(ERROR_NOT_AUTHORIZED, msg)
 
             node_oid = self.schema.idx_nodes_by_pubkey[txn, pubkey]
             if not node_oid:
-                self.log.info('Node pubkey not found, creating new node database object ..')
+                self.log.info("Node pubkey not found, creating new node database object ..")
                 node = Node()
                 node.oid = uuid.uuid4()
                 node.pubkey = pubkey
             else:
-                self.log.info('Node pubkey found in database and loaded')
+                self.log.info("Node pubkey found in database and loaded")
                 node = self.schema.nodes[txn, node_oid]
                 if node.mrealm_oid:
-                    msg = 'node with given pubkey is already paired to a realm'
+                    msg = "node with given pubkey is already paired to a realm"
                     raise ApplicationError(ERROR_NODE_ALREADY_PAIRED, msg)
 
             node.owner_oid = user_oid
@@ -770,8 +796,8 @@ class MrealmManager(object):
 
         node_obj = node.marshal()
 
-        topic = 'crossbarfabriccenter.mrealm.on_node_paired'
-        self.log.debug('Publishing to <{topic}>: {payload} ..', topic=topic, payload=node_obj)
+        topic = "crossbarfabriccenter.mrealm.on_node_paired"
+        self.log.debug("Publishing to <{topic}>: {payload} ..", topic=topic, payload=node_obj)
         await self._session.publish(topic, node_obj, options=PublishOptions(acknowledge=True))
 
         return node_obj
@@ -788,10 +814,12 @@ class MrealmManager(object):
 
         :return:
         """
-        self.log.debug('{klass}.unpair_node(node_oid={node_oid}, details={details}) ..',
-                       klass=self.__class__.__name__,
-                       node_oid=node_oid,
-                       details=details)
+        self.log.debug(
+            "{klass}.unpair_node(node_oid={node_oid}, details={details}) ..",
+            klass=self.__class__.__name__,
+            node_oid=node_oid,
+            details=details,
+        )
 
         if details.caller_authrole != Authenticator.GLOBAL_USER_REALM_USER_ROLE:
             raise Exception('proc not implemented for caller role "{}"'.format(details.caller_authrole))
@@ -804,19 +832,21 @@ class MrealmManager(object):
             # get calling user
             user_oid = self.schema.idx_users_by_email[txn, details.caller_authid]
             if not user_oid:
-                raise Exception('no such user')
+                raise Exception("no such user")
 
             node = self.schema.nodes[txn, node_oid]
             if not node:
-                raise ApplicationError('crossbar.error.no_such_object', 'no node with oid {}'.format(node_oid))
+                raise ApplicationError("crossbar.error.no_such_object", "no node with oid {}".format(node_oid))
 
             # FIXME
             # if node.owner_oid != details.caller_authid:
             #    raise Exception('not authorized')
 
             if not node.mrealm_oid:
-                raise ApplicationError(ERROR_NODE_NOT_PAIRED,
-                                       'cannot unpair node: node with id {} is currently not paired'.format(node_oid))
+                raise ApplicationError(
+                    ERROR_NODE_NOT_PAIRED,
+                    "cannot unpair node: node with id {} is currently not paired".format(node_oid),
+                )
 
             mrealm = self.schema.mrealms[txn, node.mrealm_oid]
             assert mrealm
@@ -836,36 +866,41 @@ class MrealmManager(object):
             controller_session = self._session.config.controller
 
             # FIXME: hard-coded "cfrouter1" worker ID
-            controller_proc = 'crossbar.worker.cfrouter1.kill_by_authid'
+            controller_proc = "crossbar.worker.cfrouter1.kill_by_authid"
 
             killed = await controller_session.call(
                 controller_proc,
                 str(mrealm.name),
                 str(node_oid),
-                reason='wamp.close.auth-changed',
-                message=
-                'Authentication information or permissions changed for node with authid "{}" - killing all currently active sessions for this authid'
-                .format(node_oid))
+                reason="wamp.close.auth-changed",
+                message='Authentication information or permissions changed for node with authid "{}" - killing all currently active sessions for this authid'.format(
+                    node_oid
+                ),
+            )
         except:
             self.log.failure()
 
         node_obj = node.marshal()
-        node_obj['mrealm_oid'] = str(mrealm.oid)
-        node_obj['killed'] = killed
+        node_obj["mrealm_oid"] = str(mrealm.oid)
+        node_obj["killed"] = killed
 
-        topic = 'crossbarfabriccenter.mrealm.on_node_unpaired'
-        self.log.debug('Publishing to <{topic}>: {payload} ..', topic=topic, payload=node_obj)
+        topic = "crossbarfabriccenter.mrealm.on_node_unpaired"
+        self.log.debug("Publishing to <{topic}>: {payload} ..", topic=topic, payload=node_obj)
         await self._session.publish(topic, node_obj, options=PublishOptions(acknowledge=True))
 
         if killed:
-            self.log.info('{klass}.unpair_node(node_oid={node_oid}): unpaired (killed {killed} active sessions).',
-                          klass=self.__class__.__name__,
-                          node_oid=node_oid,
-                          killed=len(killed))
+            self.log.info(
+                "{klass}.unpair_node(node_oid={node_oid}): unpaired (killed {killed} active sessions).",
+                klass=self.__class__.__name__,
+                node_oid=node_oid,
+                killed=len(killed),
+            )
         else:
-            self.log.info('{klass}.unpair_node(node_oid={node_oid}): unpaired (no active sessions).',
-                          klass=self.__class__.__name__,
-                          node_oid=node_oid)
+            self.log.info(
+                "{klass}.unpair_node(node_oid={node_oid}): unpaired (no active sessions).",
+                klass=self.__class__.__name__,
+                node_oid=node_oid,
+            )
 
         return node_obj
 
@@ -880,10 +915,12 @@ class MrealmManager(object):
 
         :return:
         """
-        self.log.info('{klass}.unpair_node_by_pubkey(pubkey={pubkey}, details={details})',
-                      klass=self.__class__.__name__,
-                      pubkey=pubkey,
-                      details=details)
+        self.log.info(
+            "{klass}.unpair_node_by_pubkey(pubkey={pubkey}, details={details})",
+            klass=self.__class__.__name__,
+            pubkey=pubkey,
+            details=details,
+        )
 
         with self.db.begin() as txn:
             node_oid = self.schema.idx_nodes_by_pubkey[txn, pubkey]
@@ -891,7 +928,7 @@ class MrealmManager(object):
             unpaired = await self.unpair_node(str(node_oid), details=details)
             return unpaired
         else:
-            raise ApplicationError('crossbar.error.no_such_object', 'no node with pubkey {}'.format(pubkey))
+            raise ApplicationError("crossbar.error.no_such_object", "no node with pubkey {}".format(pubkey))
 
     @wamp.register(None)
     async def unpair_node_by_name(self, realm_name, authid, details=None):
@@ -905,10 +942,12 @@ class MrealmManager(object):
 
         :return:
         """
-        self.log.info('{klass}.unpair_node_by_name(realm_name={realm_name}, authid={authid}, details={details})',
-                      klass=self.__class__.__name__,
-                      realm_name=realm_name,
-                      authid=authid,
-                      details=details)
+        self.log.info(
+            "{klass}.unpair_node_by_name(realm_name={realm_name}, authid={authid}, details={details})",
+            klass=self.__class__.__name__,
+            realm_name=realm_name,
+            authid=authid,
+            details=details,
+        )
 
         raise NotImplementedError()

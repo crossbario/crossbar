@@ -5,12 +5,12 @@
 #
 #####################################################################################
 
-from twisted.internet.endpoints import _WrapIProtocol, ProcessEndpoint
-from twisted.internet.address import _ProcessAddress
 from twisted.internet import defer
+from twisted.internet.address import _ProcessAddress
+from twisted.internet.endpoints import ProcessEndpoint, _WrapIProtocol
 from twisted.python.runtime import platform
 
-__all__ = ('WorkerProcessEndpoint', )
+__all__ = ("WorkerProcessEndpoint",)
 
 if platform.isWindows():
     # On Windows, we're only using FDs 0, 1, and 2.
@@ -20,6 +20,7 @@ if platform.isWindows():
         Wraps an IProtocol into an IProcessProtocol which forwards data
         received on Worker._log_fds to WorkerProcess.log().
         """
+
         def childDataReceived(self, childFD, data):
             """
             Some data has come in from the process child. If it's one of our
@@ -42,6 +43,7 @@ else:
         Wraps an IProtocol into an IProcessProtocol which forwards data
         received on Worker._log_fds to WorkerProcess.log().
         """
+
         def childDataReceived(self, childFD, data):
             """
             Some data has come in from the process child. If it's one of our
@@ -65,6 +67,7 @@ class WorkerProcessEndpoint(ProcessEndpoint):
 
     :see: http://twistedmatrix.com/documents/current/api/twisted.internet.endpoints.ProcessEndpoint.html
     """
+
     def __init__(self, *args, **kwargs):
         """
         Ctor.
@@ -72,7 +75,7 @@ class WorkerProcessEndpoint(ProcessEndpoint):
         :param worker: The worker this endpoint is being used for.
         :type worker: instance of WorkerProcess
         """
-        self._worker = kwargs.pop('worker')
+        self._worker = kwargs.pop("worker")
         ProcessEndpoint.__init__(self, *args, **kwargs)
 
     def connect(self, protocolFactory):
@@ -84,8 +87,17 @@ class WorkerProcessEndpoint(ProcessEndpoint):
             wrapped = _WorkerWrapIProtocol(proto, self._executable, self._errFlag)
             wrapped._worker = self._worker
 
-            self._spawnProcess(wrapped, self._executable, self._args, self._env, self._path, self._uid, self._gid,
-                               self._usePTY, self._childFDs)
+            self._spawnProcess(
+                wrapped,
+                self._executable,
+                self._args,
+                self._env,
+                self._path,
+                self._uid,
+                self._gid,
+                self._usePTY,
+                self._childFDs,
+            )
         except:
             return defer.fail()
         else:

@@ -5,26 +5,26 @@
 #
 #####################################################################################
 
-import re
-from random import randint
 import os.path
+import re
 import zipfile
+from collections.abc import Mapping, Sequence
+from random import randint
+from typing import Dict, List, Optional
 from urllib.parse import urlparse
-from collections.abc import Sequence, Mapping
-from typing import Optional, Dict, List
 
 import yaml
-
-from txaio import use_twisted  # noqa
-from txaio import make_logger
-
 from autobahn.util import hltype
+from txaio import (
+    make_logger,
+    use_twisted,  # noqa
+)
 from xbr import FbsRepository, FbsSchema
 
 from crossbar.common.checkconfig import check_dict_args
 from crossbar.interfaces import IInventory
 
-__all__ = ('Inventory', )
+__all__ = ("Inventory",)
 
 
 class Catalog(object):
@@ -34,6 +34,7 @@ class Catalog(object):
     - Archive file
     - On-chain address
     """
+
     CATALOG_TYPE_NONE = 0
     """
     No Catalog type.
@@ -55,28 +56,28 @@ class Catalog(object):
     """
 
     __slots__ = (
-        '_inventory',
-        '_ctype',
-        '_name',
-        '_bfbs',
-        '_archive',
-        '_address',
-        '_version',
-        '_title',
-        '_description',
-        '_schemas',
-        '_author',
-        '_publisher',
-        '_clicense',
-        '_keywords',
-        '_homepage',
-        '_giturl',
-        '_theme',
+        "_inventory",
+        "_ctype",
+        "_name",
+        "_bfbs",
+        "_archive",
+        "_address",
+        "_version",
+        "_title",
+        "_description",
+        "_schemas",
+        "_author",
+        "_publisher",
+        "_clicense",
+        "_keywords",
+        "_homepage",
+        "_giturl",
+        "_theme",
     )
 
     def __init__(
         self,
-        inventory: 'Inventory',
+        inventory: "Inventory",
         ctype: int,
         name: str,
         bfbs: Optional[str] = None,
@@ -121,9 +122,11 @@ class Catalog(object):
         self._name = name
 
         # only one of the following must be provided for a given ctype
-        assert (ctype == Catalog.CATALOG_TYPE_BFBS and bfbs and not archive and not address) or \
-               (ctype == Catalog.CATALOG_TYPE_ARCHIVE and not bfbs and archive and not address) or \
-               (ctype == Catalog.CATALOG_TYPE_ADDRESS and not bfbs and not archive and address)
+        assert (
+            (ctype == Catalog.CATALOG_TYPE_BFBS and bfbs and not archive and not address)
+            or (ctype == Catalog.CATALOG_TYPE_ARCHIVE and not bfbs and archive and not address)
+            or (ctype == Catalog.CATALOG_TYPE_ADDRESS and not bfbs and not archive and address)
+        )
         self._bfbs = bfbs
         self._archive = archive
         self._address = address
@@ -153,7 +156,7 @@ class Catalog(object):
         return iter(self._schemas)
 
     @property
-    def inventory(self) -> 'Inventory':
+    def inventory(self) -> "Inventory":
         return self._inventory
 
     @property
@@ -217,7 +220,7 @@ class Catalog(object):
         return self._theme
 
     @staticmethod
-    def from_bfbs(inventory: 'Inventory', name: str, filename: str) -> 'Catalog':
+    def from_bfbs(inventory: "Inventory", name: str, filename: str) -> "Catalog":
         """
 
         :param inventory:
@@ -231,7 +234,7 @@ class Catalog(object):
         return catalog
 
     @staticmethod
-    def from_archive(inventory: 'Inventory', filename: str) -> 'Catalog':
+    def from_archive(inventory: "Inventory", filename: str) -> "Catalog":
         """
 
         :param inventory:
@@ -248,44 +251,46 @@ class Catalog(object):
         if f.testzip() is not None:
             raise RuntimeError('cannot open catalog from archive "{}" - ZIP file is corrupt'.format(filename))
 
-        if 'catalog.yaml' not in f.namelist():
-            raise RuntimeError('archive does not seem to be a catalog - missing catalog.yaml catalog index')
+        if "catalog.yaml" not in f.namelist():
+            raise RuntimeError("archive does not seem to be a catalog - missing catalog.yaml catalog index")
 
         # open, read and parse catalog metadata file
-        data = f.open('catalog.yaml').read()
+        data = f.open("catalog.yaml").read()
         obj = yaml.safe_load(data)
 
         # check metadata object
         check_dict_args(
             {
                 # mandatory:
-                'name': (True, [str]),
-                'schemas': (True, [Sequence]),
+                "name": (True, [str]),
+                "schemas": (True, [Sequence]),
                 # optional:
-                'version': (False, [str]),
-                'title': (False, [str]),
-                'description': (False, [str]),
-                'author': (False, [str]),
-                'publisher': (False, [str]),
-                'license': (False, [str]),
-                'keywords': (False, [Sequence]),
-                'homepage': (False, [str]),
-                'git': (False, [str]),
-                'theme': (False, [Mapping]),
+                "version": (False, [str]),
+                "title": (False, [str]),
+                "description": (False, [str]),
+                "author": (False, [str]),
+                "publisher": (False, [str]),
+                "license": (False, [str]),
+                "keywords": (False, [Sequence]),
+                "homepage": (False, [str]),
+                "git": (False, [str]),
+                "theme": (False, [Mapping]),
             },
             obj,
-            "WAMP API Catalog {} invalid".format(filename))
+            "WAMP API Catalog {} invalid".format(filename),
+        )
 
         schemas = {}
-        if 'schemas' in obj:
+        if "schemas" in obj:
             enum_dups = 0
             obj_dups = 0
             svc_dups = 0
 
-            for schema_path in obj['schemas']:
-                assert isinstance(schema_path, str), 'invalid type {} for schema path'.format(type(schema_path))
+            for schema_path in obj["schemas"]:
+                assert isinstance(schema_path, str), "invalid type {} for schema path".format(type(schema_path))
                 assert schema_path in f.namelist(), 'cannot find schema path "{}" in catalog archive'.format(
-                    schema_path)
+                    schema_path
+                )
                 with f.open(schema_path) as fd:
                     # load FlatBuffers schema object
                     _schema: FbsSchema = FbsSchema.load(inventory.repo, fd, schema_path)
@@ -318,86 +323,91 @@ class Catalog(object):
                     schemas[schema_path] = _schema
 
         clicense = None
-        if 'clicense' in obj:
+        if "clicense" in obj:
             # FIXME: check SPDX license ID vs
             #  https://raw.githubusercontent.com/spdx/license-list-data/master/json/licenses.json
-            clicense = obj['clicense']
+            clicense = obj["clicense"]
 
         keywords = None
-        if 'keywords' in obj:
-            kw_pat = re.compile(r'^[a-z]{3,20}$')
-            for kw in obj['keywords']:
-                assert isinstance(kw, str), 'invalid type {} for keyword'.format(type(kw))
+        if "keywords" in obj:
+            kw_pat = re.compile(r"^[a-z]{3,20}$")
+            for kw in obj["keywords"]:
+                assert isinstance(kw, str), "invalid type {} for keyword".format(type(kw))
                 assert kw_pat.match(kw) is not None, 'invalid keyword "{}"'.format(kw)
-            keywords = obj['keywords']
+            keywords = obj["keywords"]
 
         homepage = None
-        if 'homepage' in obj:
-            assert isinstance(obj['homepage'], str), 'invalid type {} for homepage'.format(type(obj['homepage']))
+        if "homepage" in obj:
+            assert isinstance(obj["homepage"], str), "invalid type {} for homepage".format(type(obj["homepage"]))
             try:
-                urlparse(obj['homepage'])
+                urlparse(obj["homepage"])
             except Exception as e:
-                raise RuntimeError('invalid HTTP(S) URL "{}" for homepage ({})'.format(obj['homepage'], e))
-            homepage = obj['homepage']
+                raise RuntimeError('invalid HTTP(S) URL "{}" for homepage ({})'.format(obj["homepage"], e))
+            homepage = obj["homepage"]
 
         giturl = None
-        if 'giturl' in obj:
-            assert isinstance(obj['git'], str), 'invalid type {} for giturl'.format(type(obj['giturl']))
+        if "giturl" in obj:
+            assert isinstance(obj["git"], str), "invalid type {} for giturl".format(type(obj["giturl"]))
             try:
-                urlparse(obj['giturl'])
+                urlparse(obj["giturl"])
             except Exception as e:
-                raise RuntimeError('invalid HTTP(S) URL "{}" for giturl ({})'.format(obj['giturl'], e))
-            giturl = obj['giturl']
+                raise RuntimeError('invalid HTTP(S) URL "{}" for giturl ({})'.format(obj["giturl"], e))
+            giturl = obj["giturl"]
 
         theme = None
-        if 'theme' in obj:
-            assert isinstance(obj['theme'], Mapping)
-            for k in obj['theme']:
-                if k not in ['background', 'highlight', 'text', 'logo']:
+        if "theme" in obj:
+            assert isinstance(obj["theme"], Mapping)
+            for k in obj["theme"]:
+                if k not in ["background", "highlight", "text", "logo"]:
                     raise RuntimeError('invalid theme attribute "{}"'.format(k))
-                if not isinstance(obj['theme'][k], str):
-                    raise RuntimeError('invalid type{} for attribute {} in theme'.format(type(obj['theme'][k]), k))
-            if 'logo' in obj['theme']:
-                logo_path = obj['theme']['logo']
+                if not isinstance(obj["theme"][k], str):
+                    raise RuntimeError("invalid type{} for attribute {} in theme".format(type(obj["theme"][k]), k))
+            if "logo" in obj["theme"]:
+                logo_path = obj["theme"]["logo"]
                 assert logo_path in f.namelist(), 'cannot find theme logo path "{}" in catalog archive'.format(
-                    logo_path)
-            theme = dict(obj['theme'])
+                    logo_path
+                )
+            theme = dict(obj["theme"])
             # FIXME: check other theme attributes
 
         publisher = None
-        if 'publisher' in obj:
+        if "publisher" in obj:
             # FIXME: check publisher address
-            publisher = obj['publisher']
+            publisher = obj["publisher"]
 
-        catalog = Catalog(inventory=inventory,
-                          ctype=Catalog.CATALOG_TYPE_ARCHIVE,
-                          name=obj['name'],
-                          archive=filename,
-                          version=obj.get('version', None),
-                          title=obj.get('title', None),
-                          description=obj.get('description', None),
-                          schemas=schemas,
-                          author=obj.get('author', None),
-                          publisher=publisher,
-                          clicense=clicense,
-                          keywords=keywords,
-                          homepage=homepage,
-                          giturl=giturl,
-                          theme=theme)
+        catalog = Catalog(
+            inventory=inventory,
+            ctype=Catalog.CATALOG_TYPE_ARCHIVE,
+            name=obj["name"],
+            archive=filename,
+            version=obj.get("version", None),
+            title=obj.get("title", None),
+            description=obj.get("description", None),
+            schemas=schemas,
+            author=obj.get("author", None),
+            publisher=publisher,
+            clicense=clicense,
+            keywords=keywords,
+            homepage=homepage,
+            giturl=giturl,
+            theme=theme,
+        )
         return catalog
 
     @staticmethod
-    def from_address(inventory: 'Inventory', address) -> 'Catalog':
+    def from_address(inventory: "Inventory", address) -> "Catalog":
         """
 
         :param inventory:
         :param address:
         :return:
         """
-        catalog = Catalog(inventory=inventory,
-                          ctype=Catalog.CATALOG_TYPE_ADDRESS,
-                          name='fixme{}'.format(randint(1, 2**31)),
-                          address=address)
+        catalog = Catalog(
+            inventory=inventory,
+            ctype=Catalog.CATALOG_TYPE_ADDRESS,
+            name="fixme{}".format(randint(1, 2**31)),
+            address=address,
+        )
         return catalog
 
 
@@ -405,7 +415,8 @@ class Inventory(IInventory):
     """
     Memory-backed realm inventory.
     """
-    INVENTORY_TYPE = 'wamp.eth'
+
+    INVENTORY_TYPE = "wamp.eth"
 
     log = make_logger()
 
@@ -427,7 +438,7 @@ class Inventory(IInventory):
         self._running = False
 
         # FIXME
-        self._basemodule = ''
+        self._basemodule = ""
 
         # the consolidated schema repository with all schemas from catalogs
         self._repo = FbsRepository(basemodule=self._basemodule)
@@ -494,21 +505,21 @@ class Inventory(IInventory):
         Implements :meth:`crossbar._interfaces.IInventory.start`
         """
         if self._running:
-            raise RuntimeError('inventory is already running')
+            raise RuntimeError("inventory is already running")
         else:
-            self.log.info('{func} starting realm inventory', func=hltype(self.start))
+            self.log.info("{func} starting realm inventory", func=hltype(self.start))
 
         self._running = True
-        self.log.info('{func} realm inventory ready!', func=hltype(self.start))
+        self.log.info("{func} realm inventory ready!", func=hltype(self.start))
 
     def stop(self):
         """
         Implements :meth:`crossbar._interfaces.IInventory.stop`
         """
         if not self._running:
-            raise RuntimeError('inventory is not running')
+            raise RuntimeError("inventory is not running")
         else:
-            self.log.info('{func} stopping realm inventory', func=hltype(self.start))
+            self.log.info("{func} stopping realm inventory", func=hltype(self.start))
 
         self._running = False
 
@@ -533,20 +544,22 @@ class Inventory(IInventory):
         :param config:
         :return:
         """
-        assert 'type' in config and config['type'] == Inventory.INVENTORY_TYPE
-        assert 'catalogs' in config and isinstance(config['catalogs'], list)
+        assert "type" in config and config["type"] == Inventory.INVENTORY_TYPE
+        assert "catalogs" in config and isinstance(config["catalogs"], list)
 
         inventory = Inventory(personality, factory)
         catalogs = {}
-        for idx, catalog_config in enumerate(config['catalogs']):
-            if 'bfbs' in catalog_config:
-                catalog = Catalog.from_bfbs(inventory=inventory,
-                                            name=catalog_config.get('name', 'catalog{}'.format(idx)),
-                                            filename=catalog_config['bfbs'])
-            elif 'archive' in catalog_config:
-                catalog = Catalog.from_archive(inventory=inventory, filename=catalog_config['archive'])
-            elif 'address' in catalog_config:
-                catalog = Catalog.from_address(inventory=inventory, address=catalog_config['address'])
+        for idx, catalog_config in enumerate(config["catalogs"]):
+            if "bfbs" in catalog_config:
+                catalog = Catalog.from_bfbs(
+                    inventory=inventory,
+                    name=catalog_config.get("name", "catalog{}".format(idx)),
+                    filename=catalog_config["bfbs"],
+                )
+            elif "archive" in catalog_config:
+                catalog = Catalog.from_archive(inventory=inventory, filename=catalog_config["archive"])
+            elif "address" in catalog_config:
+                catalog = Catalog.from_address(inventory=inventory, address=catalog_config["address"])
             else:
                 assert False, 'neither "bfbs", "archive" nor "address" field in catalog config'
             catalogs[catalog.name] = catalog

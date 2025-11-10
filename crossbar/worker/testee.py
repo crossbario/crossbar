@@ -5,24 +5,21 @@
 #
 #####################################################################################
 
-from twisted.internet.defer import inlineCallbacks
-from twisted.internet import protocol
-
-from autobahn.twisted.websocket import WebSocketServerFactory, \
-    WebSocketServerProtocol
-from autobahn.wamp.exception import ApplicationError
 from autobahn import wamp
-
+from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketServerProtocol
+from autobahn.wamp.exception import ApplicationError
+from twisted.internet import protocol
+from twisted.internet.defer import inlineCallbacks
 from txaio import make_logger
 
 import crossbar
+from crossbar.common.twisted.endpoint import create_listening_port_from_config
 from crossbar.router.protocol import set_websocket_options
 from crossbar.worker.controller import WorkerController
-from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 __all__ = (
-    'WebSocketTesteeServerFactory',
-    'StreamTesteeServerFactory',
+    "WebSocketTesteeServerFactory",
+    "StreamTesteeServerFactory",
 )
 
 
@@ -32,12 +29,10 @@ class StreamTesteeServerProtocol(protocol.Protocol):
 
 
 class StreamTesteeServerFactory(protocol.Factory):
-
     protocol = StreamTesteeServerProtocol
 
 
 class WebSocketTesteeServerProtocol(WebSocketServerProtocol):
-
     log = make_logger()
 
     def onMessage(self, payload, isBinary):
@@ -49,12 +44,15 @@ class WebSocketTesteeServerProtocol(WebSocketServerProtocol):
         upgrade to WebSocket header (and option serverStatus is True).
         """
         try:
-            page = self.factory._templates.get_template('cb_ws_testee_status.html')
+            page = self.factory._templates.get_template("cb_ws_testee_status.html")
             self.sendHtml(
-                page.render(redirectUrl=redirectUrl,
-                            redirectAfter=redirectAfter,
-                            cbVersion=crossbar.__version__,
-                            wsUri=self.factory.url))
+                page.render(
+                    redirectUrl=redirectUrl,
+                    redirectAfter=redirectAfter,
+                    cbVersion=crossbar.__version__,
+                    wsUri=self.factory.url,
+                )
+            )
         except Exception as e:
             self.log.warn("Error rendering WebSocket status page template: {e}", e=e)
 
@@ -79,7 +77,6 @@ class StreamingWebSocketTesteeServerProtocol(WebSocketServerProtocol):
 
 
 class WebSocketTesteeServerFactory(WebSocketServerFactory):
-
     protocol = WebSocketTesteeServerProtocol
 
     # FIXME: we currently don't use the streaming variant of the testee server protocol,
@@ -91,12 +88,12 @@ class WebSocketTesteeServerFactory(WebSocketServerFactory):
         :param config: Crossbar transport configuration.
         :type config: dict
         """
-        options = config.get('options', {})
+        options = config.get("options", {})
 
         server = "Crossbar/{}".format(crossbar.__version__)
-        externalPort = options.get('external_port', None)
+        externalPort = options.get("external_port", None)
 
-        WebSocketServerFactory.__init__(self, url=config.get('url', None), server=server, externalPort=externalPort)
+        WebSocketServerFactory.__init__(self, url=config.get("url", None), server=server, externalPort=externalPort)
 
         # transport configuration
         self._config = config
@@ -112,8 +109,9 @@ class WebSocketTesteeController(WorkerController):
     """
     A native Crossbar.io worker that runs a WebSocket testee.
     """
-    WORKER_TYPE = 'websocket-testee'
-    WORKER_TITLE = 'WebSocket Testee'
+
+    WORKER_TYPE = "websocket-testee"
+    WORKER_TITLE = "WebSocket Testee"
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
@@ -131,14 +129,12 @@ class WebSocketTesteeController(WorkerController):
 
     @wamp.register(None)
     def get_websocket_testee_transport(self, details=None):
-        """
-        """
+        """ """
         self.log.debug("{name}.get_websocket_testee_transport", name=self.__class__.__name__)
 
     @wamp.register(None)
     def start_websocket_testee_transport(self, id, config, details=None):
-        """
-        """
+        """ """
         self.log.debug("{name}.start_websocket_testee_transport", name=self.__class__.__name__)
 
         # prohibit starting a transport twice
@@ -158,12 +154,11 @@ class WebSocketTesteeController(WorkerController):
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
-            self.log.debug("Starting {ttype}-transport on websocket-testee.", ttype=config['type'])
+            self.log.debug("Starting {ttype}-transport on websocket-testee.", ttype=config["type"])
 
         # WebSocket testee pseudo transport
         #
-        if config['type'] == 'websocket':
-
+        if config["type"] == "websocket":
             transport_factory = WebSocketTesteeServerFactory(config, self._templates)
 
         # Unknown transport type
@@ -174,8 +169,9 @@ class WebSocketTesteeController(WorkerController):
 
         # create transport endpoint / listening port from transport factory
         #
-        d = create_listening_port_from_config(config['endpoint'], self.config.extra.cbdir, transport_factory,
-                                              self._reactor, self.log)
+        d = create_listening_port_from_config(
+            config["endpoint"], self.config.extra.cbdir, transport_factory, self._reactor, self.log
+        )
 
         def ok(port):
             # FIXME
@@ -193,7 +189,6 @@ class WebSocketTesteeController(WorkerController):
 
     @wamp.register(None)
     def stop_websocket_testee_transport(self, id, details=None):
-        """
-        """
+        """ """
         self.log.debug("{name}.stop_websocket_testee_transport", name=self.__class__.__name__)
         raise NotImplementedError()

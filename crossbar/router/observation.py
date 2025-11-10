@@ -7,12 +7,12 @@
 
 from typing import Optional
 
+from autobahn import util
 from pytrie import StringTrie
+
 from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
 
-from autobahn import util
-
-__all__ = ('UriObservationMap', 'is_protected_uri')
+__all__ = ("UriObservationMap", "is_protected_uri")
 
 
 def is_protected_uri(uri, details=None):
@@ -20,16 +20,15 @@ def is_protected_uri(uri, details=None):
     Test if the given URI is from a "protected namespace" (starting with `wamp.`
     or `crossbar.`). Note that "trusted" clients can access all namespaces.
     """
-    trusted = details and details.caller_authrole == 'trusted'
+    trusted = details and details.caller_authrole == "trusted"
     if trusted:
         return False
     else:
-        return uri.startswith('wamp.') or uri.startswith('crossbar.')
+        return uri.startswith("wamp.") or uri.startswith("crossbar.")
 
 
 class OrderedSet(set):
-
-    __slots__ = ('_list', )
+    __slots__ = ("_list",)
 
     def __init__(self):
         super(set, self).__init__()
@@ -58,7 +57,7 @@ class UriObservation(object):
     Represents an URI observation maintained by a broker/dealer.
     """
 
-    __slots__ = ('uri', 'ordered', 'extra', 'id', 'created', 'observers')
+    __slots__ = ("uri", "ordered", "extra", "id", "created", "observers")
 
     match: Optional[str] = None
 
@@ -95,8 +94,15 @@ class UriObservation(object):
 
     def __repr__(self):
         return "{}(id={}, uri={}, match={}, ordered={}, extra={}, created={}, observers={})".format(
-            self.__class__.__name__, self.id, self.uri, self.match, self.ordered, self.extra, self.created,
-            self.observers)
+            self.__class__.__name__,
+            self.id,
+            self.uri,
+            self.match,
+            self.ordered,
+            self.extra,
+            self.created,
+            self.observers,
+        )
 
 
 class ExactUriObservation(UriObservation):
@@ -119,6 +125,7 @@ class WildcardUriObservation(UriObservation):
     """
     Represents a wildcard-matching observation.
     """
+
     match = "wildcard"
 
 
@@ -129,8 +136,13 @@ class UriObservationMap(object):
     To test: trial crossbar.router.test.test_subscription
     """
 
-    __slots__ = ('_ordered', '_observations_exact', '_observations_prefix', '_observations_wildcard',
-                 '_observation_id_to_observation')
+    __slots__ = (
+        "_ordered",
+        "_observations_exact",
+        "_observations_prefix",
+        "_observations_wildcard",
+        "_observation_id_to_observation",
+    )
 
     def __init__(self, ordered=False):
         # flag indicating whether observers should be maintained in a SortedSet
@@ -156,8 +168,13 @@ class UriObservationMap(object):
 
     def __repr__(self):
         return "{}(_ordered={}, _observations_exact={}, _observations_prefix={}, _observations_wildcard={}, _observation_id_to_observation={})".format(
-            self.__class__.__name__, self._ordered, self._observations_exact, self._observations_prefix,
-            self._observations_wildcard, self._observation_id_to_observation)
+            self.__class__.__name__,
+            self._ordered,
+            self._observations_exact,
+            self._observations_prefix,
+            self._observations_wildcard,
+            self._observation_id_to_observation,
+        )
 
     def add_observer(self, observer, uri, match="exact", extra=None, observer_extra=None):
         """
@@ -180,7 +197,6 @@ class UriObservationMap(object):
         is_first_observer = False
 
         if match == "exact":
-
             # if the exact-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_exact:
@@ -192,7 +208,6 @@ class UriObservationMap(object):
             observation = self._observations_exact[uri]
 
         elif match == "prefix":
-
             # if the prefix-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_prefix:
@@ -204,7 +219,6 @@ class UriObservationMap(object):
             observation = self._observations_prefix[uri]
 
         elif match == "wildcard":
-
             # if the wildcard-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_wildcard:
@@ -316,8 +330,8 @@ class UriObservationMap(object):
             return self._observations_prefix.longest_prefix_value(uri)
         except KeyError:
             # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
-            if '' in self._observations_prefix:
-                return self._observations_prefix['']
+            if "" in self._observations_prefix:
+                return self._observations_prefix[""]
 
         # FIXME: for wildcard observations, when there are multiple matching, we'd
         # like to deterministically select the "most selective one"

@@ -6,22 +6,22 @@
 #####################################################################################
 
 import contextlib
-import socket
-import sys
+import copy
+import inspect
 import json
 import os
 import re
-import inspect
+import socket
+import sys
 import uuid
-import copy
 from collections.abc import Mapping
 
 import click
-
 from autobahn.wamp import CallDetails
+
 from crossbar.common.checkconfig import InvalidConfigException
 
-_ENVPAT_STR = r'^\$\{(.+)\}$'
+_ENVPAT_STR = r"^\$\{(.+)\}$"
 _ENVPAT = re.compile(_ENVPAT_STR)
 
 DEBUG_LIFECYCLE = False
@@ -33,9 +33,9 @@ def set_flags_from_args(_args):
     global DEBUG_PROGRAMFLOW
 
     for arg in _args:
-        if arg.strip().lower() == '--debug-lifecycle':
+        if arg.strip().lower() == "--debug-lifecycle":
             DEBUG_LIFECYCLE = True
-        if arg.strip().lower() == '--debug-programflow':
+        if arg.strip().lower() == "--debug-programflow":
             DEBUG_PROGRAMFLOW = True
 
 
@@ -43,10 +43,10 @@ def set_flags_from_args(_args):
 _TERMINAL = None
 
 # Linux, *BSD and MacOSX
-if sys.platform.startswith('linux') or 'bsd' in sys.platform or sys.platform.startswith('darwin'):
-    _TERMINAL = '/dev/tty' if os.path.exists('/dev/tty') else None
+if sys.platform.startswith("linux") or "bsd" in sys.platform or sys.platform.startswith("darwin"):
+    _TERMINAL = "/dev/tty" if os.path.exists("/dev/tty") else None
 # Windows
-elif sys.platform in ['win32']:
+elif sys.platform in ["win32"]:
     pass
 # Other OS
 else:
@@ -55,8 +55,8 @@ else:
 # still, we might not be able to use TTY, so duck test it:
 if _TERMINAL:
     try:
-        with open('/dev/tty', 'w') as f:
-            f.write('\n')
+        with open("/dev/tty", "w") as f:
+            f.write("\n")
             f.flush()
     except:
         # under systemd: OSError: [Errno 6] No such device or address: '/dev/tty'
@@ -72,7 +72,7 @@ def class_name(obj):
         cls = obj
     else:
         cls = obj.__class__
-    return '{}.{}'.format(cls.__module__, cls.__name__)
+    return "{}.{}".format(cls.__module__, cls.__name__)
 
 
 def dump_json(obj, minified=True):
@@ -81,56 +81,55 @@ def dump_json(obj, minified=True):
     string.
     """
     if minified:
-        return json.dumps(obj, separators=(',', ':'), ensure_ascii=False)
+        return json.dumps(obj, separators=(",", ":"), ensure_ascii=False)
 
     else:
-        return json.dumps(obj, indent=4, separators=(',', ': '), sort_keys=False, ensure_ascii=False)
+        return json.dumps(obj, indent=4, separators=(",", ": "), sort_keys=False, ensure_ascii=False)
 
 
-def hl(text, bold=False, color='yellow'):
+def hl(text, bold=False, color="yellow"):
     """
     Returns highlighted text.
     """
     if not isinstance(text, str):
-        text = '{}'.format(text)
+        text = "{}".format(text)
     return click.style(text, fg=color, bold=bold)
 
 
 def _qn(obj):
     if inspect.isclass(obj) or inspect.isfunction(obj) or inspect.ismethod(obj):
-        qn = '{}.{}'.format(obj.__module__, obj.__qualname__)
+        qn = "{}.{}".format(obj.__module__, obj.__qualname__)
     else:
-        qn = 'unknown'
+        qn = "unknown"
     return qn
 
 
 # def hltype(obj, render=DEBUG_PROGRAMFLOW):
 def hltype(obj, render=True):
-
     if render:
-        qn = _qn(obj).split('.')
-        text = hl(qn[0], color='yellow', bold=True) + hl('.' + '.'.join(qn[1:]), color='yellow', bold=False)
-        return '<' + text + '>'
+        qn = _qn(obj).split(".")
+        text = hl(qn[0], color="yellow", bold=True) + hl("." + ".".join(qn[1:]), color="yellow", bold=False)
+        return "<" + text + ">"
     else:
-        return ''
+        return ""
 
 
-def hlflag(flag, true_txt='YES', false_txt='NO', null_txt='UNSET'):
+def hlflag(flag, true_txt="YES", false_txt="NO", null_txt="UNSET"):
     assert flag is None or isinstance(flag, bool)
     if flag is None:
-        return hl('{}'.format(null_txt), color='blue', bold=True)
+        return hl("{}".format(null_txt), color="blue", bold=True)
     elif flag:
-        return hl('{}'.format(true_txt), color='green', bold=True)
+        return hl("{}".format(true_txt), color="green", bold=True)
     else:
-        return hl('{}'.format(false_txt), color='red', bold=True)
+        return hl("{}".format(false_txt), color="red", bold=True)
 
 
 def hlid(oid):
-    return hl('{}'.format(oid), color='blue', bold=True)
+    return hl("{}".format(oid), color="blue", bold=True)
 
 
-def hlval(val, color='white'):
-    return hl('{}'.format(val), color=color, bold=True)
+def hlval(val, color="white"):
+    return hl("{}".format(val), color=color, bold=True)
 
 
 def hluserid(oid):
@@ -138,18 +137,18 @@ def hluserid(oid):
     Returns highlighted text.
     """
     if not isinstance(oid, str):
-        oid = '{}'.format(oid)
-    return hl('"{}"'.format(oid), color='yellow', bold=True)
+        oid = "{}".format(oid)
+    return hl('"{}"'.format(oid), color="yellow", bold=True)
 
 
 def hlfixme(msg, obj):
-    return hl('FIXME: {} {}'.format(msg, _qn(obj)), color='green', bold=True)
+    return hl("FIXME: {} {}".format(msg, _qn(obj)), color="green", bold=True)
 
 
 def hlcontract(oid):
     if not isinstance(oid, str):
-        oid = '{}'.format(oid)
-    return hl('<{}>'.format(oid), color='magenta', bold=True)
+        oid = "{}".format(oid)
+    return hl("<{}>".format(oid), color="magenta", bold=True)
 
 
 def term_print(text):
@@ -163,77 +162,81 @@ def term_print(text):
     When it cannot do so, it falls back to plain old print.
     """
     if DEBUG_LIFECYCLE:
-        text = '{:<44}'.format(text)
-        text = click.style(text, fg='blue', bold=True)
+        text = "{:<44}".format(text)
+        text = click.style(text, fg="blue", bold=True)
         if _TERMINAL:
-            with open('/dev/tty', 'w') as f:
-                f.write(text + '\n')
+            with open("/dev/tty", "w") as f:
+                f.write(text + "\n")
                 f.flush()
         else:
             print(text)
 
 
 def _add_debug_options(parser):
-    parser.add_argument('--debug-lifecycle',
-                        action='store_true',
-                        help="This debug flag enables overall program lifecycle messages directly to terminal.")
+    parser.add_argument(
+        "--debug-lifecycle",
+        action="store_true",
+        help="This debug flag enables overall program lifecycle messages directly to terminal.",
+    )
 
     parser.add_argument(
-        '--debug-programflow',
-        action='store_true',
-        help="This debug flag enables program flow log messages with fully qualified class/method names.")
+        "--debug-programflow",
+        action="store_true",
+        help="This debug flag enables program flow log messages with fully qualified class/method names.",
+    )
 
     return parser
 
 
 def _add_cbdir_config(parser):
-    parser.add_argument('--cbdir',
-                        type=str,
-                        default=None,
-                        help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+    parser.add_argument(
+        "--cbdir",
+        type=str,
+        default=None,
+        help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)",
+    )
 
-    parser.add_argument('--config',
-                        type=str,
-                        default=None,
-                        help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+    parser.add_argument(
+        "--config", type=str, default=None, help="Crossbar.io configuration file (overrides default CBDIR/config.json)"
+    )
 
     return parser
 
 
 def _add_log_arguments(parser):
-    color_args = dict({
-        "type": str,
-        "default": "auto",
-        "choices": ["true", "false", "auto"],
-        "help": "If logging should be colored."
-    })
-    parser.add_argument('--color', **color_args)
+    color_args = dict(
+        {"type": str, "default": "auto", "choices": ["true", "false", "auto"], "help": "If logging should be colored."}
+    )
+    parser.add_argument("--color", **color_args)
 
-    log_level_args = dict({
-        "type": str,
-        "default": 'info',
-        "choices": ['none', 'error', 'warn', 'info', 'debug', 'trace'],
-        "help": ("How much Crossbar.io should log to the terminal, in order of verbosity.")
-    })
-    parser.add_argument('--loglevel', **log_level_args)
+    log_level_args = dict(
+        {
+            "type": str,
+            "default": "info",
+            "choices": ["none", "error", "warn", "info", "debug", "trace"],
+            "help": ("How much Crossbar.io should log to the terminal, in order of verbosity."),
+        }
+    )
+    parser.add_argument("--loglevel", **log_level_args)
 
-    parser.add_argument('--logformat',
-                        type=str,
-                        default='standard',
-                        choices=['syslogd', 'standard', 'none'],
-                        help=("The format of the logs -- suitable for syslogd, not colored, or colored."))
+    parser.add_argument(
+        "--logformat",
+        type=str,
+        default="standard",
+        choices=["syslogd", "standard", "none"],
+        help=("The format of the logs -- suitable for syslogd, not colored, or colored."),
+    )
 
-    parser.add_argument('--logdir',
-                        type=str,
-                        default=None,
-                        help="Crossbar.io log directory (default: <Crossbar Node Directory>/)")
+    parser.add_argument(
+        "--logdir", type=str, default=None, help="Crossbar.io log directory (default: <Crossbar Node Directory>/)"
+    )
 
-    parser.add_argument('--logtofile', action='store_true', help="Whether or not to log to file")
+    parser.add_argument("--logtofile", action="store_true", help="Whether or not to log to file")
 
     return parser
 
 
-def get_free_tcp_port(host='127.0.0.1'):
+def get_free_tcp_port(host="127.0.0.1"):
     """
     Returns random, free listening port.
 
@@ -254,7 +257,7 @@ def get_free_tcp_port(host='127.0.0.1'):
         return sock.getsockname()[1]
 
 
-def first_free_tcp_port(host='127.0.0.1', portrange=(1024, 65535)):
+def first_free_tcp_port(host="127.0.0.1", portrange=(1024, 65535)):
     """
     Returns the first free listening port within the given range.
 
@@ -276,10 +279,10 @@ def first_free_tcp_port(host='127.0.0.1', portrange=(1024, 65535)):
             return port
         except OSError:
             port += 1
-    raise IOError('no free ports')
+    raise IOError("no free ports")
 
 
-def get_free_tcp_address(host='127.0.0.1'):
+def get_free_tcp_address(host="127.0.0.1"):
     """
     Returns default local listening address with random port.
 
@@ -295,7 +298,7 @@ def get_free_tcp_address(host='127.0.0.1'):
     tcp.bind((host, 0))
     host, port = tcp.getsockname()
     tcp.close()
-    address = 'tcp://{host}:{port}'.format(**locals())
+    address = "tcp://{host}:{port}".format(**locals())
 
     return address
 
@@ -354,7 +357,7 @@ def _deep_merge_list(a, b):
     if len(b) > len(a):
         for i in range(len(a), len(b)):
             assert b[i] is not None
-            assert b[i] != 'COPY'
+            assert b[i] != "COPY"
 
     new_list = []
     i = 0
@@ -362,7 +365,7 @@ def _deep_merge_list(a, b):
         if item is None:
             # drop the item from the target list
             pass
-        elif item == 'COPY':
+        elif item == "COPY":
             # copy the item to the target list
             new_list.append(a[i])
         else:
@@ -400,20 +403,22 @@ def merge_config(base_config, other_config):
     :return:
     """
     if not isinstance(base_config, Mapping):
-        raise InvalidConfigException('invalid type for configuration item - expected dict, got {}'.format(
-            type(base_config).__name__))
+        raise InvalidConfigException(
+            "invalid type for configuration item - expected dict, got {}".format(type(base_config).__name__)
+        )
 
     if not isinstance(other_config, Mapping):
-        raise InvalidConfigException('invalid type for configuration item - expected dict, got {}'.format(
-            type(other_config).__name__))
+        raise InvalidConfigException(
+            "invalid type for configuration item - expected dict, got {}".format(type(other_config).__name__)
+        )
 
     merged_config = copy.deepcopy(base_config)
 
-    if 'controller' in other_config:
-        merged_config['controller'] = _deep_merge_map(merged_config.get('controller', {}), other_config['controller'])
+    if "controller" in other_config:
+        merged_config["controller"] = _deep_merge_map(merged_config.get("controller", {}), other_config["controller"])
 
-    if 'workers' in other_config:
-        merged_config['workers'] = _deep_merge_list(base_config.get('workers', []), other_config['workers'])
+    if "workers" in other_config:
+        merged_config["workers"] = _deep_merge_list(base_config.get("workers", []), other_config["workers"])
 
     return merged_config
 
@@ -426,10 +431,10 @@ def extract_member_oid(details: CallDetails) -> uuid.UUID:
 
     :return: Extracted XBR network member ID.
     """
-    if details and details.caller_authrole == 'member' and details.caller_authid:
+    if details and details.caller_authrole == "member" and details.caller_authid:
         return uuid.UUID(details.caller_authid[7:])
     else:
-        raise RuntimeError('no XBR member identification in call details\n{}'.format(details))
+        raise RuntimeError("no XBR member identification in call details\n{}".format(details))
 
 
 def alternative_username(username):
@@ -439,9 +444,9 @@ def alternative_username(username):
             max_i = i
     if max_i is not None:
         next = int(username[max_i:]) + 1
-        alt_username = '{}{}'.format(username[:max_i], next)
+        alt_username = "{}{}".format(username[:max_i], next)
     else:
-        alt_username = '{}{}'.format(username, 1)
+        alt_username = "{}{}".format(username, 1)
     return alt_username
 
 
@@ -455,7 +460,8 @@ def maybe_from_env(value):
                 return True, new_value
             else:
                 print(
-                    'WARNING: environment variable "{}" not set, but needed in XBR backend configuration'.format(var))
+                    'WARNING: environment variable "{}" not set, but needed in XBR backend configuration'.format(var)
+                )
                 return False, None
         else:
             return False, value

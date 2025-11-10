@@ -7,4 +7,4 @@
 
 from crossbar.master.xbr._marketplace import MarketPlace
 
-__all__ = ('MarketPlace', )
+__all__ = ("MarketPlace",)

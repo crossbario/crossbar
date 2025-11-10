@@ -4,8 +4,9 @@
 
 import flatbuffers
 
+
 class RPCCall(object):
-    __slots__ = ['_tab']
+    __slots__ = ["_tab"]
 
     @classmethod
     def GetRootAsRPCCall(cls, buf, offset):
@@ -31,6 +32,7 @@ class RPCCall(object):
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
             from .Object import Object
+
             obj = Object()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -42,6 +44,7 @@ class RPCCall(object):
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
             from .Object import Object
+
             obj = Object()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -55,6 +58,7 @@ class RPCCall(object):
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
             from .KeyValue import KeyValue
+
             obj = KeyValue()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -82,12 +86,38 @@ class RPCCall(object):
             return self._tab.VectorLen(o)
         return 0
 
-def RPCCallStart(builder): builder.StartObject(5)
-def RPCCallAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
-def RPCCallAddRequest(builder, request): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(request), 0)
-def RPCCallAddResponse(builder, response): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(response), 0)
-def RPCCallAddAttributes(builder, attributes): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(attributes), 0)
-def RPCCallStartAttributesVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def RPCCallAddDocumentation(builder, documentation): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(documentation), 0)
-def RPCCallStartDocumentationVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def RPCCallEnd(builder): return builder.EndObject()
+
+def RPCCallStart(builder):
+    builder.StartObject(5)
+
+
+def RPCCallAddName(builder, name):
+    builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
+
+
+def RPCCallAddRequest(builder, request):
+    builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(request), 0)
+
+
+def RPCCallAddResponse(builder, response):
+    builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(response), 0)
+
+
+def RPCCallAddAttributes(builder, attributes):
+    builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(attributes), 0)
+
+
+def RPCCallStartAttributesVector(builder, numElems):
+    return builder.StartVector(4, numElems, 4)
+
+
+def RPCCallAddDocumentation(builder, documentation):
+    builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(documentation), 0)
+
+
+def RPCCallStartDocumentationVector(builder, numElems):
+    return builder.StartVector(4, numElems, 4)
+
+
+def RPCCallEnd(builder):
+    return builder.EndObject()

@@ -24,11 +24,10 @@ class RouterOptions(object):
         self.event_dispatching_chunk_size = event_dispatching_chunk_size or 100
 
     def __str__(self):
-        return ("RouterOptions(uri_check = {0}, "
-                "event_dispatching_chunk_size = {1})".format(
-                    self.uri_check,
-                    self.event_dispatching_chunk_size,
-                ))
+        return "RouterOptions(uri_check = {0}, event_dispatching_chunk_size = {1})".format(
+            self.uri_check,
+            self.event_dispatching_chunk_size,
+        )
 
 
 class NotAttached(RuntimeError):

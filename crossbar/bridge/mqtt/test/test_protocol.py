@@ -5,22 +5,21 @@
 #
 #####################################################################################
 import unittest
-import attr
-
 from binascii import unhexlify
 
+import attr
+from twisted.trial.unittest import TestCase
+
+from crossbar.bridge.mqtt._utils import iterbytes
 from crossbar.bridge.mqtt.protocol import (
-    MQTTParser,
-    Failure,
     PROTOCOL_VIOLATION,
     Connect,
+    Failure,
+    MQTTParser,
+    PingREQ,
     Subscribe,
     Unsubscribe,
-    PingREQ,
 )
-from crossbar.bridge.mqtt._utils import iterbytes
-
-from twisted.trial.unittest import TestCase
 
 
 class MQTTEventTestBase(object):
@@ -31,7 +30,6 @@ class MQTTEventTestBase(object):
 
 @unittest.skip("FIXME: MQTT tests are failing")
 class ProtocolTests(TestCase, MQTTEventTestBase):
-
     maxDiff = None
 
     def test_correct_connect(self):
@@ -49,23 +47,25 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
 
         self.assertEqual(len(events), 1)
         self.assertEqual(
-            attr.asdict(events[0]), {
-                'username': None,
-                'password': None,
-                'will_message': None,
-                'will_topic': None,
-                'client_id': "test123",
-                'keep_alive': 120,
-                'flags': {
-                    'username': False,
-                    'password': False,
-                    'will': False,
-                    'will_qos': 0,
-                    'will_retain': False,
-                    'clean_session': True,
-                    'reserved': False
-                }
-            })
+            attr.asdict(events[0]),
+            {
+                "username": None,
+                "password": None,
+                "will_message": None,
+                "will_topic": None,
+                "client_id": "test123",
+                "keep_alive": 120,
+                "flags": {
+                    "username": False,
+                    "password": False,
+                    "will": False,
+                    "will_qos": 0,
+                    "will_retain": False,
+                    "clean_session": True,
+                    "reserved": False,
+                },
+            },
+        )
 
     def test_malformed_packet(self):
         """
@@ -81,9 +81,10 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
             events.extend(p.data_received(x))
 
         self.assertEqual(len(events), 1)
-        self.assertEqual(attr.asdict(events[0]),
-                         {'reason': ("Corrupt data, fell off the end: Cannot read 72 "
-                                     "bits, only 56 available.")})
+        self.assertEqual(
+            attr.asdict(events[0]),
+            {"reason": ("Corrupt data, fell off the end: Cannot read 72 bits, only 56 available.")},
+        )
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
 
     def test_quirks_mode_connect(self):
@@ -102,27 +103,31 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
 
         self.assertEqual(len(events), 1)
         self.assertEqual(
-            attr.asdict(events[0]), {
-                'username': None,
-                'password': None,
-                'will_message': None,
-                'will_topic': None,
-                'client_id': "test123",
-                'keep_alive': 120,
-                'flags': {
-                    'username': False,
-                    'password': False,
-                    'will': False,
-                    'will_qos': 0,
-                    'will_retain': False,
-                    'clean_session': True,
-                    'reserved': False
-                }
-            })
+            attr.asdict(events[0]),
+            {
+                "username": None,
+                "password": None,
+                "will_message": None,
+                "will_topic": None,
+                "client_id": "test123",
+                "keep_alive": 120,
+                "flags": {
+                    "username": False,
+                    "password": False,
+                    "will": False,
+                    "will_qos": 0,
+                    "will_retain": False,
+                    "clean_session": True,
+                    "reserved": False,
+                },
+            },
+        )
         warnings = self.flushWarnings()
         self.assertEqual(len(warnings), 1)
-        self.assertEqual(warnings[0]["message"], ("Quirky client CONNECT -- packet length was 152 "
-                                                  "bytes but only had 168 bytes of useful data"))
+        self.assertEqual(
+            warnings[0]["message"],
+            ("Quirky client CONNECT -- packet length was 152 bytes but only had 168 bytes of useful data"),
+        )
 
     def test_connect_ping(self):
         """
@@ -135,7 +140,8 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
             # CONNECT
             b"101300044d51545404020002000774657374313233"
             # PINGREQ
-            b"c000")
+            b"c000"
+        )
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -143,23 +149,26 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 2)
 
         self._assert_event(
-            events.pop(0), Connect, {
-                'username': None,
-                'password': None,
-                'will_message': None,
-                'will_topic': None,
-                'client_id': "test123",
-                'keep_alive': 2,
-                'flags': {
-                    'username': False,
-                    'password': False,
-                    'will': False,
-                    'will_qos': 0,
-                    'will_retain': False,
-                    'clean_session': True,
-                    'reserved': False
-                }
-            })
+            events.pop(0),
+            Connect,
+            {
+                "username": None,
+                "password": None,
+                "will_message": None,
+                "will_topic": None,
+                "client_id": "test123",
+                "keep_alive": 2,
+                "flags": {
+                    "username": False,
+                    "password": False,
+                    "will": False,
+                    "will_qos": 0,
+                    "will_retain": False,
+                    "clean_session": True,
+                    "reserved": False,
+                },
+            },
+        )
 
         self._assert_event(events.pop(0), PingREQ, {})
 
@@ -179,7 +188,8 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
             # SUBSCRIBE
             b"820d00010008746573742f31323300"
             # UNSUBSCRIBE
-            b"a20c00030008746573742f313233")
+            b"a20c00030008746573742f313233"
+        )
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -187,36 +197,49 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 3)
 
         self._assert_event(
-            events.pop(0), Connect, {
-                'username': None,
-                'password': None,
-                'will_message': None,
-                'will_topic': None,
-                'client_id': "test123",
-                'keep_alive': 2,
-                'flags': {
-                    'username': False,
-                    'password': False,
-                    'will': False,
-                    'will_qos': 0,
-                    'will_retain': False,
-                    'clean_session': True,
-                    'reserved': False
-                }
-            })
+            events.pop(0),
+            Connect,
+            {
+                "username": None,
+                "password": None,
+                "will_message": None,
+                "will_topic": None,
+                "client_id": "test123",
+                "keep_alive": 2,
+                "flags": {
+                    "username": False,
+                    "password": False,
+                    "will": False,
+                    "will_qos": 0,
+                    "will_retain": False,
+                    "clean_session": True,
+                    "reserved": False,
+                },
+            },
+        )
 
-        self._assert_event(events.pop(0), Subscribe, {
-            'packet_identifier': 1,
-            'topic_requests': [{
-                'topic_filter': 'test/123',
-                'max_qos': 0,
-            }]
-        })
+        self._assert_event(
+            events.pop(0),
+            Subscribe,
+            {
+                "packet_identifier": 1,
+                "topic_requests": [
+                    {
+                        "topic_filter": "test/123",
+                        "max_qos": 0,
+                    }
+                ],
+            },
+        )
 
-        self._assert_event(events.pop(0), Unsubscribe, {
-            'packet_identifier': 3,
-            'topics': ['test/123'],
-        })
+        self._assert_event(
+            events.pop(0),
+            Unsubscribe,
+            {
+                "packet_identifier": 3,
+                "topics": ["test/123"],
+            },
+        )
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -227,6 +250,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
     """
     Tests for MQTT conformance.
     """
+
     def test_connect_not_first(self):
         """
         Sending a packet that is not a CONNECT as the first packet is a
@@ -239,7 +263,8 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
 
         data = (
             # SUBSCRIBE
-            b"820d00010008746573742f31323300")
+            b"820d00010008746573742f31323300"
+        )
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -247,7 +272,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 1)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {'reason': "Connect packet was not first"})
+        self._assert_event(events.pop(0), Failure, {"reason": "Connect packet was not first"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -266,7 +291,8 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             # CONNECT
             b"101300044d51545404020002000774657374313233"
             # CONNECT
-            b"101300044d51545404020002000774657374313233")
+            b"101300044d51545404020002000774657374313233"
+        )
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -277,7 +303,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertIsInstance(events.pop(0), Connect)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {'reason': "Multiple Connect packets"})
+        self._assert_event(events.pop(0), Failure, {"reason": "Multiple Connect packets"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -294,7 +320,8 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
 
         data = (
             # CONNECT using the second nibble
-            b"111300044d51545404020002000774657374313233")
+            b"111300044d51545404020002000774657374313233"
+        )
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -302,7 +329,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 1)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {'reason': "Bad flags in Connect"})
+        self._assert_event(events.pop(0), Failure, {"reason": "Bad flags in Connect"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -319,7 +346,8 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
 
         data = (
             # CONNECT using the second nibble, plus junk we should never read
-            b"10ffffffff000000000000000000")
+            b"10ffffffff000000000000000000"
+        )
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -327,7 +355,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 1)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {'reason': "Too big packet size"})
+        self._assert_event(events.pop(0), Failure, {"reason": "Too big packet size"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -349,7 +377,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             events.extend(p.data_received(x))
 
         self.assertEqual(len(events), 1)
-        self.assertEqual(attr.asdict(events[0]), {'reason': ("Invalid UTF-8 string (contains surrogates)")})
+        self.assertEqual(attr.asdict(events[0]), {"reason": ("Invalid UTF-8 string (contains surrogates)")})
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
 
     def test_invalid_utf8_null(self):
@@ -367,7 +395,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             events.extend(p.data_received(x))
 
         self.assertEqual(len(events), 1)
-        self.assertEqual(attr.asdict(events[0]), {'reason': ("Invalid UTF-8 string (contains nulls)")})
+        self.assertEqual(attr.asdict(events[0]), {"reason": ("Invalid UTF-8 string (contains nulls)")})
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
 
     def test_utf8_zwnbsp(self):
@@ -387,23 +415,25 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
 
         self.assertEqual(len(events), 1)
         self.assertEqual(
-            attr.asdict(events[0]), {
-                'username': None,
-                'password': None,
-                'will_message': None,
-                'will_topic': None,
-                'client_id': "test\uFEFF",
-                'keep_alive': 120,
-                'flags': {
-                    'username': False,
-                    'password': False,
-                    'will': False,
-                    'will_qos': 0,
-                    'will_retain': False,
-                    'clean_session': True,
-                    'reserved': False
-                }
-            })
+            attr.asdict(events[0]),
+            {
+                "username": None,
+                "password": None,
+                "will_message": None,
+                "will_topic": None,
+                "client_id": "test\ufeff",
+                "keep_alive": 120,
+                "flags": {
+                    "username": False,
+                    "password": False,
+                    "will": False,
+                    "will_qos": 0,
+                    "will_retain": False,
+                    "clean_session": True,
+                    "reserved": False,
+                },
+            },
+        )
 
     def test_reserved_packet_15(self):
         """
@@ -418,7 +448,8 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             # CONNECT
             b"101300044d51545404020002000774657374313233"
             # Reserved packet #15
-            b"f01300044d51545404020002000774657374313233")
+            b"f01300044d51545404020002000774657374313233"
+        )
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -429,7 +460,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertIsInstance(events.pop(0), Connect)
 
         # Reserved packet type
-        self._assert_event(events.pop(0), Failure, {'reason': "Unimplemented packet type 15"})
+        self._assert_event(events.pop(0), Failure, {"reason": "Unimplemented packet type 15"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
@@ -448,7 +479,8 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
             # CONNECT
             b"101300044d51545404020002000774657374313233"
             # Reserved packet #15
-            b"001300044d51545404020002000774657374313233")
+            b"001300044d51545404020002000774657374313233"
+        )
 
         for x in iterbytes(unhexlify(data)):
             events.extend(p.data_received(x))
@@ -459,7 +491,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertIsInstance(events.pop(0), Connect)
 
         # Reserved packet
-        self._assert_event(events.pop(0), Failure, {'reason': "Unimplemented packet type 0"})
+        self._assert_event(events.pop(0), Failure, {"reason": "Unimplemented packet type 0"})
 
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)

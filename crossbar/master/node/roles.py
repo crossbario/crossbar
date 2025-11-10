@@ -5,194 +5,127 @@
 #
 ###############################################################################
 
-__all__ = ('BUILTIN_ROLES', )
+__all__ = ("BUILTIN_ROLES",)
 
 BUILTIN_ROLES = {
-    u'node-role': {
-        u'name':
-        u'node',
-        u'permissions': [{
-            u'uri': u'',
-            u'match': u'prefix',
-            u'allow': {
-                u'call': True,
-                u'register': True,
-                u'publish': True,
-                u'subscribe': True
-            },
-            u'disclose': {
-                u'caller': True,
-                u'publisher': True
-            },
-            u'cache': True
-        }]
+    "node-role": {
+        "name": "node",
+        "permissions": [
+            {
+                "uri": "",
+                "match": "prefix",
+                "allow": {"call": True, "register": True, "publish": True, "subscribe": True},
+                "disclose": {"caller": True, "publisher": True},
+                "cache": True,
+            }
+        ],
     },
-    u'backend-role': {
-        u'name':
-        u'backend',
-        u'permissions': [{
-            u'uri': u'',
-            u'match': u'prefix',
-            u'allow': {
-                u'call': True,
-                u'register': True,
-                u'publish': True,
-                u'subscribe': True
-            },
-            u'disclose': {
-                u'caller': True,
-                u'publisher': True
-            },
-            u'cache': True
-        }]
+    "backend-role": {
+        "name": "backend",
+        "permissions": [
+            {
+                "uri": "",
+                "match": "prefix",
+                "allow": {"call": True, "register": True, "publish": True, "subscribe": True},
+                "disclose": {"caller": True, "publisher": True},
+                "cache": True,
+            }
+        ],
     },
-    u'public-role': {
-        u'name':
-        u'public',
-        u'permissions': [{
-            u'uri': u'crossbarfabriccenter.mrealm.get_status',
-            u'allow': {
-                u'call': True
+    "public-role": {
+        "name": "public",
+        "permissions": [
+            {
+                "uri": "crossbarfabriccenter.mrealm.get_status",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-            u'disclose': {
-                u'caller': True,
+            {
+                "uri": "crossbarfabriccenter.mrealm.get_nodes",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.get_nodes',
-            u'allow': {
-                u'call': True
+            {
+                "uri": "crossbarfabriccenter.remote.node.get_workers",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-            u'disclose': {
-                u'caller': True,
+            {
+                "uri": "crossbarfabriccenter.remote.node.get_worker",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-        }, {
-            u'uri': u'crossbarfabriccenter.remote.node.get_workers',
-            u'allow': {
-                u'call': True
+            {
+                "uri": "crossbarfabriccenter.remote.router.get_router_realms",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-            u'disclose': {
-                u'caller': True,
+            {
+                "uri": "crossbarfabriccenter.remote.realm.meta.wamp.session.list",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-        }, {
-            u'uri': u'crossbarfabriccenter.remote.node.get_worker',
-            u'allow': {
-                u'call': True
+            {
+                "uri": "crossbarfabriccenter.remote.realm.meta.wamp.session.get",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-            u'disclose': {
-                u'caller': True,
+            {"uri": "crossbarfabriccenter.remote.realm.meta.wamp.session.on_join", "allow": {"subscribe": True}},
+            {"uri": "crossbarfabriccenter.remote.realm.meta.wamp.session.on_leave", "allow": {"subscribe": True}},
+            {
+                "uri": "crossbarfabriccenter.mrealm.tracing.get_traces",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-        }, {
-            u'uri': u'crossbarfabriccenter.remote.router.get_router_realms',
-            u'allow': {
-                u'call': True
+            {
+                "uri": "crossbarfabriccenter.mrealm.tracing.get_trace",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-            u'disclose': {
-                u'caller': True,
+            {
+                "uri": "crossbarfabriccenter.mrealm.tracing.get_trace_data",
+                "allow": {"call": True},
+                "disclose": {
+                    "caller": True,
+                },
             },
-        }, {
-            u'uri': u'crossbarfabriccenter.remote.realm.meta.wamp.session.list',
-            u'allow': {
-                u'call': True
-            },
-            u'disclose': {
-                u'caller': True,
-            },
-        }, {
-            u'uri': u'crossbarfabriccenter.remote.realm.meta.wamp.session.get',
-            u'allow': {
-                u'call': True
-            },
-            u'disclose': {
-                u'caller': True,
-            },
-        }, {
-            u'uri': u'crossbarfabriccenter.remote.realm.meta.wamp.session.on_join',
-            u'allow': {
-                u'subscribe': True
-            }
-        }, {
-            u'uri': u'crossbarfabriccenter.remote.realm.meta.wamp.session.on_leave',
-            u'allow': {
-                u'subscribe': True
-            }
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.get_traces',
-            u'allow': {
-                u'call': True
-            },
-            u'disclose': {
-                u'caller': True,
-            },
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.get_trace',
-            u'allow': {
-                u'call': True
-            },
-            u'disclose': {
-                u'caller': True,
-            },
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.get_trace_data',
-            u'allow': {
-                u'call': True
-            },
-            u'disclose': {
-                u'caller': True,
-            },
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.on_trace_data',
-            u'allow': {
-                u'subscribe': True
-            }
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.on_trace_created',
-            u'allow': {
-                u'subscribe': True
-            }
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.on_trace_starting',
-            u'allow': {
-                u'subscribe': True
-            }
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.on_trace_started',
-            u'allow': {
-                u'subscribe': True
-            }
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.on_trace_stopping',
-            u'allow': {
-                u'subscribe': True
-            }
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.on_trace_stopped',
-            u'allow': {
-                u'subscribe': True
-            }
-        }, {
-            u'uri': u'crossbarfabriccenter.mrealm.tracing.on_trace_deleted',
-            u'allow': {
-                u'subscribe': True
-            }
-        }]
+            {"uri": "crossbarfabriccenter.mrealm.tracing.on_trace_data", "allow": {"subscribe": True}},
+            {"uri": "crossbarfabriccenter.mrealm.tracing.on_trace_created", "allow": {"subscribe": True}},
+            {"uri": "crossbarfabriccenter.mrealm.tracing.on_trace_starting", "allow": {"subscribe": True}},
+            {"uri": "crossbarfabriccenter.mrealm.tracing.on_trace_started", "allow": {"subscribe": True}},
+            {"uri": "crossbarfabriccenter.mrealm.tracing.on_trace_stopping", "allow": {"subscribe": True}},
+            {"uri": "crossbarfabriccenter.mrealm.tracing.on_trace_stopped", "allow": {"subscribe": True}},
+            {"uri": "crossbarfabriccenter.mrealm.tracing.on_trace_deleted", "allow": {"subscribe": True}},
+        ],
     },
-    u'owner-role': {
-        u'name':
-        u'owner',
-        u'permissions': [{
-            u'uri': u'',
-            u'match': u'prefix',
-            u'allow': {
-                u'call': True,
-                u'register': True,
-                u'publish': True,
-                u'subscribe': True
-            },
-            u'disclose': {
-                u'caller': True,
-                u'publisher': True
-            },
-            u'cache': True
-        }]
-    }
+    "owner-role": {
+        "name": "owner",
+        "permissions": [
+            {
+                "uri": "",
+                "match": "prefix",
+                "allow": {"call": True, "register": True, "publish": True, "subscribe": True},
+                "disclose": {"caller": True, "publisher": True},
+                "cache": True,
+            }
+        ],
+    },
 }

@@ -4,8 +4,9 @@
 
 import flatbuffers
 
+
 class Type(object):
-    __slots__ = ['_tab']
+    __slots__ = ["_tab"]
 
     @classmethod
     def GetRootAsType(cls, buf, offset):
@@ -39,8 +40,22 @@ class Type(object):
             return self._tab.Get(flatbuffers.number_types.Int32Flags, o + self._tab.Pos)
         return -1
 
-def TypeStart(builder): builder.StartObject(3)
-def TypeAddBaseType(builder, baseType): builder.PrependInt8Slot(0, baseType, 0)
-def TypeAddElement(builder, element): builder.PrependInt8Slot(1, element, 0)
-def TypeAddIndex(builder, index): builder.PrependInt32Slot(2, index, -1)
-def TypeEnd(builder): return builder.EndObject()
+
+def TypeStart(builder):
+    builder.StartObject(3)
+
+
+def TypeAddBaseType(builder, baseType):
+    builder.PrependInt8Slot(0, baseType, 0)
+
+
+def TypeAddElement(builder, element):
+    builder.PrependInt8Slot(1, element, 0)
+
+
+def TypeAddIndex(builder, index):
+    builder.PrependInt32Slot(2, index, -1)
+
+
+def TypeEnd(builder):
+    return builder.EndObject()

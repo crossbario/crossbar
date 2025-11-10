@@ -5,17 +5,15 @@
 #
 #####################################################################################
 
-from mock import MagicMock
-
-from twisted.trial import unittest
-from twisted.internet.defer import Deferred
-from twisted.internet import task
-
 # WebSocket protocol gets used below, and the latter
 # calls txaio.make_logger(). If we don't explicitly select
 # the network framework before, we get an exception
 # "To use txaio, you must first select a framework" from txaio
 import txaio
+from mock import MagicMock
+from twisted.internet import task
+from twisted.internet.defer import Deferred
+from twisted.trial import unittest
 
 txaio.use_twisted()  # noqa
 
@@ -27,7 +25,7 @@ class CleanupHandler(unittest.TestCase):
         self.transport = MagicMock()
         self.worker = MagicMock()
         self.worker.proto.transport = self.transport
-        self.worker.pid = '42'
+        self.worker.pid = "42"
         self.worker.ready = Deferred()
         self.worker.exit = Deferred()
 
@@ -38,7 +36,7 @@ class CleanupHandler(unittest.TestCase):
         # should have sent TERM now
         calls = self.worker.proto.transport.method_calls
         self.assertTrue(calls[0][0] == "signalProcess")
-        self.assertTrue(calls[0][1] == ('TERM', ))
+        self.assertTrue(calls[0][1] == ("TERM",))
 
         # skip ahead until our KILL. we loop because we only run one
         # timed-out thing on each advance maybe? Anyway it runs
@@ -48,4 +46,4 @@ class CleanupHandler(unittest.TestCase):
 
         calls = self.worker.proto.transport.method_calls
         self.assertTrue(calls[1][0] == "signalProcess")
-        self.assertTrue(calls[1][1] == ("KILL", ))
+        self.assertTrue(calls[1][1] == ("KILL",))

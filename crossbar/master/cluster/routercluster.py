@@ -6,22 +6,26 @@
 ###############################################################################
 
 import uuid
-from typing import Optional, List
 from pprint import pformat
+from typing import List, Optional
 
 import numpy as np
-from sortedcontainers import SortedDict
-
+import txaio
 from autobahn import wamp
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import CallDetails, PublishOptions, RegisterOptions
+from cfxdb.mrealm import (
+    RouterCluster,
+    RouterClusterNodeMembership,
+    RouterWorkerGroup,
+    RouterWorkerGroupClusterPlacement,
+    WorkerGroupStatus,
+    cluster,
+)
+from sortedcontainers import SortedDict
 
-from crossbar.common import checkconfig
 from crossbar._util import hl, hlid, hltype, hlval
-from cfxdb.mrealm import RouterCluster, RouterClusterNodeMembership, RouterWorkerGroupClusterPlacement
-from cfxdb.mrealm import cluster, RouterWorkerGroup, WorkerGroupStatus
-
-import txaio
+from crossbar.common import checkconfig
 
 txaio.use_twisted()
 from txaio import time_ns, sleep, make_logger  # noqa
@@ -36,9 +40,10 @@ class RouterClusterMonitor(object):
 
     The monitor is started when a router cluster is started.
     """
+
     log = make_logger()
 
-    def __init__(self, manager, routercluster_oid, interval=10.):
+    def __init__(self, manager, routercluster_oid, interval=10.0):
         self._manager = manager
         self._routercluster_oid = routercluster_oid
         self._interval = interval
@@ -81,16 +86,19 @@ class RouterClusterMonitor(object):
             # we prohibit running the iteration multiple times concurrently. this might
             # happen when the iteration takes longer than the interval the monitor is set to
             self.log.warn(
-                '{func} {action} for routercluster {routercluster} skipped! check & apply already in progress.',
-                action=hl('check & apply run skipped', color='red', bold=True),
+                "{func} {action} for routercluster {routercluster} skipped! check & apply already in progress.",
+                action=hl("check & apply run skipped", color="red", bold=True),
                 func=hltype(self._check_and_apply),
-                routercluster=hlid(self._routercluster_oid))
+                routercluster=hlid(self._routercluster_oid),
+            )
             return
         else:
-            self.log.info('{func} {action} for routercluster {routercluster} ..',
-                          action=hl('check & apply run started', color='green', bold=True),
-                          func=hltype(self._check_and_apply),
-                          routercluster=hlid(self._routercluster_oid))
+            self.log.info(
+                "{func} {action} for routercluster {routercluster} ..",
+                action=hl("check & apply run started", color="green", bold=True),
+                func=hltype(self._check_and_apply),
+                routercluster=hlid(self._routercluster_oid),
+            )
             self._check_and_apply_in_progress = True
 
         is_running_completely = True
@@ -104,8 +112,10 @@ class RouterClusterMonitor(object):
                 if routercluster.status in [cluster.STATUS_STARTING, cluster.STATUS_RUNNING]:
                     # the node memberships in the routercluster
                     active_memberships = [
-                        m for m in self._manager.schema.routercluster_node_memberships.select(
-                            txn, from_key=(routercluster.oid, uuid.UUID(bytes=b'\0' * 16)), return_keys=False)
+                        m
+                        for m in self._manager.schema.routercluster_node_memberships.select(
+                            txn, from_key=(routercluster.oid, uuid.UUID(bytes=b"\0" * 16)), return_keys=False
+                        )
                     ]
 
             for membership in active_memberships:
@@ -114,18 +124,22 @@ class RouterClusterMonitor(object):
                 # node run-time information, as maintained here in our master view of the external world
                 node = self._manager._session.nodes.get(node_oid, None)
 
-                if node and node.status == 'online':
-                    self.log.info('{func} Ok, router cluster node {node_oid} is running!',
-                                  func=hltype(self._check_and_apply),
-                                  node_oid=hlid(node_oid))
+                if node and node.status == "online":
+                    self.log.info(
+                        "{func} Ok, router cluster node {node_oid} is running!",
+                        func=hltype(self._check_and_apply),
+                        node_oid=hlid(node_oid),
+                    )
 
                     # FIXME: check all workers we expect for data planes associated with this router cluster are running
 
                 else:
-                    self.log.warn('{func} Router cluster node {node_oid} not running [status={status}]',
-                                  func=hltype(self._check_and_apply),
-                                  node_oid=hlid(node_oid),
-                                  status=hl(node.status if node else 'offline'))
+                    self.log.warn(
+                        "{func} Router cluster node {node_oid} not running [status={status}]",
+                        func=hltype(self._check_and_apply),
+                        node_oid=hlid(node_oid),
+                        status=hl(node.status if node else "offline"),
+                    )
                     is_running_completely = False
 
             if routercluster.status in [cluster.STATUS_STARTING] and is_running_completely:
@@ -136,28 +150,32 @@ class RouterClusterMonitor(object):
                     self._manager.schema.routerclusters[txn, routercluster.oid] = routercluster
 
                 routercluster_started = {
-                    'oid': str(routercluster.oid),
-                    'status': cluster.STATUS_BY_CODE[routercluster.status],
-                    'changed': routercluster.changed,
+                    "oid": str(routercluster.oid),
+                    "status": cluster.STATUS_BY_CODE[routercluster.status],
+                    "changed": routercluster.changed,
                 }
-                yield self._manager._session.publish('{}.on_routercluster_started'.format(self._manager._prefix),
-                                                     routercluster_started,
-                                                     options=self._manager._PUBOPTS)
+                yield self._manager._session.publish(
+                    "{}.on_routercluster_started".format(self._manager._prefix),
+                    routercluster_started,
+                    options=self._manager._PUBOPTS,
+                )
         except:
             self.log.failure()
 
         if is_running_completely:
-            color = 'green'
-            action = 'check & apply run completed successfully'
+            color = "green"
+            action = "check & apply run completed successfully"
         else:
-            color = 'red'
-            action = 'check & apply run finished with problems left'
+            color = "red"
+            action = "check & apply run finished with problems left"
 
         self._check_and_apply_in_progress = False
-        self.log.info('{func} {action} for routercluster {routercluster}!',
-                      action=hl(action, color=color, bold=True),
-                      func=hltype(self._check_and_apply),
-                      routercluster=hlid(self._routercluster_oid))
+        self.log.info(
+            "{func} {action} for routercluster {routercluster}!",
+            action=hl(action, color=color, bold=True),
+            func=hltype(self._check_and_apply),
+            routercluster=hlid(self._routercluster_oid),
+        )
 
 
 class RouterClusterManager(object):
@@ -171,6 +189,7 @@ class RouterClusterManager(object):
       - routercluster nodes
       - routercluster workergroup
     """
+
     log = make_logger()
 
     # publication options for management API events
@@ -238,25 +257,26 @@ class RouterClusterManager(object):
 
         :return:
         """
-        assert self._started is None, 'cannot start router cluster manager - already running!'
+        assert self._started is None, "cannot start router cluster manager - already running!"
         assert self._prefix is None
 
         self._started = time_ns()
 
         # crossbarfabriccenter.mrealm.routercluster
-        self._prefix = prefix[:-1] if prefix.endswith('.') else prefix
+        self._prefix = prefix[:-1] if prefix.endswith(".") else prefix
 
         # register management procedures
-        regs = yield self._session.register(self,
-                                            prefix='{}.'.format(self._prefix),
-                                            options=RegisterOptions(details_arg='details'))
+        regs = yield self._session.register(
+            self, prefix="{}.".format(self._prefix), options=RegisterOptions(details_arg="details")
+        )
         procs = [reg.procedure for reg in regs]
         self.log.info(
             'Router cluster manager registered {api} management procedures using prefix "{prefix}" [{func}]:\n\n{procs}\n',
-            api=hl('Router cluster manager API', color='green', bold=True),
+            api=hl("Router cluster manager API", color="green", bold=True),
             func=hltype(self.start),
             prefix=hlval(self._prefix),
-            procs=hl(pformat(procs), color='white', bold=True))
+            procs=hl(pformat(procs), color="white", bold=True),
+        )
 
         # start all router cluster monitors
         cnt_started = 0
@@ -273,26 +293,31 @@ class RouterClusterManager(object):
                     self._monitors[routercluster_oid] = monitor
                     cnt_started += 1
                     self.log.info(
-                        'Router cluster monitor started for router cluster {routercluster_oid} in status {status} [{func}]',
+                        "Router cluster monitor started for router cluster {routercluster_oid} in status {status} [{func}]",
                         func=hltype(self.start),
                         routercluster_oid=hlid(routercluster_oid),
-                        status=hlval(routercluster.status))
+                        status=hlval(routercluster.status),
+                    )
                 else:
                     cnt_skipped += 1
                     self.log.info(
-                        'Router cluster monitor skipped for router cluster {routercluster_oid} in status {status} [{func}]',
+                        "Router cluster monitor skipped for router cluster {routercluster_oid} in status {status} [{func}]",
                         func=hltype(self.start),
                         routercluster_oid=hlid(routercluster_oid),
-                        status=hlval(routercluster.status))
+                        status=hlval(routercluster.status),
+                    )
         self.log.info(
-            'Router cluster manager has started monitors for {cnt_started} clusters ({cnt_skipped} skipped) [{func}]',
+            "Router cluster manager has started monitors for {cnt_started} clusters ({cnt_skipped} skipped) [{func}]",
             cnt_started=hlval(cnt_started),
             cnt_skipped=hlval(cnt_skipped),
-            func=hltype(self.start))
+            func=hltype(self.start),
+        )
 
-        self.log.info('Router cluster manager for management realm {mrealm_oid} ready [{func}]',
-                      mrealm_oid=hlid(self._mrealm_oid),
-                      func=hltype(self.start))
+        self.log.info(
+            "Router cluster manager for management realm {mrealm_oid} ready [{func}]",
+            mrealm_oid=hlid(self._mrealm_oid),
+            func=hltype(self.start),
+        )
 
         # return txaio.gather(dl)
 
@@ -302,7 +327,7 @@ class RouterClusterManager(object):
 
         :return:
         """
-        assert self._started > 0, 'cannot stop router cluster manager - currently not running!'
+        assert self._started > 0, "cannot stop router cluster manager - currently not running!"
 
         # stop all router cluster monitors ..
         dl = []
@@ -311,17 +336,18 @@ class RouterClusterManager(object):
             del self._monitors[routercluster_oid]
         self._started = None
         self.log.info(
-            'Ok, router cluster manager for management realm {mrealm_oid} stopped ({cnt_stopped} monitors stopped) [{func}]',
+            "Ok, router cluster manager for management realm {mrealm_oid} stopped ({cnt_stopped} monitors stopped) [{func}]",
             mrealm_oid=hlid(self._mrealm_oid),
             cnt_stopped=len(dl),
-            func=hltype(self.start))
+            func=hltype(self.start),
+        )
 
         # return txaio.gather(dl)
 
     @wamp.register(None, check_types=True)
-    def list_routerclusters(self,
-                            return_names: Optional[bool] = None,
-                            details: Optional[CallDetails] = None) -> List[str]:
+    def list_routerclusters(
+        self, return_names: Optional[bool] = None, details: Optional[CallDetails] = None
+    ) -> List[str]:
         """
         Returns list of router clusters defined. Detail information for a router cluster
         can be retrieved using :meth:`crossbar.master.cluster.routercluster.RouterClusterManager.get_routercluster`.
@@ -345,7 +371,7 @@ class RouterClusterManager(object):
                     "cluster1"
                 ]
         """
-        self.log.info('{func}(details={details})', func=hltype(self.list_routerclusters), details=details)
+        self.log.info("{func}(details={details})", func=hltype(self.list_routerclusters), details=details)
 
         with self.db.begin() as txn:
             if return_names:
@@ -383,15 +409,17 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        self.log.info('{func}(routercluster_oid={routercluster_oid}, details={details})',
-                      func=hltype(self.get_routercluster),
-                      routercluster_oid=hlid(routercluster_oid),
-                      details=details)
+        self.log.info(
+            "{func}(routercluster_oid={routercluster_oid}, details={details})",
+            func=hltype(self.get_routercluster),
+            routercluster_oid=hlid(routercluster_oid),
+            details=details,
+        )
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid routercluster_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid routercluster_oid: {}".format(str(e)))
 
         with self.db.begin() as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
@@ -399,8 +427,9 @@ class RouterClusterManager(object):
         if routercluster:
             return routercluster.marshal()
         else:
-            raise ApplicationError('crossbar.error.no_such_object',
-                                   'no routercluster with oid {}'.format(routercluster_oid_))
+            raise ApplicationError(
+                "crossbar.error.no_such_object", "no routercluster with oid {}".format(routercluster_oid_)
+            )
 
     @wamp.register(None, check_types=True)
     def get_routercluster_by_name(self, routercluster_name: str, details: Optional[CallDetails] = None) -> dict:
@@ -414,16 +443,19 @@ class RouterClusterManager(object):
 
         :return: Router cluster definition.
         """
-        self.log.info('{func}(routercluster_name="{routercluster_name}", details={details})',
-                      func=hltype(self.get_routercluster_by_name),
-                      routercluster_name=hlid(routercluster_name),
-                      details=details)
+        self.log.info(
+            '{func}(routercluster_name="{routercluster_name}", details={details})',
+            func=hltype(self.get_routercluster_by_name),
+            routercluster_name=hlid(routercluster_name),
+            details=details,
+        )
 
         with self.db.begin() as txn:
             routercluster_oid = self.schema.idx_routerclusters_by_name[txn, routercluster_name]
             if not routercluster_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no routercluster named {}'.format(routercluster_name))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no routercluster named {}".format(routercluster_name)
+                )
 
             routercluster = self.schema.routerclusters[txn, routercluster_oid]
             assert routercluster
@@ -468,55 +500,64 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        self.log.info('{func}(routercluster="{routercluster}", details={details})',
-                      func=hltype(self.create_routercluster),
-                      routercluster=routercluster,
-                      details=details)
+        self.log.info(
+            '{func}(routercluster="{routercluster}", details={details})',
+            func=hltype(self.create_routercluster),
+            routercluster=routercluster,
+            details=details,
+        )
 
         try:
             obj = RouterCluster.parse(routercluster)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_configuration',
-                                   'could not parse router cluster configuration ({})'.format(e))
+            raise ApplicationError(
+                "wamp.error.invalid_configuration", "could not parse router cluster configuration ({})".format(e)
+            )
 
         if obj.name is None:
-            raise ApplicationError('wamp.error.invalid_configuration',
-                                   'missing "name" in router cluster configuration')
+            raise ApplicationError(
+                "wamp.error.invalid_configuration", 'missing "name" in router cluster configuration'
+            )
         else:
             if not checkconfig._CONFIG_ITEM_ID_PAT.match(obj.name):
                 raise ApplicationError(
-                    'wamp.error.invalid_configuration',
+                    "wamp.error.invalid_configuration",
                     'invalid name "{}" in router cluster configuration (must match {})'.format(
-                        obj.name, checkconfig._CONFIG_ITEM_ID_PAT_STR))
+                        obj.name, checkconfig._CONFIG_ITEM_ID_PAT_STR
+                    ),
+                )
 
         obj.oid = uuid.uuid4()
-        obj.status = cluster.STATUS_BY_NAME['STOPPED']
-        obj.changed = np.datetime64(time_ns(), 'ns')
+        obj.status = cluster.STATUS_BY_NAME["STOPPED"]
+        obj.changed = np.datetime64(time_ns(), "ns")
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
                 if not caller_oid:
-                    raise ApplicationError('wamp.error.no_such_principal',
-                                           'no user found for authid "{}"'.format(details.caller_authid))
+                    raise ApplicationError(
+                        "wamp.error.no_such_principal", 'no user found for authid "{}"'.format(details.caller_authid)
+                    )
             obj.owner_oid = caller_oid
         else:
-            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+            raise ApplicationError("wamp.error.no_such_principal", "cannot map user - no caller authid available")
 
         with self.db.begin(write=True) as txn:
             if self.schema.idx_routerclusters_by_name[txn, obj.name]:
-                raise ApplicationError('crossbar.error.already_exists',
-                                       'duplicate name "{}" in router cluster configuration'.format(obj.name))
+                raise ApplicationError(
+                    "crossbar.error.already_exists",
+                    'duplicate name "{}" in router cluster configuration'.format(obj.name),
+                )
 
             self.schema.routerclusters[txn, obj.oid] = obj
 
-        self.log.info('new RouterCluster object stored in database:\n{obj}', obj=obj)
+        self.log.info("new RouterCluster object stored in database:\n{obj}", obj=obj)
 
         res_obj = obj.marshal()
 
-        await self._session.publish('{}.on_routercluster_created'.format(self._prefix), res_obj, options=self._PUBOPTS)
+        await self._session.publish("{}.on_routercluster_created".format(self._prefix), res_obj, options=self._PUBOPTS)
 
-        self.log.info('Management API event <on_routercluster_created> published:\n{res_obj}', res_obj=res_obj)
+        self.log.info("Management API event <on_routercluster_created> published:\n{res_obj}", res_obj=res_obj)
 
         return res_obj
 
@@ -548,42 +589,46 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        self.log.info('{func}.delete_routercluster(routercluster_oid={routercluster_oid}, details={details})',
-                      func=hltype(self.delete_routercluster),
-                      routercluster_oid=hlid(routercluster_oid),
-                      details=details)
+        self.log.info(
+            "{func}.delete_routercluster(routercluster_oid={routercluster_oid}, details={details})",
+            func=hltype(self.delete_routercluster),
+            routercluster_oid=hlid(routercluster_oid),
+            details=details,
+        )
 
         try:
             oid = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
                 if not caller_oid:
-                    raise ApplicationError('wamp.error.no_such_principal',
-                                           'no user found for authid "{}"'.format(details.caller_authid))
+                    raise ApplicationError(
+                        "wamp.error.no_such_principal", 'no user found for authid "{}"'.format(details.caller_authid)
+                    )
         else:
-            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+            raise ApplicationError("wamp.error.no_such_principal", "cannot map user - no caller authid available")
 
         with self.db.begin(write=True) as txn:
             cluster_obj = self.schema.routerclusters[txn, oid]
             if cluster_obj:
                 if cluster_obj.owner_oid != caller_oid:
-                    raise ApplicationError('wamp.error.not_authorized',
-                                           'only owner is allowed to delete router cluster')
+                    raise ApplicationError(
+                        "wamp.error.not_authorized", "only owner is allowed to delete router cluster"
+                    )
                 if cluster_obj.status != cluster.STATUS_STOPPED:
-                    raise ApplicationError('crossbar.error.not_stopped')
+                    raise ApplicationError("crossbar.error.not_stopped")
                 del self.schema.routerclusters[txn, oid]
             else:
-                raise ApplicationError('crossbar.error.no_such_object', 'no object with oid {} found'.format(oid))
+                raise ApplicationError("crossbar.error.no_such_object", "no object with oid {} found".format(oid))
 
         cluster_obj.changed = time_ns()
-        self.log.info('RouterCluster object deleted from database:\n{cluster}', cluster=cluster_obj)
+        self.log.info("RouterCluster object deleted from database:\n{cluster}", cluster=cluster_obj)
 
         res_obj = cluster_obj.marshal()
-        await self._session.publish('{}.on_routercluster_deleted'.format(self._prefix), res_obj, options=self._PUBOPTS)
+        await self._session.publish("{}.on_routercluster_deleted".format(self._prefix), res_obj, options=self._PUBOPTS)
         return res_obj
 
     @wamp.register(None, check_types=True)
@@ -608,38 +653,43 @@ class RouterClusterManager(object):
                     }
                 }
         """
-        self.log.info('{func}(routercluster_oid="{routercluster_oid}", details={details})',
-                      func=hltype(self.start_routercluster),
-                      routercluster_oid=hlid(routercluster_oid),
-                      details=details)
+        self.log.info(
+            '{func}(routercluster_oid="{routercluster_oid}", details={details})',
+            func=hltype(self.start_routercluster),
+            routercluster_oid=hlid(routercluster_oid),
+            details=details,
+        )
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
                 if not caller_oid:
-                    raise ApplicationError('wamp.error.no_such_principal',
-                                           'no user found for authid "{}"'.format(details.caller_authid))
+                    raise ApplicationError(
+                        "wamp.error.no_such_principal", 'no user found for authid "{}"'.format(details.caller_authid)
+                    )
         else:
-            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+            raise ApplicationError("wamp.error.no_such_principal", "cannot map user - no caller authid available")
 
         with self.db.begin(write=True) as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if not routercluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no routercluster with oid {} found'.format(routercluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no routercluster with oid {} found".format(routercluster_oid_)
+                )
 
             if routercluster.owner_oid != caller_oid:
-                raise ApplicationError('wamp.error.not_authorized', 'only owner is allowed to start a router cluster')
+                raise ApplicationError("wamp.error.not_authorized", "only owner is allowed to start a router cluster")
 
             if routercluster.status not in [cluster.STATUS_STOPPED, cluster.STATUS_PAUSED]:
-                emsg = 'cannot start routercluster currently in state {}'.format(
-                    cluster.STATUS_BY_CODE[routercluster.status])
-                raise ApplicationError('crossbar.error.cannot_start', emsg)
+                emsg = "cannot start routercluster currently in state {}".format(
+                    cluster.STATUS_BY_CODE[routercluster.status]
+                )
+                raise ApplicationError("crossbar.error.cannot_start", emsg)
 
             routercluster.status = cluster.STATUS_STARTING
             routercluster.changed = time_ns()
@@ -652,18 +702,18 @@ class RouterClusterManager(object):
         self._monitors[routercluster_oid_] = monitor
 
         routercluster_starting = {
-            'oid': str(routercluster.oid),
-            'status': cluster.STATUS_BY_CODE[routercluster.status],
-            'changed': routercluster.changed,
-            'who': {
-                'session': details.caller if details else None,
-                'authid': details.caller_authid if details else None,
-                'authrole': details.caller_authrole if details else None,
-            }
+            "oid": str(routercluster.oid),
+            "status": cluster.STATUS_BY_CODE[routercluster.status],
+            "changed": routercluster.changed,
+            "who": {
+                "session": details.caller if details else None,
+                "authid": details.caller_authid if details else None,
+                "authrole": details.caller_authrole if details else None,
+            },
         }
-        await self._session.publish('{}.on_routercluster_starting'.format(self._prefix),
-                                    routercluster_starting,
-                                    options=self._PUBOPTS)
+        await self._session.publish(
+            "{}.on_routercluster_starting".format(self._prefix), routercluster_starting, options=self._PUBOPTS
+        )
 
         return routercluster_starting
 
@@ -689,26 +739,30 @@ class RouterClusterManager(object):
                     }
                 }
         """
-        self.log.info('{func}(routercluster_oid={routercluster_oid}, details={details})',
-                      routercluster_oid=hlid(routercluster_oid),
-                      func=hltype(self.stop_routercluster),
-                      details=details)
+        self.log.info(
+            "{func}(routercluster_oid={routercluster_oid}, details={details})",
+            routercluster_oid=hlid(routercluster_oid),
+            func=hltype(self.stop_routercluster),
+            details=details,
+        )
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         with self.db.begin(write=True) as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if not routercluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no routercluster with oid {} found'.format(routercluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no routercluster with oid {} found".format(routercluster_oid_)
+                )
 
             if routercluster.status not in [cluster.STATUS_STARTING, cluster.STATUS_RUNNING]:
-                emsg = 'cannot stop routercluster currently in state {}'.format(
-                    cluster.STATUS_BY_CODE[routercluster.status])
-                raise ApplicationError('crossbar.error.cannot_start', emsg)
+                emsg = "cannot stop routercluster currently in state {}".format(
+                    cluster.STATUS_BY_CODE[routercluster.status]
+                )
+                raise ApplicationError("crossbar.error.cannot_start", emsg)
 
             routercluster.status = cluster.STATUS_STOPPING
             routercluster.changed = time_ns()
@@ -716,19 +770,19 @@ class RouterClusterManager(object):
             self.schema.routerclusters[txn, routercluster_oid_] = routercluster
 
         routercluster_stopping = {
-            'oid': str(routercluster.oid),
-            'status': cluster.STATUS_BY_CODE[routercluster.status],
-            'changed': routercluster.changed,
-            'who': {
-                'session': details.caller if details else None,
-                'authid': details.caller_authid if details else None,
-                'authrole': details.caller_authrole if details else None,
-            }
+            "oid": str(routercluster.oid),
+            "status": cluster.STATUS_BY_CODE[routercluster.status],
+            "changed": routercluster.changed,
+            "who": {
+                "session": details.caller if details else None,
+                "authid": details.caller_authid if details else None,
+                "authrole": details.caller_authrole if details else None,
+            },
         }
 
-        await self._session.publish('{}.on_routercluster_stopping'.format(self._prefix),
-                                    routercluster_stopping,
-                                    options=self._PUBOPTS)
+        await self._session.publish(
+            "{}.on_routercluster_stopping".format(self._prefix), routercluster_stopping, options=self._PUBOPTS
+        )
 
         return routercluster_stopping
 
@@ -743,19 +797,23 @@ class RouterClusterManager(object):
 
         :return: Current status and statistics for given router cluster.
         """
-        self.log.info('{func}(routercluster_oid={routercluster_oid}, details={details})',
-                      func=hltype(self.stat_routercluster),
-                      routercluster_oid=hlid(routercluster_oid),
-                      details=details)
+        self.log.info(
+            "{func}(routercluster_oid={routercluster_oid}, details={details})",
+            func=hltype(self.stat_routercluster),
+            routercluster_oid=hlid(routercluster_oid),
+            details=details,
+        )
 
         raise NotImplementedError()
 
     @wamp.register(None, check_types=True)
-    def list_routercluster_nodes(self,
-                                 routercluster_oid: str,
-                                 return_names: Optional[bool] = None,
-                                 filter_by_status: Optional[str] = None,
-                                 details: Optional[CallDetails] = None) -> List[str]:
+    def list_routercluster_nodes(
+        self,
+        routercluster_oid: str,
+        return_names: Optional[bool] = None,
+        filter_by_status: Optional[str] = None,
+        details: Optional[CallDetails] = None,
+    ) -> List[str]:
         """
         List nodes currently associated with the given router cluster.
 
@@ -786,26 +844,29 @@ class RouterClusterManager(object):
                 ]
         """
         self.log.info(
-            '{func}(routercluster_oid={routercluster_oid}, return_names={return_names}, filter_by_status={filter_by_status}, details={details})',
+            "{func}(routercluster_oid={routercluster_oid}, return_names={return_names}, filter_by_status={filter_by_status}, details={details})",
             func=hltype(self.list_routercluster_nodes),
             routercluster_oid=hlid(routercluster_oid),
             return_names=hlval(return_names),
             filter_by_status=hlval(filter_by_status),
-            details=details)
+            details=details,
+        )
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         node_oids = []
         with self.db.begin() as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if not routercluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no routercluster with oid {} found'.format(routercluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no routercluster with oid {} found".format(routercluster_oid_)
+                )
             for _, node_oid in self.schema.routercluster_node_memberships.select(
-                    txn, from_key=(routercluster_oid_, uuid.UUID(bytes=b'\0' * 16)), return_values=False):
+                txn, from_key=(routercluster_oid_, uuid.UUID(bytes=b"\0" * 16)), return_values=False
+            ):
                 node_oids.append(node_oid)
 
         if filter_by_status:
@@ -830,11 +891,13 @@ class RouterClusterManager(object):
         return res
 
     @wamp.register(None, check_types=True)
-    async def add_routercluster_node(self,
-                                     routercluster_oid: str,
-                                     node_oid: str,
-                                     config: Optional[dict] = None,
-                                     details: Optional[CallDetails] = None) -> dict:
+    async def add_routercluster_node(
+        self,
+        routercluster_oid: str,
+        node_oid: str,
+        config: Optional[dict] = None,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Add a node to a router cluster. You can configure the node association for the
         cluster using ``config``:
@@ -857,46 +920,49 @@ class RouterClusterManager(object):
                 }
         """
         self.log.info(
-            '{func}(routercluster_oid={routercluster_oid}, node_oid={node_oid}, config={config}, details={details})',
+            "{func}(routercluster_oid={routercluster_oid}, node_oid={node_oid}, config={config}, details={details})",
             func=hltype(self.list_routercluster_nodes),
             routercluster_oid=hlid(routercluster_oid),
             node_oid=hlid(node_oid),
             config=config,
-            details=details)
+            details=details,
+        )
 
         config = config or {}
-        config['cluster_oid'] = routercluster_oid
-        config['node_oid'] = node_oid
+        config["cluster_oid"] = routercluster_oid
+        config["node_oid"] = node_oid
         membership = RouterClusterNodeMembership.parse(config)
 
         with self.gdb.begin() as txn:
             node = self.gschema.nodes[txn, membership.node_oid]
             if not node or node.mrealm_oid != self._session._mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no node with oid {} found'.format(membership.node_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no node with oid {} found".format(membership.node_oid)
+                )
 
         with self.db.begin(write=True) as txn:
             routercluster = self.schema.routerclusters[txn, membership.cluster_oid]
             if not routercluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no routercluster with oid {} found'.format(membership.cluster_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object",
+                    "no routercluster with oid {} found".format(membership.cluster_oid),
+                )
 
             self.schema.routercluster_node_memberships[txn, (membership.cluster_oid, membership.node_oid)] = membership
 
         res_obj = membership.marshal()
-        self.log.info('node added to router cluster:\n{membership}', membership=res_obj)
+        self.log.info("node added to router cluster:\n{membership}", membership=res_obj)
 
-        await self._session.publish('{}.on_routercluster_node_added'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish(
+            "{}.on_routercluster_node_added".format(self._prefix), res_obj, options=self._PUBOPTS
+        )
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    async def remove_routercluster_node(self,
-                                        routercluster_oid: str,
-                                        node_oid: str,
-                                        details: Optional[CallDetails] = None) -> dict:
+    async def remove_routercluster_node(
+        self, routercluster_oid: str, node_oid: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Remove a node from a router cluster.
 
@@ -917,52 +983,55 @@ class RouterClusterManager(object):
         try:
             node_oid_ = uuid.UUID(node_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
-        self.log.info('{func}(routercluster_oid={routercluster_oid}, node_oid={node_oid}, details={details})',
-                      routercluster_oid=hlid(routercluster_oid_),
-                      node_oid=hlid(node_oid),
-                      func=hltype(self.remove_routercluster_node),
-                      details=details)
+        self.log.info(
+            "{func}(routercluster_oid={routercluster_oid}, node_oid={node_oid}, details={details})",
+            routercluster_oid=hlid(routercluster_oid_),
+            node_oid=hlid(node_oid),
+            func=hltype(self.remove_routercluster_node),
+            details=details,
+        )
 
         with self.gdb.begin() as txn:
             node = self.gschema.nodes[txn, node_oid_]
             if not node or node.mrealm_oid != self._session._mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object', 'no node with oid {} found'.format(node_oid_))
+                raise ApplicationError("crossbar.error.no_such_object", "no node with oid {} found".format(node_oid_))
 
         with self.db.begin(write=True) as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if not routercluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(routercluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(routercluster_oid_)
+                )
 
             membership = self.schema.routercluster_node_memberships[txn, (routercluster_oid_, node_oid_)]
             if not membership:
                 raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no association between node {} and routercluster {} found'.format(node_oid_, routercluster_oid_))
+                    "crossbar.error.no_such_object",
+                    "no association between node {} and routercluster {} found".format(node_oid_, routercluster_oid_),
+                )
 
             del self.schema.routercluster_node_memberships[txn, (routercluster_oid_, node_oid_)]
 
         res_obj = membership.marshal()
-        self.log.info('node removed from router cluster:\n{res_obj}', membership=res_obj)
+        self.log.info("node removed from router cluster:\n{res_obj}", membership=res_obj)
 
-        await self._session.publish('{}.on_routercluster_node_removed'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish(
+            "{}.on_routercluster_node_removed".format(self._prefix), res_obj, options=self._PUBOPTS
+        )
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    def get_routercluster_node(self,
-                               routercluster_oid: str,
-                               node_oid: str,
-                               details: Optional[CallDetails] = None) -> dict:
+    def get_routercluster_node(
+        self, routercluster_oid: str, node_oid: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Get information (such as for example parallel degree) for the association
         of a node with a routercluster.
@@ -984,46 +1053,52 @@ class RouterClusterManager(object):
         try:
             node_oid_ = uuid.UUID(node_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
-        self.log.info('{func}(routercluster_oid={routercluster_oid}, node_oid={node_oid}, details={details})',
-                      routercluster_oid=hlid(routercluster_oid_),
-                      node_oid=hlid(node_oid_),
-                      func=hltype(self.get_routercluster_node),
-                      details=details)
+        self.log.info(
+            "{func}(routercluster_oid={routercluster_oid}, node_oid={node_oid}, details={details})",
+            routercluster_oid=hlid(routercluster_oid_),
+            node_oid=hlid(node_oid_),
+            func=hltype(self.get_routercluster_node),
+            details=details,
+        )
 
         with self.gdb.begin() as txn:
             node = self.gschema.nodes[txn, node_oid_]
             if not node or node.mrealm_oid != self._session._mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object', 'no node with oid {} found'.format(node_oid_))
+                raise ApplicationError("crossbar.error.no_such_object", "no node with oid {} found".format(node_oid_))
 
         with self.db.begin() as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if not routercluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(routercluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(routercluster_oid_)
+                )
 
             membership = self.schema.routercluster_node_memberships[txn, (routercluster_oid_, node_oid_)]
             if not membership:
                 raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no association between node {} and routercluster {} found'.format(node_oid_, routercluster_oid_))
+                    "crossbar.error.no_such_object",
+                    "no association between node {} and routercluster {} found".format(node_oid_, routercluster_oid_),
+                )
 
         res_obj = membership.marshal()
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    def list_routercluster_workergroups(self,
-                                        routercluster_oid: str,
-                                        return_names: Optional[bool] = None,
-                                        filter_by_status: Optional[str] = None,
-                                        details: Optional[CallDetails] = None) -> List[str]:
+    def list_routercluster_workergroups(
+        self,
+        routercluster_oid: str,
+        return_names: Optional[bool] = None,
+        filter_by_status: Optional[str] = None,
+        details: Optional[CallDetails] = None,
+    ) -> List[str]:
         """
         List worker groups in a router cluster. Detail information for a router cluster worker group
         can be retrieved using :meth:`crossbar.master.cluster.routercluster.RouterClusterManager.get_routercluster_workergroup`.
@@ -1048,30 +1123,32 @@ class RouterClusterManager(object):
                     "mygroup1"
                 ]
         """
-        self.log.info('{func}(routercluster_oid={routercluster_oid}, details={details})',
-                      routercluster_oid=hlid(routercluster_oid),
-                      func=hltype(self.list_routercluster_workergroups),
-                      details=details)
+        self.log.info(
+            "{func}(routercluster_oid={routercluster_oid}, details={details})",
+            routercluster_oid=hlid(routercluster_oid),
+            func=hltype(self.list_routercluster_workergroups),
+            details=details,
+        )
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         workergroups = []
         with self.db.begin() as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if not routercluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(routercluster_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(routercluster_oid)
+                )
 
             # Use index "idx_workergroup_by_cluster": (cluster_oid, workergroup_name) -> workergroup_oid
-            from_key = (routercluster_oid_, '')
-            to_key = (uuid.UUID(int=(int(routercluster_oid_) + 1)), '')
-            for (_,
-                 workergroup_name), workergroup_oid in self.schema.idx_workergroup_by_cluster.select(txn,
-                                                                                                     from_key=from_key,
-                                                                                                     to_key=to_key):
+            from_key = (routercluster_oid_, "")
+            to_key = (uuid.UUID(int=(int(routercluster_oid_) + 1)), "")
+            for (_, workergroup_name), workergroup_oid in self.schema.idx_workergroup_by_cluster.select(
+                txn, from_key=from_key, to_key=to_key
+            ):
                 if return_names:
                     workergroups.append(workergroup_name)
                 else:
@@ -1080,10 +1157,9 @@ class RouterClusterManager(object):
             return workergroups
 
     @wamp.register(None, check_types=True)
-    async def add_routercluster_workergroup(self,
-                                            routercluster_oid: str,
-                                            workergroup: dict,
-                                            details: Optional[CallDetails] = None) -> dict:
+    async def add_routercluster_workergroup(
+        self, routercluster_oid: str, workergroup: dict, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Add a Router worker group to a Router cluster. The ``workergroup`` can be configured:
 
@@ -1113,23 +1189,26 @@ class RouterClusterManager(object):
                     "tags": null
                 }
         """
-        self.log.info('{func}(routercluster_oid={routercluster_oid}, workergroup={workergroup}, details={details})',
-                      routercluster_oid=hlid(routercluster_oid),
-                      workergroup=pformat(workergroup),
-                      func=hltype(self.add_routercluster_workergroup),
-                      details=details)
+        self.log.info(
+            "{func}(routercluster_oid={routercluster_oid}, workergroup={workergroup}, details={details})",
+            routercluster_oid=hlid(routercluster_oid),
+            workergroup=pformat(workergroup),
+            func=hltype(self.add_routercluster_workergroup),
+            details=details,
+        )
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         with self.db.begin(write=True) as txn:
             # get routercluster on which to create a new workergroup
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if not routercluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(routercluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(routercluster_oid_)
+                )
 
             # create new workergroup object
             workergroup_obj = RouterWorkerGroup.parse(workergroup)
@@ -1140,30 +1219,36 @@ class RouterClusterManager(object):
 
             # if no explicit workergroup name was given, auto-assign a name
             if not workergroup_obj.name:
-                workergroup_obj.name = 'cwg_{}'.format(str(workergroup_obj.oid)[:8])
+                workergroup_obj.name = "cwg_{}".format(str(workergroup_obj.oid)[:8])
 
             # store workergroup in database
             self.schema.router_workergroups[txn, workergroup_obj.oid] = workergroup_obj
-            self.log.info('New router worker group object stored in database:\n{workergroup}',
-                          workergroup=pformat(workergroup_obj.marshal()))
+            self.log.info(
+                "New router worker group object stored in database:\n{workergroup}",
+                workergroup=pformat(workergroup_obj.marshal()),
+            )
 
             # collect all node OIDs currently associated with the router cluster
             # into a dict sorted by the current number of placements
             nodes = SortedDict()
             for _, node_oid in self.schema.routercluster_node_memberships.select(
-                    txn,
-                    from_key=(routercluster_oid_, uuid.UUID(bytes=b'\0' * 16)),
-                    to_key=(uuid.UUID(int=(int(routercluster_oid_) + 1)), uuid.UUID(bytes=b'\0' * 16)),
-                    return_values=False):
-
+                txn,
+                from_key=(routercluster_oid_, uuid.UUID(bytes=b"\0" * 16)),
+                to_key=(uuid.UUID(int=(int(routercluster_oid_) + 1)), uuid.UUID(bytes=b"\0" * 16)),
+                return_values=False,
+            ):
                 # count current number of placements associated with given node
                 cnt = 0
                 for _ in self.schema.idx_workergroup_by_placement.select(
-                        txn,
-                        from_key=(workergroup_obj.cluster_oid, node_oid, uuid.UUID(bytes=b'\0' * 16)),
-                        to_key=(workergroup_obj.cluster_oid, uuid.UUID(int=(int(node_oid) + 1)),
-                                uuid.UUID(bytes=b'\0' * 16)),
-                        return_keys=False):
+                    txn,
+                    from_key=(workergroup_obj.cluster_oid, node_oid, uuid.UUID(bytes=b"\0" * 16)),
+                    to_key=(
+                        workergroup_obj.cluster_oid,
+                        uuid.UUID(int=(int(node_oid) + 1)),
+                        uuid.UUID(bytes=b"\0" * 16),
+                    ),
+                    return_keys=False,
+                ):
                     cnt += 1
 
                 # the dict is sorted ascending by cnt, that is nodes.peekitem(0)
@@ -1176,16 +1261,17 @@ class RouterClusterManager(object):
                 placement_node_oid, placement_node_cnt = nodes.peekitem(0)
 
                 self.log.info(
-                    'Router worker placement selected node {placement_node_oid} with current worker count {placement_node_cnt}',
+                    "Router worker placement selected node {placement_node_oid} with current worker count {placement_node_cnt}",
                     placement_node_oid=hlid(placement_node_oid),
-                    placement_node_cnt=hlval(placement_node_cnt))
+                    placement_node_cnt=hlval(placement_node_cnt),
+                )
 
                 placement = RouterWorkerGroupClusterPlacement()
                 placement.oid = uuid.uuid4()
                 placement.worker_group_oid = workergroup_obj.oid
                 placement.cluster_oid = routercluster_oid_
                 placement.node_oid = placement_node_oid
-                placement.worker_name = '{}_{}'.format(workergroup_obj.name, i + 1)
+                placement.worker_name = "{}_{}".format(workergroup_obj.name, i + 1)
                 placement.status = WorkerGroupStatus.STOPPED
                 placement.changed = time_ns()
                 placement.tcp_listening_port = 0
@@ -1195,22 +1281,23 @@ class RouterClusterManager(object):
                 # keep track of new placement in our sorted dict
                 nodes[placement_node_oid] += 1
 
-                self.log.info('New router worker group placement object stored in database:\n{placement}',
-                              placement=pformat(placement.marshal()))
+                self.log.info(
+                    "New router worker group placement object stored in database:\n{placement}",
+                    placement=pformat(placement.marshal()),
+                )
 
         res_obj = workergroup_obj.marshal()
 
-        await self._session.publish('{}.on_workergroup_added'.format(self._prefix), res_obj, options=self._PUBOPTS)
+        await self._session.publish("{}.on_workergroup_added".format(self._prefix), res_obj, options=self._PUBOPTS)
 
-        self.log.info('Management API event <on_workergroup_added> published:\n{res_obj}', res_obj=res_obj)
+        self.log.info("Management API event <on_workergroup_added> published:\n{res_obj}", res_obj=res_obj)
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    async def remove_routercluster_workergroup(self,
-                                               routercluster_oid: str,
-                                               workergroup_oid: str,
-                                               details: Optional[CallDetails] = None) -> dict:
+    async def remove_routercluster_workergroup(
+        self, routercluster_oid: str, workergroup_oid: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Remove a router worker group from a router cluster.
 
@@ -1234,69 +1321,74 @@ class RouterClusterManager(object):
                 }
         """
         self.log.info(
-            '{func}(routercluster_oid={routercluster_oid}, workergroup_oid={workergroup_oid}, details={details})',
+            "{func}(routercluster_oid={routercluster_oid}, workergroup_oid={workergroup_oid}, details={details})",
             routercluster_oid=hlid(routercluster_oid),
             workergroup_oid=hlid(workergroup_oid),
             func=hltype(self.remove_routercluster_workergroup),
-            details=details)
+            details=details,
+        )
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid routercluster_oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid routercluster_oid "{}"'.format(str(e)))
 
         try:
             workergroup_oid_ = uuid.UUID(workergroup_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid workergroup_oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid workergroup_oid "{}"'.format(str(e)))
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
                 if not caller_oid:
-                    raise ApplicationError('wamp.error.no_such_principal',
-                                           'no user found for authid "{}"'.format(details.caller_authid))
+                    raise ApplicationError(
+                        "wamp.error.no_such_principal", 'no user found for authid "{}"'.format(details.caller_authid)
+                    )
         else:
-            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+            raise ApplicationError("wamp.error.no_such_principal", "cannot map user - no caller authid available")
 
         with self.db.begin(write=True) as txn:
             routercluster = self.schema.routerclusters[txn, routercluster_oid_]
             if routercluster:
                 if routercluster.owner_oid != caller_oid:
-                    raise ApplicationError('wamp.error.not_authorized',
-                                           'only owner is allowed to modify router cluster')
+                    raise ApplicationError(
+                        "wamp.error.not_authorized", "only owner is allowed to modify router cluster"
+                    )
                 if routercluster.status != cluster.STATUS_STOPPED:
-                    raise ApplicationError('crossbar.error.not_stopped')
+                    raise ApplicationError("crossbar.error.not_stopped")
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(routercluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(routercluster_oid_)
+                )
 
             workergroup = self.schema.router_workergroups[txn, workergroup_oid_]
             if not workergroup:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no workergroup with oid {} found'.format(workergroup_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no workergroup with oid {} found".format(workergroup_oid_)
+                )
 
             # FIXME: check that the worker group has no running application realms
             # FIXME: remove all router worker group placements from self.schema.router_workergroup_placements
 
             del self.schema.router_workergroups[txn, workergroup_oid_]
 
-        self.log.info('router cluster work group object removed from database:\n{workergroup}',
-                      workergroup=workergroup)
+        self.log.info(
+            "router cluster work group object removed from database:\n{workergroup}", workergroup=workergroup
+        )
 
         res_obj = workergroup.marshal()
 
-        await self._session.publish('{}.on_workergroup_removed'.format(self._prefix), res_obj, options=self._PUBOPTS)
+        await self._session.publish("{}.on_workergroup_removed".format(self._prefix), res_obj, options=self._PUBOPTS)
 
-        self.log.info('Management API event <on_workergroup_removed> published:\n{res_obj}', res_obj=res_obj)
+        self.log.info("Management API event <on_workergroup_removed> published:\n{res_obj}", res_obj=res_obj)
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    def get_routercluster_workergroup(self,
-                                      routercluster_oid: str,
-                                      workergroup_oid: str,
-                                      details: Optional[CallDetails] = None) -> dict:
+    def get_routercluster_workergroup(
+        self, routercluster_oid: str, workergroup_oid: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Get definition of a router worker group in a cluster by ID.
 
@@ -1320,41 +1412,44 @@ class RouterClusterManager(object):
                 }
         """
         self.log.info(
-            '{func}(routercluster_oid={routercluster_oid}, workergroup_oid={workergroup_oid}, details={details})',
+            "{func}(routercluster_oid={routercluster_oid}, workergroup_oid={workergroup_oid}, details={details})",
             routercluster_oid=hlid(routercluster_oid),
             workergroup_oid=hlid(workergroup_oid),
             func=hltype(self.get_routercluster_workergroup),
-            details=details)
+            details=details,
+        )
 
         try:
             routercluster_oid_ = uuid.UUID(routercluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         try:
             workergroup_oid_ = uuid.UUID(workergroup_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         with self.db.begin() as txn:
             workergroup = self.schema.router_workergroups[txn, workergroup_oid_]
             if not workergroup:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no worker group with oid {} found'.format(workergroup_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no worker group with oid {} found".format(workergroup_oid_)
+                )
 
         if workergroup.cluster_oid != routercluster_oid_:
             raise ApplicationError(
-                'crossbar.error.no_such_object',
-                'worker group with oid {} found, but not associated with given router cluster'.format(
-                    workergroup_oid_))
+                "crossbar.error.no_such_object",
+                "worker group with oid {} found, but not associated with given router cluster".format(
+                    workergroup_oid_
+                ),
+            )
 
         return workergroup.marshal()
 
     @wamp.register(None, check_types=True)
-    def get_routercluster_workergroup_by_name(self,
-                                              routercluster_name: str,
-                                              workergroup_name: str,
-                                              details: Optional[CallDetails] = None) -> dict:
+    def get_routercluster_workergroup_by_name(
+        self, routercluster_name: str, workergroup_name: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Get definition of a router worker group in a cluster by name.
 
@@ -1370,18 +1465,21 @@ class RouterClusterManager(object):
             routercluster_name=hlval(routercluster_name),
             workergroup_name=hlval(workergroup_name),
             func=hltype(self.get_routercluster_workergroup),
-            details=details)
+            details=details,
+        )
 
         with self.db.begin() as txn:
             routercluster_oid = self.schema.idx_routerclusters_by_name[txn, routercluster_name]
             if not routercluster_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no routercluster named {}'.format(routercluster_name))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no routercluster named {}".format(routercluster_name)
+                )
 
             workergroup_oid = self.schema.idx_workergroup_by_cluster[txn, (routercluster_oid, workergroup_name)]
             if not workergroup_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no workergroup named {}'.format(workergroup_name))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no workergroup named {}".format(workergroup_name)
+                )
 
             workergroup = self.schema.router_workergroups[txn, workergroup_oid]
             assert workergroup
@@ -1389,10 +1487,9 @@ class RouterClusterManager(object):
         return workergroup.marshal()
 
     @wamp.register(None, check_types=True)
-    def stat_routercluster_workergroup(self,
-                                       routercluster_oid: str,
-                                       workergroup_oid: str,
-                                       details: Optional[CallDetails] = None) -> dict:
+    def stat_routercluster_workergroup(
+        self, routercluster_oid: str, workergroup_oid: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         *NOT YET IMPLEMENTED*
 
@@ -1404,10 +1501,11 @@ class RouterClusterManager(object):
         :return: Current status and statistics information for the router worker group.
         """
         self.log.info(
-            '{func}(routercluster_oid={routercluster_oid}, workergroup_oid={workergroup_oid}, details={details})',
+            "{func}(routercluster_oid={routercluster_oid}, workergroup_oid={workergroup_oid}, details={details})",
             func=hltype(self.stat_routercluster_workergroup),
             routercluster_oid=hlid(routercluster_oid),
             workergroup_oid=hlid(workergroup_oid),
-            details=details)
+            details=details,
+        )
 
         raise NotImplementedError()

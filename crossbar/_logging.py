@@ -5,23 +5,18 @@
 #
 #####################################################################################
 
-import os
-import sys
-import re
 import json
+import os
+import re
+import sys
 from io import StringIO
-
 from json import JSONEncoder
 
-from zope.interface import provider
-
-from twisted.logger import ILogObserver, formatEvent, globalLogPublisher
-from twisted.logger import LogLevel, formatTime
-
-from pygments import highlight, lexers, formatters
-
+from pygments import formatters, highlight, lexers
+from twisted.logger import ILogObserver, LogLevel, formatEvent, formatTime, globalLogPublisher
 from txaio import get_global_log_level, set_global_log_level
 from txaio.tx import log_levels
+from zope.interface import provider
 
 from crossbar import _log_categories
 
@@ -66,7 +61,7 @@ def strip_ansi(text):
     """
     Strip ANSI codes.
     """
-    return _ansi_cleaner.sub('', text)
+    return _ansi_cleaner.sub("", text)
 
 
 def escape_formatting(text):
@@ -76,13 +71,15 @@ def escape_formatting(text):
     return text.replace("{", "{{").replace("}", "}}")
 
 
-def make_stdout_observer(levels=(LogLevel.info, ),
-                         show_source=False,
-                         format="standard",
-                         trace=False,
-                         color=False,
-                         _file=None,
-                         _categories=None):
+def make_stdout_observer(
+    levels=(LogLevel.info,),
+    show_source=False,
+    format="standard",
+    trace=False,
+    color=False,
+    _file=None,
+    _categories=None,
+):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
@@ -94,7 +91,6 @@ def make_stdout_observer(levels=(LogLevel.info, ),
 
     @provider(ILogObserver)
     def StandardOutObserver(event):
-
         if event["log_level"] not in levels:
             return
 
@@ -108,10 +104,10 @@ def make_stdout_observer(levels=(LogLevel.info, ),
             logSystem = event["log_system"]
 
         if show_source and event.get("log_namespace") is not None:
-            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ""))
 
         if event.get("log_category"):
-            format_string = _categories.get(event['log_category'])
+            format_string = _categories.get(event["log_category"])
             if format_string:
                 event = event.copy()
                 event["log_format"] = format_string
@@ -136,30 +132,37 @@ def make_stdout_observer(levels=(LogLevel.info, ),
             else:
                 fore = Fore.WHITE
 
-            eventString = FORMAT_STRING.format(startcolor=fore,
-                                               time=formatTime(event["log_time"]),
-                                               system=logSystem,
-                                               endcolor=Fore.RESET,
-                                               text=formatEvent(event))
+            eventString = FORMAT_STRING.format(
+                startcolor=fore,
+                time=formatTime(event["log_time"]),
+                system=logSystem,
+                endcolor=Fore.RESET,
+                text=formatEvent(event),
+            )
         else:
             eventString = strip_ansi(
-                FORMAT_STRING.format(startcolor='',
-                                     time=formatTime(event["log_time"]),
-                                     system=logSystem,
-                                     endcolor='',
-                                     text=formatEvent(event)))
+                FORMAT_STRING.format(
+                    startcolor="",
+                    time=formatTime(event["log_time"]),
+                    system=logSystem,
+                    endcolor="",
+                    text=formatEvent(event),
+                )
+            )
 
         print(eventString, file=_file)
 
     return StandardOutObserver
 
 
-def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error, LogLevel.critical),
-                         show_source=False,
-                         format="standard",
-                         color=False,
-                         _file=None,
-                         _categories=None):
+def make_stderr_observer(
+    levels=(LogLevel.warn, LogLevel.error, LogLevel.critical),
+    show_source=False,
+    format="standard",
+    color=False,
+    _file=None,
+    _categories=None,
+):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
@@ -171,7 +174,6 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error, LogLevel.critica
 
     @provider(ILogObserver)
     def StandardErrorObserver(event):
-
         if event["log_level"] not in levels:
             return
 
@@ -181,10 +183,10 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error, LogLevel.critica
             logSystem = event["log_system"]
 
         if show_source and event.get("log_namespace") is not None:
-            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ""))
 
         if event.get("log_category"):
-            format_string = _categories.get(event['log_category'])
+            format_string = _categories.get(event["log_category"])
             if format_string:
                 event = event.copy()
                 event["log_format"] = format_string
@@ -211,18 +213,19 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error, LogLevel.critica
             # Errors are always red.
             fore = Fore.RED
 
-            eventString = FORMAT_STRING.format(startcolor=fore,
-                                               time=formatTime(event["log_time"]),
-                                               system=logSystem,
-                                               endcolor=Fore.RESET,
-                                               text=eventText)
+            eventString = FORMAT_STRING.format(
+                startcolor=fore,
+                time=formatTime(event["log_time"]),
+                system=logSystem,
+                endcolor=Fore.RESET,
+                text=eventText,
+            )
         else:
             eventString = strip_ansi(
-                FORMAT_STRING.format(startcolor='',
-                                     time=formatTime(event["log_time"]),
-                                     system=logSystem,
-                                     endcolor='',
-                                     text=eventText))
+                FORMAT_STRING.format(
+                    startcolor="", time=formatTime(event["log_time"]), system=logSystem, endcolor="", text=eventText
+                )
+            )
 
         print(eventString, file=_file)
 
@@ -233,6 +236,7 @@ def make_JSON_observer(outFile):
     """
     Make an observer which writes JSON to C{outfile}.
     """
+
     class CrossbarEncoder(JSONEncoder):
         def default(self, o):
             return escape_formatting(repr(o))
@@ -251,7 +255,7 @@ def make_JSON_observer(outFile):
         if log_levels.index(level) > log_levels.index(get_global_log_level()):
             return
 
-        done_json = {"level": level, "namespace": event.pop("log_namespace", '')}
+        done_json = {"level": level, "namespace": event.pop("log_namespace", "")}
 
         eventText = formatEvent(event)
 
@@ -278,7 +282,7 @@ def make_JSON_observer(outFile):
             text = encoder.encode({"text": done_json["text"], "level": "error", "namespace": "crossbar._logging"})
 
         if not isinstance(text, str):
-            text = text.decode('utf8')
+            text = text.decode("utf8")
 
         print(text, end=record_separator, file=outFile)
         outFile.flush()
@@ -296,14 +300,13 @@ def make_logfile_observer(path, show_source=False):
     f = DailyLogFile.fromFullPath(path)
 
     def _render(event):
-
         if event.get("log_system", "-") == "-":
             logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
         else:
             logSystem = event["log_system"]
 
         if show_source and event.get("log_namespace") is not None:
-            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ""))
 
         if event.get("log_format", None) is not None:
             eventText = formatEvent(event)
@@ -314,10 +317,14 @@ def make_logfile_observer(path, show_source=False):
             # This is a traceback. Print it.
             eventText = eventText + event["log_failure"].getTraceback()
 
-        eventString = strip_ansi(
-            STANDARD_FORMAT.format(
-                startcolor='', time=formatTime(
-                    event["log_time"]), system=logSystem, endcolor='', text=eventText)) + os.linesep
+        eventString = (
+            strip_ansi(
+                STANDARD_FORMAT.format(
+                    startcolor="", time=formatTime(event["log_time"]), system=logSystem, endcolor="", text=eventText
+                )
+            )
+            + os.linesep
+        )
 
         return eventString
 
@@ -329,7 +336,7 @@ def color_json(json_str):
     Given an already formatted JSON string, return a colored variant which will
     produce colored output on terminals.
     """
-    assert (isinstance(json_str, str))
+    assert isinstance(json_str, str)
     return highlight(json_str, lexers.JsonLexer(), formatters.TerminalFormatter())
 
 
@@ -338,16 +345,17 @@ class JSON(object):
     An object which encapsulates a JSON-dumpable item, and will colorise it
     when it is __str__'d.
     """
+
     def __init__(self, item):
         self._item = item
 
     def __str__(self):
-        json_str = json.dumps(self._item, separators=(', ', ': '), sort_keys=False, indent=3, ensure_ascii=False)
+        json_str = json.dumps(self._item, separators=(", ", ": "), sort_keys=False, indent=3, ensure_ascii=False)
         output_str = os.linesep + color_json(json_str)
 
         if bytes == str:
             # In case json.dumps returns a not-str on Py2, we will encode
-            output_str = output_str.encode('utf8')
+            output_str = output_str.encode("utf8")
 
         return output_str
 
@@ -357,16 +365,16 @@ class LogCapturer(object):
     A context manager that captures logs inside of it, and makes it available
     through the logs attribute, or the get_category method.
     """
+
     def __init__(self, level="debug"):
         self.logs = []
         self._old_log_level = get_global_log_level()
         self.desired_level = level
         self.log_text = StringIO()
 
-        self._out_observer = make_stdout_observer(levels=(LogLevel.debug, LogLevel.info, LogLevel.warn,
-                                                          LogLevel.error),
-                                                  _file=self.log_text,
-                                                  trace=True)
+        self._out_observer = make_stdout_observer(
+            levels=(LogLevel.debug, LogLevel.info, LogLevel.warn, LogLevel.error), _file=self.log_text, trace=True
+        )
 
     def get_category(self, identifier):
         """

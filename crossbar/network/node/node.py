@@ -16,5 +16,6 @@ class XbrNetworkNode(FabricNode):
     """
     Crossbar.io node personality.
     """
-    DEFAULT_CONFIG_PATH = 'network/node/config.json'
+
+    DEFAULT_CONFIG_PATH = "network/node/config.json"
     NODE_CONTROLLER = XbrNetworkNodeControllerSession

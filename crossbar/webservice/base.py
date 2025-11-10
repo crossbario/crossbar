@@ -5,65 +5,63 @@
 #
 #####################################################################################
 
-import os
 import importlib
+import os
 
 import txaio
-
+from autobahn.wamp.exception import ApplicationError
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
+from twisted.python.compat import urllib_parse, urlquote
 from twisted.web import server
 from twisted.web._responses import NOT_FOUND
-from twisted.web.resource import Resource
 from twisted.web.proxy import ReverseProxyResource
+from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET
-from twisted.python.compat import urllib_parse, urlquote
-
-from autobahn.wamp.exception import ApplicationError
 
 import crossbar
 
 
 def set_cross_origin_headers(request):
-    origin = request.getHeader(b'origin')
-    if origin is None or origin == b'null':
-        origin = b'*'
-    request.setHeader(b'access-control-allow-origin', origin)
-    request.setHeader(b'access-control-allow-credentials', b'true')
+    origin = request.getHeader(b"origin")
+    if origin is None or origin == b"null":
+        origin = b"*"
+    request.setHeader(b"access-control-allow-origin", origin)
+    request.setHeader(b"access-control-allow-credentials", b"true")
 
-    headers = request.getHeader(b'access-control-request-headers')
+    headers = request.getHeader(b"access-control-request-headers")
     if headers is not None:
-        request.setHeader(b'access-control-allow-headers', headers)
+        request.setHeader(b"access-control-allow-headers", headers)
 
 
 class Resource404(Resource):
     """
     Custom error page (404) Twisted Web resource.
     """
+
     def __init__(self, templates, directory):
         Resource.__init__(self)
-        self._page = templates.get_template('cb_web_404.html')
+        self._page = templates.get_template("cb_web_404.html")
         self._directory = directory
-        self._pid = '{}'.format(os.getpid())
+        self._pid = "{}".format(os.getpid())
 
     def render_HEAD(self, request):
         request.setResponseCode(NOT_FOUND)
-        return b''
+        return b""
 
     def render_GET(self, request):
         request.setResponseCode(NOT_FOUND)
 
         try:
             peer = request.transport.getPeer()
-            peer = '{}:{}'.format(peer.host, peer.port)
+            peer = "{}:{}".format(peer.host, peer.port)
         except:
-            peer = '?:?'
+            peer = "?:?"
 
-        s = self._page.render(cbVersion=crossbar.__version__,
-                              directory=self._directory.decode('utf8'),
-                              workerPid=self._pid,
-                              peer=peer)
+        s = self._page.render(
+            cbVersion=crossbar.__version__, directory=self._directory.decode("utf8"), workerPid=self._pid, peer=peer
+        )
 
-        return s.encode('utf8')
+        return s.encode("utf8")
 
 
 class RootResource(Resource):
@@ -72,6 +70,7 @@ class RootResource(Resource):
     resource for a Twisted Web site, but have sub-paths served by different
     resources.
     """
+
     def __init__(self, rootResource, children):
         """
 
@@ -106,7 +105,7 @@ class RouterWebService(object):
         self._path = path
 
         # configuration of the Web service (itself)
-        self._config = config or dict(type='page404')
+        self._config = config or dict(type="page404")
 
         # Twisted Web resource on self._path itself
         self._resource = resource or Resource404(self._transport._worker._templates)
@@ -123,7 +122,7 @@ class RouterWebService(object):
     def __delitem__(self, path):
         if path in self._paths:
             deleted = self._paths[path]
-            web_path = path.encode('utf8')
+            web_path = path.encode("utf8")
             if web_path in self._resource.children:
                 del self._resource.children[web_path]
             del self._paths[path]
@@ -134,7 +133,7 @@ class RouterWebService(object):
             del self._paths[path]
 
         self._paths[path] = webservice
-        web_path = path.encode('utf8')
+        web_path = path.encode("utf8")
         self._resource.putChild(web_path, webservice._resource)
 
     @property
@@ -151,7 +150,6 @@ class RouterWebService(object):
 
 
 class ExtReverseProxyResource(ReverseProxyResource):
-
     log = txaio.make_logger()
 
     def __init__(self, host, port, path, forwarded_port=None, forwarded_proto=None):
@@ -164,46 +162,48 @@ class ExtReverseProxyResource(ReverseProxyResource):
         """
         Render a request by forwarding it to the proxied server.
         """
-        self.log.info('{klass}.render(): forwarding incoming HTTP request ..', klass=self.__class__.__name__)
+        self.log.info("{klass}.render(): forwarding incoming HTTP request ..", klass=self.__class__.__name__)
 
         # host request by client in incoming HTTP request
-        requested_host = request.requestHeaders.getRawHeaders('Host')[0]
+        requested_host = request.requestHeaders.getRawHeaders("Host")[0]
 
         # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
-        request.requestHeaders.setRawHeaders(b'X-Forwarded-Host', [requested_host.encode('ascii')])
+        request.requestHeaders.setRawHeaders(b"X-Forwarded-Host", [requested_host.encode("ascii")])
         # request.requestHeaders.setRawHeaders(b'X-Forwarded-Server', [requested_host.encode('ascii')])
 
         # crossbar web transport listening IP/port
         server_port = request.getHost().port
-        server_port = '{}'.format(server_port).encode('ascii')
+        server_port = "{}".format(server_port).encode("ascii")
 
         # RFC 2616 tells us that we can omit the port if it's the default port,
         # but we have to provide it otherwise
         if self.port == 80:
             host = self.host
         else:
-            host = '%s:%d' % (self.host, self.port)
-        request.requestHeaders.setRawHeaders(b'Host', [host.encode('utf8')])
+            host = "%s:%d" % (self.host, self.port)
+        request.requestHeaders.setRawHeaders(b"Host", [host.encode("utf8")])
 
         # forward originating IP of incoming HTTP request
         client_ip = request.getClientAddress().host
         if client_ip:
-            client_ip = client_ip.encode('ascii')
-            request.requestHeaders.setRawHeaders(b'X-Forwarded-For', [client_ip])
-            request.requestHeaders.setRawHeaders(b'X-Real-IP', [client_ip])
+            client_ip = client_ip.encode("ascii")
+            request.requestHeaders.setRawHeaders(b"X-Forwarded-For", [client_ip])
+            request.requestHeaders.setRawHeaders(b"X-Real-IP", [client_ip])
 
         # forward information of outside listening port and protocol (http vs https)
         if self._forwarded_port:
-            request.requestHeaders.setRawHeaders(b'X-Forwarded-Port',
-                                                 ['{}'.format(self._forwarded_port).encode('ascii')])
+            request.requestHeaders.setRawHeaders(
+                b"X-Forwarded-Port", ["{}".format(self._forwarded_port).encode("ascii")]
+            )
         else:
-            request.requestHeaders.setRawHeaders(b'X-Forwarded-Port', [server_port])
+            request.requestHeaders.setRawHeaders(b"X-Forwarded-Port", [server_port])
 
         if self._forwarded_proto:
-            request.requestHeaders.setRawHeaders(b'X-Forwarded-Proto', [self._forwarded_proto])
+            request.requestHeaders.setRawHeaders(b"X-Forwarded-Proto", [self._forwarded_proto])
         else:
-            request.requestHeaders.setRawHeaders(b'X-Forwarded-Proto',
-                                                 [('https' if server_port == 443 else 'http').encode('ascii')])
+            request.requestHeaders.setRawHeaders(
+                b"X-Forwarded-Proto", [("https" if server_port == 443 else "http").encode("ascii")]
+            )
 
         # rewind cursor to begin of request data
         request.content.seek(0, 0)
@@ -211,57 +211,61 @@ class ExtReverseProxyResource(ReverseProxyResource):
         # reapply query strings to forwarding HTTP request
         qs = urllib_parse.urlparse(request.uri)[4]
         if qs:
-            rest = self.path + b'?' + qs
+            rest = self.path + b"?" + qs
         else:
             rest = self.path
 
-        self.log.info('forwarding HTTP request to "{rest}" with HTTP request headers {headers}',
-                      rest=rest,
-                      headers=request.getAllHeaders())
+        self.log.info(
+            'forwarding HTTP request to "{rest}" with HTTP request headers {headers}',
+            rest=rest,
+            headers=request.getAllHeaders(),
+        )
 
         # now issue the forwarded request to the HTTP server that is being reverse-proxied
-        clientFactory = self.proxyClientFactoryClass(request.method, rest, request.clientproto,
-                                                     request.getAllHeaders(), request.content.read(), request)
+        clientFactory = self.proxyClientFactoryClass(
+            request.method, rest, request.clientproto, request.getAllHeaders(), request.content.read(), request
+        )
         self.reactor.connectTCP(self.host, self.port, clientFactory)
 
         # the proxy client request created ^ is taking care of actually finishing the request ..
         return NOT_DONE_YET
 
     def getChild(self, path, request):
-        return ExtReverseProxyResource(self.host,
-                                       self.port,
-                                       self.path + b'/' + urlquote(path, safe=b"").encode('utf-8'),
-                                       forwarded_port=self._forwarded_port,
-                                       forwarded_proto=self._forwarded_proto)
+        return ExtReverseProxyResource(
+            self.host,
+            self.port,
+            self.path + b"/" + urlquote(path, safe=b"").encode("utf-8"),
+            forwarded_port=self._forwarded_port,
+            forwarded_proto=self._forwarded_proto,
+        )
 
 
 class RouterWebServiceReverseWeb(RouterWebService):
     """
     Reverse Web proxy service.
     """
+
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
-        personality.WEB_SERVICE_CHECKERS['reverseproxy'](personality, config)
+        personality.WEB_SERVICE_CHECKERS["reverseproxy"](personality, config)
 
         # target HTTP server to forward incoming HTTP requests to
-        host = config['host']
-        port = int(config.get('port', 80))
-        base_path = config.get('path', '').encode('utf-8')
+        host = config["host"]
+        port = int(config.get("port", 80))
+        base_path = config.get("path", "").encode("utf-8")
 
         # public listening port and protocol (http vs https) the crossbar
         # web transport is listening on. this might be used by the HTTP server
         # the request is proxied to to construct correct HTTP links (which need
         # to point to the _public_ listening web transport of crossbar)
-        forwarded_port = int(config.get('forwarded_port', 80))
-        forwarded_proto = config.get('forwarded_proto', 'http').encode('ascii')
+        forwarded_port = int(config.get("forwarded_port", 80))
+        forwarded_proto = config.get("forwarded_proto", "http").encode("ascii")
 
-        resource = ExtReverseProxyResource(host,
-                                           port,
-                                           base_path,
-                                           forwarded_port=forwarded_port,
-                                           forwarded_proto=forwarded_proto)
-        if path == '/':
+        resource = ExtReverseProxyResource(
+            host, port, base_path, forwarded_port=forwarded_port, forwarded_proto=forwarded_proto
+        )
+        if path == "/":
             resource = RootResource(resource, {})
 
         return RouterWebServiceReverseWeb(transport, base_path, config, resource)
@@ -288,12 +292,13 @@ class RouterWebServiceRedirect(RouterWebService):
     """
     Redirecting Web service.
     """
+
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
-        personality.WEB_SERVICE_CHECKERS['redirect'](personality, config)
+        personality.WEB_SERVICE_CHECKERS["redirect"](personality, config)
 
-        redirect_url = config['url'].encode('ascii', 'ignore')
+        redirect_url = config["url"].encode("ascii", "ignore")
         resource = RedirectResource(redirect_url)
 
         return RouterWebServiceRedirect(transport, path, config, resource)
@@ -303,18 +308,19 @@ class RouterWebServiceTwistedWeb(RouterWebService):
     """
     Generic Twisted Web base service.
     """
+
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
-        personality.WEB_SERVICE_CHECKERS['resource'](personality, config)
+        personality.WEB_SERVICE_CHECKERS["resource"](personality, config)
 
-        klassname = config['classname']
+        klassname = config["classname"]
         try:
-            c = klassname.split('.')
-            module_name, klass_name = '.'.join(c[:-1]), c[-1]
+            c = klassname.split(".")
+            module_name, klass_name = ".".join(c[:-1]), c[-1]
             module = importlib.import_module(module_name)
             make = getattr(module, klass_name)
-            resource = make(config.get('extra', {}))
+            resource = make(config.get("extra", {}))
         except Exception as e:
             emsg = "Failed to import class '{}' - {}".format(klassname, e)
             raise ApplicationError("crossbar.error.class_import_failed", emsg)
@@ -326,28 +332,29 @@ class RouterWebServiceNestedPath(RouterWebService):
     """
     Nested sub-URL path (pseudo-)service.
     """
+
     @staticmethod
     @inlineCallbacks
     def create(transport, path, config):
         personality = transport.worker.personality
-        personality.WEB_SERVICE_CHECKERS['path'](personality, config)
+        personality.WEB_SERVICE_CHECKERS["path"](personality, config)
 
-        nested_paths = config.get('paths', {})
+        nested_paths = config.get("paths", {})
 
-        if '/' in nested_paths:
-            root_config = nested_paths['/']
-            root_factory = personality.WEB_SERVICE_FACTORIES[root_config['type']]
-            root_service = yield maybeDeferred(root_factory.create, transport, '/', root_config)
+        if "/" in nested_paths:
+            root_config = nested_paths["/"]
+            root_factory = personality.WEB_SERVICE_FACTORIES[root_config["type"]]
+            root_service = yield maybeDeferred(root_factory.create, transport, "/", root_config)
             root_resource = root_service.resource
         else:
-            root_resource = Resource404(transport.templates, b'')
+            root_resource = Resource404(transport.templates, b"")
 
         for nested_path in sorted(nested_paths):
-            if nested_path != '/':
+            if nested_path != "/":
                 nested_config = nested_paths[nested_path]
-                nested_factory = personality.WEB_SERVICE_FACTORIES[nested_config['type']]
+                nested_factory = personality.WEB_SERVICE_FACTORIES[nested_config["type"]]
                 nested_service = yield maybeDeferred(nested_factory.create, transport, nested_path, nested_config)
                 nested_resource = nested_service.resource
-                root_resource.putChild(nested_path.encode('utf8'), nested_resource)
+                root_resource.putChild(nested_path.encode("utf8"), nested_resource)
 
         return RouterWebServiceNestedPath(transport, path, config, root_resource)

@@ -6,22 +6,23 @@
 #####################################################################################
 
 import json
-
+from io import StringIO
 from io import StringIO as NativeStringIO
 
-from io import StringIO
-
 from mock import Mock
-
 from twisted.logger import formatTime
 from twisted.python.failure import Failure
-
-from crossbar.test import TestCase
-from crossbar._logging import (LogCapturer, make_stdout_observer, make_JSON_observer, record_separator,
-                               make_stderr_observer)
-
-from txaio import make_logger, get_global_log_level, set_global_log_level
+from txaio import get_global_log_level, make_logger, set_global_log_level
 from txaio.tx import Logger, LogLevel
+
+from crossbar._logging import (
+    LogCapturer,
+    make_JSON_observer,
+    make_stderr_observer,
+    make_stdout_observer,
+    record_separator,
+)
+from crossbar.test import TestCase
 
 _log = make_logger("info", logger=Mock)
 
@@ -323,7 +324,6 @@ class JSONObserverTests(TestCase):
 
 class StdoutObserverTests(TestCase):
     def test_basic(self):
-
         stream = NativeStringIO()
         observer = make_stdout_observer(_file=stream)
         log = make_logger(observer=observer)
@@ -341,12 +341,12 @@ class StdoutObserverTests(TestCase):
         stream = NativeStringIO()
         observer = make_stdout_observer(_file=stream, format="standard")
         event = {
-            'log_level': LogLevel.info,
-            'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-            'log_source': None,
-            'log_format': 'Hi there!',
-            'log_system': 'foo',
-            'log_time': 1434099813.77449
+            "log_level": LogLevel.info,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_source": None,
+            "log_format": "Hi there!",
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
         }
 
         observer(event)
@@ -362,12 +362,12 @@ class StdoutObserverTests(TestCase):
         stream = NativeStringIO()
         observer = make_stdout_observer(_file=stream, format="syslogd")
         event = {
-            'log_level': LogLevel.info,
-            'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-            'log_source': None,
-            'log_format': 'Hi there!',
-            'log_system': 'foo',
-            'log_time': 1434099813.77449
+            "log_level": LogLevel.info,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_source": None,
+            "log_format": "Hi there!",
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
         }
 
         observer(event)
@@ -384,15 +384,15 @@ class StdoutObserverTests(TestCase):
         observer = make_stdout_observer(_file=stream, format="syslogd")
 
         event = {
-            'log_level': LogLevel.info,
-            'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-            'log_category': "DBG100",
-            'x': 'x~',
-            'y': 'z',
-            'z': 'a',
-            'log_source': None,
-            'log_system': 'foo',
-            'log_time': 1434099813.77449
+            "log_level": LogLevel.info,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_category": "DBG100",
+            "x": "x~",
+            "y": "z",
+            "z": "a",
+            "log_source": None,
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
         }
 
         observer(event)
@@ -403,7 +403,6 @@ class StdoutObserverTests(TestCase):
 
 class StderrObserverTests(TestCase):
     def test_basic(self):
-
         stream = NativeStringIO()
         observer = make_stderr_observer(_file=stream)
         log = make_logger(observer=observer)
@@ -421,12 +420,12 @@ class StderrObserverTests(TestCase):
         stream = NativeStringIO()
         observer = make_stderr_observer(_file=stream, format="standard")
         event = {
-            'log_level': LogLevel.error,
-            'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-            'log_source': None,
-            'log_format': 'Hi there!',
-            'log_system': 'foo',
-            'log_time': 1434099813.77449
+            "log_level": LogLevel.error,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_source": None,
+            "log_format": "Hi there!",
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
         }
 
         observer(event)
@@ -442,12 +441,12 @@ class StderrObserverTests(TestCase):
         stream = NativeStringIO()
         observer = make_stderr_observer(_file=stream, format="syslogd")
         event = {
-            'log_level': LogLevel.error,
-            'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-            'log_source': None,
-            'log_format': 'Hi there!',
-            'log_system': 'foo',
-            'log_time': 1434099813.77449
+            "log_level": LogLevel.error,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_source": None,
+            "log_format": "Hi there!",
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
         }
 
         observer(event)
@@ -464,15 +463,15 @@ class StderrObserverTests(TestCase):
         observer = make_stderr_observer(_file=stream, format="syslogd")
 
         event = {
-            'log_level': LogLevel.error,
-            'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-            'log_category': "DBG100",
-            'x': 'x~',
-            'y': 'z',
-            'z': 'a',
-            'log_source': None,
-            'log_system': 'foo',
-            'log_time': 1434099813.77449
+            "log_level": LogLevel.error,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_category": "DBG100",
+            "x": "x~",
+            "y": "z",
+            "z": "a",
+            "log_source": None,
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
         }
 
         observer(event)
@@ -493,13 +492,13 @@ class StderrObserverTests(TestCase):
             err = Failure()
 
         event = {
-            'log_level': LogLevel.error,
-            'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-            'log_format': None,
-            'log_source': None,
-            'log_failure': err,
-            'log_system': 'foo',
-            'log_time': 1434099813.77449
+            "log_level": LogLevel.error,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_format": None,
+            "log_source": None,
+            "log_failure": err,
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
         }
 
         observer(event)

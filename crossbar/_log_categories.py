@@ -8,11 +8,9 @@
 # The log categories
 log_categories = {
     "DBG100": "DEBUG {x} {y} {z}",
-
     # CBXXX - Generic Crossbar logs
     "CB500": "Unhandled exception in Crossbar.",
     "CB501": "Unhandled exception in Crossbar: {exc}",
-
     # ARXXX - Adapter, REST Bridge
     "AR100": "REST bridge request recieved. (path='{path}', method={method})",
     "AR200": "REST bridge publish succeeded. ({code}, {reason})",
@@ -40,7 +38,6 @@ log_categories = {
     "AR465": "Body length ({bodylen}) is different to Content-Length header ({conlen}).",
     "AR466": "Request denied based on IP address.",
     "AR467": "GitHub signature missing or invalid.",
-
     # MQXXX - Adapter, MQTT Bridge
     "MQ100": "Got packet from '{client_id}': {packet!r}",
     "MQ101": "Sent packet to '{client_id}': {packet!r}",

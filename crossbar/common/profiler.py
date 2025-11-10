@@ -8,26 +8,24 @@
 import os
 import tempfile
 
+from autobahn.util import newid, utcnow
 from twisted.internet.defer import Deferred
 from twisted.internet.threads import deferToThread
-
-from autobahn.util import utcnow, newid
-
 from txaio import make_logger
 
 try:
     import vmprof
+
     _HAS_VMPROF = True
 except ImportError:
     _HAS_VMPROF = False
 
 PROFILERS = {}
 
-__all__ = ('PROFILERS')
+__all__ = "PROFILERS"
 
 
 class Profiler(object):
-
     log = make_logger()
 
     STATE_RUNNING = 1
@@ -62,10 +60,10 @@ class Profiler(object):
 
     def marshal(self):
         return {
-            'id': self._id,
-            'config': self._config,
-            'state': 'running' if self._state == Profiler.STATE_RUNNING else 'stopped',
-            'started': self._started,
+            "id": self._id,
+            "config": self._config,
+            "state": "running" if self._state == Profiler.STATE_RUNNING else "stopped",
+            "started": self._started,
         }
 
 
@@ -88,8 +86,9 @@ if _HAS_VMPROF:
             if self._state != Profiler.STATE_STOPPED:
                 raise Exception("profile currently not stopped - cannot start")
 
-            self._profile_filename = os.path.join(self._profile_dir,
-                                                  "cb_vmprof_{}_{}.dat".format(os.getpid(), utcnow()))
+            self._profile_filename = os.path.join(
+                self._profile_dir, "cb_vmprof_{}_{}.dat".format(os.getpid(), utcnow())
+            )
             profile_fd = os.open(self._profile_filename, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
 
             vmprof.enable(profile_fd, period=0.01)
@@ -119,42 +118,46 @@ if _HAS_VMPROF:
                 def process_node(parent, node, level):
                     parent_name = parent.name if parent else None
 
-                    perc = round(100. * float(node.count) / total, 1)
+                    perc = round(100.0 * float(node.count) / total, 1)
                     if parent and parent.count:
-                        perc_of_parent = round(100. * float(node.count) / float(parent.count), 1)
+                        perc_of_parent = round(100.0 * float(node.count) / float(parent.count), 1)
                     else:
-                        perc_of_parent = 100.
+                        perc_of_parent = 100.0
 
-                    parts = node.name.count(':')
+                    parts = node.name.count(":")
 
                     if parts == 3:
-                        block_type, funname, funline, filename = node.name.split(':')
-                        res.append({
-                            'type': 'py',
-                            'level': level,
-                            'parent': parent_name,
-                            'fun': funname,
-                            'filename': filename,
-                            'dirname': os.path.dirname(filename),
-                            'basename': os.path.basename(filename),
-                            'line': funline,
-                            'perc': perc,
-                            'perc_of_parent': perc_of_parent,
-                            'count': node.count,
-                            'parent_count': parent.count if parent else None,
-                        })
+                        block_type, funname, funline, filename = node.name.split(":")
+                        res.append(
+                            {
+                                "type": "py",
+                                "level": level,
+                                "parent": parent_name,
+                                "fun": funname,
+                                "filename": filename,
+                                "dirname": os.path.dirname(filename),
+                                "basename": os.path.basename(filename),
+                                "line": funline,
+                                "perc": perc,
+                                "perc_of_parent": perc_of_parent,
+                                "count": node.count,
+                                "parent_count": parent.count if parent else None,
+                            }
+                        )
                     elif parts == 1:
-                        block_type, funname = node.name.split(':')
-                        res.append({
-                            'type': 'jit',
-                            'level': level,
-                            'parent': parent_name,
-                            'fun': funname,
-                            'perc': perc,
-                            'perc_of_parent': perc_of_parent,
-                            'count': node.count,
-                            'parent_count': parent.count if parent else None,
-                        })
+                        block_type, funname = node.name.split(":")
+                        res.append(
+                            {
+                                "type": "jit",
+                                "level": level,
+                                "parent": parent_name,
+                                "fun": funname,
+                                "perc": perc,
+                                "perc_of_parent": perc_of_parent,
+                                "count": node.count,
+                                "parent_count": parent.count if parent else None,
+                            }
+                        )
                     else:
                         raise Exception("fail!")
 
@@ -189,13 +192,14 @@ if _HAS_VMPROF:
 
                 d.addBoth(cleanup)
 
-            self.log.info("Starting profiling using {profiler} for {runtime} seconds.",
-                          profiler=self._id,
-                          runtime=runtime)
+            self.log.info(
+                "Starting profiling using {profiler} for {runtime} seconds.", profiler=self._id, runtime=runtime
+            )
 
             from twisted.internet import reactor
+
             reactor.callLater(runtime, finish_profile)
 
             return self._profile_id, self._finished
 
-    PROFILERS['vmprof'] = VMprof('vmprof', config={'period': 0.01})
+    PROFILERS["vmprof"] = VMprof("vmprof", config={"period": 0.01})

@@ -5,7 +5,7 @@
 #
 #####################################################################################
 
-from os import getcwd, chdir
+from os import chdir, getcwd
 
 from twisted.trial.unittest import TestCase as _TestCase
 
@@ -16,6 +16,7 @@ class TestCase(_TestCase):
     finishes as when it began. This is because the CLI changes directories,
     meaning we can end up making thousands deep file structures.
     """
+
     def setUp(self):
         cb_original_dir = getcwd()
         self.addCleanup(lambda: chdir(cb_original_dir))

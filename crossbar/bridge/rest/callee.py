@@ -7,10 +7,9 @@
 
 from urllib.parse import urljoin
 
+from autobahn.twisted.wamp import ApplicationSession
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.web.http_headers import Headers
-
-from autobahn.twisted.wamp import ApplicationSession
 
 
 class RESTCallee(ApplicationSession):
@@ -19,6 +18,7 @@ class RESTCallee(ApplicationSession):
 
         if not self._webtransport:
             import treq
+
             self._webtransport = treq
 
         super(RESTCallee, self).__init__(*args, **kwargs)
@@ -33,20 +33,17 @@ class RESTCallee(ApplicationSession):
 
         @inlineCallbacks
         def on_call(method=None, url=None, body="", headers={}, params={}):
-
             newURL = urljoin(baseURL, url)
 
-            params = {x.encode('utf8'): y.encode('utf8') for x, y in params.items()}
+            params = {x.encode("utf8"): y.encode("utf8") for x, y in params.items()}
 
-            res = yield self._webtransport.request(method,
-                                                   newURL,
-                                                   data=body.encode('utf8'),
-                                                   headers=Headers(headers),
-                                                   params=params)
+            res = yield self._webtransport.request(
+                method, newURL, data=body.encode("utf8"), headers=Headers(headers), params=params
+            )
             content = yield self._webtransport.text_content(res)
 
             headers = {
-                x.decode('utf8'): [z.decode('utf8') for z in y]
+                x.decode("utf8"): [z.decode("utf8") for z in y]
                 for x, y in dict(res.headers.getAllRawHeaders()).items()
             }
 

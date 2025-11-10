@@ -10,20 +10,21 @@ from collections.abc import Mapping, Sequence
 
 import six
 import txaio
-from twisted.internet.defer import inlineCallbacks, returnValue
-
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 from crossbar.common import checkconfig
 from crossbar.common.checkconfig import get_config_value
 
 try:
     from txpostgres import txpostgres
+
     _HAS_POSTGRESQL = True
 except ImportError:
     _HAS_POSTGRESQL = False
 
-__all__ = ('PostgresConnectionPool', )
+__all__ = ("PostgresConnectionPool",)
 
 if _HAS_POSTGRESQL:
 
@@ -48,11 +49,11 @@ if _HAS_POSTGRESQL:
             self.stopped = None
 
             params = {
-                'host': config.get('host', 'localhost'),
-                'port': config.get('port', 5432),
-                'database': config['database'],
-                'user': config['user'],
-                'password': get_config_value(config, 'password'),
+                "host": config.get("host", "localhost"),
+                "port": config.get("port", 5432),
+                "database": config["database"],
+                "user": config["user"],
+                "password": get_config_value(config, "password"),
             }
             self.pool = txpostgres.ConnectionPool(None, min=5, **params)
 
@@ -66,15 +67,14 @@ if _HAS_POSTGRESQL:
 
         def marshal(self):
             return {
-                u'id': self.id,
-                u'started': utcstr(self.started),
-                u'stopped': utcstr(self.stopped) if self.stopped else None,
-                u'config': self.config,
+                "id": self.id,
+                "started": utcstr(self.started),
+                "stopped": utcstr(self.stopped) if self.stopped else None,
+                "config": self.config,
             }
 
 
 class PostgresConnectionPool(object):
-
     log = txaio.make_logger()
 
     def __init__(self, personality, session):
@@ -87,42 +87,49 @@ class PostgresConnectionPool(object):
         """
         Check a connection item (such as a PostgreSQL or Oracle database connection pool).
         """
-        if 'id' in connection:
-            checkconfig.check_id(connection['id'])
+        if "id" in connection:
+            checkconfig.check_id(connection["id"])
 
-        if 'type' not in connection:
+        if "type" not in connection:
             raise checkconfig.InvalidConfigException("missing mandatory attribute 'type' in connection configuration")
 
-        valid_types = ['postgres']
-        if connection['type'] not in valid_types:
+        valid_types = ["postgres"]
+        if connection["type"] not in valid_types:
             raise checkconfig.InvalidConfigException(
-                "invalid type '{}' for connection type - must be one of {}".format(connection['type'], valid_types))
+                "invalid type '{}' for connection type - must be one of {}".format(connection["type"], valid_types)
+            )
 
-        if connection['type'] == 'postgres':
+        if connection["type"] == "postgres":
             checkconfig.check_dict_args(
                 {
-                    'id': (False, [six.text_type]),
-                    'type': (True, [six.text_type]),
-                    'host': (False, [six.text_type]),
-                    'port': (False, six.integer_types),
-                    'database': (True, [six.text_type]),
-                    'user': (True, [six.text_type]),
-                    'password': (False, [six.text_type]),
-                    'options': (False, [Mapping]),
-                }, connection, "PostgreSQL connection configuration")
+                    "id": (False, [six.text_type]),
+                    "type": (True, [six.text_type]),
+                    "host": (False, [six.text_type]),
+                    "port": (False, six.integer_types),
+                    "database": (True, [six.text_type]),
+                    "user": (True, [six.text_type]),
+                    "password": (False, [six.text_type]),
+                    "options": (False, [Mapping]),
+                },
+                connection,
+                "PostgreSQL connection configuration",
+            )
 
-            if 'port' in connection:
-                checkconfig.check_endpoint_port(connection['port'])
+            if "port" in connection:
+                checkconfig.check_endpoint_port(connection["port"])
 
-            if 'options' in connection:
+            if "options" in connection:
                 checkconfig.check_dict_args(
                     {
-                        'min_connections': (False, six.integer_types),
-                        'max_connections': (False, six.integer_types),
-                    }, connection['options'], "PostgreSQL connection options")
+                        "min_connections": (False, six.integer_types),
+                        "max_connections": (False, six.integer_types),
+                    },
+                    connection["options"],
+                    "PostgreSQL connection options",
+                )
 
         else:
-            raise checkconfig.InvalidConfigException('logic error')
+            raise checkconfig.InvalidConfigException("logic error")
 
     @staticmethod
     def check_connections(personality, connections):
@@ -130,8 +137,9 @@ class PostgresConnectionPool(object):
         Connections can be present in controller, router and container processes.
         """
         if not isinstance(connections, Sequence):
-            raise checkconfig.InvalidConfigException("'connections' items must be lists ({} encountered)".format(
-                type(connections)))
+            raise checkconfig.InvalidConfigException(
+                "'connections' items must be lists ({} encountered)".format(type(connections))
+            )
 
         for i, connection in enumerate(connections):
             personality.check_connection(personality, connection)
@@ -159,7 +167,7 @@ class PostgresConnectionPool(object):
         if id in self._connections:
             emsg = "cannot start connection: a connection with id={} is already started".format(id)
             self.log.warn(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # check configuration
         #
@@ -168,17 +176,17 @@ class PostgresConnectionPool(object):
         except Exception as e:
             emsg = "invalid connection configuration ({})".format(e)
             self.log.warn(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
-            self.log.info("Starting {ptype} in process.", ptype=config['type'])
+            self.log.info("Starting {ptype} in process.", ptype=config["type"])
 
-        if config['type'] == u'postgresql.connection':
+        if config["type"] == "postgresql.connection":
             if _HAS_POSTGRESQL:
                 connection = PostgreSQLConnection(id, config)
             else:
                 emsg = "unable to start connection - required PostgreSQL driver package not installed"
                 self.log.warn(emsg)
-                raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+                raise ApplicationError("crossbar.error.feature_unavailable", emsg)
         else:
             # should not arrive here
             raise Exception("logic error")
@@ -187,16 +195,18 @@ class PostgresConnectionPool(object):
 
         try:
             yield connection.start()
-            self.log.info("Connection {connection_type} started '{connection_id}'",
-                          connection_id=id,
-                          connection_type=config['type'])
+            self.log.info(
+                "Connection {connection_type} started '{connection_id}'",
+                connection_id=id,
+                connection_type=config["type"],
+            )
         except:
             del self._connections[id]
             raise
 
         state = connection.marshal()
 
-        self._session.publish(u'crossbar.node.process.on_connection_start', state)
+        self._session.publish("crossbar.node.process.on_connection_start", state)
 
         returnValue(state)
 
@@ -216,22 +226,23 @@ class PostgresConnectionPool(object):
         self.log.debug("stop_connection: id={id}", id=id)
 
         if id not in self._connections:
-            raise ApplicationError(u'crossbar.error.no_such_object',
-                                   'no connection with ID {} running in this process'.format(id))
+            raise ApplicationError(
+                "crossbar.error.no_such_object", "no connection with ID {} running in this process".format(id)
+            )
 
         connection = self._connections[id]
 
         try:
             yield connection.stop()
         except Exception as e:
-            self.log.warn('could not stop connection {id}: {error}', error=e)
+            self.log.warn("could not stop connection {id}: {error}", error=e)
             raise
 
         del self._connections[id]
 
         state = connection.marshal()
 
-        self._session.publish(u'crossbar.node.process.on_connection_stop', state)
+        self._session.publish("crossbar.node.process.on_connection_stop", state)
 
         returnValue(state)
 

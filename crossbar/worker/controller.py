@@ -5,33 +5,30 @@
 #
 #####################################################################################
 import os
-import sys
 import signal
-from typing import Optional, List
+import sys
 from importlib.resources import files
+from typing import List, Optional
 
 import jinja2
-from jinja2.sandbox import SandboxedEnvironment
-from jinja2 import Environment
-
-from twisted.internet.error import ReactorNotRunning
-from twisted.internet.defer import inlineCallbacks
-
-from autobahn.util import utcnow, hltype, hlid
-from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, Challenge
 from autobahn import wamp
-
+from autobahn.util import hlid, hltype, utcnow
+from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.types import Challenge, PublishOptions
+from jinja2 import Environment
+from jinja2.sandbox import SandboxedEnvironment
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.error import ReactorNotRunning
 from txaio import make_logger
 
-from crossbar.common.reloader import TrackingModuleReloader
+from crossbar._util import term_print
+from crossbar.common.key import _read_release_key
 from crossbar.common.process import NativeProcess
 from crossbar.common.profiler import PROFILERS
-from crossbar.common.key import _read_release_key
+from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.interfaces import ISession
-from crossbar._util import term_print
 
-__all__ = ('WorkerController', )
+__all__ = ("WorkerController",)
 
 
 class WorkerController(NativeProcess):
@@ -41,7 +38,7 @@ class WorkerController(NativeProcess):
     via WAMP-over-stdio.
     """
 
-    WORKER_TYPE = 'native'
+    WORKER_TYPE = "native"
 
     log = make_logger()
 
@@ -78,8 +75,9 @@ class WorkerController(NativeProcess):
             # The sandboxed environment. It works like the regular environment but tells the compiler to
             # generate sandboxed code.
             # https://jinja.palletsprojects.com/en/2.11.x/sandbox/#jinja2.sandbox.SandboxedEnvironment
-            self._templates = SandboxedEnvironment(loader=jinja2.FileSystemLoader(self._templates_dir),
-                                                   autoescape=True)
+            self._templates = SandboxedEnvironment(
+                loader=jinja2.FileSystemLoader(self._templates_dir), autoescape=True
+            )
         else:
             self._templates = Environment(loader=jinja2.FileSystemLoader(self._templates_dir), autoescape=True)
 
@@ -125,7 +123,7 @@ class WorkerController(NativeProcess):
         signal.signal(signal.SIGTERM, shutdown)
 
         pubkey = yield self.call("crossbar.get_public_key")
-        self.log.info('{func} worker loaded node key {public_key}', func=hltype(self.onJoin), public_key=hlid(pubkey))
+        self.log.info("{func} worker loaded node key {public_key}", func=hltype(self.onJoin), public_key=hlid(pubkey))
 
         # the worker is ready for work!
         if publish_ready:
@@ -149,15 +147,18 @@ class WorkerController(NativeProcess):
         # signal that this worker is ready for setup. the actual setup procedure
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
-        yield self.publish('{}.on_worker_ready'.format(self._uri_prefix), {
-            'type': self.WORKER_TYPE,
-            'id': self.config.extra.worker,
-            'pid': os.getpid(),
-        },
-                           options=PublishOptions(acknowledge=True))
+        yield self.publish(
+            "{}.on_worker_ready".format(self._uri_prefix),
+            {
+                "type": self.WORKER_TYPE,
+                "id": self.config.extra.worker,
+                "pid": os.getpid(),
+            },
+            options=PublishOptions(acknowledge=True),
+        )
 
         self.log.debug("Worker '{worker}' running as PID {pid}", worker=self.config.extra.worker, pid=os.getpid())
-        term_print('CROSSBAR[{}]:WORKER_STARTED'.format(self.config.extra.worker))
+        term_print("CROSSBAR[{}]:WORKER_STARTED".format(self.config.extra.worker))
 
     @wamp.register(None)
     @inlineCallbacks
@@ -177,11 +178,11 @@ class WorkerController(NativeProcess):
 
         # publish management API event
         #
-        yield self.publish('{}.on_shutdown_requested'.format(self._uri_prefix), {
-            'who': details.caller if details else None,
-            'when': utcnow()
-        },
-                           options=PublishOptions(exclude=details.caller if details else None, acknowledge=True))
+        yield self.publish(
+            "{}.on_shutdown_requested".format(self._uri_prefix),
+            {"who": details.caller if details else None, "when": utcnow()},
+            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True),
+        )
 
         # we now call self.leave() to initiate the clean, orderly shutdown of the native worker.
         # the call is scheduled to run on the next reactor iteration only, because we want to first
@@ -213,7 +214,7 @@ class WorkerController(NativeProcess):
         return [p.marshal() for p in PROFILERS.items()]
 
     @wamp.register(None)
-    def start_profiler(self, profiler='vmprof', runtime=10, start_async=True, details=None):
+    def start_profiler(self, profiler="vmprof", runtime=10, start_async=True, details=None):
         """
         Registered under: ``crossbar.worker.<worker_id>.start_profiler``
 
@@ -247,8 +248,8 @@ class WorkerController(NativeProcess):
         # that will fire with the actual profile recorded
         profile_id, profile_finished = profiler.start(runtime=runtime)
 
-        on_profile_started = '{}.on_profile_started'.format(self._uri_prefix)
-        on_profile_finished = '{}.on_profile_finished'.format(self._uri_prefix)
+        on_profile_started = "{}.on_profile_started".format(self._uri_prefix)
+        on_profile_finished = "{}.on_profile_finished".format(self._uri_prefix)
 
         if start_async:
             publish_options = None
@@ -256,41 +257,39 @@ class WorkerController(NativeProcess):
             publish_options = PublishOptions(exclude=details.caller)
 
         profile_started = {
-            'id': profile_id,
-            'who': details.caller,
-            'profiler': profiler,
-            'runtime': runtime,
-            'async': start_async,
+            "id": profile_id,
+            "who": details.caller,
+            "profiler": profiler,
+            "runtime": runtime,
+            "async": start_async,
         }
 
         self.publish(on_profile_started, profile_started, options=publish_options)
 
         def on_profile_success(profile_result):
             self._profiles[profile_id] = {
-                'id': profile_id,
-                'profiler': profiler,
-                'runtime': runtime,
-                'profile': profile_result
+                "id": profile_id,
+                "profiler": profiler,
+                "runtime": runtime,
+                "profile": profile_result,
             }
 
-            self.publish(on_profile_finished, {
-                'id': profile_id,
-                'error': None,
-                'profile': profile_result
-            },
-                         options=publish_options)
+            self.publish(
+                on_profile_finished,
+                {"id": profile_id, "error": None, "profile": profile_result},
+                options=publish_options,
+            )
 
             return profile_result
 
         def on_profile_failed(error):
-            self.log.warn('profiling failed: {error}', error=error)
+            self.log.warn("profiling failed: {error}", error=error)
 
-            self.publish(on_profile_finished, {
-                'id': profile_id,
-                'error': '{0}'.format(error),
-                'profile': None
-            },
-                         options=publish_options)
+            self.publish(
+                on_profile_finished,
+                {"id": profile_id, "error": "{0}".format(error), "profile": None},
+                options=publish_options,
+            )
 
             return error
 
@@ -319,7 +318,7 @@ class WorkerController(NativeProcess):
         if profile_id in self._profiles:
             return self._profiles[profile_id]
         else:
-            raise ApplicationError('crossbar.error.no_such_object', 'no profile with ID {} saved'.format(profile_id))
+            raise ApplicationError("crossbar.error.no_such_object", "no profile with ID {} saved".format(profile_id))
 
     @wamp.register(None)
     def get_pythonpath(self, details=None):
@@ -358,16 +357,17 @@ class WorkerController(NativeProcess):
             #
             path_to_add = os.path.abspath(os.path.join(self.config.extra.cbdir, p))
             if os.path.isdir(path_to_add):
-                paths_added.append({'requested': p, 'resolved': path_to_add})
+                paths_added.append({"requested": p, "resolved": path_to_add})
             else:
                 emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(
-                    p, path_to_add)
+                    p, path_to_add
+                )
                 self.log.error(emsg)
-                raise ApplicationError('crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
+                raise ApplicationError("crossbar.error.invalid_argument", emsg, requested=p, resolved=path_to_add)
 
         # now extend python module search path
         #
-        paths_added_resolved = [p['resolved'] for p in paths_added]
+        paths_added_resolved = [p["resolved"] for p in paths_added]
         if prepend:
             sys.path = paths_added_resolved + sys.path
         else:
@@ -383,8 +383,8 @@ class WorkerController(NativeProcess):
 
         # publish event "on_pythonpath_add" to all but the caller
         #
-        topic = '{}.on_pythonpath_add'.format(self._uri_prefix)
-        res = {'paths': sys.path, 'paths_added': paths_added, 'prepend': prepend, 'who': details.caller}
+        topic = "{}.on_pythonpath_add".format(self._uri_prefix)
+        res = {"paths": sys.path, "paths_added": paths_added, "prepend": prepend, "who": details.caller}
         self.publish(topic, res, options=PublishOptions(exclude=details.caller))
 
         return res
@@ -399,10 +399,11 @@ class WorkerController(NativeProcess):
         :param channel_id_type:
         :return:
         """
-        self.log.info('{func}() ...', func=hltype(self.sign_challenge))
-        result = yield self.call("crossbar.sign_challenge", challenge.method, challenge.extra, channel_id,
-                                 channel_id_type)
-        self.log.info('{func}(): {result}', func=hltype(self.sign_challenge), result=result)
+        self.log.info("{func}() ...", func=hltype(self.sign_challenge))
+        result = yield self.call(
+            "crossbar.sign_challenge", challenge.method, challenge.extra, channel_id, channel_id_type
+        )
+        self.log.info("{func}(): {result}", func=hltype(self.sign_challenge), result=result)
         return result
 
     @inlineCallbacks
@@ -412,7 +413,7 @@ class WorkerController(NativeProcess):
 
         :return:
         """
-        self.log.info('{func}() ...', func=hltype(self.get_public_key))
+        self.log.info("{func}() ...", func=hltype(self.get_public_key))
         result = yield self.call("crossbar.get_public_key")
-        self.log.info('{func}(): {result}', func=hltype(self.get_public_key), result=result)
+        self.log.info("{func}(): {result}", func=hltype(self.get_public_key), result=result)
         return result

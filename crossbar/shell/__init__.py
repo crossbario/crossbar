@@ -11,10 +11,11 @@ import txaio
 txaio.use_twisted()  # noqa
 
 import xbr
-from crossbar._version import __version__, __build__
+
+from crossbar._version import __build__, __version__
 
 __all__ = (
-    '__version__',
-    '__build__',
-    'xbr',
+    "__version__",
+    "__build__",
+    "xbr",
 )

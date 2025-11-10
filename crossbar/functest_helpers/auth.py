@@ -12,7 +12,7 @@ def setup_auth(session, details):
                 "pubkey": "e734ea6c2b6257de72355e472aa05a4c487e6b463c029ed306df2f01b5636b58",
             }
 
-        reg = session.register(authenticate, u"test.authenticate")
+        reg = session.register(authenticate, "test.authenticate")
         print("registered: {}\n\n\n".format(reg))
         return reg
 

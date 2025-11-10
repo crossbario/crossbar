@@ -9,7 +9,7 @@ from typing import Dict, List  # noqa
 
 from crossbar.master.api.remote import RemoteApi
 
-__all__ = ('RemoteNativeProcessApi', )
+__all__ = ("RemoteNativeProcessApi",)
 
 
 class RemoteNativeProcessApi(RemoteApi):
@@ -22,26 +22,26 @@ class RemoteNativeProcessApi(RemoteApi):
     * proxy worker
     """
 
-    PREFIX = u'crossbarfabriccenter.remote.nativeprocess.'
+    PREFIX = "crossbarfabriccenter.remote.nativeprocess."
 
     PROCS = {
         # these are node level procedures
-        u'node': [
-            u'get_cpu_count',
-            u'get_cpu_affinity',
-            u'set_cpu_affinity',
-            u'get_process_info',
-            u'get_process_stats',
-            u'set_process_stats_monitoring',
-            u'get_process_monitor',
-            u'trigger_gc',
-            u'start_manhole',
-            u'stop_manhole',
-            u'get_manhole',
+        "node": [
+            "get_cpu_count",
+            "get_cpu_affinity",
+            "set_cpu_affinity",
+            "get_process_info",
+            "get_process_stats",
+            "set_process_stats_monitoring",
+            "get_process_monitor",
+            "trigger_gc",
+            "start_manhole",
+            "stop_manhole",
+            "get_manhole",
         ],
     }
 
     EVENTS = {
         # these are node level topics
-        u'node': []
+        "node": []
     }  # type: Dict[str, List]

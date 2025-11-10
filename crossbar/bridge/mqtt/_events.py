@@ -6,12 +6,12 @@
 #####################################################################################
 
 import warnings
-import attr
 
+import attr
 from attr.validators import instance_of, optional
 from bitstring import pack
 
-from ._utils import (read_prefixed_data, read_string, build_string, build_header, ParseFailure, SerialisationFailure)
+from ._utils import ParseFailure, SerialisationFailure, build_header, build_string, read_prefixed_data, read_string
 
 unicode = type("")
 
@@ -89,7 +89,7 @@ class UnsubACK(object):
         b = []
 
         # Session identifier
-        b.append(pack('uint:16', self.packet_identifier).bytes)
+        b.append(pack("uint:16", self.packet_identifier).bytes)
 
         return b"".join(b)
 
@@ -98,7 +98,7 @@ class UnsubACK(object):
         if flags != (False, False, False, False):
             raise ParseFailure(cls, "Bad flags")
 
-        packet_identifier = data.read('uint:16')
+        packet_identifier = data.read("uint:16")
         return cls(packet_identifier=packet_identifier)
 
 
@@ -123,7 +123,7 @@ class Unsubscribe(object):
         b = []
 
         # Session identifier
-        b.append(pack('uint:16', self.packet_identifier).bytes)
+        b.append(pack("uint:16", self.packet_identifier).bytes)
 
         for topic in self.topics:
             if not isinstance(topic, unicode):
@@ -139,7 +139,7 @@ class Unsubscribe(object):
             raise ParseFailure(cls, "Bad flags")
 
         topics = []
-        packet_identifier = data.read('uint:16')
+        packet_identifier = data.read("uint:16")
 
         while not data.bitpos == len(data):
             topics.append(read_string(data))
@@ -167,7 +167,7 @@ class PubCOMP(object):
         Build the payload from its constituent parts.
         """
         b = []
-        b.append(pack('uint:16', self.packet_identifier).bytes)
+        b.append(pack("uint:16", self.packet_identifier).bytes)
         return b"".join(b)
 
     @classmethod
@@ -178,7 +178,7 @@ class PubCOMP(object):
         if flags != (False, False, False, False):
             raise ParseFailure(cls, "Bad flags")
 
-        packet_identifier = data.read('uint:16')
+        packet_identifier = data.read("uint:16")
 
         return cls(packet_identifier)
 
@@ -200,7 +200,7 @@ class PubREL(object):
         Build the payload from its constituent parts.
         """
         b = []
-        b.append(pack('uint:16', self.packet_identifier).bytes)
+        b.append(pack("uint:16", self.packet_identifier).bytes)
         return b"".join(b)
 
     @classmethod
@@ -211,7 +211,7 @@ class PubREL(object):
         if flags != (False, False, True, False):
             raise ParseFailure(cls, "Bad flags")
 
-        packet_identifier = data.read('uint:16')
+        packet_identifier = data.read("uint:16")
 
         return cls(packet_identifier)
 
@@ -233,7 +233,7 @@ class PubREC(object):
         Build the payload from its constituent parts.
         """
         b = []
-        b.append(pack('uint:16', self.packet_identifier).bytes)
+        b.append(pack("uint:16", self.packet_identifier).bytes)
         return b"".join(b)
 
     @classmethod
@@ -244,7 +244,7 @@ class PubREC(object):
         if flags != (False, False, False, False):
             raise ParseFailure(cls, "Bad flags")
 
-        packet_identifier = data.read('uint:16')
+        packet_identifier = data.read("uint:16")
 
         return cls(packet_identifier)
 
@@ -266,7 +266,7 @@ class PubACK(object):
         Build the payload from its constituent parts.
         """
         b = []
-        b.append(pack('uint:16', self.packet_identifier).bytes)
+        b.append(pack("uint:16", self.packet_identifier).bytes)
         return b"".join(b)
 
     @classmethod
@@ -277,7 +277,7 @@ class PubACK(object):
         if flags != (False, False, False, False):
             raise ParseFailure(cls, "Bad flags")
 
-        packet_identifier = data.read('uint:16')
+        packet_identifier = data.read("uint:16")
 
         return cls(packet_identifier)
 
@@ -323,7 +323,7 @@ class Publish(object):
         if self.packet_identifier:
             if self.qos_level > 0:
                 # Session identifier
-                b.append(pack('uint:16', self.packet_identifier).bytes)
+                b.append(pack("uint:16", self.packet_identifier).bytes)
             else:
                 raise SerialisationFailure(self, "Packet Identifier on non-QoS 1/2 packet")
         else:
@@ -337,7 +337,6 @@ class Publish(object):
 
     @classmethod
     def deserialise(cls, flags, data):
-
         total_length = len(data)
 
         duplicate = flags[0]
@@ -356,18 +355,20 @@ class Publish(object):
         topic_name = read_string(data)
 
         if qos_level in [1, 2]:
-            packet_identifier = data.read('uint:16')
+            packet_identifier = data.read("uint:16")
         else:
             packet_identifier = None
 
         payload = data.read(total_length - data.bitpos).bytes
 
-        return cls(duplicate=duplicate,
-                   qos_level=qos_level,
-                   retain=retain,
-                   topic_name=topic_name,
-                   packet_identifier=packet_identifier,
-                   payload=payload)
+        return cls(
+            duplicate=duplicate,
+            qos_level=qos_level,
+            retain=retain,
+            topic_name=topic_name,
+            packet_identifier=packet_identifier,
+            payload=payload,
+        )
 
 
 @attr.s
@@ -391,10 +392,10 @@ class SubACK(object):
         b = []
 
         # Session identifier
-        b.append(pack('uint:16', self.packet_identifier).bytes)
+        b.append(pack("uint:16", self.packet_identifier).bytes)
 
         for code in self.return_codes:
-            b.append(pack('uint:8', code).bytes)
+            b.append(pack("uint:8", code).bytes)
 
         return b"".join(b)
 
@@ -404,10 +405,10 @@ class SubACK(object):
             raise ParseFailure(cls, "Bad flags")
 
         return_codes = []
-        packet_identifier = data.read('uint:16')
+        packet_identifier = data.read("uint:16")
 
         while not data.bitpos == len(data):
-            return_code = data.read('uint:8')
+            return_code = data.read("uint:8")
             return_codes.append(return_code)
 
         return cls(packet_identifier=packet_identifier, return_codes=return_codes)
@@ -428,7 +429,7 @@ class SubscriptionTopicRequest(object):
         b.append(build_string(self.topic_filter))
 
         # Reserved section + max QoS
-        b.append(pack('uint:6, uint:2', 0, self.max_qos).bytes)
+        b.append(pack("uint:6, uint:2", 0, self.max_qos).bytes)
 
         return b"".join(b)
 
@@ -454,7 +455,7 @@ class Subscribe(object):
         b = []
 
         # Session identifier
-        b.append(pack('uint:16', self.packet_identifier).bytes)
+        b.append(pack("uint:16", self.packet_identifier).bytes)
 
         for request in self.topic_requests:
             b.append(request.serialise())
@@ -467,10 +468,9 @@ class Subscribe(object):
             raise ParseFailure(cls, "Bad flags")
 
         pairs = []
-        packet_identifier = data.read('uint:16')
+        packet_identifier = data.read("uint:16")
 
         def parse_pair():
-
             topic_filter = read_string(data)
             reserved = data.read("uint:6")
             max_qos = data.read("uint:2")
@@ -512,10 +512,10 @@ class ConnACK(object):
         b = []
 
         # Flags -- 7 bit reserved + Session Present flag
-        b.append(pack('uint:7, bool', 0, self.session_present).bytes)
+        b.append(pack("uint:7, bool", 0, self.session_present).bytes)
 
         # Return code
-        b.append(pack('uint:8', self.return_code).bytes)
+        b.append(pack("uint:8", self.return_code).bytes)
 
         return b"".join(b)
 
@@ -539,8 +539,10 @@ class ConnACK(object):
         if not data.bitpos == len(data):
             # There's some wacky stuff going on here -- data they included, but
             # didn't put flags for, maybe?
-            warnings.warn(("Quirky server CONNACK -- packet length was "
-                           "%d bytes but only had %d bytes of useful data") % (data.bitpos, len(data)))
+            warnings.warn(
+                ("Quirky server CONNACK -- packet length was %d bytes but only had %d bytes of useful data")
+                % (data.bitpos, len(data))
+            )
 
         return built
 
@@ -559,18 +561,28 @@ class ConnectFlags(object):
         """
         Assemble this into an on-wire message portion.
         """
-        return pack('bool, bool, bool, uint:2, bool, bool, bool', self.username, self.password, self.will_retain,
-                    self.will_qos, self.will, self.clean_session, self.reserved).bytes
+        return pack(
+            "bool, bool, bool, uint:2, bool, bool, bool",
+            self.username,
+            self.password,
+            self.will_retain,
+            self.will_qos,
+            self.will,
+            self.clean_session,
+            self.reserved,
+        ).bytes
 
     @classmethod
     def deserialise(cls, data):
-        built = cls(username=data.read(1).bool,
-                    password=data.read(1).bool,
-                    will_retain=data.read(1).bool,
-                    will_qos=data.read(2).uint,
-                    will=data.read(1).bool,
-                    clean_session=data.read(1).bool,
-                    reserved=data.read(1).bool)
+        built = cls(
+            username=data.read(1).bool,
+            password=data.read(1).bool,
+            will_retain=data.read(1).bool,
+            will_qos=data.read(2).uint,
+            will=data.read(1).bool,
+            clean_session=data.read(1).bool,
+            reserved=data.read(1).bool,
+        )
 
         # XXX: Do some more conformance checking here
         # Need to worry about invalid flag combinations
@@ -584,7 +596,6 @@ class ConnectFlags(object):
 
 @attr.s
 class Connect(object):
-
     client_id = attr.ib(validator=instance_of(unicode))
     flags = attr.ib(validator=instance_of(ConnectFlags))
     keep_alive = attr.ib(validator=instance_of(int), default=0)
@@ -612,13 +623,13 @@ class Connect(object):
         b.append(build_string("MQTT"))
 
         # Protocol Level (4 == 3.1.1)
-        b.append(pack('uint:8', 4).bytes)
+        b.append(pack("uint:8", 4).bytes)
 
         # CONNECT flags
         b.append(self.flags.serialise())
 
         # Keep Alive time
-        b.append(pack('uint:16', self.keep_alive).bytes)
+        b.append(pack("uint:16", self.keep_alive).bytes)
 
         # Client ID
         b.append(build_string(self.client_id))
@@ -627,7 +638,7 @@ class Connect(object):
             b.append(build_string(self.will_topic))
 
             # Will message is a uint16 prefixed bytestring
-            b.append(pack('uint:16', len(self.will_message)).bytes)
+            b.append(pack("uint:16", len(self.will_message)).bytes)
             b.append(self.will_message)
 
         if self.flags.username:
@@ -653,7 +664,7 @@ class Connect(object):
             print(protocol)
             raise ParseFailure(cls, "Bad protocol name")
 
-        protocol_level = data.read('uint:8')
+        protocol_level = data.read("uint:8")
 
         if protocol_level != 4:
             raise ParseFailure(cls, "Bad protocol level")
@@ -661,7 +672,7 @@ class Connect(object):
         flags = ConnectFlags.deserialise(data.read(8))
 
         # Keep alive, in seconds
-        keep_alive = data.read('uint:16')
+        keep_alive = data.read("uint:16")
 
         # The client ID
         client_id = read_string(data)
@@ -689,14 +700,18 @@ class Connect(object):
         if not data.bitpos == len(data):
             # There's some wacky stuff going on here -- data they included, but
             # didn't put flags for, maybe?
-            warnings.warn(("Quirky client CONNECT -- packet length was "
-                           "%d bytes but only had %d bytes of useful data") % (data.bitpos, len(data)))
+            warnings.warn(
+                ("Quirky client CONNECT -- packet length was %d bytes but only had %d bytes of useful data")
+                % (data.bitpos, len(data))
+            )
 
         # The event
-        return cls(flags=flags,
-                   keep_alive=keep_alive,
-                   client_id=client_id,
-                   will_topic=will_topic,
-                   will_message=will_message,
-                   username=username,
-                   password=password)
+        return cls(
+            flags=flags,
+            keep_alive=keep_alive,
+            client_id=client_id,
+            will_topic=will_topic,
+            will_message=will_message,
+            username=username,
+            password=password,
+        )

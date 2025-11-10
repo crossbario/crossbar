@@ -229,6 +229,9 @@ exclude = ["tests*", "docs*", "docs-cfx*", "docs-old*", "legal*"]
 [tool.ruff]
 line-length = 119
 target-version = "py311"
+extend-exclude = [
+    "crossbar/worker/test/examples/syntaxerror.py",  # Intentionally malformed test file
+]
 
 [tool.ruff.lint]
 select = [

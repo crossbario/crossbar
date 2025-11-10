@@ -5,30 +5,28 @@
 #
 #####################################################################################
 
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from twisted.internet.defer import inlineCallbacks
-from twisted.python.failure import Failure
-
-from autobahn import wamp, util
+from autobahn import util, wamp
+from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
-from autobahn.twisted.wamp import ApplicationSession
-from autobahn.wamp.types import RegisterOptions, CallDetails, ComponentConfig
 from autobahn.wamp.interfaces import ISession
 from autobahn.wamp.request import Registration
+from autobahn.wamp.types import CallDetails, ComponentConfig, RegisterOptions
+from twisted.internet.defer import inlineCallbacks
+from twisted.python.failure import Failure
+from txaio import make_logger
 
 from crossbar._util import hlid, hltype
 from crossbar.router.observation import is_protected_uri
 from crossbar.router.router import Router
 
-from txaio import make_logger
-
-__all__ = ('RouterServiceAgent', )
+__all__ = ("RouterServiceAgent",)
 
 
 def is_restricted_session(session: ISession):
-    return session.authrole is None or session.authrole == 'trusted'
+    return session.authrole is None or session.authrole == "trusted"
 
 
 class RouterServiceAgent(ApplicationSession):
@@ -56,7 +54,7 @@ class RouterServiceAgent(ApplicationSession):
         if schemas:
             self._schemas.update(schemas)
             self.log.info(
-                'initialized schemas cache with {entries} entries',
+                "initialized schemas cache with {entries} entries",
                 entries=len(self._schemas),
             )
 
@@ -65,27 +63,28 @@ class RouterServiceAgent(ApplicationSession):
         # router-realm the user started
         self._expose_on_sessions: List[Tuple[ISession, Optional[str], Optional[str]]] = []
 
-        enable_meta_api = self.config.extra.get('enable_meta_api', True) if self.config.extra else True
+        enable_meta_api = self.config.extra.get("enable_meta_api", True) if self.config.extra else True
         if enable_meta_api:
             self._expose_on_sessions.append((self, None, None))
 
         # optionally, when this option is set, the service session exposes its API
         # additionally on the management session to the local node router (and from there, to CFC)
-        bridge_meta_api = self.config.extra.get('bridge_meta_api', False) if self.config.extra else False
+        bridge_meta_api = self.config.extra.get("bridge_meta_api", False) if self.config.extra else False
         if bridge_meta_api:
-
-            management_session: Optional[RouterServiceAgent] = self.config.extra.get(
-                'management_session', None) if self.config.extra else None
+            management_session: Optional[RouterServiceAgent] = (
+                self.config.extra.get("management_session", None) if self.config.extra else None
+            )
             if management_session is None:
-                raise Exception('logic error: missing management_session in extra')
+                raise Exception("logic error: missing management_session in extra")
             assert management_session
 
-            bridge_meta_api_prefix = self.config.extra.get('bridge_meta_api_prefix',
-                                                           None) if self.config.extra else None
+            bridge_meta_api_prefix = (
+                self.config.extra.get("bridge_meta_api_prefix", None) if self.config.extra else None
+            )
             if bridge_meta_api_prefix is None:
-                raise Exception('logic error: missing bridge_meta_api_prefix in extra')
+                raise Exception("logic error: missing bridge_meta_api_prefix in extra")
 
-            self._expose_on_sessions.append((management_session, bridge_meta_api_prefix, '-'))
+            self._expose_on_sessions.append((management_session, bridge_meta_api_prefix, "-"))
 
     def publish(self, topic, *args, **kwargs):
         # WAMP meta events published over the service session are published on the
@@ -93,7 +92,6 @@ class RouterServiceAgent(ApplicationSession):
         # more sessions - namely the management session on the local node router
         dl = []
         for session, prefix, replace_dots in self._expose_on_sessions:
-
             translated_topic = topic
 
             # we cannot subscribe in CFC to topics of the form
@@ -103,15 +101,17 @@ class RouterServiceAgent(ApplicationSession):
             # to work around that, we replace the "."s in the suffix with "-", and reverse that
             # in CFC
             if replace_dots:
-                translated_topic = translated_topic.replace('.', replace_dots)
+                translated_topic = translated_topic.replace(".", replace_dots)
 
             if prefix:
-                translated_topic = '{}{}'.format(prefix, translated_topic)
+                translated_topic = "{}{}".format(prefix, translated_topic)
 
-            self.log.debug('RouterServiceAgent.publish("{topic}") -> "{translated_topic}" on "{realm}"',
-                           topic=topic,
-                           translated_topic=translated_topic,
-                           realm=session._realm)
+            self.log.debug(
+                'RouterServiceAgent.publish("{topic}") -> "{translated_topic}" on "{realm}"',
+                topic=topic,
+                translated_topic=translated_topic,
+                realm=session._realm,
+            )
 
             dl.append(ApplicationSession.publish(session, translated_topic, *args, **kwargs))
 
@@ -124,15 +124,17 @@ class RouterServiceAgent(ApplicationSession):
     def onJoin(self, details):
         # register our API on all configured sessions and then fire onready
         #
-        on_ready = self.config.extra.get('onready', None) if self.config.extra else None
+        on_ready = self.config.extra.get("onready", None) if self.config.extra else None
         try:
             for session, prefix, _ in self._expose_on_sessions:
-                regs = yield session.register(self, options=RegisterOptions(details_arg='details'), prefix=prefix)
+                regs = yield session.register(self, options=RegisterOptions(details_arg="details"), prefix=prefix)
                 for reg in regs:
                     if isinstance(reg, Registration):
-                        self.log.debug('Registered WAMP meta procedure <{proc}> on realm "{realm}"',
-                                       proc=reg.procedure,
-                                       realm=session._realm)
+                        self.log.debug(
+                            'Registered WAMP meta procedure <{proc}> on realm "{realm}"',
+                            proc=reg.procedure,
+                            realm=session._realm,
+                        )
                     elif isinstance(reg, Failure):
                         err = reg.value
                         if isinstance(err, ApplicationError):
@@ -140,15 +142,20 @@ class RouterServiceAgent(ApplicationSession):
                                 'Failed to register WAMP meta procedure on realm "{realm}": {error} ("{message}")',
                                 realm=session._realm,
                                 error=err.error,
-                                message=err.error_message())
+                                message=err.error_message(),
+                            )
                         else:
-                            self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}',
-                                          realm=session._realm,
-                                          error=str(err))
+                            self.log.warn(
+                                'Failed to register WAMP meta procedure on realm "{realm}": {error}',
+                                realm=session._realm,
+                                error=str(err),
+                            )
                     else:
-                        self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}',
-                                      realm=session._realm,
-                                      error=str(reg))
+                        self.log.warn(
+                            'Failed to register WAMP meta procedure on realm "{realm}": {error}',
+                            realm=session._realm,
+                            error=str(reg),
+                        )
         except Exception as e:
             self.log.failure()
             if on_ready:
@@ -168,10 +175,12 @@ class RouterServiceAgent(ApplicationSession):
                 on_ready.callback(self)
 
     def onLeave(self, details):
-        self.log.info('{klass}: realm service session left (realm_name="{realm}", details={details})',
-                      klass=self.__class__.__name__,
-                      realm=self._realm,
-                      details=details)
+        self.log.info(
+            '{klass}: realm service session left (realm_name="{realm}", details={details})',
+            klass=self.__class__.__name__,
+            realm=self._realm,
+            details=details,
+        )
 
     def onUserError(self, failure, msg):
         # ApplicationError's are raised explicitly and by purpose to signal
@@ -182,7 +191,7 @@ class RouterServiceAgent(ApplicationSession):
         if not isinstance(failure.value, ApplicationError):
             super(RouterServiceAgent, self).onUserError(failure, msg)
 
-    @wamp.register('wamp.session.list')
+    @wamp.register("wamp.session.list")
     def session_list(self, filter_authroles=None, details=None):
         """
         Get list of session IDs of sessions currently joined on the router.
@@ -193,21 +202,24 @@ class RouterServiceAgent(ApplicationSession):
         :returns: List of WAMP session IDs (order undefined).
         :rtype: list
         """
-        self.log.info('wamp.session.list(filter_authroles={filter_authroles}, details={details})',
-                      filter_authroles=filter_authroles,
-                      details=details)
+        self.log.info(
+            "wamp.session.list(filter_authroles={filter_authroles}, details={details})",
+            filter_authroles=filter_authroles,
+            details=details,
+        )
 
-        assert (filter_authroles is None or isinstance(filter_authroles, list))
+        assert filter_authroles is None or isinstance(filter_authroles, list)
 
         session_ids = []
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                if filter_authroles is None or (hasattr(session, '_session_details')
-                                                and session._session_details.authrole in filter_authroles):
+                if filter_authroles is None or (
+                    hasattr(session, "_session_details") and session._session_details.authrole in filter_authroles
+                ):
                     session_ids.append(session._session_id)
         return session_ids
 
-    @wamp.register('wamp.session.count')
+    @wamp.register("wamp.session.count")
     def session_count(self, filter_authroles=None, details=None):
         """
         Count sessions currently joined on the router.
@@ -218,17 +230,18 @@ class RouterServiceAgent(ApplicationSession):
         :returns: Count of joined sessions.
         :rtype: int
         """
-        assert (filter_authroles is None or isinstance(filter_authroles, list))
+        assert filter_authroles is None or isinstance(filter_authroles, list)
 
         session_count = 0
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                if filter_authroles is None or (hasattr(session, '_session_details')
-                                                and session._session_details.authrole in filter_authroles):
+                if filter_authroles is None or (
+                    hasattr(session, "_session_details") and session._session_details.authrole in filter_authroles
+                ):
                     session_count += 1
         return session_count
 
-    @wamp.register('wamp.session.get')
+    @wamp.register("wamp.session.get")
     def session_get(self, session_id: int, details=None) -> Optional[Dict[str, Any]]:
         """
         Get details for given session.
@@ -302,10 +315,12 @@ class RouterServiceAgent(ApplicationSession):
 
         :returns: WAMP session details.
         """
-        self.log.debug('{func} session_id={session_id}, details={details}',
-                       func=hltype(self.session_get),
-                       session_id=session_id,
-                       details=details)
+        self.log.debug(
+            "{func} session_id={session_id}, details={details}",
+            func=hltype(self.session_get),
+            session_id=session_id,
+            details=details,
+        )
 
         if session_id in self._router._session_id_to_session:
             session: ISession = self._router._session_id_to_session[session_id]
@@ -315,36 +330,42 @@ class RouterServiceAgent(ApplicationSession):
                     session_info = session.session_details.marshal()
                     if False:
                         if session.transport and session.transport.transport_details:
-                            session_info['transport'] = session.transport.transport_details.marshal()
+                            session_info["transport"] = session.transport.transport_details.marshal()
                         else:
-                            session_info['transport'] = None
-                    self.log.info('{func} session {session_id} in active memory',
-                                  func=hltype(self.session_get),
-                                  session_id=hlid(session_id))
+                            session_info["transport"] = None
+                    self.log.info(
+                        "{func} session {session_id} in active memory",
+                        func=hltype(self.session_get),
+                        session_id=hlid(session_id),
+                    )
                     return session_info
                 else:
                     return None
             else:
-                self.log.warn('{func} denied returning restricted session {session_id}',
-                              func=hltype(self.session_get),
-                              session_id=hlid(session_id))
+                self.log.warn(
+                    "{func} denied returning restricted session {session_id}",
+                    func=hltype(self.session_get),
+                    session_id=hlid(session_id),
+                )
         elif self._router._store:
             _session = self._router._store.get_session_by_session_id(session_id)
             if _session:
-                self.log.info('{func} session {session_id} loaded from database',
-                              func=hltype(self.session_get),
-                              session_id=hlid(session_id))
+                self.log.info(
+                    "{func} session {session_id} loaded from database",
+                    func=hltype(self.session_get),
+                    session_id=hlid(session_id),
+                )
                 return _session
 
-        self.log.warn('{func} session {session_id} not found',
-                      func=hltype(self.session_get),
-                      session_id=hlid(session_id))
+        self.log.warn(
+            "{func} session {session_id} not found", func=hltype(self.session_get), session_id=hlid(session_id)
+        )
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
-            'no session with ID {} exists on this router'.format(session_id),
+            "no session with ID {} exists on this router".format(session_id),
         )
 
-    @wamp.register('wamp.session.add_testament')
+    @wamp.register("wamp.session.add_testament")
     def session_add_testament(self, topic, args, kwargs, publish_options=None, scope="destroyed", details=None):
         """
         Add a testament to the current session.
@@ -386,7 +407,7 @@ class RouterServiceAgent(ApplicationSession):
 
         return pub_id
 
-    @wamp.register('wamp.session.flush_testaments')
+    @wamp.register("wamp.session.flush_testaments")
     def session_flush_testaments(self, scope="destroyed", details=None):
         """
         Flush the testaments of a given scope for the calling session.
@@ -408,7 +429,7 @@ class RouterServiceAgent(ApplicationSession):
 
         return flushed
 
-    @wamp.register('wamp.session.kill')
+    @wamp.register("wamp.session.kill")
     def session_kill(self, session_id, reason=None, message=None, details=None):
         """
         Forcefully kill a session.
@@ -434,14 +455,15 @@ class RouterServiceAgent(ApplicationSession):
                 return
             else:
                 self.log.warn(
-                    'wamp.session.session_kill(session_id={session_id}): skip killing of restricted session {session_id}',
-                    session_id=session_id)
+                    "wamp.session.session_kill(session_id={session_id}): skip killing of restricted session {session_id}",
+                    session_id=session_id,
+                )
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
-            'no session with ID {} exists on this router'.format(session_id),
+            "no session with ID {} exists on this router".format(session_id),
         )
 
-    @wamp.register('wamp.session.kill_by_authid')
+    @wamp.register("wamp.session.kill_by_authid")
     def session_kill_by_authid(self, authid, reason=None, message=None, details=None):
         """
         Forcefully kill all sessions with given authid.
@@ -470,10 +492,11 @@ class RouterServiceAgent(ApplicationSession):
                     self.log.warn(
                         'wamp.session.session_kill_by_authid(authid="{authid}"): skip killing of restricted session {session_id}',
                         authid=authid,
-                        session_id=session._session_id)
+                        session_id=session._session_id,
+                    )
         return killed
 
-    @wamp.register('wamp.session.kill_by_authrole')
+    @wamp.register("wamp.session.kill_by_authrole")
     def session_kill_by_authrole(self, authrole, reason=None, message=None, details=None):
         """
         Forcefully kill all sessions with given authrole.
@@ -502,10 +525,11 @@ class RouterServiceAgent(ApplicationSession):
                     self.log.warn(
                         'wamp.session.session_kill_by_authrole(authrole="{authrole}"): skip killing of restricted session {session_id}',
                         authrole=authrole,
-                        session_id=session._session_id)
+                        session_id=session._session_id,
+                    )
         return killed
 
-    @wamp.register('wamp.registration.remove_callee')
+    @wamp.register("wamp.registration.remove_callee")
     def registration_remove_callee(self, registration_id, callee_id, reason=None, details=None):
         """
         Forcefully remove callee from registration.
@@ -520,7 +544,7 @@ class RouterServiceAgent(ApplicationSession):
         if not callee:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SESSION,
-                'no session with ID {} exists on this router'.format(callee_id),
+                "no session with ID {} exists on this router".format(callee_id),
             )
 
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
@@ -534,18 +558,19 @@ class RouterServiceAgent(ApplicationSession):
             if callee not in registration.observers:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_REGISTRATION,
-                    'session {} is not registered on registration {} on this dealer'.format(
-                        callee_id, registration_id),
+                    "session {} is not registered on registration {} on this dealer".format(
+                        callee_id, registration_id
+                    ),
                 )
 
             self._router._dealer.removeCallee(registration, callee, reason=reason)
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_REGISTRATION,
-                'no registration with ID {} exists on this dealer'.format(registration_id),
+                "no registration with ID {} exists on this dealer".format(registration_id),
             )
 
-    @wamp.register('wamp.subscription.remove_subscriber')
+    @wamp.register("wamp.subscription.remove_subscriber")
     def subscription_remove_subscriber(self, subscription_id, subscriber_id, reason=None, details=None):
         """
         Forcefully remove subscriber from subscription.
@@ -560,7 +585,7 @@ class RouterServiceAgent(ApplicationSession):
         if not subscriber:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SESSION,
-                message='no session with ID {} exists on this router'.format(subscriber_id),
+                message="no session with ID {} exists on this router".format(subscriber_id),
             )
 
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
@@ -574,18 +599,19 @@ class RouterServiceAgent(ApplicationSession):
             if subscriber not in subscription.observers:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_SUBSCRIPTION,
-                    'session {} is not subscribed on subscription {} on this broker'.format(
-                        subscriber_id, subscription_id),
+                    "session {} is not subscribed on subscription {} on this broker".format(
+                        subscriber_id, subscription_id
+                    ),
                 )
 
             self._router._broker.removeSubscriber(subscription, subscriber, reason=reason)
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                'no subscription with ID {} exists on this broker'.format(subscription_id),
+                "no subscription with ID {} exists on this broker".format(subscription_id),
             )
 
-    @wamp.register('wamp.registration.get')
+    @wamp.register("wamp.registration.get")
     def registration_get(self, registration_id, details=None):
         """
         Get registration details.
@@ -606,20 +632,20 @@ class RouterServiceAgent(ApplicationSession):
                 )
 
             registration_details = {
-                'id': registration.id,
-                'created': registration.created,
-                'uri': registration.uri,
-                'match': registration.match,
-                'invoke': registration.extra.invoke,
+                "id": registration.id,
+                "created": registration.created,
+                "uri": registration.uri,
+                "match": registration.match,
+                "invoke": registration.extra.invoke,
             }
             return registration_details
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_REGISTRATION,
-                'no registration with ID {} exists on this dealer'.format(registration_id),
+                "no registration with ID {} exists on this dealer".format(registration_id),
             )
 
-    @wamp.register('wamp.subscription.get')
+    @wamp.register("wamp.subscription.get")
     def subscription_get(self, subscription_id, details=None):
         """
         Get subscription details.
@@ -640,19 +666,19 @@ class RouterServiceAgent(ApplicationSession):
                 )
 
             subscription_details = {
-                'id': subscription.id,
-                'created': subscription.created,
-                'uri': subscription.uri,
-                'match': subscription.match,
+                "id": subscription.id,
+                "created": subscription.created,
+                "uri": subscription.uri,
+                "match": subscription.match,
             }
             return subscription_details
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                'no subscription with ID {} exists on this broker'.format(subscription_id),
+                "no subscription with ID {} exists on this broker".format(subscription_id),
             )
 
-    @wamp.register('wamp.registration.list')
+    @wamp.register("wamp.registration.list")
     def registration_list(self, session_id=None, details=None):
         """
         List current registrations.
@@ -662,7 +688,6 @@ class RouterServiceAgent(ApplicationSession):
         :rtype: dict
         """
         if session_id:
-
             s2r = self._router._dealer._session_to_registrations
             session = None
 
@@ -674,20 +699,19 @@ class RouterServiceAgent(ApplicationSession):
             if not session or session not in s2r:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_SESSION,
-                    'no session with ID {} exists on this router'.format(session_id),
+                    "no session with ID {} exists on this router".format(session_id),
                 )
 
             _regs = s2r[session]
 
             regs = {
-                'exact': [reg.id for reg in _regs if reg.match == 'exact'],
-                'prefix': [reg.id for reg in _regs if reg.match == 'prefix'],
-                'wildcard': [reg.id for reg in _regs if reg.match == 'wildcard'],
+                "exact": [reg.id for reg in _regs if reg.match == "exact"],
+                "prefix": [reg.id for reg in _regs if reg.match == "prefix"],
+                "wildcard": [reg.id for reg in _regs if reg.match == "wildcard"],
             }
             return regs
 
         else:
-
             registration_map = self._router._dealer._registration_map
 
             registrations_exact = []
@@ -706,14 +730,14 @@ class RouterServiceAgent(ApplicationSession):
                     registrations_wildcard.append(registration.id)
 
             regs = {
-                'exact': registrations_exact,
-                'prefix': registrations_prefix,
-                'wildcard': registrations_wildcard,
+                "exact": registrations_exact,
+                "prefix": registrations_prefix,
+                "wildcard": registrations_wildcard,
             }
 
             return regs
 
-    @wamp.register('wamp.subscription.list')
+    @wamp.register("wamp.subscription.list")
     def subscription_list(self, session_id=None, details=None):
         """
         List current subscriptions.
@@ -723,7 +747,6 @@ class RouterServiceAgent(ApplicationSession):
         :rtype: dict
         """
         if session_id:
-
             s2s = self._router._broker._session_to_subscriptions
             session = None
 
@@ -735,20 +758,19 @@ class RouterServiceAgent(ApplicationSession):
             if not session or session not in s2s:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_SESSION,
-                    'no session with ID {} exists on this router'.format(session_id),
+                    "no session with ID {} exists on this router".format(session_id),
                 )
 
             _subs = s2s[session]
 
             subs = {
-                'exact': [sub.id for sub in _subs if sub.match == 'exact'],
-                'prefix': [sub.id for sub in _subs if sub.match == 'prefix'],
-                'wildcard': [sub.id for sub in _subs if sub.match == 'wildcard'],
+                "exact": [sub.id for sub in _subs if sub.match == "exact"],
+                "prefix": [sub.id for sub in _subs if sub.match == "prefix"],
+                "wildcard": [sub.id for sub in _subs if sub.match == "wildcard"],
             }
             return subs
 
         else:
-
             subscription_map = self._router._broker._subscription_map
 
             subscriptions_exact = []
@@ -768,14 +790,14 @@ class RouterServiceAgent(ApplicationSession):
             #         subscriptions_wildcard.append(subscription.id)
 
             subs = {
-                'exact': subscriptions_exact,
-                'prefix': subscriptions_prefix,
-                'wildcard': subscriptions_wildcard,
+                "exact": subscriptions_exact,
+                "prefix": subscriptions_prefix,
+                "wildcard": subscriptions_wildcard,
             }
 
             return subs
 
-    @wamp.register('wamp.registration.match')
+    @wamp.register("wamp.registration.match")
     def registration_match(self, procedure, details=None):
         """
         Given a procedure URI, return the registration best matching the procedure.
@@ -795,7 +817,7 @@ class RouterServiceAgent(ApplicationSession):
         else:
             return None
 
-    @wamp.register('wamp.subscription.match')
+    @wamp.register("wamp.subscription.match")
     def subscription_match(self, topic, details=None):
         """
         Given a topic URI, returns all subscriptions matching the topic.
@@ -822,7 +844,7 @@ class RouterServiceAgent(ApplicationSession):
         else:
             return None
 
-    @wamp.register('wamp.registration.lookup')
+    @wamp.register("wamp.registration.lookup")
     def registration_lookup(self, procedure, options=None, details=None):
         """
         Given a procedure URI (and options), return the registration (if any) managing the procedure.
@@ -838,7 +860,7 @@ class RouterServiceAgent(ApplicationSession):
         :rtype: int or None
         """
         options = options or {}
-        match = options.get('match', 'exact')
+        match = options.get("match", "exact")
 
         registration = self._router._dealer._registration_map.get_observation(procedure, match)
 
@@ -847,7 +869,7 @@ class RouterServiceAgent(ApplicationSession):
         else:
             return None
 
-    @wamp.register('wamp.subscription.lookup')
+    @wamp.register("wamp.subscription.lookup")
     def subscription_lookup(self, topic, options=None, details=None):
         """
         Given a topic URI (and options), return the subscription (if any) managing the topic.
@@ -863,7 +885,7 @@ class RouterServiceAgent(ApplicationSession):
         :rtype: int or None
         """
         options = options or {}
-        match = options.get('match', 'exact')
+        match = options.get("match", "exact")
 
         subscription = self._router._broker._subscription_map.get_observation(topic, match)
 
@@ -872,7 +894,7 @@ class RouterServiceAgent(ApplicationSession):
         else:
             return None
 
-    @wamp.register('wamp.registration.list_callees')
+    @wamp.register("wamp.registration.list_callees")
     def registration_list_callees(self, registration_id, details=None):
         """
         Retrieve list of callees (WAMP session IDs) registered on (attached to) a registration.
@@ -899,10 +921,10 @@ class RouterServiceAgent(ApplicationSession):
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_REGISTRATION,
-                'no registration with ID {} exists on this dealer'.format(registration_id),
+                "no registration with ID {} exists on this dealer".format(registration_id),
             )
 
-    @wamp.register('wamp.subscription.list_subscribers')
+    @wamp.register("wamp.subscription.list_subscribers")
     def subscription_list_subscribers(self, subscription_id, details=None):
         """
         Retrieve list of subscribers (WAMP session IDs) subscribed on (attached to) a subscription.
@@ -929,10 +951,10 @@ class RouterServiceAgent(ApplicationSession):
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                'no subscription with ID {} exists on this broker'.format(subscription_id),
+                "no subscription with ID {} exists on this broker".format(subscription_id),
             )
 
-    @wamp.register('wamp.registration.count_callees')
+    @wamp.register("wamp.registration.count_callees")
     def registration_count_callees(self, registration_id, details=None):
         """
         Retrieve number of callees registered on (attached to) a registration.
@@ -955,10 +977,10 @@ class RouterServiceAgent(ApplicationSession):
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_REGISTRATION,
-                'no registration with ID {} exists on this dealer'.format(registration_id),
+                "no registration with ID {} exists on this dealer".format(registration_id),
             )
 
-    @wamp.register('wamp.subscription.count_subscribers')
+    @wamp.register("wamp.subscription.count_subscribers")
     def subscription_count_subscribers(self, subscription_id, details=None):
         """
         Retrieve number of subscribers subscribed on (attached to) a subscription.
@@ -982,10 +1004,10 @@ class RouterServiceAgent(ApplicationSession):
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                'no subscription with ID {} exists on this broker'.format(subscription_id),
+                "no subscription with ID {} exists on this broker".format(subscription_id),
             )
 
-    @wamp.register('wamp.subscription.get_events')
+    @wamp.register("wamp.subscription.get_events")
     def subscription_get_events(self, subscription_id, limit=10, details=None):
         """
         Return history of events for given subscription.
@@ -998,14 +1020,14 @@ class RouterServiceAgent(ApplicationSession):
         :returns: List of events.
         :rtype: list
         """
-        self.log.debug('subscription_get_events({subscription_id}, {limit})',
-                       subscription_id=subscription_id,
-                       limit=limit)
+        self.log.debug(
+            "subscription_get_events({subscription_id}, {limit})", subscription_id=subscription_id, limit=limit
+        )
 
         if not self._router._broker._event_store:
             raise ApplicationError(
-                'wamp.error.history_unavailable',
-                message='event history not available or enabled',
+                "wamp.error.history_unavailable",
+                message="event history not available or enabled",
             )
 
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
@@ -1022,15 +1044,15 @@ class RouterServiceAgent(ApplicationSession):
                 # a return value of None in above signals that event history really
                 # is not available/enabled (which is different from an empty history!)
                 raise ApplicationError(
-                    'wamp.error.history_unavailable',
-                    message='event history for the given subscription is not available or enabled',
+                    "wamp.error.history_unavailable",
+                    message="event history for the given subscription is not available or enabled",
                 )
             else:
                 return events
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                'no subscription with ID {} exists on this broker'.format(subscription_id),
+                "no subscription with ID {} exists on this broker".format(subscription_id),
             )
 
     def schema_describe(self, uri=None, details=None):
@@ -1043,7 +1065,7 @@ class RouterServiceAgent(ApplicationSession):
         :returns: A list of WAMP schema declarations.
         :rtype: list
         """
-        raise Exception('not implemented')
+        raise Exception("not implemented")
 
     def schema_define(self, uri, schema, details=None):
         """
@@ -1059,4 +1081,4 @@ class RouterServiceAgent(ApplicationSession):
            declaration was new, ``False`` if declaration existed, but was modified.
         :rtype: bool or None
         """
-        raise Exception('not implemented')
+        raise Exception("not implemented")

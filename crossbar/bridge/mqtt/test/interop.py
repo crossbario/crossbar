@@ -9,14 +9,14 @@ Server interop tests, making sure Crossbar's MQTT adapter responds the same as
 other MQTT servers.
 """
 
-import click
-import attr
 import sys
-
 from collections import deque
-from texttable import Texttable
 
-from twisted.internet.protocol import Protocol, ClientFactory
+import attr
+import click
+from texttable import Texttable
+from twisted.internet.protocol import ClientFactory, Protocol
+
 from crossbar.bridge.mqtt.protocol import MQTTClientParser
 
 
@@ -40,13 +40,13 @@ class Result(object):
 
 
 @click.command()
-@click.option("--host", help='Host address to test.')
-@click.option("--port", type=int, help='Post of the host to test.')
+@click.option("--host", help="Host address to test.")
+@click.option("--port", type=int, help="Post of the host to test.")
 def run(host, port):
-
     port = int(port)
 
     from . import interop_tests
+
     test_names = [x for x in dir(interop_tests) if x.startswith("test_")]
 
     tests = [getattr(interop_tests, test_name) for test_name in test_names]
@@ -85,7 +85,6 @@ class ReplayProtocol(Protocol):
         self._client = MQTTClientParser()
 
     def connectionMade(self):
-
         if self._record[0].send:
             to_send = self._record.popleft()
             if isinstance(to_send.data, bytes):
@@ -136,10 +135,12 @@ class ReplayProtocol(Protocol):
                         self._record.appendleft(reading)
 
                 if len(self._record) > 0:
-
                     # Then if we are supposed to wait...
-                    if isinstance(self._record[0],
-                                  Frame) and self._record[0].send is False and self._record[0].data == b"":
+                    if (
+                        isinstance(self._record[0], Frame)
+                        and self._record[0].send is False
+                        and self._record[0].data == b""
+                    ):
 
                         def wait():
                             self.dataReceived(b"")
@@ -167,7 +168,6 @@ class ReplayClientFactory(ClientFactory):
     noisy = False
 
     def buildProtocol(self, addr):
-
         self.client_transcript = []
 
         p = self.protocol(self)

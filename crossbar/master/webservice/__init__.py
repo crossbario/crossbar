@@ -7,4 +7,4 @@
 
 from .registerme import RouterWebServiceRegisterMe
 
-__all__ = ('RouterWebServiceRegisterMe', )
+__all__ = ("RouterWebServiceRegisterMe",)

@@ -6,24 +6,19 @@
 ##############################################################################
 
 import six
-
-from txaio import make_logger
-
-from twisted.internet import reactor
-
 from autobahn import wamp
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions
+from twisted.internet import reactor
+from txaio import make_logger
 
 from crossbar._util import hl, hltype
-
+from crossbar.edge.worker.tracing import FabricRouterTrace
+from crossbar.router.router import Router, RouterFactory
 from crossbar.worker.router import RouterController
 from crossbar.worker.types import RouterRealm
-from crossbar.router.router import RouterFactory, Router
 
-from crossbar.edge.worker.tracing import FabricRouterTrace
-
-__all__ = ('ExtRouterController', )
+__all__ = ("ExtRouterController",)
 
 
 class RouterRealmInterface(object):
@@ -42,6 +37,7 @@ class ExtRouter(Router):
     """
     Router extended with crossbar features.
     """
+
     def __init__(self, factory, realm, options=None, store=None):
         Router.__init__(self, factory, realm, options, store)
         self._interfaces = {}
@@ -65,6 +61,7 @@ class ExtRouterFactory(RouterFactory):
     """
     Router factory extended with crossbar features.
     """
+
     router = ExtRouter  # type: ignore
 
     def __init__(self, node_id, worker, options=None):
@@ -73,15 +70,15 @@ class ExtRouterFactory(RouterFactory):
         self._routers: dict[str, ExtRouter] = {}
 
     def add_interface(self, realm, interface):
-        assert (isinstance(realm, six.text_type))
-        assert (realm in self._routers)
+        assert isinstance(realm, six.text_type)
+        assert realm in self._routers
 
         router_ = self._routers[realm]
-        router_.add_interface(RouterInterface(router_, interface['uri']))
+        router_.add_interface(RouterInterface(router_, interface["uri"]))
 
     def drop_interface(self, realm, interface_id):
-        assert (isinstance(realm, six.text_type))
-        assert (isinstance(interface_id, six.text_type))
+        assert isinstance(realm, six.text_type)
+        assert isinstance(interface_id, six.text_type)
 
         if realm not in self._routers:
             raise Exception('no router started for realm "{}"'.format(realm))
@@ -102,6 +99,7 @@ class ExtRouterRealm(RouterRealm):
     1. router links
     2. interfaces
     """
+
     def __init__(self, controller, realm_id, config, router=None, session=None):
         """
 
@@ -128,7 +126,7 @@ class ExtRouterRealm(RouterRealm):
         marshalled = RouterRealm.marshal(self)
 
         # FIXME
-        marshalled['interfaces'] = self.interfaces
+        marshalled["interfaces"] = self.interfaces
 
         return marshalled
 
@@ -155,20 +153,22 @@ class ExtRouterController(RouterController):
 
     @wamp.register(None)
     def start_router_realm(self, realm_id, realm_config, details=None):
-        self.log.info('Starting router realm "{realm_id}" {method}',
-                      realm_id=realm_id,
-                      method=hltype(ExtRouterController.start_router_realm))
+        self.log.info(
+            'Starting router realm "{realm_id}" {method}',
+            realm_id=realm_id,
+            method=hltype(ExtRouterController.start_router_realm),
+        )
 
         # activate this to test:
-        if False and realm_config['name'] == 'realm1':
-            self.log.info(hl('Auto-renaming realm1 to realm001', color='green', bold=True))
-            realm_config['name'] = 'realm001'
+        if False and realm_config["name"] == "realm1":
+            self.log.info(hl("Auto-renaming realm1 to realm001", color="green", bold=True))
+            realm_config["name"] = "realm001"
 
         return RouterController.start_router_realm(self, realm_id, realm_config, details)
 
     def _next_trace_id(self):
         while True:
-            trace_id = u'trace{}'.format(self._next_trace)
+            trace_id = "trace{}".format(self._next_trace)
             self._next_trace += 1
             if trace_id not in self._traces:
                 return trace_id
@@ -194,106 +194,114 @@ class ExtRouterController(RouterController):
         self.log.debug('get_trace(trace_id="{trace_id}")', trace_id=trace_id)
 
         if trace_id not in self._traces:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
 
         return self._traces[trace_id].marshal()
 
     @wamp.register(None)
     def start_trace(self, trace_id=None, trace_options=None, details=None):
-        self.log.info('start_trace(trace_id="{trace_id}", trace_options="{trace_options}")',
-                      trace_id=trace_id,
-                      trace_options=trace_options)
+        self.log.info(
+            'start_trace(trace_id="{trace_id}", trace_options="{trace_options}")',
+            trace_id=trace_id,
+            trace_options=trace_options,
+        )
 
-        assert (trace_id is None or isinstance(trace_id, six.text_type))
-        assert (trace_options is None or isinstance(trace_options, dict))
+        assert trace_id is None or isinstance(trace_id, six.text_type)
+        assert trace_options is None or isinstance(trace_options, dict)
 
         trace_id = trace_id or self._next_trace_id()
         trace_options = trace_options or {}
 
         # tracing level: u'message' (default) or u'action'
-        trace_level = trace_options.get(u'trace_level', u'message')
-        if trace_level not in [u'message', u'action']:
+        trace_level = trace_options.get("trace_level", "message")
+        if trace_level not in ["message", "action"]:
             emsg = 'invalid tracing options: trace_level must be one of ["message", "action"], but was "{}"'.format(
-                trace_level)
+                trace_level
+            )
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # flag to control tracing of app _payload_
-        trace_app_payload = trace_options.get(u'trace_app_payload', False)
+        trace_app_payload = trace_options.get("trace_app_payload", False)
         if not isinstance(trace_app_payload, bool):
-            emsg = 'invalid tracing options: trace_app_payload must be of type bool, was {}'.format(
-                type(trace_app_payload))
+            emsg = "invalid tracing options: trace_app_payload must be of type bool, was {}".format(
+                type(trace_app_payload)
+            )
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # tracing app payload only makes sense for trace_level == u'message'
-        if trace_app_payload and trace_level != u'message':
+        if trace_app_payload and trace_level != "message":
             emsg = 'invalid tracing options: when trace_app_payload is set, trace_level must be "message", but was "{}"'.format(
-                trace_level)
+                trace_level
+            )
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # parameter to control batching of trace records (in ms)
-        batching_period = trace_options.get(u'batching_period', 200)
+        batching_period = trace_options.get("batching_period", 200)
         if type(batching_period) not in six.integer_types or batching_period < 10 or batching_period > 10000:
             emsg = 'invalid tracing options: batching_period must be an integer [10, 10000], was "{}"'.format(
-                type(batching_period))
+                type(batching_period)
+            )
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # flag to control tracing persistence
-        persist = trace_options.get(u'persist', False)
+        persist = trace_options.get("persist", False)
         if not isinstance(persist, bool):
-            emsg = 'invalid tracing options: persist must be of type bool, was {}'.format(type(persist))
+            emsg = "invalid tracing options: persist must be of type bool, was {}".format(type(persist))
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # parameter to control trace duration (in secs): if given, automatically stop the trace
         # after the given period of time. if not given, the trace runs until stopped explicitly
-        duration = trace_options.get(u'duration', None)
+        duration = trace_options.get("duration", None)
         if duration is not None and (type(duration) not in six.integer_types or duration < 1 or duration > 86400):
             emsg = 'invalid tracing options: duration must be an integer [1, 86400], was "{}"'.format(type(duration))
             self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # check user provided trace_id
         if trace_id in self._traces:
             emsg = 'could not start trace: a trace with ID "{}" is already running (or starting)'.format(trace_id)
             self.log.error(emsg)
-            raise ApplicationError(u'crossbar.error.already_running', emsg)
+            raise ApplicationError("crossbar.error.already_running", emsg)
 
         def on_trace_period_finished(trace_id, period, trace_batch):
-            if trace_level == u'message':
+            if trace_level == "message":
                 trace_data = [trace_record.marshal(self._trace_app_payload) for trace_record in trace_batch]
-            elif trace_level == u'action':
+            elif trace_level == "action":
                 trace_data = [traced_action.marshal() for traced_action in trace_batch]
             else:
-                raise Exception('logic error')
+                raise Exception("logic error")
 
-            self.publish(u'{}.on_trace_data'.format(self._uri_prefix), trace_id, period, trace_data)
+            self.publish("{}.on_trace_data".format(self._uri_prefix), trace_id, period, trace_data)
 
-        trace = FabricRouterTrace(self,
-                                  trace_id,
-                                  on_trace_period_finished=on_trace_period_finished,
-                                  trace_level=trace_level,
-                                  trace_app_payload=trace_app_payload,
-                                  batching_period=batching_period,
-                                  persist=persist,
-                                  duration=duration)
+        trace = FabricRouterTrace(
+            self,
+            trace_id,
+            on_trace_period_finished=on_trace_period_finished,
+            trace_level=trace_level,
+            trace_app_payload=trace_app_payload,
+            batching_period=batching_period,
+            persist=persist,
+            duration=duration,
+        )
         trace.start()
         self._traces[trace_id] = trace
 
         if duration:
 
             def maybe_stop():
-                if trace_id in self._traces and self._traces[trace_id]._status == u'running':
+                if trace_id in self._traces and self._traces[trace_id]._status == "running":
                     self.stop_trace(trace_id, details=details)
 
             reactor.callLater(float(duration), maybe_stop)
 
         trace_started = trace.marshal()
 
-        self.publish(u'{}.on_trace_started'.format(self._uri_prefix), trace_id, trace_started)
+        self.publish("{}.on_trace_started".format(self._uri_prefix), trace_id, trace_started)
 
         return trace_started
 
@@ -302,7 +310,7 @@ class ExtRouterController(RouterController):
         self.log.info('stop_trace(trace_id="{trace_id}")', trace_id=trace_id)
 
         if trace_id not in self._traces:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
 
         trace = self._traces[trace_id]
         trace.stop()
@@ -311,7 +319,7 @@ class ExtRouterController(RouterController):
 
         trace_stopped = trace.marshal()
 
-        self.publish(u'{}.on_trace_stopped'.format(self._uri_prefix), trace_id, trace_stopped)
+        self.publish("{}.on_trace_stopped".format(self._uri_prefix), trace_id, trace_stopped)
 
         return trace_stopped
 
@@ -322,50 +330,54 @@ class ExtRouterController(RouterController):
             trace_id=trace_id,
             from_seq=from_seq,
             to_seq=to_seq,
-            limit=limit)
+            limit=limit,
+        )
 
         if trace_id not in self._traces:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No trace with ID '{}'".format(trace_id))
 
         limit = limit or 100
         if limit > 10000:
-            raise Exception('limit too large')
+            raise Exception("limit too large")
 
         return self._traces[trace_id].get_data(from_seq, to_seq, limit)
 
     @wamp.register(None)
     def start_router_realm_interface(self, realm_id, interface_id, interface_config, details=None):
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         if interface_id in self.realms[realm_id].interfaces:
             raise ApplicationError(
-                u"crossbar.error.already_exists",
-                "An interface with ID '{}' already exists in realm with ID '{}'".format(interface_id, realm_id))
+                "crossbar.error.already_exists",
+                "An interface with ID '{}' already exists in realm with ID '{}'".format(interface_id, realm_id),
+            )
 
         self.realms[realm_id].interfaces[interface_id] = RouterRealmInterface(interface_id, interface_config)
 
-        realm = self.realms[realm_id].config['name']
+        realm = self.realms[realm_id].config["name"]
         self._router_factory.add_interface(realm, interface_config)
 
-        topic = u'{}.on_router_realm_interface_started'.format(self._uri_prefix)
-        event = {u'id': interface_id}
+        topic = "{}.on_router_realm_interface_started".format(self._uri_prefix)
+        event = {"id": interface_id}
         caller = details.caller if details else None
         self.publish(topic, event, options=PublishOptions(exclude=caller))
 
     @wamp.register(None)
     def stop_router_realm_interface(self, realm_id, interface_id, details=None):
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         if interface_id not in self.realms[realm_id].interfaces:
-            raise ApplicationError(u"crossbar.error.no_such_object",
-                                   "No interface with ID '{}' in realm with ID '{}'".format(interface_id, realm_id))
+            raise ApplicationError(
+                "crossbar.error.no_such_object",
+                "No interface with ID '{}' in realm with ID '{}'".format(interface_id, realm_id),
+            )
 
         del self.realms[realm_id].interfaces[interface_id]
 
     @wamp.register(None)
     def get_router_realm_interface(self, realm_id, details=None):
         if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
         return self.realms[realm_id].interfaces.values()

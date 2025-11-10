@@ -5,10 +5,9 @@
 #
 #####################################################################################
 
-from txaio import make_logger
-
 from twisted.web import server
 from twisted.web.http import HTTPChannel
+from txaio import make_logger
 
 
 def createHSTSRequestFactory(requestFactory, hstsMaxAge=31536000):
@@ -16,6 +15,7 @@ def createHSTSRequestFactory(requestFactory, hstsMaxAge=31536000):
     Builds a request factory that sets HSTS (HTTP Strict Transport
     Security) headers, by wrapping another request factory.
     """
+
     def makeRequest(*a, **kw):
         request = requestFactory(*a, **kw)
         request.responseHeaders.setRawHeaders("Strict-Transport-Security", ["max-age={}".format(hstsMaxAge)])
@@ -31,6 +31,7 @@ class _LessNoisyHTTPChannel(HTTPChannel):
     This is basically exactly what Twisted does, except without using
     "log.msg" so we can put it at debug log-level instead
     """
+
     log = make_logger()
 
     def timeoutConnection(self):
@@ -44,14 +45,9 @@ class _LessNoisyHTTPChannel(HTTPChannel):
 
 
 class Site(server.Site):
-    def __init__(self,
-                 resource,
-                 client_timeout=None,
-                 access_log=None,
-                 display_tracebacks=None,
-                 hsts=None,
-                 hsts_max_age=None):
-
+    def __init__(
+        self, resource, client_timeout=None, access_log=None, display_tracebacks=None, hsts=None, hsts_max_age=None
+    ):
         server.Site.__init__(self, resource, timeout=client_timeout)
 
         # Web access logging

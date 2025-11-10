@@ -7,44 +7,44 @@
 
 import json
 
-from crossbar.router.test.helpers import make_router, connect_application_session, add_realm_to_router
-
 from twisted.trial.unittest import TestCase
+
+from crossbar.router.test.helpers import add_realm_to_router, connect_application_session, make_router
+
 try:
     from twisted.test.proto_helpers import Clock
 except ImportError:
     from twisted.internet.task import Clock
-from twisted.internet.task import LoopingCall
-from twisted.test.proto_helpers import AccumulatingProtocol
-from twisted.test.iosim import connect, FakeTransport
-from twisted.internet.defer import inlineCallbacks
-from twisted.internet.protocol import Factory, Protocol
-from twisted.internet import selectreactor
-from twisted.python.filepath import FilePath
-
-from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.types import ComponentConfig
+from twisted.internet import selectreactor
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.protocol import Factory, Protocol
+from twisted.internet.task import LoopingCall
+from twisted.python.filepath import FilePath
+from twisted.test.iosim import FakeTransport, connect
+from twisted.test.proto_helpers import AccumulatingProtocol
+from txaio.tx import make_logger
 
-from crossbar.router.role import RouterRoleStaticAuth
-
-from crossbar.bridge.mqtt.wamp import WampMQTTServerFactory
+from crossbar._logging import LogCapturer
 from crossbar.bridge.mqtt._events import (
+    ConnACK,
     Connect,
     ConnectFlags,
-    ConnACK,
-    Publish,
+    Disconnect,
     PubACK,
+    Publish,
+    SubACK,
     Subscribe,
     SubscriptionTopicRequest,
-    SubACK,
-    Disconnect,
 )
-from crossbar._logging import LogCapturer
-from crossbar.common.twisted.endpoint import (create_listening_endpoint_from_config,
-                                              create_connecting_endpoint_from_config)
-
-from txaio.tx import make_logger
+from crossbar.bridge.mqtt.wamp import WampMQTTServerFactory
+from crossbar.common.twisted.endpoint import (
+    create_connecting_endpoint_from_config,
+    create_listening_endpoint_from_config,
+)
+from crossbar.router.role import RouterRoleStaticAuth
 
 # import txaio
 # txaio.start_logging(level='info')
@@ -52,84 +52,76 @@ from txaio.tx import make_logger
 
 class MockContainer(object):
     def has_realm(self, realm):
-        return realm == 'realm'
+        return realm == "realm"
 
     def has_role(self, realm, role):
-        return realm == 'realm' and role == 'anonymous'
+        return realm == "realm" and role == "anonymous"
 
 
 class ObservingSession(ApplicationSession):
-    _topic = 'test'
+    _topic = "test"
 
     @inlineCallbacks
     def onJoin(self, details):
         self.events = []
 
         def on_event(*a, **kw):
-            evt = {'args': a, 'kwargs': kw}
+            evt = {"args": a, "kwargs": kw}
             self.events.append(evt)
             print(evt)
-            self.log.info('event on {topic}: {evt}', topic=self._topic, evt=evt)
+            self.log.info("event on {topic}: {evt}", topic=self._topic, evt=evt)
 
         self.s = yield self.subscribe(on_event, self._topic)
 
 
 def build_mqtt_server():
-
     reactor = Clock()
     router_factory, server_factory, session_factory = make_router()
 
     add_realm_to_router(router_factory, session_factory)
-    router = add_realm_to_router(router_factory, session_factory, realm_name='mqtt', realm_options={})
+    router = add_realm_to_router(router_factory, session_factory, realm_name="mqtt", realm_options={})
 
     # allow everything
     default_permissions = {
-        'uri': '',
-        'match': 'prefix',
-        'allow': {
-            'call': True,
-            'register': True,
-            'publish': True,
-            'subscribe': True
-        }
+        "uri": "",
+        "match": "prefix",
+        "allow": {"call": True, "register": True, "publish": True, "subscribe": True},
     }
 
-    router.add_role(RouterRoleStaticAuth(router, 'mqttrole', default_permissions=default_permissions))
+    router.add_role(RouterRoleStaticAuth(router, "mqttrole", default_permissions=default_permissions))
 
     class AuthenticatorSession(ApplicationSession):
         @inlineCallbacks
         def onJoin(self, details):
             def authenticate(realm, authid, details):
-
                 if authid == "test123":
+                    if details["ticket"] != "password":
+                        raise ApplicationError("com.example.invalid_ticket", "nope")
 
-                    if details["ticket"] != 'password':
-                        raise ApplicationError('com.example.invalid_ticket', 'nope')
-
-                    res = {'realm': 'mqtt', 'role': 'mqttrole', 'extra': {}}
+                    res = {"realm": "mqtt", "role": "mqttrole", "extra": {}}
                     return res
 
                 else:
-                    raise ApplicationError('com.example.no_such_user', 'nah')
+                    raise ApplicationError("com.example.no_such_user", "nah")
 
-            yield self.register(authenticate, 'com.example.auth')
+            yield self.register(authenticate, "com.example.auth")
 
             def tls(realm, authid, details):
-                ACCEPTED_CERTS = set(['95:1C:A9:6B:CD:8D:D2:BD:F4:73:82:01:55:89:41:12:9C:F8:AF:8E'])
+                ACCEPTED_CERTS = set(["95:1C:A9:6B:CD:8D:D2:BD:F4:73:82:01:55:89:41:12:9C:F8:AF:8E"])
 
-                if 'client_cert' not in details['transport'] or not details['transport']['client_cert']:
+                if "client_cert" not in details["transport"] or not details["transport"]["client_cert"]:
                     raise ApplicationError("com.example.no_cert", "no client certificate presented")
 
-                client_cert = details['transport']['client_cert']
-                sha1 = client_cert['sha1']
-                subject_cn = client_cert['subject']['cn']
+                client_cert = details["transport"]["client_cert"]
+                sha1 = client_cert["sha1"]
+                subject_cn = client_cert["subject"]["cn"]
 
                 if sha1 not in ACCEPTED_CERTS:
                     raise ApplicationError("com.example.invalid_cert", "certificate with SHA1 {} denied".format(sha1))
                 else:
-                    return {'authid': subject_cn, 'role': 'mqttrole', 'realm': 'mqtt'}
+                    return {"authid": subject_cn, "role": "mqttrole", "realm": "mqtt"}
 
-            yield self.register(tls, 'com.example.tls')
+            yield self.register(tls, "com.example.tls")
 
     config = ComponentConfig("default", {})
     authsession = AuthenticatorSession(config)
@@ -139,12 +131,7 @@ def build_mqtt_server():
         "options": {
             "realm": "mqtt",
             "role": "mqttrole",
-            "payload_mapping": {
-                "": {
-                    "type": "native",
-                    "serializer": "json"
-                }
-            },
+            "payload_mapping": {"": {"type": "native", "serializer": "json"}},
             "auth": {
                 "ticket": {
                     "type": "dynamic",
@@ -155,8 +142,8 @@ def build_mqtt_server():
                     "type": "dynamic",
                     "authenticator": "com.example.tls",
                     "authenticator-realm": "default",
-                }
-            }
+                },
+            },
         }
     }
 
@@ -168,7 +155,6 @@ def build_mqtt_server():
 
 
 def connect_mqtt_server(server_factory):
-
     server_protocol = server_factory.buildProtocol(None)
     server_transport = FakeTransport(server_protocol, True)
 
@@ -182,26 +168,28 @@ def connect_mqtt_server(server_factory):
 
 class MQTTAdapterTests(TestCase):
     def setUp(self):
-
         self.logs = LogCapturer()
         self.logs.__enter__()
         self.addCleanup(lambda: self.logs.__exit__(None, None, None))
 
     def _test_basic_publish(self):
-
         reactor, router, server_factory, session_factory = build_mqtt_server()
 
-        session, pump = connect_application_session(server_factory,
-                                                    ObservingSession,
-                                                    component_config=ComponentConfig(realm="mqtt",
-                                                                                     controller=MockContainer()))
+        session, pump = connect_application_session(
+            server_factory,
+            ObservingSession,
+            component_config=ComponentConfig(realm="mqtt", controller=MockContainer()),
+        )
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         client_transport.write(
-            Connect(client_id="testclient",
-                    username="test123",
-                    password="password",
-                    flags=ConnectFlags(clean_session=False, username=True, password=True)).serialise())
+            Connect(
+                client_id="testclient",
+                username="test123",
+                password="password",
+                flags=ConnectFlags(clean_session=False, username=True, password=True),
+            ).serialise()
+        )
         mqtt_pump.flush()
 
         # We get a CONNECT
@@ -209,17 +197,16 @@ class MQTTAdapterTests(TestCase):
         client_protocol.data = b""
 
         client_transport.write(
-            Publish(duplicate=False,
-                    qos_level=0,
-                    retain=False,
-                    topic_name="test",
-                    payload=b'{"kwargs": {"bar": "baz"}}').serialise())
+            Publish(
+                duplicate=False, qos_level=0, retain=False, topic_name="test", payload=b'{"kwargs": {"bar": "baz"}}'
+            ).serialise()
+        )
         mqtt_pump.flush()
         pump.flush()
 
         # This needs to be replaced with the real deal, see https://github.com/crossbario/crossbar/issues/885
         self.assertEqual(len(session.events), 1)
-        self.assertEqual(session.events, [{"args": tuple(), "kwargs": {'bar': 'baz'}}])
+        self.assertEqual(session.events, [{"args": tuple(), "kwargs": {"bar": "baz"}}])
 
     def _test_tls_auth(self):
         """
@@ -230,10 +217,11 @@ class MQTTAdapterTests(TestCase):
         real_reactor = selectreactor.SelectReactor()
         logger = make_logger()
 
-        session, pump = connect_application_session(server_factory,
-                                                    ObservingSession,
-                                                    component_config=ComponentConfig(realm="mqtt",
-                                                                                     controller=MockContainer()))
+        session, pump = connect_application_session(
+            server_factory,
+            ObservingSession,
+            component_config=ComponentConfig(realm="mqtt", controller=MockContainer()),
+        )
 
         endpoint = create_listening_endpoint_from_config(
             {
@@ -244,10 +232,13 @@ class MQTTAdapterTests(TestCase):
                     "certificate": "server.crt",
                     "key": "server.key",
                     "dhparam": "dhparam",
-                    "ca_certificates": ["ca.cert.pem", "intermediate.cert.pem"]
+                    "ca_certificates": ["ca.cert.pem", "intermediate.cert.pem"],
                 },
             },
-            FilePath(__file__).sibling('certs').path, real_reactor, logger)
+            FilePath(__file__).sibling("certs").path,
+            real_reactor,
+            logger,
+        )
 
         client_endpoint = create_connecting_endpoint_from_config(
             {
@@ -258,18 +249,22 @@ class MQTTAdapterTests(TestCase):
                     "certificate": "client.crt",
                     "hostname": "localhost",
                     "key": "client.key",
-                    "ca_certificates": ["ca.cert.pem", "intermediate.cert.pem"]
+                    "ca_certificates": ["ca.cert.pem", "intermediate.cert.pem"],
                 },
             },
-            FilePath(__file__).sibling('certs').path, real_reactor, logger)
+            FilePath(__file__).sibling("certs").path,
+            real_reactor,
+            logger,
+        )
 
         p = []
         l = endpoint.listen(server_factory)
 
         class TestProtocol(Protocol):
             data = b""
-            expected = (ConnACK(session_present=False, return_code=0).serialise() +
-                        PubACK(packet_identifier=1).serialise())
+            expected = (
+                ConnACK(session_present=False, return_code=0).serialise() + PubACK(packet_identifier=1).serialise()
+            )
 
             def dataReceived(self_, data):
                 self_.data = self_.data + data
@@ -287,15 +282,19 @@ class MQTTAdapterTests(TestCase):
                 p.append(proto)
 
                 proto.transport.write(
-                    Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
+                    Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise()
+                )
 
                 proto.transport.write(
-                    Publish(duplicate=False,
-                            qos_level=1,
-                            retain=False,
-                            topic_name="test",
-                            payload=b"{}",
-                            packet_identifier=1).serialise())
+                    Publish(
+                        duplicate=False,
+                        qos_level=1,
+                        retain=False,
+                        topic_name="test",
+                        payload=b"{}",
+                        packet_identifier=1,
+                    ).serialise()
+                )
 
         lc = LoopingCall(pump.flush)
         lc.clock = real_reactor
@@ -315,7 +314,8 @@ class MQTTAdapterTests(TestCase):
         # We get a CONNECT
         self.assertEqual(
             client_protocol.data,
-            ConnACK(session_present=False, return_code=0).serialise() + PubACK(packet_identifier=1).serialise())
+            ConnACK(session_present=False, return_code=0).serialise() + PubACK(packet_identifier=1).serialise(),
+        )
         client_protocol.data = b""
 
         pump.flush()
@@ -332,10 +332,11 @@ class MQTTAdapterTests(TestCase):
         real_reactor = selectreactor.SelectReactor()
         logger = make_logger()
 
-        session, pump = connect_application_session(server_factory,
-                                                    ObservingSession,
-                                                    component_config=ComponentConfig(realm="mqtt",
-                                                                                     controller=MockContainer()))
+        session, pump = connect_application_session(
+            server_factory,
+            ObservingSession,
+            component_config=ComponentConfig(realm="mqtt", controller=MockContainer()),
+        )
 
         endpoint = create_listening_endpoint_from_config(
             {
@@ -346,10 +347,13 @@ class MQTTAdapterTests(TestCase):
                     "certificate": "server.crt",
                     "key": "server.key",
                     "dhparam": "dhparam",
-                    "ca_certificates": ["ca.cert.pem", "intermediate.cert.pem"]
+                    "ca_certificates": ["ca.cert.pem", "intermediate.cert.pem"],
                 },
             },
-            FilePath(__file__).sibling('certs').path, real_reactor, logger)
+            FilePath(__file__).sibling("certs").path,
+            real_reactor,
+            logger,
+        )
 
         client_endpoint = create_connecting_endpoint_from_config(
             {
@@ -361,19 +365,20 @@ class MQTTAdapterTests(TestCase):
                     "certificate": "client_1.crt",
                     "hostname": "localhost",
                     "key": "client_1.key",
-                    "ca_certificates": ["ca.cert.pem", "intermediate.cert.pem"]
+                    "ca_certificates": ["ca.cert.pem", "intermediate.cert.pem"],
                 },
             },
-            FilePath(__file__).sibling('certs').path,
+            FilePath(__file__).sibling("certs").path,
             real_reactor,
-            logger)
+            logger,
+        )
 
         p = []
         l = endpoint.listen(server_factory)
 
         class TestProtocol(Protocol):
             data = b""
-            expected = (ConnACK(session_present=False, return_code=1).serialise())
+            expected = ConnACK(session_present=False, return_code=1).serialise()
 
             def dataReceived(self_, data):
                 self_.data = self_.data + data
@@ -391,15 +396,19 @@ class MQTTAdapterTests(TestCase):
                 p.append(proto)
 
                 proto.transport.write(
-                    Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise())
+                    Connect(client_id="test123", flags=ConnectFlags(clean_session=False)).serialise()
+                )
 
                 proto.transport.write(
-                    Publish(duplicate=False,
-                            qos_level=1,
-                            retain=False,
-                            topic_name="test",
-                            payload=b"{}",
-                            packet_identifier=1).serialise())
+                    Publish(
+                        duplicate=False,
+                        qos_level=1,
+                        retain=False,
+                        topic_name="test",
+                        payload=b"{}",
+                        packet_identifier=1,
+                    ).serialise()
+                )
 
         lc = LoopingCall(pump.flush)
         lc.clock = real_reactor
@@ -433,24 +442,35 @@ class MQTTAdapterTests(TestCase):
         reactor, router, server_factory, session_factory = build_mqtt_server()
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
-        session, pump = connect_application_session(server_factory,
-                                                    ApplicationSession,
-                                                    component_config=ComponentConfig(realm="mqtt",
-                                                                                     controller=MockContainer()))
+        session, pump = connect_application_session(
+            server_factory,
+            ApplicationSession,
+            component_config=ComponentConfig(realm="mqtt", controller=MockContainer()),
+        )
 
         client_transport.write(
-            Connect(client_id="testclient",
-                    username="test123",
-                    password="password",
-                    flags=ConnectFlags(clean_session=False, username=True, password=True)).serialise())
+            Connect(
+                client_id="testclient",
+                username="test123",
+                password="password",
+                flags=ConnectFlags(clean_session=False, username=True, password=True),
+            ).serialise()
+        )
         client_transport.write(
-            Subscribe(packet_identifier=1,
-                      topic_requests=[SubscriptionTopicRequest(topic_filter="com/test/wamp", max_qos=0)]).serialise())
+            Subscribe(
+                packet_identifier=1, topic_requests=[SubscriptionTopicRequest(topic_filter="com/test/wamp", max_qos=0)]
+            ).serialise()
+        )
 
         mqtt_pump.flush()
 
-        self.assertEqual(client_protocol.data, (ConnACK(session_present=False, return_code=0).serialise() +
-                                                SubACK(packet_identifier=1, return_codes=[0]).serialise()))
+        self.assertEqual(
+            client_protocol.data,
+            (
+                ConnACK(session_present=False, return_code=0).serialise()
+                + SubACK(packet_identifier=1, return_codes=[0]).serialise()
+            ),
+        )
         client_protocol.data = b""
 
         session.publish("com.test.wamp", "bar")
@@ -461,11 +481,10 @@ class MQTTAdapterTests(TestCase):
 
         self.assertEqual(
             client_protocol.data,
-            Publish(duplicate=False,
-                    qos_level=0,
-                    retain=False,
-                    topic_name="com/test/wamp",
-                    payload=b'{"args":["bar"]}').serialise())
+            Publish(
+                duplicate=False, qos_level=0, retain=False, topic_name="com/test/wamp", payload=b'{"args":["bar"]}'
+            ).serialise(),
+        )
 
     def _test_retained(self):
         """
@@ -475,29 +494,38 @@ class MQTTAdapterTests(TestCase):
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         client_transport.write(
-            Connect(client_id="testclient",
-                    username="test123",
-                    password="password",
-                    flags=ConnectFlags(clean_session=False, username=True, password=True)).serialise())
+            Connect(
+                client_id="testclient",
+                username="test123",
+                password="password",
+                flags=ConnectFlags(clean_session=False, username=True, password=True),
+            ).serialise()
+        )
 
         client_transport.write(
-            Publish(duplicate=False,
-                    qos_level=1,
-                    retain=True,
-                    topic_name="com/test/wamp",
-                    packet_identifier=123,
-                    payload=b'{}').serialise())
+            Publish(
+                duplicate=False,
+                qos_level=1,
+                retain=True,
+                topic_name="com/test/wamp",
+                packet_identifier=123,
+                payload=b"{}",
+            ).serialise()
+        )
 
         mqtt_pump.flush()
 
         self.assertEqual(
             client_protocol.data,
-            (ConnACK(session_present=False, return_code=0).serialise() + PubACK(packet_identifier=123).serialise()))
+            (ConnACK(session_present=False, return_code=0).serialise() + PubACK(packet_identifier=123).serialise()),
+        )
         client_protocol.data = b""
 
         client_transport.write(
-            Subscribe(packet_identifier=1,
-                      topic_requests=[SubscriptionTopicRequest(topic_filter="com/test/wamp", max_qos=0)]).serialise())
+            Subscribe(
+                packet_identifier=1, topic_requests=[SubscriptionTopicRequest(topic_filter="com/test/wamp", max_qos=0)]
+            ).serialise()
+        )
 
         mqtt_pump.flush()
 
@@ -510,11 +538,14 @@ class MQTTAdapterTests(TestCase):
         # This needs to be replaced with the real deal, see https://github.com/crossbario/crossbar/issues/885
         self.assertEqual(
             client_protocol.data,
-            Publish(duplicate=False,
-                    qos_level=0,
-                    retain=True,
-                    topic_name="com/test/wamp",
-                    payload=json.dumps({}).encode('utf8')).serialise())
+            Publish(
+                duplicate=False,
+                qos_level=0,
+                retain=True,
+                topic_name="com/test/wamp",
+                payload=json.dumps({}).encode("utf8"),
+            ).serialise(),
+        )
 
     def _test_lastwill(self):
         """
@@ -524,19 +555,23 @@ class MQTTAdapterTests(TestCase):
         when it disconnects.
         """
         reactor, router, server_factory, session_factory = build_mqtt_server()
-        session, pump = connect_application_session(server_factory,
-                                                    ObservingSession,
-                                                    component_config=ComponentConfig(realm="mqtt",
-                                                                                     controller=MockContainer()))
+        session, pump = connect_application_session(
+            server_factory,
+            ObservingSession,
+            component_config=ComponentConfig(realm="mqtt", controller=MockContainer()),
+        )
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         client_transport.write(
-            Connect(client_id="testclient",
-                    username="test123",
-                    password="password",
-                    will_topic="test",
-                    will_message=b'{"args":["foobar"]}',
-                    flags=ConnectFlags(clean_session=False, username=True, password=True, will=True)).serialise())
+            Connect(
+                client_id="testclient",
+                username="test123",
+                password="password",
+                will_topic="test",
+                will_message=b'{"args":["foobar"]}',
+                flags=ConnectFlags(clean_session=False, username=True, password=True, will=True),
+            ).serialise()
+        )
 
         mqtt_pump.flush()
 

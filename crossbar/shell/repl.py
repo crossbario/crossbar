@@ -8,31 +8,31 @@
 import os
 import shlex
 import sys
-import six
 from collections import defaultdict
 
 import click
 import click._bashcomplete
 import click.parser
-
+import six
+from autobahn.wamp.exception import ApplicationError
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.styles import style_from_pygments_dict
 from pygments.token import Token
 
-from autobahn.wamp.exception import ApplicationError
-
 from crossbar.shell.util import style_error
 
 
 def _get_bottom_toolbar_tokens(cli):
-    return [(Token.Toolbar, ' This is a toolbar. ')]
+    return [(Token.Toolbar, " This is a toolbar. ")]
 
 
-_style = style_from_pygments_dict({
-    Token.Toolbar: '#ffffff bg:#333333',
-})
+_style = style_from_pygments_dict(
+    {
+        Token.Toolbar: "#ffffff bg:#333333",
+    }
+)
 
 
 class InternalCommandException(Exception):
@@ -47,8 +47,8 @@ _internal_commands = dict()
 
 
 def _register_internal_command(names, target, description=None):
-    if not hasattr(target, '__call__'):
-        raise ValueError('Internal command must be a callable')
+    if not hasattr(target, "__call__"):
+        raise ValueError("Internal command must be a callable")
 
     if isinstance(names, six.string_types):
         names = [names]
@@ -72,22 +72,24 @@ def _exit_internal():
 
 def _help_internal():
     formatter = click.HelpFormatter()
-    formatter.write_heading('REPL help')
+    formatter.write_heading("REPL help")
     formatter.indent()
-    with formatter.section('External Commands'):
+    with formatter.section("External Commands"):
         formatter.write_text('prefix external commands with "!"')
-    with formatter.section('Internal Commands'):
+    with formatter.section("Internal Commands"):
         formatter.write_text('prefix internal commands with ":"')
         info_table = defaultdict(list)  # type: ignore
         for mnemonic, target_info in six.iteritems(_internal_commands):
             info_table[target_info[1]].append(mnemonic)
-        formatter.write_dl((', '.join((':{0}'.format(mnemonic) for mnemonic in sorted(mnemonics))), description)
-                           for description, mnemonics in six.iteritems(info_table))
+        formatter.write_dl(
+            (", ".join((":{0}".format(mnemonic) for mnemonic in sorted(mnemonics))), description)
+            for description, mnemonics in six.iteritems(info_table)
+        )
     return formatter.getvalue()
 
 
-_register_internal_command(['q', 'quit', 'exit'], _exit_internal, 'exits the repl')
-_register_internal_command(['?', 'h', 'help'], _help_internal, 'displays general help information')
+_register_internal_command(["q", "quit", "exit"], _exit_internal, "exits the repl")
+_register_internal_command(["?", "h", "help"], _help_internal, "displays general help information")
 
 
 class ClickCompleter(Completer):
@@ -103,8 +105,7 @@ class ClickCompleter(Completer):
             # Invalid command, perhaps caused by missing closing quotation.
             return
 
-        cursor_within_command = \
-            document.text_before_cursor.rstrip() == document.text_before_cursor
+        cursor_within_command = document.text_before_cursor.rstrip() == document.text_before_cursor
 
         if args and cursor_within_command:
             # We've entered some text and no space, give completions for the
@@ -113,11 +114,11 @@ class ClickCompleter(Completer):
         else:
             # We've not entered anything, either at all or for the current
             # command, so give all relevant completions for this context.
-            incomplete = ''
+            incomplete = ""
 
         # FIXME
         _bc = click._bashcomplete  # type: ignore
-        ctx = _bc.resolve_ctx(self.cli, '', args)
+        ctx = _bc.resolve_ctx(self.cli, "", args)
         if ctx is None:
             return
 
@@ -146,7 +147,7 @@ class ClickCompleter(Completer):
         if isinstance(ctx.command, click.MultiCommand):
             for name in ctx.command.list_commands(ctx):
                 command = ctx.command.get_command(ctx, name)  # type: ignore
-                choices.append(Completion(name, -len(incomplete), display_meta=getattr(command, 'short_help')))
+                choices.append(Completion(name, -len(incomplete), display_meta=getattr(command, "short_help")))
 
         for item in choices:
             if item.text.startswith(incomplete):
@@ -154,21 +155,23 @@ class ClickCompleter(Completer):
 
 
 def continuation_tokens(cli, width):
-    " The continuation: display dots before all the following lines. "
+    "The continuation: display dots before all the following lines."
 
     # (make sure that the width of the continuation does not exceed the given
     # width. -- It is the prompt that decides the width of the left margin.)
-    return [(Token, '.' * (width - 1) + ' ')]
+    return [(Token, "." * (width - 1) + " ")]
 
 
-async def repl(old_ctx,
-               prompt_kwargs=None,
-               allow_system_commands=True,
-               allow_internal_commands=True,
-               once=False,
-               get_bottom_toolbar_tokens=_get_bottom_toolbar_tokens,
-               get_prompt_tokens=None,
-               style=_style):
+async def repl(
+    old_ctx,
+    prompt_kwargs=None,
+    allow_system_commands=True,
+    allow_internal_commands=True,
+    once=False,
+    get_bottom_toolbar_tokens=_get_bottom_toolbar_tokens,
+    get_prompt_tokens=None,
+    style=_style,
+):
     """
     Start an interactive shell. All subcommands are available in it.
 
@@ -195,11 +198,9 @@ async def repl(old_ctx,
     if isatty:
         prompt_kwargs = prompt_kwargs or {}
         if not get_prompt_tokens:
-            prompt_kwargs.setdefault('message', u'>> ')
-        history = prompt_kwargs.pop('history', None) \
-            or InMemoryHistory()
-        completer = prompt_kwargs.pop('completer', None) \
-            or ClickCompleter(group)
+            prompt_kwargs.setdefault("message", ">> ")
+        history = prompt_kwargs.pop("history", None) or InMemoryHistory()
+        completer = prompt_kwargs.pop("completer", None) or ClickCompleter(group)
 
         def get_command():
             return prompt(
@@ -213,7 +214,8 @@ async def repl(old_ctx,
                 # get_prompt_tokens=get_prompt_tokens,
                 style=style,
                 async_=True,
-                **prompt_kwargs)
+                **prompt_kwargs,
+            )
     else:
         get_command = sys.stdin.readline
 
@@ -257,7 +259,7 @@ async def repl(old_ctx,
                 ctx.exit()
 
         except ApplicationError as e:
-            click.echo(style_error(u'[{}] {}'.format(e.error, e.args[0])))
+            click.echo(style_error("[{}] {}".format(e.error, e.args[0])))
 
         except click.ClickException as e:
             e.show()
@@ -266,7 +268,7 @@ async def repl(old_ctx,
             pass
 
 
-def register_repl(group, name='repl'):
+def register_repl(group, name="repl"):
     """Register :func:`repl()` as sub-command *name* of *group*."""
     group.command(name=name)(click.pass_context(repl))
 
@@ -277,7 +279,7 @@ def dispatch_repl_commands(command):
     System commands are all commands starting with "!".
 
     """
-    if command.startswith('!'):
+    if command.startswith("!"):
         os.system(command[1:])  # nosec
         return True
 
@@ -290,7 +292,7 @@ def handle_internal_commands(command):
     Repl-internal commands are all commands starting with ":".
 
     """
-    if command.startswith(':'):
+    if command.startswith(":"):
         target = _get_registered_target(command[1:], default=None)
         if target:
             return target()

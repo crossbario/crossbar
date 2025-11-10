@@ -14,20 +14,20 @@ Interfaces used internally inside Crossbar.io to abstract/decouple different sof
 """
 
 import abc
-from typing import Union, Dict, List, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from autobahn.wamp.interfaces import ISession
-from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge, CloseDetails, SessionDetails, ComponentConfig
 from autobahn.wamp.message import Publish
+from autobahn.wamp.types import Accept, Challenge, CloseDetails, ComponentConfig, Deny, HelloDetails, SessionDetails
 from xbr._schema import FbsRepository
 
 from crossbar.router.observation import UriObservationMap
 
 __all__ = (
-    'IPendingAuth',
-    'IRealmContainer',
-    'IRealmStore',
-    'IInventory',
+    "IPendingAuth",
+    "IRealmContainer",
+    "IRealmStore",
+    "IInventory",
 )
 
 
@@ -35,6 +35,7 @@ class IPendingAuth(abc.ABC):
     """
     Interface to pending WAMP authentications.
     """
+
     @abc.abstractmethod
     def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
         """
@@ -60,6 +61,7 @@ class IRealmContainer(abc.ABC):
     Interface to containers of routing realms the authentication system can query
     about the existence of realms and roles during authentication.
     """
+
     @property
     @abc.abstractmethod
     def config(self) -> ComponentConfig:
@@ -120,6 +122,7 @@ class IRealmStore(abc.ABC):
     """
     Realm store interface common to transient and persistent store implementations.
     """
+
     @property
     @abc.abstractmethod
     def type(self) -> str:
@@ -249,12 +252,14 @@ class IRealmStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_event_history(self,
-                          subscription_id: int,
-                          from_ts: int,
-                          until_ts: int,
-                          reverse: Optional[bool] = None,
-                          limit: Optional[int] = None) -> Optional[List[Dict[str, Any]]]:
+    def get_event_history(
+        self,
+        subscription_id: int,
+        from_ts: int,
+        until_ts: int,
+        reverse: Optional[bool] = None,
+        limit: Optional[int] = None,
+    ) -> Optional[List[Dict[str, Any]]]:
         """
         Retrieve event history for time range for a given subscription.
 
@@ -299,6 +304,7 @@ class IInventory(abc.ABC):
     """
     Realm inventory interface.
     """
+
     @property
     @abc.abstractmethod
     def type(self) -> str:

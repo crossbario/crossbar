@@ -7,9 +7,8 @@
 
 import tempfile
 
-from OpenSSL import crypto, SSL
-from twisted.internet.ssl import DefaultOpenSSLContextFactory, ClientContextFactory
-
+from OpenSSL import SSL, crypto
+from twisted.internet.ssl import ClientContextFactory, DefaultOpenSSLContextFactory
 from txaio import make_logger
 
 # Monkey patch missing constants
@@ -27,15 +26,17 @@ SSL.OP_NO_TLSv1 = 0x04000000
 SSL.OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000
 SSL.OP_NO_TICKET = 0x00004000
 
-SSL_DEFAULT_OPTIONS = SSL.OP_NO_SSLv2 | \
-    SSL.OP_NO_SSLv3 | \
-    SSL.OP_NO_COMPRESSION | \
-    SSL.OP_CIPHER_SERVER_PREFERENCE | \
-    SSL.OP_SINGLE_ECDH_USE | \
-    SSL.OP_SINGLE_DH_USE | \
-    SSL.OP_DONT_INSERT_EMPTY_FRAGMENTS | \
-    SSL.OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION | \
-    SSL.OP_NO_TICKET
+SSL_DEFAULT_OPTIONS = (
+    SSL.OP_NO_SSLv2
+    | SSL.OP_NO_SSLv3
+    | SSL.OP_NO_COMPRESSION
+    | SSL.OP_CIPHER_SERVER_PREFERENCE
+    | SSL.OP_SINGLE_ECDH_USE
+    | SSL.OP_SINGLE_DH_USE
+    | SSL.OP_DONT_INSERT_EMPTY_FRAGMENTS
+    | SSL.OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
+    | SSL.OP_NO_TICKET
+)
 
 # List of available ciphers
 #
@@ -52,7 +53,7 @@ SSL_DEFAULT_OPTIONS = SSL.OP_NO_SSLv2 | \
 # We don't use AES256 and SHA384, to reduce number of ciphers and since the additional security gain seems
 # to worth the additional performance drain.
 #
-SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA'
+SSL_DEFAULT_CIPHERS = "ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA"
 # SSL_DEFAULT_CIPHERS = 'AES128-GCM-SHA256'
 
 # Resorted to prioritize ECDH (hence favor performance over cipher strength) - no gain in practice, that doesn't
@@ -175,7 +176,7 @@ ELLIPTIC_CURVES = {
     SSL.SN_X9_62_prime239v1: SSL.NID_X9_62_prime239v1,
     SSL.SN_X9_62_prime239v2: SSL.NID_X9_62_prime239v2,
     SSL.SN_X9_62_prime239v3: SSL.NID_X9_62_prime239v3,
-    SSL.SN_X9_62_prime256v1: SSL.NID_X9_62_prime256v1
+    SSL.SN_X9_62_prime256v1: SSL.NID_X9_62_prime256v1,
 }
 
 # prime256v1: X9.62/SECG curve over a 256 bit prime field
@@ -223,15 +224,17 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
 
     log = make_logger()
 
-    def __init__(self,
-                 privateKeyString,
-                 certificateString,
-                 chainedCertificate=True,
-                 dhParamFilename=None,
-                 ciphers=None,
-                 ca_certs=[]):
-        self._privateKeyString = str(privateKeyString).encode('utf8')
-        self._certificateString = str(certificateString).encode('utf8')
+    def __init__(
+        self,
+        privateKeyString,
+        certificateString,
+        chainedCertificate=True,
+        dhParamFilename=None,
+        ciphers=None,
+        ca_certs=[],
+    ):
+        self._privateKeyString = str(privateKeyString).encode("utf8")
+        self._certificateString = str(certificateString).encode("utf8")
         self._chainedCertificate = chainedCertificate
         self._dhParamFilename = str(dhParamFilename) if dhParamFilename else None
         self._ciphers = str(ciphers) if ciphers else None
@@ -254,7 +257,7 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             # X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN		19
             # X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY	20
             if errno in [19, 20]:
-                self.log.debug("Can't find CA certificate to verify against or self-signed " "certificate.")
+                self.log.debug("Can't find CA certificate to verify against or self-signed certificate.")
                 self.log.debug("Is 'ca_certificates' endpoint configuration missing a cert?")
         return preverify_ok
 
@@ -283,7 +286,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                     ctx.load_tmp_dh(self._dhParamFilename)
                 except Exception:
                     self.log.failure(
-                        "Error: OpenSSL DH modes not active - failed to load DH parameter file [{log_failure}]")
+                        "Error: OpenSSL DH modes not active - failed to load DH parameter file [{log_failure}]"
+                    )
                 else:
                     self.log.info("Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded.")
             else:

@@ -6,17 +6,18 @@
 #####################################################################################
 
 import os
+
 from txaio import make_logger
 
 try:
-    from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer
 except ImportError:
     HAS_FS_WATCHER = False
 else:
     HAS_FS_WATCHER = True
 
-__all__ = ('FilesystemWatcher', 'HAS_FS_WATCHER')
+__all__ = ("FilesystemWatcher", "HAS_FS_WATCHER")
 
 if HAS_FS_WATCHER:
 
@@ -27,7 +28,7 @@ if HAS_FS_WATCHER:
 
         log = make_logger()
 
-        def __init__(self, working_dir='.', watched_dirs=['.']):
+        def __init__(self, working_dir=".", watched_dirs=["."]):
             """
 
             :param watched_dirs: Directories to watch for changes.
@@ -50,13 +51,14 @@ if HAS_FS_WATCHER:
 
                 def on_any_event(evt):
                     event = {
-                        'type': evt.event_type,
-                        'abs_path': os.path.abspath(evt.src_path),
-                        'rel_path': os.path.relpath(evt.src_path, self._working_dir),
-                        'is_directory': evt.is_directory,
+                        "type": evt.event_type,
+                        "abs_path": os.path.abspath(evt.src_path),
+                        "rel_path": os.path.relpath(evt.src_path, self._working_dir),
+                        "is_directory": evt.is_directory,
                     }
 
                     from twisted.internet import reactor
+
                     reactor.callFromThread(callback, event)
 
                 self._handler.on_any_event = on_any_event

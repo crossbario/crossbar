@@ -6,11 +6,11 @@
 #####################################################################################
 
 import os
-import sys
 import socket
+import sys
 
-from txaio import time_ns
 from autobahn.util import utcnow
+from txaio import time_ns
 
 try:
     import psutil
@@ -19,13 +19,12 @@ except ImportError:
 else:
     _HAS_PSUTIL = True
 
-__all__ = ('SystemInfo', 'ProcessInfo')
+__all__ = ("SystemInfo", "ProcessInfo")
 
 # http://pythonhosted.org/psutil/
 # http://linux.die.net/man/5/proc
 
 if _HAS_PSUTIL:
-
     if sys.platform.startswith("win"):
         _HAS_AF_UNIX = False
     else:
@@ -35,22 +34,21 @@ if _HAS_PSUTIL:
         """
         Access system global information and statistics.
         """
+
         def __init__(self):
-            """
-            """
+            """ """
 
         def cpu(self):
-            return {'physical_count': psutil.cpu_count(logical=False), 'logical_count': psutil.cpu_count(logical=True)}
+            return {"physical_count": psutil.cpu_count(logical=False), "logical_count": psutil.cpu_count(logical=True)}
 
         def stats(self):
-            """
-            """
+            """ """
             res = {}
-            res['ts'] = utcnow()
-            res['cpu'] = self.cpu_stats()
-            res['mem'] = self.mem_stats()
-            res['net'] = self.net_stats()
-            res['disk'] = self.disk_stats()
+            res["ts"] = utcnow()
+            res["cpu"] = self.cpu_stats()
+            res["mem"] = self.mem_stats()
+            res["net"] = self.net_stats()
+            res["disk"] = self.disk_stats()
             return res
 
         def cpu_stats(self):
@@ -60,15 +58,15 @@ if _HAS_PSUTIL:
             res = {}
             i = 0
             for c in psutil.cpu_times(percpu=True):
-                res[i] = {'user': c.user, 'system': c.system, 'idle': c.idle}
+                res[i] = {"user": c.user, "system": c.system, "idle": c.idle}
                 i += 1
             return res
 
         def mem_stats(self):
             res = {}
             m = psutil.virtual_memory()
-            res['total'] = m.total
-            res['available'] = m.available
+            res["total"] = m.total
+            res["available"] = m.available
             return res
 
         def net_stats(self):
@@ -80,18 +78,18 @@ if _HAS_PSUTIL:
             for nic in ns.keys():
                 stats = ns[nic]
                 res[nic] = {
-                    'out': {
-                        'bytes': stats.bytes_sent,
-                        'packets': stats.packets_sent,
-                        'errors': stats.errout,
-                        'dropped': stats.dropout
+                    "out": {
+                        "bytes": stats.bytes_sent,
+                        "packets": stats.packets_sent,
+                        "errors": stats.errout,
+                        "dropped": stats.dropout,
                     },
-                    'in': {
-                        'bytes': stats.bytes_recv,
-                        'packets': stats.packets_recv,
-                        'errors': stats.errin,
-                        'dropped': stats.dropin
-                    }
+                    "in": {
+                        "bytes": stats.bytes_recv,
+                        "packets": stats.packets_recv,
+                        "errors": stats.errin,
+                        "dropped": stats.dropin,
+                    },
                 }
             return res
 
@@ -104,16 +102,8 @@ if _HAS_PSUTIL:
             for disk in ds.keys():
                 stats = ds[disk]
                 res[disk] = {
-                    'read': {
-                        'ops': stats.read_count,
-                        'bytes': stats.read_bytes,
-                        'time': stats.read_time
-                    },
-                    'write': {
-                        'ops': stats.write_count,
-                        'bytes': stats.write_bytes,
-                        'time': stats.write_time
-                    }
+                    "read": {"ops": stats.read_count, "bytes": stats.read_bytes, "time": stats.read_time},
+                    "write": {"ops": stats.write_count, "bytes": stats.write_bytes, "time": stats.write_time},
                 }
             return res
 
@@ -121,18 +111,18 @@ if _HAS_PSUTIL:
         """
         Access process related information and statistics
         """
+
         _ADDRESS_TYPE_FAMILY_MAP = {
-            (socket.AF_INET, socket.SOCK_STREAM): 'tcp4',
-            (socket.AF_INET6, socket.SOCK_STREAM): 'tcp6',
-            (socket.AF_INET, socket.SOCK_DGRAM): 'udp4',
-            (socket.AF_INET6, socket.SOCK_DGRAM): 'udp6',
+            (socket.AF_INET, socket.SOCK_STREAM): "tcp4",
+            (socket.AF_INET6, socket.SOCK_STREAM): "tcp6",
+            (socket.AF_INET, socket.SOCK_DGRAM): "udp4",
+            (socket.AF_INET6, socket.SOCK_DGRAM): "udp6",
         }
 
         if _HAS_AF_UNIX:
-            _ADDRESS_TYPE_FAMILY_MAP.update({
-                (socket.AF_UNIX, socket.SOCK_STREAM): 'unix',
-                (socket.AF_UNIX, socket.SOCK_DGRAM): 'unix'
-            })
+            _ADDRESS_TYPE_FAMILY_MAP.update(
+                {(socket.AF_UNIX, socket.SOCK_STREAM): "unix", (socket.AF_UNIX, socket.SOCK_DGRAM): "unix"}
+            )
 
         def __init__(self, pid=None):
             """
@@ -143,7 +133,7 @@ if _HAS_PSUTIL:
             """
             self._pid = pid or os.getpid()
             self._p = psutil.Process(self._pid)
-            if hasattr(self._p, 'cpu_affinity'):
+            if hasattr(self._p, "cpu_affinity"):
                 self._cpus = sorted(self._p.cpu_affinity())
             else:
                 # osx lacks CPU process affinity altogether, and
@@ -151,6 +141,7 @@ if _HAS_PSUTIL:
                 # => if you can't make it, fake it;)
                 # https://superuser.com/questions/149312/how-to-set-processor-affinity-on-os-x
                 import multiprocessing
+
                 self._cpus = list(range(multiprocessing.cpu_count()))
 
         @property
@@ -162,9 +153,9 @@ if _HAS_PSUTIL:
             Get process statistics.
             """
             res = {}
-            res['ts'] = utcnow()
-            res['time'] = time_ns()
-            res['pid'] = self._pid
+            res["ts"] = utcnow()
+            res["time"] = time_ns()
+            res["pid"] = self._pid
 
             s = self._p.num_ctx_switches()
 
@@ -177,25 +168,25 @@ if _HAS_PSUTIL:
             f = self._p.io_counters()
 
             # process status
-            res['status'] = self._p.status()
+            res["status"] = self._p.status()
 
             # context switches
-            res['voluntary'] = s[0]
-            res['nonvoluntary'] = s[1]
+            res["voluntary"] = s[0]
+            res["nonvoluntary"] = s[1]
 
             # cpu
-            res['user'] = c.user
-            res['system'] = c.system
-            res['cpu_percent'] = c_perc
+            res["user"] = c.user
+            res["system"] = c.system
+            res["cpu_percent"] = c_perc
 
             # memory
-            res['resident'] = m.rss
-            res['virtual'] = m.vms
-            res['mem_percent'] = m_perc
+            res["resident"] = m.rss
+            res["virtual"] = m.vms
+            res["mem_percent"] = m_perc
 
             # disk
-            res['reads'] = f.read_count
-            res['writes'] = f.write_count
+            res["reads"] = f.read_count
+            res["writes"] = f.write_count
             return res
 
         def get_info(self):
@@ -204,7 +195,7 @@ if _HAS_PSUTIL:
             """
             descriptors = None
             try:
-                if sys.platform.startswith('win'):
+                if sys.platform.startswith("win"):
                     descriptors = self._p.num_handles()
                 else:
                     descriptors = self._p.num_fds()
@@ -212,10 +203,10 @@ if _HAS_PSUTIL:
                 pass
             cnt_threads = self._p.num_threads()
             res = {
-                'descriptors': descriptors,
-                'threads': cnt_threads,
-                'files': self.open_files(),
-                'sockets': self.open_sockets()
+                "descriptors": descriptors,
+                "threads": cnt_threads,
+                "files": self.open_files(),
+                "sockets": self.open_sockets(),
             }
             return res
 
@@ -236,7 +227,7 @@ if _HAS_PSUTIL:
             """
             res = []
 
-            for c in self._p.connections(kind='all'):
+            for c in self._p.connections(kind="all"):
                 socket_type = ProcessInfo._ADDRESS_TYPE_FAMILY_MAP.get((c.family, c.type))
                 if _HAS_AF_UNIX and c.family == socket.AF_UNIX:
                     laddr = c.laddr
@@ -248,5 +239,5 @@ if _HAS_PSUTIL:
                     else:
                         raddr = ""
                 status = str(c.status)
-                res.append({'type': socket_type, 'local': laddr, 'remote': raddr, 'status': status})
+                res.append({"type": socket_type, "local": laddr, "remote": raddr, "status": status})
             return res

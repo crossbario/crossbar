@@ -8,9 +8,22 @@
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.selectreactor import SelectReactor
 
-from .interop import Result, ReplayClientFactory, Frame, ConnectionLoss
-from crossbar.bridge.mqtt_events import (Connect, ConnectFlags, ConnACK, Publish, PubACK, PubREL, PubREC, PubCOMP,
-                                         Subscribe, SubscriptionTopicRequest, SubACK, Disconnect)
+from crossbar.bridge.mqtt_events import (
+    ConnACK,
+    Connect,
+    ConnectFlags,
+    Disconnect,
+    PubACK,
+    PubCOMP,
+    Publish,
+    PubREC,
+    PubREL,
+    SubACK,
+    Subscribe,
+    SubscriptionTopicRequest,
+)
+
+from .interop import ConnectionLoss, Frame, ReplayClientFactory, Result
 
 
 def test_connect(host, port):
@@ -54,8 +67,9 @@ def test_reserved_packet_15(host, port):
         Frame(
             send=True,
             #        v pkt 15 right here
-            data=b"\xf0\x13\x00\x04MQTT\x04\x02\x00\x02\x00\x07test123"),
-        ConnectionLoss()
+            data=b"\xf0\x13\x00\x04MQTT\x04\x02\x00\x02\x00\x07test123",
+        ),
+        ConnectionLoss(),
     ]
 
     r = SelectReactor()
@@ -74,8 +88,9 @@ def test_reserved_packet_0(host, port):
         Frame(
             send=True,
             #        v pkt 0 right here
-            data=b"\x00\x13\x00\x04MQTT\x04\x02\x00\x02\x00\x07test123"),
-        ConnectionLoss()
+            data=b"\x00\x13\x00\x04MQTT\x04\x02\x00\x02\x00\x07test123",
+        ),
+        ConnectionLoss(),
     ]
 
     r = SelectReactor()
@@ -152,24 +167,22 @@ def test_qos2_send_wrong_confirm(host, port):
         Frame(send=False, data=ConnACK(session_present=False, return_code=0)),
         Frame(send=True, data=Subscribe(packet_identifier=1234, topic_requests=[SubscriptionTopicRequest("foo", 2)])),
         Frame(send=False, data=SubACK(packet_identifier=1234, return_codes=[2])),
-        Frame(send=True,
-              data=Publish(duplicate=False,
-                           qos_level=2,
-                           topic_name="foo",
-                           payload=b"abc",
-                           retain=False,
-                           packet_identifier=12)),
-        Frame(send=False,
-              data=[
-                  PubREC(packet_identifier=12),
-                  Publish(duplicate=False,
-                          qos_level=2,
-                          topic_name="foo",
-                          payload=b"abc",
-                          retain=False,
-                          packet_identifier=1),
-                  PubCOMP(packet_identifier=12)
-              ]),
+        Frame(
+            send=True,
+            data=Publish(
+                duplicate=False, qos_level=2, topic_name="foo", payload=b"abc", retain=False, packet_identifier=12
+            ),
+        ),
+        Frame(
+            send=False,
+            data=[
+                PubREC(packet_identifier=12),
+                Publish(
+                    duplicate=False, qos_level=2, topic_name="foo", payload=b"abc", retain=False, packet_identifier=1
+                ),
+                PubCOMP(packet_identifier=12),
+            ],
+        ),
         Frame(send=True, data=PubREL(packet_identifier=12)),
         Frame(send=True, data=PubACK(packet_identifier=1)),
         Frame(send=False, data=b""),
@@ -192,23 +205,21 @@ def test_qos1_send_wrong_confirm(host, port):
         Frame(send=False, data=ConnACK(session_present=False, return_code=0)),
         Frame(send=True, data=Subscribe(packet_identifier=1234, topic_requests=[SubscriptionTopicRequest("foo", 2)])),
         Frame(send=False, data=SubACK(packet_identifier=1234, return_codes=[2])),
-        Frame(send=True,
-              data=Publish(duplicate=False,
-                           qos_level=1,
-                           topic_name="foo",
-                           payload=b"abc",
-                           retain=False,
-                           packet_identifier=12)),
-        Frame(send=False,
-              data=[
-                  PubACK(packet_identifier=12),
-                  Publish(duplicate=False,
-                          qos_level=1,
-                          topic_name="foo",
-                          payload=b"abc",
-                          retain=False,
-                          packet_identifier=1)
-              ]),
+        Frame(
+            send=True,
+            data=Publish(
+                duplicate=False, qos_level=1, topic_name="foo", payload=b"abc", retain=False, packet_identifier=12
+            ),
+        ),
+        Frame(
+            send=False,
+            data=[
+                PubACK(packet_identifier=12),
+                Publish(
+                    duplicate=False, qos_level=1, topic_name="foo", payload=b"abc", retain=False, packet_identifier=1
+                ),
+            ],
+        ),
         # We send a pubrel to the packet_id expecting a puback
         Frame(send=True, data=PubREL(packet_identifier=1)),
         # ..aaaaand we get a pubcomp back (even though mosquitto warns).

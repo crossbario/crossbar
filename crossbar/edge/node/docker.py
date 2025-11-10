@@ -6,20 +6,20 @@
 ##############################################################################
 
 import json
-import time
 import os
+import time
 from datetime import datetime
-from selectors import DefaultSelector, EVENT_READ
+from selectors import EVENT_READ, DefaultSelector
 from typing import List
 
 import txaio
-
-from twisted.internet.defer import inlineCallbacks
 from twisted.internet import threads
+from twisted.internet.defer import inlineCallbacks
 from twisted.python.threadpool import ThreadPool
 
 try:
     import docker
+
     HAS_DOCKER = True
 except:
     HAS_DOCKER = False
@@ -36,13 +36,13 @@ if HAS_DOCKER:
             self._tty_id = tty_id
             self._shell = shell
             self.register()
-            self.log.debug('Channel create, id={id}, tty_id={tty_id}', id=id, tty_id=tty_id)
+            self.log.debug("Channel create, id={id}, tty_id={tty_id}", id=id, tty_id=tty_id)
 
         def set_tty(self, tty_id):
             self._tty_id = tty_id
 
         def register(self):
-            self._key = self._selector.register(self._socket, events=EVENT_READ, data={'id': self._id})
+            self._key = self._selector.register(self._socket, events=EVENT_READ, data={"id": self._id})
             self.keepalive()
 
         def unregister(self):
@@ -53,13 +53,13 @@ if HAS_DOCKER:
 
         def write(self, data):
             try:
-                os.write(self._socket.fileno(), data.encode('utf-8'))
+                os.write(self._socket.fileno(), data.encode("utf-8"))
                 self.keepalive()
                 return
             except BrokenPipeError:
-                self.log.debug('Someone stopped or reset the container [PIPE]!')
+                self.log.debug("Someone stopped or reset the container [PIPE]!")
             except ValueError:
-                self.log.debug('Someone stopped or reset the container [VALUE]!')
+                self.log.debug("Someone stopped or reset the container [VALUE]!")
             self._shell = None
 
         def keepalive(self):
@@ -76,8 +76,8 @@ if HAS_DOCKER:
                 #   send a Control+C -> exit and hope for the best. If the user gets
                 #   into trouble, they just have to restart the container.
                 #
-                self.write('\x03\n')
-                self.write('exit\n')
+                self.write("\x03\n")
+                self.write("exit\n")
 
             self.unregister()
             return self._key
@@ -121,7 +121,6 @@ if HAS_DOCKER:
                 self._channels[id].unregister()
 
         def close(self, id):
-
             if id in self._channels:
                 channel = self._channels[id]
                 channel.close()
@@ -130,7 +129,7 @@ if HAS_DOCKER:
                 if id in self._channels:
                     del self._channels[id]
             else:
-                self.log.error('attempt to close phantom channel')
+                self.log.error("attempt to close phantom channel")
 
         def write(self, id, data):
             self._channels[id].write(data)
@@ -150,7 +149,7 @@ if HAS_DOCKER:
                     expired += 1
                     self.close(id)
             if (channels != self._last_channels) or (expired != self._last_expired):
-                self.log.info('Docker console expire - updated :: channels={}, expired={}'.format(channels, expired))
+                self.log.info("Docker console expire - updated :: channels={}, expired={}".format(channels, expired))
                 self._last_channels = channels
                 self._last_expired = expired
 
@@ -158,12 +157,13 @@ if HAS_DOCKER:
         """
         Asynchronous Docker client (living on a background thread pool).
         """
+
         _docker = docker
         log = txaio.make_logger()
 
         CONSOLE_HISTORY = 60
         WAIT_TIMEOUT = 1
-        EXCLUDE_DIRS_ANY: List[str] = ['.cache']
+        EXCLUDE_DIRS_ANY: List[str] = [".cache"]
 
         def __init__(self, reactor, controller):
             """
@@ -177,23 +177,23 @@ if HAS_DOCKER:
             self._events = None
 
         def console(self, section, status):
-            self.log.info(f'docker - {section} - {status}')
+            self.log.info(f"docker - {section} - {status}")
 
         def startup(self):
             """
             Startup Docker client.
             """
             if not self._finished:
-                self.log.warn('Docker client already running!')
+                self.log.warn("Docker client already running!")
                 return
 
-            self.console('module', 'starting')
+            self.console("module", "starting")
 
             self._finished = False
             self._channels = Channels()
 
             # dedicated threadpool for docker work
-            self._threadpool = ThreadPool(minthreads=4, maxthreads=100, name='docker')
+            self._threadpool = ThreadPool(minthreads=4, maxthreads=100, name="docker")
             self._threadpool.start()
 
             # our 'events' pub/sub docker events emulator
@@ -205,52 +205,52 @@ if HAS_DOCKER:
             # our 'keepalive' monitor
             threads.deferToThreadPool(self._reactor, self._threadpool, self.keepalive)
 
-            self.console('module', 'started')
+            self.console("module", "started")
 
         def shutdown(self):
             """
             Shutdown Docker client.
             """
             if self._finished:
-                self.console('module', 'already stopped')
+                self.console("module", "already stopped")
                 return
 
-            self.console('module', 'stopping')
+            self.console("module", "stopping")
             self._finished = True
-            self.console('keepalive', 'stopping')
+            self.console("keepalive", "stopping")
 
             if self._events:
-                self.console('events', 'stopping')
+                self.console("events", "stopping")
                 self._events.close()
 
             if self._threadpool:
-                self.console('threads', 'stopping')
+                self.console("threads", "stopping")
                 self._threadpool.stop()
 
-            self.console('module', 'stopped')
+            self.console("module", "stopped")
 
         def keepalive(self):
             """
             Monitor all our active channels and expire any once keepalive's stop
             """
-            self.console('keepalive', 'started')
+            self.console("keepalive", "started")
             while not self._finished:
                 self._channels.expire()
                 for x in range(10):
                     if self._finished:
                         break
                     time.sleep(self.WAIT_TIMEOUT)
-            self.console('keepalive', 'stopped')
+            self.console("keepalive", "stopped")
 
         def logs(self):
             """
             Forward console logs from containers back into Crossbar
             """
-            self.console('logs', 'started')
+            self.console("logs", "started")
             while not self._finished:
                 worklist = self._channels.select(self.WAIT_TIMEOUT)
-                for (key, events) in worklist:
-                    id = key.data['id']
+                for key, events in worklist:
+                    id = key.data["id"]
                     line = os.read(key.fd, 8192)
                     if not line:
                         self._channels.silence(id)
@@ -259,17 +259,18 @@ if HAS_DOCKER:
                     if tty_id >= 0:
                         self._reactor.callFromThread(
                             self._controller.publish,
-                            f'crossbar.worker.{self._controller._uri_prefix}.docker.tty_{tty_id}',
-                            {'line': line.decode('utf-8')})
+                            f"crossbar.worker.{self._controller._uri_prefix}.docker.tty_{tty_id}",
+                            {"line": line.decode("utf-8")},
+                        )
                         time.sleep(0.1)
-            self.console('logs', 'stopped')
+            self.console("logs", "stopped")
 
         def events(self):
             """
             Called from node controller in a background thread to watch (blocking!)
             for Docker events and publish those as WAMP events on the main thread.
             """
-            self.console('events', 'started')
+            self.console("events", "started")
 
             # DOCKER records logs with 1 second granularity, so it will potentiall have MANY lines with
             # the same timestamp. Asking for timestamp + delta is unsafe as it can only ask for the
@@ -289,54 +290,54 @@ if HAS_DOCKER:
                     for event in self._events:
                         if self._finished:
                             break
-                        event = json.loads(event, encoding='utf8')
-                        ident = event.get('id')
+                        event = json.loads(event, encoding="utf8")
+                        ident = event.get("id")
                         if not ident:
                             continue
-                        etype = event.get('Type')
-                        eactn = event.get('Action')
-                        topic = u'crossbar.worker.{}.docker.on_{}_{}'.format(self._controller._uri_prefix, etype,
-                                                                             eactn)
-                        if etype == 'container' and eactn == 'restart':
+                        etype = event.get("Type")
+                        eactn = event.get("Action")
+                        topic = "crossbar.worker.{}.docker.on_{}_{}".format(self._controller._uri_prefix, etype, eactn)
+                        if etype == "container" and eactn == "restart":
                             self.watch(ident, self._channels.get_tty(ident))
                         try:
-                            payload = {'id': ident}
-                            self.log.debug('publish : {topic} => {packet}', topic=topic, packet=payload)
+                            payload = {"id": ident}
+                            self.log.debug("publish : {topic} => {packet}", topic=topic, packet=payload)
                             if self._controller:
                                 self._reactor.callFromThread(self._controller.publish, topic, payload)
 
                         except Exception as e:
-                            self.log.error('Error: not able to handle event type :: {}'.format(topic))
+                            self.log.error("Error: not able to handle event type :: {}".format(topic))
                             print(e)
 
                 except Exception as e:
                     self.log.error(f'error in "events" - {str(e)}')
 
-            self.console('events', 'stopped')
+            self.console("events", "stopped")
 
         @inlineCallbacks
         def create(self, image, kwargs):
             """
             Create a new container and get it ready to run
             """
+
             def shim(image, **kwargs):
                 client = self._docker.from_env()
                 try:
                     container = client.containers.create(image, **kwargs)
-                    return {'id': container.id}
+                    return {"id": container.id}
                 except docker.errors.ImageNotFound:
-                    self.log.info('No Image ({image}) attempting to pull', image=image)
+                    self.log.info("No Image ({image}) attempting to pull", image=image)
                     try:
                         client.images.pull(image)
                         container = client.containers.create(image, **kwargs)
-                        return {'id': container.id}
+                        return {"id": container.id}
                     except docker.errors.APIError:
-                        raise Exception('Docker failed to pull ({image})', image=image)
+                        raise Exception("Docker failed to pull ({image})", image=image)
 
-            self.log.debug('docker create :: {image} -> {kw}', image=image, kw=kwargs)
-            kwargs['detach'] = True
-            kwargs['tty'] = True
-            kwargs['stdin_open'] = True
+            self.log.debug("docker create :: {image} -> {kw}", image=image, kw=kwargs)
+            kwargs["detach"] = True
+            kwargs["tty"] = True
+            kwargs["stdin_open"] = True
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, image, **kwargs))
 
         @inlineCallbacks
@@ -346,10 +347,11 @@ if HAS_DOCKER:
 
             Shell command: ``crossbar shell --realm mrealm1 show docker node1``
             """
+
             def shim():
                 return self._docker.from_env().info()
 
-            self.log.debug('docker get_info')
+            self.log.debug("docker get_info")
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim))
 
         @inlineCallbacks
@@ -357,10 +359,11 @@ if HAS_DOCKER:
             """
             Recover a list of container ID's
             """
+
             def shim():
                 return [c.id for c in self._docker.from_env().containers.list(all=True)]
 
-            self.log.debug('docker get_containers')
+            self.log.debug("docker get_containers")
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim))
 
         @inlineCallbacks
@@ -368,13 +371,14 @@ if HAS_DOCKER:
             """
             Recover information about one specific container (by id)
             """
+
             def shim(id):
                 try:
                     return self._docker.from_env().containers.get(id).attrs
                 except Exception as e:
-                    return {'error': 'unable to get container details', 'traceback': str(e)}
+                    return {"error": "unable to get container details", "traceback": str(e)}
 
-            self.log.debug('docker get_container -> {id}', id=id)
+            self.log.debug("docker get_container -> {id}", id=id)
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, id))
 
         @inlineCallbacks
@@ -384,10 +388,11 @@ if HAS_DOCKER:
 
             Shell command: ``crossbar shell --realm mrealm1 list docker-images node1``
             """
+
             def shim():
                 return [c.id for c in self._docker.from_env().images.list()]
 
-            self.log.debug('docker get_images')
+            self.log.debug("docker get_images")
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim))
 
         @inlineCallbacks
@@ -395,15 +400,16 @@ if HAS_DOCKER:
             """
             Purge old images
             """
+
             def shim():
                 try:
                     return self._docker.from_env().images.remove(id)
                 except Exception as e:
                     print(e)
                     print(dir(e))
-                    return {'error': 'unable to remove image', 'traceback': str(e)}
+                    return {"error": "unable to remove image", "traceback": str(e)}
 
-            self.log.debug('docker delete_image')
+            self.log.debug("docker delete_image")
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim))
 
         @inlineCallbacks
@@ -413,13 +419,14 @@ if HAS_DOCKER:
 
             Shell command: ``crossbar shell --realm mrealm1 show docker-image node1 4bbb66``
             """
+
             def shim(id):
                 try:
                     return self._docker.from_env().images.get(id).attrs
                 except Exception as e:
-                    return {'error': 'unable to get image', 'traceback': str(e)}
+                    return {"error": "unable to get image", "traceback": str(e)}
 
-            self.log.debug('docker get_image -> {id}', id=id)
+            self.log.debug("docker get_image -> {id}", id=id)
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, id))
 
         @inlineCallbacks
@@ -427,10 +434,11 @@ if HAS_DOCKER:
             """
             Get information relating to docker's usage of available storage
             """
+
             def shim():
                 return self._docker.from_env().df()
 
-            self.log.debug('docker df')
+            self.log.debug("docker df")
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim))
 
         @inlineCallbacks
@@ -438,13 +446,14 @@ if HAS_DOCKER:
             """
             Bounce a message off docket to see if it's running
             """
+
             def shim():
                 try:
                     return self._docker.from_env().ping()
                 except Exception:
                     return False
 
-            self.log.debug('docker ping')
+            self.log.debug("docker ping")
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim))
 
         @inlineCallbacks
@@ -452,10 +461,11 @@ if HAS_DOCKER:
             """
             Get the version information of our docker instance
             """
+
             def shim():
                 return self._docker.from_env().version()
 
-            self.log.debug('docker version')
+            self.log.debug("docker version")
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim))
 
         @inlineCallbacks
@@ -463,13 +473,14 @@ if HAS_DOCKER:
             """
             Operate on a specific container (by id)
             """
+
             def shim(id, cmd):
                 container = self._docker.from_env().containers.get(id)
                 if hasattr(container, cmd):
                     return getattr(container, cmd)()
-                raise Exception('no such command :: {}'.format(cmd))
+                raise Exception("no such command :: {}".format(cmd))
 
-            self.log.debug('docker container -> {id} + {cmd}', id=id, cmd=cmd)
+            self.log.debug("docker container -> {id} + {cmd}", id=id, cmd=cmd)
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, id, cmd))
 
         @inlineCallbacks
@@ -477,20 +488,21 @@ if HAS_DOCKER:
             """
             Specific container routine that needs a non-default timeout
             """
+
             def shim(id):
                 container = self._docker.from_env().containers.get(id)
                 status = container.start()
                 tty_id = self._channels.get_tty(id)
                 if tty_id >= 0:
                     client = docker.APIClient()
-                    params = {'stdin': 1, 'stdout': 1, 'stderr': 1, 'stream': 1, 'timestamps': 0, 'logs': 0}
+                    params = {"stdin": 1, "stdout": 1, "stderr": 1, "stream": 1, "timestamps": 0, "logs": 0}
                     socket = client.attach_socket(id, params)
                     self._channels.close(id)
                     self._channels.create(id, socket, tty_id)
-                    status = {'status': 'OK', 'id': id, 'tty_id': tty_id}
+                    status = {"status": "OK", "id": id, "tty_id": tty_id}
                 return status
 
-            self.log.debug('docker container start -> {id}', id=id)
+            self.log.debug("docker container start -> {id}", id=id)
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, id))
 
         @inlineCallbacks
@@ -498,22 +510,23 @@ if HAS_DOCKER:
             """
             Specific container routine that needs a non-default timeout
             """
+
             def shim(id):
                 container = self._docker.from_env().containers.get(id)
                 try:
                     container.restart(timeout=1)
                 except Exception as e:
-                    self.log.error('Exception while trying to restart container')
+                    self.log.error("Exception while trying to restart container")
                     self.log.error(str(e))
                 tty_id = self._channels.get_tty(id)
                 client = self._docker.APIClient()
-                params = {'stdin': 1, 'stdout': 1, 'stderr': 1, 'stream': 1, 'timestamps': 0, 'logs': 0}
+                params = {"stdin": 1, "stdout": 1, "stderr": 1, "stream": 1, "timestamps": 0, "logs": 0}
                 socket = client.attach_socket(id, params)
                 self._channels.close(id)
                 self._channels.create(id, socket, tty_id)
-                return {'status': 'OK', 'id': id, 'tty_id': tty_id}
+                return {"status": "OK", "id": id, "tty_id": tty_id}
 
-            self.log.info('docker container restart -> {id}', id=id)
+            self.log.info("docker container restart -> {id}", id=id)
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, id))
 
         @inlineCallbacks
@@ -521,13 +534,14 @@ if HAS_DOCKER:
             """
             Operate on a specific image (by id)
             """
+
             def shim(id, cmd):
                 image = self._docker.from_env().images.get(id)
                 if hasattr(image, cmd):
                     return getattr(image, cmd)()
-                raise Exception('no such command :: {}'.format(cmd))
+                raise Exception("no such command :: {}".format(cmd))
 
-            self.log.debug('docker image -> {id} + {cmd}', id=id, cmd=cmd)
+            self.log.debug("docker image -> {id} + {cmd}", id=id, cmd=cmd)
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, id, cmd))
 
         @inlineCallbacks
@@ -535,10 +549,11 @@ if HAS_DOCKER:
             """
             Prune docker images
             """
+
             def shim(filter):
                 return self._docker.from_env().images.prune(filter)
 
-            self.log.debug('docker prune -> {filter}', filter=filter)
+            self.log.debug("docker prune -> {filter}", filter=filter)
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, filter))
 
         @inlineCallbacks
@@ -546,49 +561,51 @@ if HAS_DOCKER:
             """
             Request historical console logs / buffer
             """
+
             def shim(id):
                 if not self._channels.exists(id):
-                    return {'status': 'NOTFOUND'}
+                    return {"status": "NOTFOUND"}
 
                 client = self._docker.from_env()
                 try:
                     container = client.containers.get(id)
                 # FIXME: NotFound
                 except:
-                    return {'status': 'OK', 'packet': ''}
+                    return {"status": "OK", "packet": ""}
 
                 lines = container.logs(stdout=1, stderr=1, stream=0, timestamps=1, tail=60)
-                return {'status': 'OK', 'packet': lines[-16384:].decode('utf-8')}
+                return {"status": "OK", "packet": lines[-16384:].decode("utf-8")}
 
-            self.log.debug('docker backlog -> {id}', id=id)
+            self.log.debug("docker backlog -> {id}", id=id)
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, id))
 
         def request_tty(self, id):
-            return {'status': 'OK', 'tty_id': self._channels.get_next_id(id)}
+            return {"status": "OK", "tty_id": self._channels.get_next_id(id)}
 
         @inlineCallbacks
         def watch(self, id, tty_id):
             """
             Watch the console of the specified container
             """
+
             def shim(id):
                 try:
                     client = self._docker.from_env()
                     container = client.containers.get(id)
                 except docker.errors.NotFound:
-                    return {'status': 'NOTFOUND', 'packet': ''}
+                    return {"status": "NOTFOUND", "packet": ""}
 
                 if self._channels.exists(id) or self._channels.tty_exists(tty_id):
                     self._channels.set_tty(id, tty_id)
                     buffer = container.logs(stdout=1, stderr=1, stream=0, timestamps=0, tail=self.CONSOLE_HISTORY)
                 else:
                     client = self._docker.APIClient()
-                    params = {'stdin': 1, 'stdout': 1, 'stderr': 1, 'stream': 1, 'timestamps': 0, 'logs': 0}
+                    params = {"stdin": 1, "stdout": 1, "stderr": 1, "stream": 1, "timestamps": 0, "logs": 0}
                     socket = client.attach_socket(id, params)
                     buffer = container.logs(stdout=1, stderr=1, stream=0, timestamps=0, tail=self.CONSOLE_HISTORY)
                     self._channels.create(id, socket, tty_id)
 
-                buffer = buffer.decode('utf-8')
+                buffer = buffer.decode("utf-8")
                 # attempt to clean broken ESC sequence
                 if len(buffer) > 16384:
                     buffer = buffer[-16384:]
@@ -596,9 +613,9 @@ if HAS_DOCKER:
                         if ord(buffer[i]) == 27:
                             buffer = buffer[i:]
                             break
-                return {'status': 'OK', 'id': id, 'tty_id': tty_id, 'buffer': buffer}
+                return {"status": "OK", "id": id, "tty_id": tty_id, "buffer": buffer}
 
-            self.log.debug('docker watch -> {id}', id=id)
+            self.log.debug("docker watch -> {id}", id=id)
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, id))
 
         def keystroke(self, id, data):
@@ -606,27 +623,27 @@ if HAS_DOCKER:
             Enter a new keystroke into a container console
             """
             if not self._channels.exists(id):
-                return {'status': 'NOTFOUND'}
+                return {"status": "NOTFOUND"}
 
             if isinstance(data, list):
                 for item in data:
-                    if item['action'] == 'keepalive':
+                    if item["action"] == "keepalive":
                         self._channels.keepalive(id)
-                    elif item['action'] == 'size_console':
+                    elif item["action"] == "size_console":
                         client = self._docker.from_env()
                         container = client.containers.get(id)
-                        container.resize(item['rows'], item['cols'])
-                    elif item['action'] == 'size_shell':
+                        container.resize(item["rows"], item["cols"])
+                    elif item["action"] == "size_shell":
                         client = self._docker.APIClient()
-                        client.exec_resize(id, item['rows'], item['cols'])
-                    elif item['action'] == 'close':
+                        client.exec_resize(id, item["rows"], item["cols"])
+                    elif item["action"] == "close":
                         self._channels.close(id)
                     else:
-                        self.log.error('unknown keystroke command: {cmd}', cmd=item)
+                        self.log.error("unknown keystroke command: {cmd}", cmd=item)
                 return
 
             self._channels.write(id, data)
-            return {'status': 'OK'}
+            return {"status": "OK"}
 
         @inlineCallbacks
         def shell(self, container, tty_id, kwargs={}):
@@ -636,31 +653,31 @@ if HAS_DOCKER:
             client = self._docker.APIClient()
 
             def shim(image, **kwargs):
-                kwargs['tty'] = True
-                kwargs['stdin'] = True
-                cmd = '/bin/bash'
+                kwargs["tty"] = True
+                kwargs["stdin"] = True
+                cmd = "/bin/bash"
                 return client.exec_create(container, cmd, **kwargs)
 
-            self.log.debug('docker shell :: {container} -> {kw}', container=container, kw=kwargs)
-            execId = (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, container, **kwargs))
-            id = execId.get('Id')
+            self.log.debug("docker shell :: {container} -> {kw}", container=container, kw=kwargs)
+            execId = yield threads.deferToThreadPool(self._reactor, self._threadpool, shim, container, **kwargs)
+            id = execId.get("Id")
 
             def shim2():
                 socket = client.exec_start(id, detach=False, tty=True, socket=True)
                 self._channels.create(id, socket, tty_id, True)
-                return {'status': 'OK', 'id': id}
+                return {"status": "OK", "id": id}
 
             return (yield threads.deferToThreadPool(self._reactor, self._threadpool, shim2))
 
         def fs_root(self, id, path):
-            while path and path[0] == '/':
+            while path and path[0] == "/":
                 path = path[1:]
             container = self._docker.from_env().containers.get(id)
-            for point in container.attrs.get('Mounts', []):
-                dst = point.get('Destination', '')
-                src = point.get('Source', '')
-                if f'/{path}'.startswith(f'{dst}/'):
-                    path = "/".join(path.split('/')[1:])
+            for point in container.attrs.get("Mounts", []):
+                dst = point.get("Destination", "")
+                src = point.get("Source", "")
+                if f"/{path}".startswith(f"{dst}/"):
+                    path = "/".join(path.split("/")[1:])
                     return os.path.join(src, path)
             raise Exception(f'invalid path "{path}"')
 
@@ -668,26 +685,26 @@ if HAS_DOCKER:
             """
             Read the filesystem structure for the given container
             """
-            while path and path[0] == '/':
+            while path and path[0] == "/":
                 path = path[1:]
             files = []
             dirs = []
             container = self._docker.from_env().containers.get(id)
             if not path:
-                for point in container.attrs.get('Mounts', []):
-                    dirs.append(point.get('Destination'))
+                for point in container.attrs.get("Mounts", []):
+                    dirs.append(point.get("Destination"))
             else:
-                if path[:-1] != '/':
-                    path += '/'
-                for point in container.attrs.get('Mounts', []):
-                    dst = point.get('Destination', '')
-                    src = point.get('Source', '')
-                    print(f'path={path} dst={dst}')
-                    if not f'/{path}'.startswith(f'{dst}/'):
+                if path[:-1] != "/":
+                    path += "/"
+                for point in container.attrs.get("Mounts", []):
+                    dst = point.get("Destination", "")
+                    src = point.get("Source", "")
+                    print(f"path={path} dst={dst}")
+                    if not f"/{path}".startswith(f"{dst}/"):
                         continue
-                    path = "/".join(path.split('/')[1:])
+                    path = "/".join(path.split("/")[1:])
                     root = os.path.join(src, path)
-                    print(f'Root={root}')
+                    print(f"Root={root}")
                     with os.scandir(root) as iterator:
                         for entry in iterator:
                             if entry.is_file():
@@ -697,18 +714,18 @@ if HAS_DOCKER:
                                     dirs.append(entry.name)
             dirs.sort()
             files.sort()
-            return {'dirs': dirs, 'files': files}
+            return {"dirs": dirs, "files": files}
 
         def fs_get(self, id, path):
             """
             Recover a file from a container filesystem
             """
             with open(self.fs_root(id, path)) as io:
-                return {'data': io.read()}
+                return {"data": io.read()}
 
         def fs_put(self, id, path, data):
             """
             Store a file into a Docker container
             """
-            with open(self.fs_root(id, path), 'w') as io:
+            with open(self.fs_root(id, path), "w") as io:
                 io.write(data)

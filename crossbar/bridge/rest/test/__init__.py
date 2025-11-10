@@ -5,24 +5,20 @@
 #
 #####################################################################################
 
-import hmac
-import hashlib
-import random
 import base64
-
+import hashlib
+import hmac
+import random
 from collections import namedtuple
 
-from ._request import request
-
+from autobahn import util
+from autobahn.wamp import message, role, serializer
+from autobahn.wamp.types import TransportDetails
 from twisted.internet import reactor
-from twisted.internet.defer import maybeDeferred, Deferred
+from twisted.internet.defer import Deferred, maybeDeferred
 from twisted.web.test._util import _render
 
-from autobahn.wamp import message
-from autobahn.wamp import serializer
-from autobahn.wamp import role
-from autobahn.wamp.types import TransportDetails
-from autobahn import util
+from ._request import request
 
 publishedMessage = namedtuple("publishedMessage", ["id"])
 
@@ -31,6 +27,7 @@ class MockPublisherSession(object):
     """
     A mock WAMP session.
     """
+
     def __init__(self, testCase):
         self._published_messages = []
 
@@ -48,37 +45,37 @@ class MockPublisherSession(object):
 
 
 def makeSignedArguments(params, signKey, signSecret, body):
-
-    params[b'timestamp'] = [util.utcnow().encode()]
-    params[b'seq'] = [b"1"]
-    params[b'key'] = [signKey.encode()]
-    params[b'nonce'] = [str(random.randint(0, 9007199254740992)).encode()]
+    params[b"timestamp"] = [util.utcnow().encode()]
+    params[b"seq"] = [b"1"]
+    params[b"key"] = [signKey.encode()]
+    params[b"nonce"] = [str(random.randint(0, 9007199254740992)).encode()]
 
     # HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
 
-    hm = hmac.new(signSecret.encode('utf8'), None, hashlib.sha256)
-    hm.update(params[b'key'][0])
-    hm.update(params[b'timestamp'][0])
-    hm.update(params[b'seq'][0])
-    hm.update(params[b'nonce'][0])
+    hm = hmac.new(signSecret.encode("utf8"), None, hashlib.sha256)
+    hm.update(params[b"key"][0])
+    hm.update(params[b"timestamp"][0])
+    hm.update(params[b"seq"][0])
+    hm.update(params[b"nonce"][0])
     hm.update(body)
     signature = base64.urlsafe_b64encode(hm.digest())
-    params[b'signature'] = [signature]
+    params[b"signature"] = [signature]
 
     return params
 
 
-def renderResource(resource,
-                   path,
-                   params=None,
-                   method=b"GET",
-                   body=b"",
-                   isSecure=False,
-                   headers=None,
-                   sign=False,
-                   signKey=None,
-                   signSecret=None):
-
+def renderResource(
+    resource,
+    path,
+    params=None,
+    method=b"GET",
+    body=b"",
+    isSecure=False,
+    headers=None,
+    sign=False,
+    signKey=None,
+    signSecret=None,
+):
     params = {} if params is None else params
     headers = {} if params is None else headers
 
@@ -141,7 +138,7 @@ class MockTransport(object):
 
         self._handler.onOpen(self)
 
-        roles = {'broker': role.RoleBrokerFeatures(), 'dealer': role.RoleDealerFeatures()}
+        roles = {"broker": role.RoleBrokerFeatures(), "dealer": role.RoleDealerFeatures()}
 
         msg = message.Welcome(self._my_session_id, roles)
         self._handler.onMessage(msg)
@@ -154,7 +151,6 @@ class MockTransport(object):
         return self._transport_details
 
     def send(self, msg):
-
         if self._log:
             print("req")
             print(msg)
@@ -163,7 +159,6 @@ class MockTransport(object):
 
         if isinstance(msg, message.Publish):
             if msg.topic in self._subscription_topics.keys():
-
                 pubID = util.id()
 
                 def published():
@@ -176,9 +171,9 @@ class MockTransport(object):
                     reactor.callLater(0, published)
 
             elif len(msg.topic) == 0:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, 'wamp.error.invalid_uri')
+                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, "wamp.error.invalid_uri")
             else:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, 'wamp.error.not_authorized')
+                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, "wamp.error.not_authorized")
 
         elif isinstance(msg, message.Error):
             # Convert an invocation error into a call error
@@ -199,7 +194,7 @@ class MockTransport(object):
                 reactor.callLater(0, invoke)
 
             else:
-                reply = message.Error(message.Call.MESSAGE_TYPE, msg.request, 'wamp.error.no_such_procedure')
+                reply = message.Error(message.Call.MESSAGE_TYPE, msg.request, "wamp.error.no_such_procedure")
 
         elif isinstance(msg, message.Yield):
             if msg.request in self._invocations:

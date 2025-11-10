@@ -4,8 +4,9 @@
 
 import flatbuffers
 
+
 class KeyValue(object):
-    __slots__ = ['_tab']
+    __slots__ = ["_tab"]
 
     @classmethod
     def GetRootAsKeyValue(cls, buf, offset):
@@ -32,7 +33,18 @@ class KeyValue(object):
             return self._tab.String(o + self._tab.Pos)
         return bytes()
 
-def KeyValueStart(builder): builder.StartObject(2)
-def KeyValueAddKey(builder, key): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(key), 0)
-def KeyValueAddValue(builder, value): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(value), 0)
-def KeyValueEnd(builder): return builder.EndObject()
+
+def KeyValueStart(builder):
+    builder.StartObject(2)
+
+
+def KeyValueAddKey(builder, key):
+    builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(key), 0)
+
+
+def KeyValueAddValue(builder, value):
+    builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(value), 0)
+
+
+def KeyValueEnd(builder):
+    return builder.EndObject()

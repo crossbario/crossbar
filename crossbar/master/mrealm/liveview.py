@@ -5,8 +5,8 @@
 #
 ###############################################################################
 
-from txaio import make_logger
 from autobahn.wamp.types import PublishOptions
+from txaio import make_logger
 
 
 class LiveView(object):
@@ -14,6 +14,7 @@ class LiveView(object):
     Live representation of full system state, that is the state of all nodes
     and resources on those nodes associated with this domain (instance of CFC).
     """
+
     log = make_logger()
 
     _PUBOPTS = PublishOptions(acknowledge=True)

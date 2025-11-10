@@ -9,6 +9,6 @@ from crossbar.master.cluster.routercluster import RouterClusterManager
 from crossbar.master.cluster.webcluster import WebClusterManager
 
 __all__ = (
-    'WebClusterManager',
-    'RouterClusterManager',
+    "WebClusterManager",
+    "RouterClusterManager",
 )

@@ -5,34 +5,29 @@
 #
 #####################################################################################
 
-import os
-import io
-import zipfile
 import hashlib
+import io
+import os
+import zipfile
+from collections.abc import Mapping, Sequence
 from pprint import pformat
-
 from urllib.parse import urlparse
 
-from collections.abc import Mapping, Sequence
-
 import six
-from txaio import make_logger
-
 import treq
-
+from autobahn.util import hlval
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.python.compat import intToBytes, networkString
-from twisted.web import server, resource
-from twisted.web.static import http, NoRangeStaticProducer, loadMimeTypes
+from twisted.web import resource, server
+from twisted.web.static import NoRangeStaticProducer, http, loadMimeTypes
+from txaio import make_logger
 
-from autobahn.util import hlval
-
-from crossbar.webservice.base import RouterWebService
 from crossbar.common.checkconfig import InvalidConfigException, check_dict_args
+from crossbar.webservice.base import RouterWebService
 
 
 def _download(reactor, url, destination_filename):
-    destination = open(destination_filename, 'wb')
+    destination = open(destination_filename, "wb")
     d = treq.get(url)
     d.addCallback(treq.collect, destination.write)
     d.addBoth(lambda _: destination.close())
@@ -41,7 +36,7 @@ def _download(reactor, url, destination_filename):
 
 def _sha256file(filename, block_size=2**20):
     sha256 = hashlib.sha256()
-    with open(filename, 'rb') as file:
+    with open(filename, "rb") as file:
         while True:
             data = file.read(block_size)
             if not data:
@@ -54,6 +49,7 @@ class ZipFileResource(resource.Resource):
     """
     Twisted Web resource for a single file within a ZIP archive.
     """
+
     log = make_logger()
 
     isLeaf = True
@@ -64,16 +60,19 @@ class ZipFileResource(resource.Resource):
         self.size = size
         self.type = content_type
         self.encoding = None
-        self.log.debug('ZipFileResource(file={file}, size={size}, content_type={content_type})'.format(
-            file=file, size=size, content_type=content_type))
+        self.log.debug(
+            "ZipFileResource(file={file}, size={size}, content_type={content_type})".format(
+                file=file, size=size, content_type=content_type
+            )
+        )
 
     def render_GET(self, request):
         if self.size:
-            request.setHeader(b'content-length', intToBytes(self.size))
+            request.setHeader(b"content-length", intToBytes(self.size))
         if self.type:
-            request.setHeader(b'content-type', networkString(self.type))
+            request.setHeader(b"content-type", networkString(self.type))
         if self.encoding:
-            request.setHeader(b'content-encoding', networkString(self.encoding))
+            request.setHeader(b"content-encoding", networkString(self.encoding))
 
         request.setResponseCode(http.OK)
 
@@ -94,12 +93,13 @@ class ZipArchiveResource(resource.Resource):
     """
     Twisted Web resource
     """
+
     log = make_logger()
 
     contentTypes = loadMimeTypes()
 
     # FIXME: https://github.com/crossbario/crossbar/issues/633
-    contentEncodings = {'.gz': 'gzip', '.bz2': 'bzip2', '.jgz': 'gzip'}
+    contentEncodings = {".gz": "gzip", ".bz2": "bzip2", ".jgz": "gzip"}
 
     def __init__(self, worker, config, path, archive_file):
         resource.Resource.__init__(self)
@@ -107,12 +107,12 @@ class ZipArchiveResource(resource.Resource):
         self._config = config
         self._path = path
         self._archive_file = archive_file
-        self._origin = config.get('origin', None)
-        self._cache = config.get('cache', False)
-        self._default_object = config.get('default_object', None)
-        self._object_prefix = config.get('object_prefix', None)
-        if 'mime_types' in config:
-            self.contentTypes.update(config['mime_types'])
+        self._origin = config.get("origin", None)
+        self._cache = config.get("cache", False)
+        self._default_object = config.get("default_object", None)
+        self._object_prefix = config.get("object_prefix", None)
+        if "mime_types" in config:
+            self.contentTypes.update(config["mime_types"])
 
         # now open ZIP archive from local file ..
         if os.path.exists(self._archive_file):
@@ -127,30 +127,33 @@ class ZipArchiveResource(resource.Resource):
             self._zipfiles = {}
 
         # setup fallback option
-        self._default_file = self._config.get('options', {}).get('default_file')
+        self._default_file = self._config.get("options", {}).get("default_file")
         if self._default_file:
-            self._default_file = self._default_file.encode('utf-8')
+            self._default_file = self._default_file.encode("utf-8")
 
-        self.log.info('ZipArchiveResource initialized with {zlen} files from ZIP archive:\n{filelist}',
-                      zlen=len(self._zipfiles),
-                      filelist=pformat(sorted(self._zipfiles.keys())))
+        self.log.info(
+            "ZipArchiveResource initialized with {zlen} files from ZIP archive:\n{filelist}",
+            zlen=len(self._zipfiles),
+            filelist=pformat(sorted(self._zipfiles.keys())),
+        )
 
     def getChild(self, path, request, retry=True):
         self.log.debug(
-            'ZipFileResource.getChild(path={path}, request={request}, prepath={prepath}, postpath={postpath})',
+            "ZipFileResource.getChild(path={path}, request={request}, prepath={prepath}, postpath={postpath})",
             path=path,
             prepath=request.prepath,
             postpath=request.postpath,
-            request=request)
+            request=request,
+        )
 
         # complete request URI
-        request_path = b'/'.join([path] + request.postpath).decode('utf8')
+        request_path = b"/".join([path] + request.postpath).decode("utf8")
 
         # local search path
         search_path = request_path
 
         # possibly apply default object name
-        if (search_path == '' or search_path.endswith('/')) and self._default_object:
+        if (search_path == "" or search_path.endswith("/")) and self._default_object:
             search_path += self._default_object
 
         # possibly apply local object (=archive) prefix
@@ -172,22 +175,27 @@ class ZipArchiveResource(resource.Resource):
                     data = self._archive.open(search_path).read()
                     if self._cache:
                         self._zipfiles[search_path] = data
-                        self.log.debug('contents for file {search_path} from archive {archive_file} cached in memory',
-                                       search_path=search_path,
-                                       archive_file=self._archive_file)
+                        self.log.debug(
+                            "contents for file {search_path} from archive {archive_file} cached in memory",
+                            search_path=search_path,
+                            archive_file=self._archive_file,
+                        )
                     else:
-                        self.log.debug('contents for file {search_path} from archive {archive_file} read from file',
-                                       search_path=search_path,
-                                       archive_file=self._archive_file)
+                        self.log.debug(
+                            "contents for file {search_path} from archive {archive_file} read from file",
+                            search_path=search_path,
+                            archive_file=self._archive_file,
+                        )
                 else:
-                    self.log.debug('cache archive not loaded')
+                    self.log.debug("cache archive not loaded")
                     return resource.NoResource()
             else:
                 cached = True
                 self.log.debug(
-                    'cache hit: contents for file {search_path} from archive {archive_file} cached in memory',
+                    "cache hit: contents for file {search_path} from archive {archive_file} cached in memory",
                     search_path=search_path,
-                    archive_file=self._archive_file)
+                    archive_file=self._archive_file,
+                )
             # file size
             file_size = len(data)
             fd = io.BytesIO(data)
@@ -212,7 +220,8 @@ class ZipArchiveResource(resource.Resource):
             search_path=hlval(search_path),
             found=hlval(found),
             cached=hlval(cached),
-            default=hlval(default))
+            default=hlval(default),
+        )
 
         return res
 
@@ -221,6 +230,7 @@ class RouterWebServiceArchive(RouterWebService):
     """
     Static Web from ZIP archive service.
     """
+
     @staticmethod
     def check(personality, config):
         """
@@ -232,49 +242,40 @@ class RouterWebServiceArchive(RouterWebService):
 
         :raises: crossbar.common.checkconfig.InvalidConfigException
         """
-        if 'type' not in config:
+        if "type" not in config:
             raise InvalidConfigException("missing mandatory attribute 'type' in Web service configuration")
 
-        if config['type'] != 'archive':
-            raise InvalidConfigException('unexpected Web service type "{}"'.format(config['type']))
+        if config["type"] != "archive":
+            raise InvalidConfigException('unexpected Web service type "{}"'.format(config["type"]))
 
         check_dict_args(
             {
                 # ID of webservice (must be unique for the web transport)
-                'id': (False, [str]),
-
+                "id": (False, [str]),
                 # must be equal to "archive"
-                'type': (True, [six.text_type]),
-
+                "type": (True, [six.text_type]),
                 # local path to archive file (relative to node directory)
-                'archive': (True, [six.text_type]),
-
+                "archive": (True, [six.text_type]),
                 # download URL for achive to auto-fetch
-                'origin': (False, [six.text_type]),
-
+                "origin": (False, [six.text_type]),
                 # flag to control automatic downloading from origin
-                'download': (False, [bool]),
-
+                "download": (False, [bool]),
                 # cache archive contents in memory
-                'cache': (False, [bool]),
-
+                "cache": (False, [bool]),
                 # default filename in archive when fetched URL is "" or "/"
-                'default_object': (False, [six.text_type]),
-
+                "default_object": (False, [six.text_type]),
                 # archive object prefix: this is prefixed to the path before looking within the archive file
-                'object_prefix': (False, [six.text_type]),
-
+                "object_prefix": (False, [six.text_type]),
                 # configure additional MIME types, sending correct HTTP response headers
-                'mime_types': (False, [Mapping]),
-
+                "mime_types": (False, [Mapping]),
                 # list of SHA3-256 hashes (HEX string) the archive file is to be verified against
-                'hashes': (False, [Sequence]),
-
+                "hashes": (False, [Sequence]),
                 # FIXME
-                'options': (False, [Mapping]),
+                "options": (False, [Mapping]),
             },
             config,
-            "Static Web from Archive service configuration: {}".format(config))
+            "Static Web from Archive service configuration: {}".format(config),
+        )
 
     @staticmethod
     @inlineCallbacks
@@ -289,45 +290,50 @@ class RouterWebServiceArchive(RouterWebService):
         :return: An instance of this class.
         """
         personality = transport.worker.personality
-        personality.WEB_SERVICE_CHECKERS['archive'](personality, config)
+        personality.WEB_SERVICE_CHECKERS["archive"](personality, config)
 
         log = transport.worker.log
 
-        archive_file = os.path.abspath(os.path.join(transport.worker.cbdir, config['archive']))
+        archive_file = os.path.abspath(os.path.join(transport.worker.cbdir, config["archive"]))
         if os.path.exists(archive_file):
             if os.path.isfile(archive_file):
-                log.info('ZipArchiveResource: file already cached locally [{archive_file}]', archive_file=archive_file)
+                log.info("ZipArchiveResource: file already cached locally [{archive_file}]", archive_file=archive_file)
             else:
                 raise Exception('path "{archive_file}" exists but is not a file'.format(archive_file=archive_file))
         else:
-            if 'origin' not in config:
-                raise Exception('missing origin')
+            if "origin" not in config:
+                raise Exception("missing origin")
 
-            _url = urlparse(config['origin'])
-            if _url.scheme not in ['http', 'https']:
+            _url = urlparse(config["origin"])
+            if _url.scheme not in ["http", "https"]:
                 raise Exception('invalid scheme "{}" in attribute "archive" for archive file'.format(_url.scheme))
 
             # download the file and cache locally ..
-            if config.get('download', False):
+            if config.get("download", False):
                 source_url = _url.geturl()
                 log.info('ZipArchiveResource: downloading from "{source_url}"', source_url=source_url)
                 yield _download(transport.worker._reactor, source_url, archive_file)
 
-                log.info('ZipArchiveResource: file downloaded and cached locally [{archive_file}]',
-                         archive_file=archive_file)
+                log.info(
+                    "ZipArchiveResource: file downloaded and cached locally [{archive_file}]",
+                    archive_file=archive_file,
+                )
             else:
-                log.warn('ZipArchiveResource: file download skipped by configuration!')
+                log.warn("ZipArchiveResource: file download skipped by configuration!")
 
-        hashes = config.get('hashes', None)
+        hashes = config.get("hashes", None)
         if hashes:
             h = _sha256file(archive_file)
             if h in hashes:
-                log.info('ZipArchiveResource: archive file "{archive_file}" verified (fingerprint {hash}..)',
-                         archive_file=archive_file,
-                         hash=h[:12])
+                log.info(
+                    'ZipArchiveResource: archive file "{archive_file}" verified (fingerprint {hash}..)',
+                    archive_file=archive_file,
+                    hash=h[:12],
+                )
             else:
-                raise Exception('archive "{}" does not match any of configured SHA256 fingerprints {}'.format(
-                    archive_file, hashes))
+                raise Exception(
+                    'archive "{}" does not match any of configured SHA256 fingerprints {}'.format(archive_file, hashes)
+                )
         else:
             log.warn('ZipArchiveResource: archive file "{archive_file}" is unverified', archive_file=archive_file)
 

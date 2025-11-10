@@ -11,7 +11,7 @@ def good_join(session, details):
     def foo():
         return "foo"
 
-    session.register(foo, u"foo")
+    session.register(foo, "foo")
     return task.deferLater(reactor, 5, lambda: None)
 
 

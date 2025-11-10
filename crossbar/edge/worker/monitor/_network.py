@@ -6,11 +6,11 @@
 ##############################################################################
 
 import psutil
-
-from crossbar.edge.worker.monitor._base import Monitor
 from txaio import perf_counter_ns
 
-__all__ = ('NetMonitor', )
+from crossbar.edge.worker.monitor._base import Monitor
+
+__all__ = ("NetMonitor",)
 
 
 class NetMonitor(Monitor):
@@ -18,7 +18,7 @@ class NetMonitor(Monitor):
     Network monitoring via psutils.
     """
 
-    ID = u'network'
+    ID = "network"
 
     def poll(self):
         """
@@ -31,14 +31,14 @@ class NetMonitor(Monitor):
         counters = {}
         io_counters = psutil.net_io_counters(True)
         for dev in io_counters:
-            if dev.startswith('virbr') or dev.startswith('lo') or dev.startswith('docker'):
+            if dev.startswith("virbr") or dev.startswith("lo") or dev.startswith("docker"):
                 continue
             counters[dev] = io_counters[dev]._asdict()
 
-        hdata['net_io_counters'] = counters
-        hdata['net_if_addrs'] = psutil.net_if_addrs()
+        hdata["net_io_counters"] = counters
+        hdata["net_if_addrs"] = psutil.net_if_addrs()
 
-        hdata[u'elapsed'] = perf_counter_ns() - start
+        hdata["elapsed"] = perf_counter_ns() - start
 
         self._last_value = hdata
 

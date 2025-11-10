@@ -6,34 +6,34 @@
 ###############################################################################
 
 import os
+
 from six.moves import configparser
 
 # pair a node from a node public key from a local file:
 #
 # cbf pair node --realm "myrealm" --node "mynode" /var/local/crossbar/.crossbar/key.pub
-
 # pair a node from a node public key served from a HTTP URL:
 #
 # cbf pair node --realm "myrealm" --node "mynode" http://localhost:9140/key.pub
-
 from txaio import make_logger
 
 
 class Profile(object):
-
     log = make_logger()
 
-    def __init__(self,
-                 name=None,
-                 url=None,
-                 reconnect=None,
-                 debug=None,
-                 realm=None,
-                 role=None,
-                 pubkey=None,
-                 privkey=None,
-                 tls_hostname=None,
-                 tls_certificates=None):
+    def __init__(
+        self,
+        name=None,
+        url=None,
+        reconnect=None,
+        debug=None,
+        realm=None,
+        role=None,
+        pubkey=None,
+        privkey=None,
+        tls_hostname=None,
+        tls_certificates=None,
+    ):
         self.name = name
         self.url = url
         self.reconnect = reconnect
@@ -46,9 +46,18 @@ class Profile(object):
         self.tls_certificates = tls_certificates
 
     def __str__(self):
-        return u'Profile(name={}, url={}, reconnect={}, debug={}, realm={}, role={}, pubkey={}, privkey={}, tls_hostname={}, tls_certificates={})'.format(
-            self.name, self.url, self.reconnect, self.debug, self.realm, self.role, self.pubkey, self.privkey,
-            self.tls_hostname, self.tls_certificates)
+        return "Profile(name={}, url={}, reconnect={}, debug={}, realm={}, role={}, pubkey={}, privkey={}, tls_hostname={}, tls_certificates={})".format(
+            self.name,
+            self.url,
+            self.reconnect,
+            self.debug,
+            self.realm,
+            self.role,
+            self.pubkey,
+            self.privkey,
+            self.tls_hostname,
+            self.tls_certificates,
+        )
 
     @staticmethod
     def parse(name, items):
@@ -62,24 +71,24 @@ class Profile(object):
         tls_hostname = None
         tls_certificates = None
         for k, v in items:
-            if k == 'url':
+            if k == "url":
                 url = str(v)
-            elif k == 'reconnect':
+            elif k == "reconnect":
                 reconnect = int(v)
-            elif k == 'debug':
+            elif k == "debug":
                 debug = bool(v)
-            elif k == 'realm':
+            elif k == "realm":
                 realm = str(v)
-            elif k == 'role':
+            elif k == "role":
                 role = str(v)
-            elif k == 'pubkey':
+            elif k == "pubkey":
                 pubkey = str(v)
-            elif k == 'privkey':
+            elif k == "privkey":
                 privkey = str(v)
-            elif k == 'tls_hostname':
+            elif k == "tls_hostname":
                 tls_hostname = str(v)
-            elif k == 'tls_certificates':
-                tls_certificates = [x.strip() for x in str(v).split(',')]
+            elif k == "tls_certificates":
+                tls_certificates = [x.strip() for x in str(v).split(",")]
             else:
                 # skip unknown attribute
                 Profile.log.warn('unprocessed config attribute "{}"'.format(k))
@@ -88,7 +97,6 @@ class Profile(object):
 
 
 class UserConfig(object):
-
     log = make_logger()
 
     def __init__(self, config_path):
@@ -107,4 +115,4 @@ class UserConfig(object):
 
         self.profiles = profiles
 
-        self.log.info('Profiles loaded for: {profiles}', profiles=sorted(self.profiles.keys()))
+        self.log.info("Profiles loaded for: {profiles}", profiles=sorted(self.profiles.keys()))

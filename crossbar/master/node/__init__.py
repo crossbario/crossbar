@@ -5,9 +5,9 @@
 #
 ###############################################################################
 
-from crossbar.master.node.controller import DomainManager, DomainController
+from crossbar.master.node.controller import DomainController, DomainManager
 
 __all__ = (
-    'DomainManager',
-    'DomainController',
+    "DomainManager",
+    "DomainController",
 )

@@ -9,7 +9,7 @@ from txaio import make_logger, time_ns
 
 from crossbar.common.checkconfig import check_dict_args
 
-__all__ = ('Monitor', )
+__all__ = ("Monitor",)
 
 
 class Monitor(object):
@@ -17,7 +17,7 @@ class Monitor(object):
     Host monitor base class.
     """
 
-    ID = 'abstract'
+    ID = "abstract"
     """
     Sensor ID, must defined in derived class.
     """
@@ -60,7 +60,7 @@ class Monitor(object):
         :param config: The submonitor configuration item to check.
         :type config: dict
         """
-        check_dict_args({}, config, '{} monitor configuration'.format(self.ID))
+        check_dict_args({}, config, "{} monitor configuration".format(self.ID))
 
     def poll(self):
         """
@@ -78,16 +78,13 @@ class Monitor(object):
             self._last_period = now - self._last_poll
 
         current = {
-            u'tick': self._tick,
-
+            "tick": self._tick,
             # the UTC timestamp when measurement was taken
-            u'timestamp': now,
-
+            "timestamp": now,
             # the effective last period in ns
-            u'last_period': self._last_period,
-
+            "last_period": self._last_period,
             # duration in seconds the retrieval of sensor values took
-            u'elapsed': self._elapsed,
+            "elapsed": self._elapsed,
         }
 
         self._last_poll = now
@@ -106,5 +103,5 @@ class Monitor(object):
         :returns: Last stats/values from monitor.
         :rtype: dict or None (when not yet polled)
         """
-        self.log.info('{klass}.get(details={})', klass=self.__class__.__name__, details=details)
+        self.log.info("{klass}.get(details={})", klass=self.__class__.__name__, details=details)
         return self._last_value

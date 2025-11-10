@@ -5,23 +5,23 @@
 #
 #####################################################################################
 
-import binascii
 import argparse
+import binascii
 import importlib
 
 import cbor2
-
 from twisted.internet.error import ReactorNotRunning
 
-from crossbar._util import hl, hlid, hltype, _add_debug_options, term_print
+from crossbar._util import _add_debug_options, hl, hlid, hltype, term_print
 
 try:
     import vmprof
+
     _HAS_VMPROF = True
 except ImportError:
     _HAS_VMPROF = False
 
-__all__ = ('_run_command_exec_worker', )
+__all__ = ("_run_command_exec_worker",)
 
 
 def get_argument_parser(parser=None):
@@ -30,67 +30,78 @@ def get_argument_parser(parser=None):
 
     _add_debug_options(parser)
 
-    parser.add_argument('--reactor',
-                        default=None,
-                        choices=['select', 'poll', 'epoll', 'kqueue', 'iocp'],
-                        help='Explicit Twisted reactor selection (optional).')
-
-    parser.add_argument('--loglevel',
-                        default='info',
-                        choices=['none', 'error', 'warn', 'info', 'debug', 'trace'],
-                        help='Initial log level.')
-
-    parser.add_argument('-c', '--cbdir', type=str, required=True, help="Crossbar.io node directory (required).")
-
-    parser.add_argument('-r',
-                        '--realm',
-                        type=str,
-                        required=True,
-                        help='Crossbar.io node (management) realm (required).')
-
-    parser.add_argument('-p',
-                        '--personality',
-                        required=True,
-                        type=str,
-                        help='Crossbar.io personality _class_ name, eg "crossbar.personality.Personality" (required).')
+    parser.add_argument(
+        "--reactor",
+        default=None,
+        choices=["select", "poll", "epoll", "kqueue", "iocp"],
+        help="Explicit Twisted reactor selection (optional).",
+    )
 
     parser.add_argument(
-        '-k',
-        '--klass',
+        "--loglevel",
+        default="info",
+        choices=["none", "error", "warn", "info", "debug", "trace"],
+        help="Initial log level.",
+    )
+
+    parser.add_argument("-c", "--cbdir", type=str, required=True, help="Crossbar.io node directory (required).")
+
+    parser.add_argument(
+        "-r", "--realm", type=str, required=True, help="Crossbar.io node (management) realm (required)."
+    )
+
+    parser.add_argument(
+        "-p",
+        "--personality",
         required=True,
         type=str,
-        help='Crossbar.io worker class, eg "crossbar.worker.container.ContainerController" (required).')
+        help='Crossbar.io personality _class_ name, eg "crossbar.personality.Personality" (required).',
+    )
 
-    parser.add_argument('-n', '--node', required=True, type=str, help='Crossbar.io node ID (required).')
+    parser.add_argument(
+        "-k",
+        "--klass",
+        required=True,
+        type=str,
+        help='Crossbar.io worker class, eg "crossbar.worker.container.ContainerController" (required).',
+    )
 
-    parser.add_argument('-w', '--worker', type=str, required=True, help='Crossbar.io worker ID (required).')
+    parser.add_argument("-n", "--node", required=True, type=str, help="Crossbar.io node ID (required).")
 
-    parser.add_argument('-e',
-                        '--extra',
-                        type=str,
-                        required=False,
-                        help='Crossbar.io worker extra configuration from worker.options.extra (optional).')
+    parser.add_argument("-w", "--worker", type=str, required=True, help="Crossbar.io worker ID (required).")
 
-    parser.add_argument('--title', type=str, default=None, help='Worker process title to set (optional).')
+    parser.add_argument(
+        "-e",
+        "--extra",
+        type=str,
+        required=False,
+        help="Crossbar.io worker extra configuration from worker.options.extra (optional).",
+    )
 
-    parser.add_argument('--expose_controller',
-                        type=bool,
-                        default=False,
-                        help='Expose node controller session to all components (this feature requires crossbar).')
+    parser.add_argument("--title", type=str, default=None, help="Worker process title to set (optional).")
 
-    parser.add_argument('--expose_shared',
-                        type=bool,
-                        default=False,
-                        help='Expose a shared object to all components (this feature requires crossbar).')
+    parser.add_argument(
+        "--expose_controller",
+        type=bool,
+        default=False,
+        help="Expose node controller session to all components (this feature requires crossbar).",
+    )
 
-    parser.add_argument('--shutdown', type=str, default=None, help='Shutdown method')
+    parser.add_argument(
+        "--expose_shared",
+        type=bool,
+        default=False,
+        help="Expose a shared object to all components (this feature requires crossbar).",
+    )
 
-    parser.add_argument('--restart', type=str, default=None, help='Restart method')
+    parser.add_argument("--shutdown", type=str, default=None, help="Shutdown method")
+
+    parser.add_argument("--restart", type=str, default=None, help="Restart method")
 
     if _HAS_VMPROF:
-        parser.add_argument('--vmprof',
-                            action='store_true',
-                            help='Profile node controller and native worker using vmprof.')
+        parser.add_argument(
+            "--vmprof", action="store_true", help="Profile node controller and native worker using vmprof."
+        )
 
     return parser
 
@@ -101,13 +112,13 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     a worker instance is talking WAMP-over-stdio to the node controller.
     """
     import os
-    import sys
     import platform
     import signal
+    import sys
 
     # https://coverage.readthedocs.io/en/coverage-4.4.2/subprocess.html#measuring-sub-processes
     MEASURING_COVERAGE = False
-    if 'COVERAGE_PROCESS_START' in os.environ:
+    if "COVERAGE_PROCESS_START" in os.environ:
         try:
             import coverage
         except ImportError:
@@ -123,13 +134,15 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
 
     # we use an Autobahn utility to import the "best" available Twisted reactor
     from autobahn.twisted.choosereactor import install_reactor
-    reactor = install_reactor(explicit_reactor=options.reactor or os.environ.get('CROSSBAR_REACTOR', None))
+
+    reactor = install_reactor(explicit_reactor=options.reactor or os.environ.get("CROSSBAR_REACTOR", None))
 
     # make sure logging to something else than stdio is setup _first_
-    from crossbar._logging import make_JSON_observer, cb_logging_aware
-    from txaio import make_logger, start_logging
     from twisted.logger import globalLogPublisher
     from twisted.python.reflect import qual
+    from txaio import make_logger, start_logging
+
+    from crossbar._logging import cb_logging_aware, make_JSON_observer
 
     log = make_logger()
 
@@ -141,7 +154,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     flo = make_JSON_observer(sys.__stderr__)
     globalLogPublisher.addObserver(flo)
 
-    term_print('CROSSBAR[{}]:WORKER_STARTING'.format(options.worker))
+    term_print("CROSSBAR[{}]:WORKER_STARTING".format(options.worker))
 
     # Ignore SIGINT so we get consistent behavior on control-C versus
     # sending SIGINT to the controller process. When the controller is
@@ -160,16 +173,16 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     start_logging(None, options.loglevel)
 
     # get personality klass, eg "crossbar.personality.Personality"
-    l = options.personality.split('.')
-    personality_module, personality_klass = '.'.join(l[:-1]), l[-1]
+    l = options.personality.split(".")
+    personality_module, personality_klass = ".".join(l[:-1]), l[-1]
 
     # now load the personality module and class
     _mod = importlib.import_module(personality_module)
     Personality = getattr(_mod, personality_klass)
 
     # get worker klass, eg "crossbar.worker.container.ContainerController"
-    l = options.klass.split('.')
-    worker_module, worker_klass = '.'.join(l[:-1]), l[-1]
+    l = options.klass.split(".")
+    worker_module, worker_klass = ".".join(l[:-1]), l[-1]
 
     # now load the worker module and class
     _mod = importlib.import_module(worker_module)
@@ -185,14 +198,16 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         worker_class=hltype(klass),
     )
     log.info(
-        'Running as PID {pid} on {python}-{reactor}',
+        "Running as PID {pid} on {python}-{reactor}",
         pid=os.getpid(),
         python=platform.python_implementation(),
-        reactor=qual(reactor.__class__).split('.')[-1],
+        reactor=qual(reactor.__class__).split(".")[-1],
     )
     if MEASURING_COVERAGE:
-        log.info(hl('Code coverage measurements enabled (coverage={coverage_version}).', color='green', bold=True),
-                 coverage_version=coverage.__version__)
+        log.info(
+            hl("Code coverage measurements enabled (coverage={coverage_version}).", color="green", bold=True),
+            coverage_version=coverage.__version__,
+        )
 
     # set process title if requested to
     #
@@ -204,7 +219,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         if options.title:
             setproctitle.setproctitle(options.title)
         else:
-            setproctitle.setproctitle('crossbar-worker [{}]'.format(options.klass))
+            setproctitle.setproctitle("crossbar-worker [{}]".format(options.klass))
 
     # node directory
     #
@@ -222,10 +237,10 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         if options.title:
             setproctitle.setproctitle(options.title)
         else:
-            setproctitle.setproctitle('crossbar-worker [{}]'.format(options.klass))
+            setproctitle.setproctitle("crossbar-worker [{}]".format(options.klass))
 
-    from twisted.internet.error import ConnectionDone
     from autobahn.twisted.websocket import WampWebSocketServerProtocol
+    from twisted.internet.error import ConnectionDone
 
     class WorkerServerProtocol(WampWebSocketServerProtocol):
         def connectionLost(self, reason):
@@ -260,7 +275,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
                     exit_code = 1
 
                 # exit the whole worker process when the reactor has stopped
-                reactor.addSystemEventTrigger('after', 'shutdown', os._exit, exit_code)
+                reactor.addSystemEventTrigger("after", "shutdown", os._exit, exit_code)
 
                 # stop the reactor
                 try:
@@ -274,7 +289,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         _vm_prof = {
             # need to put this into a dict, since FDs are ints, and python closures can't
             # write to this otherwise
-            'outfd': None
+            "outfd": None
         }
 
     # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
@@ -283,23 +298,23 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     # internally by the Reactor.
 
     def before_reactor_started():
-        term_print('CROSSBAR[{}]:REACTOR_STARTING'.format(options.worker))
+        term_print("CROSSBAR[{}]:REACTOR_STARTING".format(options.worker))
 
     def after_reactor_started():
-        term_print('CROSSBAR[{}]:REACTOR_STARTED'.format(options.worker))
+        term_print("CROSSBAR[{}]:REACTOR_STARTED".format(options.worker))
 
         if _HAS_VMPROF and options.vmprof:
-            outfn = os.path.join(options.cbdir, '.vmprof-worker-{}-{}.dat'.format(options.worker, os.getpid()))
-            _vm_prof['outfd'] = os.open(outfn, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
-            vmprof.enable(_vm_prof['outfd'], period=0.01)
-            term_print('CROSSBAR[{}]:VMPROF_ENABLED:{}'.format(options.worker, outfn))
+            outfn = os.path.join(options.cbdir, ".vmprof-worker-{}-{}.dat".format(options.worker, os.getpid()))
+            _vm_prof["outfd"] = os.open(outfn, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+            vmprof.enable(_vm_prof["outfd"], period=0.01)
+            term_print("CROSSBAR[{}]:VMPROF_ENABLED:{}".format(options.worker, outfn))
 
     def before_reactor_stopped():
-        term_print('CROSSBAR[{}]:REACTOR_STOPPING'.format(options.worker))
+        term_print("CROSSBAR[{}]:REACTOR_STOPPING".format(options.worker))
 
-        if _HAS_VMPROF and options.vmprof and _vm_prof['outfd']:
+        if _HAS_VMPROF and options.vmprof and _vm_prof["outfd"]:
             vmprof.disable()
-            term_print('CROSSBAR[{}]:VMPROF_DISABLED'.format(options.worker))
+            term_print("CROSSBAR[{}]:VMPROF_DISABLED".format(options.worker))
 
     def after_reactor_stopped():
         # FIXME: we are indeed reaching this line, however,
@@ -311,12 +326,12 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         # pipes. hence we do an evil trick: we directly write to
         # the process' controlling terminal
         # https://unix.stackexchange.com/a/91716/52500
-        term_print('CROSSBAR[{}]:REACTOR_STOPPED'.format(options.worker))
+        term_print("CROSSBAR[{}]:REACTOR_STOPPED".format(options.worker))
 
-    reactor.addSystemEventTrigger('before', 'startup', before_reactor_started)
-    reactor.addSystemEventTrigger('after', 'startup', after_reactor_started)
-    reactor.addSystemEventTrigger('before', 'shutdown', before_reactor_stopped)
-    reactor.addSystemEventTrigger('after', 'shutdown', after_reactor_stopped)
+    reactor.addSystemEventTrigger("before", "startup", before_reactor_started)
+    reactor.addSystemEventTrigger("after", "startup", after_reactor_started)
+    reactor.addSystemEventTrigger("before", "shutdown", before_reactor_stopped)
+    reactor.addSystemEventTrigger("after", "shutdown", after_reactor_stopped)
 
     try:
         # define a WAMP application session factory
@@ -331,14 +346,16 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         # create a WAMP-over-WebSocket transport server factory
         #
         from autobahn.twisted.websocket import WampWebSocketServerFactory
-        transport_factory = WampWebSocketServerFactory(make_session, 'ws://localhost')
+
+        transport_factory = WampWebSocketServerFactory(make_session, "ws://localhost")
         transport_factory.protocol = WorkerServerProtocol
         transport_factory.setProtocolOptions(failByDrop=False)
 
         # create a protocol instance and wire up to stdio
         #
-        from twisted.python.runtime import platform as _platform
         from twisted.internet import stdio
+        from twisted.python.runtime import platform as _platform
+
         proto = transport_factory.buildProtocol(None)
         if _platform.isWindows():
             stdio.StandardIO(proto)
@@ -347,20 +364,21 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
 
         # now start reactor loop
         #
-        log.info(hl('Entering event reactor ...', color='green', bold=True))
+        log.info(hl("Entering event reactor ...", color="green", bold=True))
         reactor.run()
 
     except Exception as e:
         log.info("Unhandled exception: {e}", e=e)
         if reactor.running:
-            reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
+            reactor.addSystemEventTrigger("after", "shutdown", os._exit, 1)
             reactor.stop()
         else:
             sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     from crossbar import _util
 
     _args = sys.argv[1:]

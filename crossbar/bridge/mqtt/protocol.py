@@ -5,26 +5,26 @@
 #
 #####################################################################################
 
+import bitstring
+
 from ._events import (
+    ConnACK,
+    Connect,
+    Disconnect,
     Failure,
     ParseFailure,
-    Connect,
-    ConnACK,
-    Subscribe,
-    SubACK,
-    Unsubscribe,
-    UnsubACK,
-    Publish,
-    PubACK,
-    PubREC,
-    PubREL,
-    PubCOMP,
     PingREQ,
     PingRESP,
-    Disconnect,
+    PubACK,
+    PubCOMP,
+    Publish,
+    PubREC,
+    PubREL,
+    SubACK,
+    Subscribe,
+    UnsubACK,
+    Unsubscribe,
 )
-
-import bitstring
 
 __all__ = [
     "MQTTParser",
@@ -85,7 +85,7 @@ client_packet_handlers = {
 
 def _parse_header(data):
     # New packet
-    packet_type = data.read('uint:4')
+    packet_type = data.read("uint:4")
     flags = (data.read("bool"), data.read("bool"), data.read("bool"), data.read("bool"))
 
     multiplier = 1
@@ -94,7 +94,7 @@ def _parse_header(data):
 
     while (encodedByte & 128) != 0:
         try:
-            encodedByte = data.read('uint:8')
+            encodedByte = data.read("uint:8")
         except bitstring.ReadError:
             # Not enough data yet, raise that up...
             raise _NeedMoreData()
@@ -108,12 +108,10 @@ def _parse_header(data):
 
 
 class MQTTParser(object):
-
     _packet_handlers = server_packet_handlers
     _first_pkt = P_CONNECT
 
     def __init__(self):
-
         self._data = bitstring.BitStream()
         self._bytes_expected = 0
         self._state = WAITING_FOR_NEW_PACKET
@@ -121,7 +119,6 @@ class MQTTParser(object):
         self._packet_count = 0
 
     def data_received(self, data):
-
         if self._state is PROTOCOL_VIOLATION:
             # Conformance statement MQTT-4.8.0-1: Must close the connection on
             # a protocol violation. For us, if we keep getting data somehow
@@ -131,12 +128,10 @@ class MQTTParser(object):
         events = []
 
         self._data.append(bitstring.BitArray(bytes=data))
-        self._data = self._data[self._data.bitpos:]
+        self._data = self._data[self._data.bitpos :]
 
         while True:
-
             if self._state == WAITING_FOR_NEW_PACKET and len(self._data) > 8:
-
                 try:
                     self._packet_header = _parse_header(self._data)
                 except _NeedMoreData:
@@ -150,22 +145,20 @@ class MQTTParser(object):
                     return events
 
                 self._bytes_expected = self._packet_header[2]
-                self._data = self._data[self._data.bitpos:]
+                self._data = self._data[self._data.bitpos :]
                 self._state = COLLECTING_REST_OF_PACKET
 
             elif self._state == COLLECTING_REST_OF_PACKET:
-
-                self._data = self._data[self._data.bitpos:]
+                self._data = self._data[self._data.bitpos :]
 
                 if len(self._data) < self._bytes_expected * 8:
                     return events
 
             else:
-                self._data = self._data[self._data.bitpos:]
+                self._data = self._data[self._data.bitpos :]
                 return events
 
             if self._bytes_expected * 8 <= len(self._data):
-
                 self._state = WAITING_FOR_NEW_PACKET
 
                 packet_type, flags, value = self._packet_header
@@ -184,7 +177,7 @@ class MQTTParser(object):
 
                     if packet_type not in self._packet_handlers:
                         self._state = PROTOCOL_VIOLATION
-                        events.append(Failure("Unimplemented packet type %d" % (packet_type, )))
+                        events.append(Failure("Unimplemented packet type %d" % (packet_type,)))
                         return events
 
                     packet_handler = self._packet_handlers[packet_type]
@@ -204,7 +197,7 @@ class MQTTParser(object):
                     return events
 
                 self._packet_header = None
-                self._data = self._data[self._data.bitpos:]
+                self._data = self._data[self._data.bitpos :]
                 self._packet_count += 1
             else:
                 return events

@@ -5,13 +5,13 @@
 #
 ###############################################################################
 
-import sys
 import locale
 import os
+import sys
 import time
 
-import six
 import click
+import six
 
 _HAS_COLOR_TERM = False
 try:
@@ -19,14 +19,14 @@ try:
 
     # https://github.com/tartley/colorama/issues/48
     term = None
-    if sys.platform == 'win32' and 'TERM' in os.environ:
-        term = os.environ.pop('TERM')
+    if sys.platform == "win32" and "TERM" in os.environ:
+        term = os.environ.pop("TERM")
 
     colorama.init()
     _HAS_COLOR_TERM = True
 
     if term:
-        os.environ['TERM'] = term
+        os.environ["TERM"] = term
 
 except ImportError:
     pass
@@ -34,34 +34,34 @@ except ImportError:
 
 def hl(text, bold=False):
     if not isinstance(text, six.text_type):
-        text = '{}'.format(text)
-    return click.style(text, fg='yellow', bold=bold)
+        text = "{}".format(text)
+    return click.style(text, fg="yellow", bold=bold)
 
 
 def style_crossbar(text):
     if _HAS_COLOR_TERM:
-        return click.style(text, fg='yellow', bold=True)
+        return click.style(text, fg="yellow", bold=True)
     else:
         return text
 
 
 def style_finished_line(text):
     if _HAS_COLOR_TERM:
-        return click.style(text, fg='yellow')
+        return click.style(text, fg="yellow")
     else:
         return text
 
 
 def style_error(text):
     if _HAS_COLOR_TERM:
-        return click.style(text, fg='red', bold=True)
+        return click.style(text, fg="red", bold=True)
     else:
         return text
 
 
 def style_ok(text):
     if _HAS_COLOR_TERM:
-        return click.style(text, fg='green', bold=True)
+        return click.style(text, fg="green", bold=True)
     else:
         return text
 

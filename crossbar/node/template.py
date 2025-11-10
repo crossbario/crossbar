@@ -5,15 +5,15 @@
 #
 #####################################################################################
 
-import sys
 import os
 import shutil
+import sys
 from importlib.resources import files
-import jinja2
 
+import jinja2
 from txaio import make_logger
 
-__all__ = ('Templates', )
+__all__ = ("Templates",)
 
 log = make_logger()
 
@@ -23,23 +23,24 @@ class Templates:
     Crossbar.io application templates.
     """
 
-    SKIP_FILES = ('.pyc', '.pyo', '.exe')
+    SKIP_FILES = (".pyc", ".pyo", ".exe")
     """
     File extensions of files to skip when instantiating an application template.
     """
 
     TEMPLATES = {
-        'default': {
-            'name': 'default',
-            'help': 'A WAMP router speaking WebSocket plus a static Web server.',
-            'basedir': "node/templates/default",
-            'params': {},
-            'skip_jinja': ['autobahn.js', 'autobahn.min.js', 'autobahn.min.jgz']
+        "default": {
+            "name": "default",
+            "help": "A WAMP router speaking WebSocket plus a static Web server.",
+            "basedir": "node/templates/default",
+            "params": {},
+            "skip_jinja": ["autobahn.js", "autobahn.min.js", "autobahn.min.jgz"],
         }
     }
     """
     Application template definitions.
     """
+
     @staticmethod
     def help():
         """
@@ -47,11 +48,11 @@ class Templates:
         """
         print("\nAvailable Crossbar.io node templates:\n")
         for name, template in Templates.TEMPLATES.values():
-            print("  {} {}".format(name.ljust(16, ' '), template['help']))
+            print("  {} {}".format(name.ljust(16, " "), template["help"]))
         print("")
 
     @staticmethod
-    def init(appdir, template='default', params=None, dryrun=False, skip_existing=True):
+    def init(appdir, template="default", params=None, dryrun=False, skip_existing=True):
         """
         Initialize an application directory from a template by template name.
 
@@ -70,24 +71,23 @@ class Templates:
         if not template:
             raise Exception('no such application directory template: "{}"'.format(template))
 
-        basedir = str(files("crossbar") / template['basedir'])
+        basedir = str(files("crossbar") / template["basedir"])
         if IS_WIN:
-            basedir = basedir.replace('\\', '/')  # Jinja need forward slashes even on Windows
+            basedir = basedir.replace("\\", "/")  # Jinja need forward slashes even on Windows
         log.info("Using template from '{dir}'", dir=basedir)
 
         appdir = os.path.abspath(appdir)
 
-        if 'jinja' in template:
-            kwargs = template['jinja']
+        if "jinja" in template:
+            kwargs = template["jinja"]
         else:
             kwargs = {}
 
-        jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(basedir),
-                                       keep_trailing_newline=True,
-                                       autoescape=True,
-                                       **kwargs)
+        jinja_env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(basedir), keep_trailing_newline=True, autoescape=True, **kwargs
+        )
 
-        _params = template['params'].copy()
+        _params = template["params"].copy()
         if params:
             _params.update(params)
 
@@ -96,8 +96,8 @@ class Templates:
             for root, dirs, files in os.walk(basedir):
                 for d in dirs:
                     reldir = os.path.relpath(os.path.join(root, d), basedir)
-                    if 'appname' in _params:
-                        reldir = reldir.replace('appname', _params['appname'])
+                    if "appname" in _params:
+                        reldir = reldir.replace("appname", _params["appname"])
                     create_dir_path = os.path.join(appdir, reldir)
 
                     if os.path.isdir(create_dir_path):
@@ -111,18 +111,16 @@ class Templates:
                         log.info("Creating directory {dir}", dir=create_dir_path)
                         if not dryrun:
                             os.mkdir(create_dir_path)
-                        created.append(('dir', create_dir_path))
+                        created.append(("dir", create_dir_path))
 
                 for f in files:
-
                     if not f.endswith(Templates.SKIP_FILES):
-
                         src_file = os.path.abspath(os.path.join(root, f))
                         src_file_rel_path = os.path.relpath(src_file, basedir)
                         reldir = os.path.relpath(root, basedir)
-                        if 'appname' in _params:
-                            reldir = reldir.replace('appname', _params['appname'])
-                            f = f.replace('appname', _params['appname'])
+                        if "appname" in _params:
+                            reldir = reldir.replace("appname", _params["appname"])
+                            f = f.replace("appname", _params["appname"])
                         dst_dir_path = os.path.join(appdir, reldir)
                         dst_file = os.path.abspath(os.path.join(dst_dir_path, f))
 
@@ -136,35 +134,35 @@ class Templates:
                         else:
                             log.info("Creating file {name}", name=dst_file)
                             if not dryrun:
-                                if f in template.get('skip_jinja', []):
+                                if f in template.get("skip_jinja", []):
                                     shutil.copy(src_file, dst_file)
                                 else:
-                                    with open(dst_file, 'wb') as dst_file_fd:
+                                    with open(dst_file, "wb") as dst_file_fd:
                                         if IS_WIN:
                                             # Jinja need forward slashes even on Windows
-                                            src_file_rel_path = src_file_rel_path.replace('\\', '/')
+                                            src_file_rel_path = src_file_rel_path.replace("\\", "/")
                                         page = jinja_env.get_template(src_file_rel_path)
-                                        contents = page.render(**_params).encode('utf8')
+                                        contents = page.render(**_params).encode("utf8")
                                         dst_file_fd.write(contents)
 
-                            created.append(('file', dst_file))
+                            created.append(("file", dst_file))
 
             # force exception to test rollback
             # a = 1/0
 
-            return template.get('get_started_hint', None)
+            return template.get("get_started_hint", None)
 
         except Exception:
             log.failure("Something went wrong while instantiating app template - rolling back changes ..")
             for ptype, path in reversed(created):
-                if ptype == 'file':
+                if ptype == "file":
                     try:
                         log.info("Removing file {path}", path=path)
                         if not dryrun:
                             os.remove(path)
                     except:
                         log.warn("Warning: could not remove file {path}", path=path)
-                elif ptype == 'dir':
+                elif ptype == "dir":
                     try:
                         log.info("Removing directory {path}", path=path)
                         if not dryrun:

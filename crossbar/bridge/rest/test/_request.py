@@ -5,25 +5,18 @@
 #
 #####################################################################################
 
-from mock import Mock
-
 from io import BytesIO
 
+from mock import Mock
 from twisted.internet.address import IPv4Address
 from twisted.web import server
 from twisted.web.http_headers import Headers
 from twisted.web.test.test_web import DummyChannel
 
 
-def request(path,
-            method=b"GET",
-            args=[],
-            isSecure=False,
-            headers={},
-            body=b'',
-            host=b"localhost",
-            port=8000,
-            reactor=None):
+def request(
+    path, method=b"GET", args=[], isSecure=False, headers={}, body=b"", host=b"localhost", port=8000, reactor=None
+):
     """
     A fake `server.Request` which implements just enough for our tests.
     """
@@ -41,7 +34,7 @@ def request(path,
     req.uri = path
     req.path = path
     req.prepath = []
-    req.postpath = path.split(b'/')[1:]
+    req.postpath = path.split(b"/")[1:]
     req.clientProto = b"HTTP/1.1"
 
     req.args = args
@@ -69,7 +62,6 @@ def request(path,
 
     # Finishing
     def _finish():
-
         if not req.startedWriting:
             req.write(b"")
 

@@ -7,4 +7,4 @@
 
 from crossbar.master.mrealm.controller import MrealmController
 
-__all__ = ('MrealmController', )
+__all__ = ("MrealmController",)

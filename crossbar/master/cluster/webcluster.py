@@ -7,22 +7,19 @@
 
 import uuid
 from pprint import pformat
-from typing import Optional, List, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-
+import txaio
 from autobahn import wamp
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import CallDetails, PublishOptions, RegisterOptions
-
-from crossbar.common import checkconfig
-from crossbar.webservice import archive, wap
-from crossbar._util import hl, hlid, hltype, hlval, get_free_tcp_port
-from cfxdb.mrealm import WebCluster, WebClusterNodeMembership, WebService
-from cfxdb.mrealm import cluster
+from cfxdb.mrealm import WebCluster, WebClusterNodeMembership, WebService, cluster
 from cfxdb.mrealm.application_realm import ApplicationRealmStatus
 
-import txaio
+from crossbar._util import get_free_tcp_port, hl, hlid, hltype, hlval
+from crossbar.common import checkconfig
+from crossbar.webservice import archive, wap
 
 txaio.use_twisted()
 from txaio import time_ns, sleep, make_logger  # noqa
@@ -37,9 +34,10 @@ class WebClusterMonitor(object):
 
     The monitor is started when a web cluster is started.
     """
+
     log = make_logger()
 
-    def __init__(self, manager, webcluster_oid, interval=10.):
+    def __init__(self, manager, webcluster_oid, interval=10.0):
         self._manager = manager
         self._webcluster_oid = webcluster_oid
         self._interval = interval
@@ -86,7 +84,7 @@ class WebClusterMonitor(object):
         """
         res = []
         for node_oid, worker_id in self._workers:
-            if not filter_online or self._workers[(node_oid, worker_id)]['status'] == 'started':
+            if not filter_online or self._workers[(node_oid, worker_id)]["status"] == "started":
                 res.append((node_oid, worker_id))
         return res
 
@@ -95,16 +93,20 @@ class WebClusterMonitor(object):
         if self._check_and_apply_in_progress:
             # we prohibit running the iteration multiple times concurrently. this might
             # happen when the iteration takes longer than the interval the monitor is set to
-            self.log.info('{func} {action} for webcluster {webcluster} skipped! check & apply already in progress.',
-                          action=hl('check & apply run skipped', color='red', bold=True),
-                          func=hltype(self._check_and_apply),
-                          webcluster=hlid(self._webcluster_oid))
+            self.log.info(
+                "{func} {action} for webcluster {webcluster} skipped! check & apply already in progress.",
+                action=hl("check & apply run skipped", color="red", bold=True),
+                func=hltype(self._check_and_apply),
+                webcluster=hlid(self._webcluster_oid),
+            )
             return
         else:
-            self.log.info('{func} {action} for webcluster {webcluster} ..',
-                          action=hl('check & apply run started', color='green', bold=True),
-                          func=hltype(self._check_and_apply),
-                          webcluster=hlid(self._webcluster_oid))
+            self.log.info(
+                "{func} {action} for webcluster {webcluster} ..",
+                action=hl("check & apply run started", color="green", bold=True),
+                func=hltype(self._check_and_apply),
+                webcluster=hlid(self._webcluster_oid),
+            )
             self._check_and_apply_in_progress = True
 
         is_running_completely = True
@@ -119,59 +121,68 @@ class WebClusterMonitor(object):
                 if webcluster.status in [cluster.STATUS_STARTING, cluster.STATUS_RUNNING]:
                     # the node memberships in the webcluster
                     active_memberships = [
-                        m for m in self._manager.schema.webcluster_node_memberships.select(
-                            txn, from_key=(webcluster.oid, uuid.UUID(bytes=b'\0' * 16)), return_keys=False)
+                        m
+                        for m in self._manager.schema.webcluster_node_memberships.select(
+                            txn, from_key=(webcluster.oid, uuid.UUID(bytes=b"\0" * 16)), return_keys=False
+                        )
                     ]
 
             for membership in active_memberships:
                 node_oid = str(membership.node_oid)
 
                 if membership.standby:
-                    self.log.debug('{func} Web cluster node {node_oid} is configured for standby',
-                                   func=hltype(self._check_and_apply),
-                                   node_oid=hlid(node_oid))
+                    self.log.debug(
+                        "{func} Web cluster node {node_oid} is configured for standby",
+                        func=hltype(self._check_and_apply),
+                        node_oid=hlid(node_oid),
+                    )
                     continue
 
                 # node run-time information, as maintained here in our master view of the external world
                 node = self._manager._session.nodes.get(node_oid, None)
 
-                if node and node.status == 'online':
-                    self.log.debug('{func} Ok, web cluster node {node_oid} is running!',
-                                   func=hltype(self._check_and_apply),
-                                   node_oid=hlid(node_oid))
+                if node and node.status == "online":
+                    self.log.debug(
+                        "{func} Ok, web cluster node {node_oid} is running!",
+                        func=hltype(self._check_and_apply),
+                        node_oid=hlid(node_oid),
+                    )
 
                     # we expect "parallel" workers to run on this node ..
                     for worker_index in range(membership.parallel or 1):
-
                         # run-time ID of web cluster worker, eg "clwrk-a276279d-5"
-                        worker_id = 'cpw-{}-{}'.format(str(webcluster.oid)[:8], worker_index)
+                        worker_id = "cpw-{}-{}".format(str(webcluster.oid)[:8], worker_index)
 
                         self.log.debug(
-                            '{func} Performing checks for configured proxy worker {worker_index}/{parallel} [{worker_id}] ..',
+                            "{func} Performing checks for configured proxy worker {worker_index}/{parallel} [{worker_id}] ..",
                             func=hltype(self._check_and_apply),
                             worker_index=hlid(worker_index + 1),
                             worker_id=hlid(worker_id),
-                            parallel=hlid(membership.parallel))
+                            parallel=hlid(membership.parallel),
+                        )
 
                         # worker run-time information (obtained by calling into the live node)
                         worker = None
                         try:
-                            worker = yield self._manager._session.call('crossbarfabriccenter.remote.node.get_worker',
-                                                                       node_oid, worker_id)
+                            worker = yield self._manager._session.call(
+                                "crossbarfabriccenter.remote.node.get_worker", node_oid, worker_id
+                            )
                         except ApplicationError as e:
-                            if e.error != 'crossbar.error.no_such_worker':
+                            if e.error != "crossbar.error.no_such_worker":
                                 # anything but "no_such_worker" is unexpected (and fatal)
                                 raise
                             self.log.info(
-                                'No Web cluster worker {worker_id} currently running on node {node_oid}: starting worker ..',
+                                "No Web cluster worker {worker_id} currently running on node {node_oid}: starting worker ..",
                                 node_oid=hlid(node_oid),
-                                worker_id=hlid(worker_id))
+                                worker_id=hlid(worker_id),
+                            )
                         else:
                             self.log.debug(
-                                '{func} Ok, web cluster worker {worker_id} already running on node {node_oid}!',
+                                "{func} Ok, web cluster worker {worker_id} already running on node {node_oid}!",
                                 func=hltype(self._check_and_apply),
                                 node_oid=hlid(node_oid),
-                                worker_id=hlid(worker_id))
+                                worker_id=hlid(worker_id),
+                            )
 
                         # if there isn't a worker running (with worker ID as we expect) already,
                         # start a new proxy worker ..
@@ -179,16 +190,22 @@ class WebClusterMonitor(object):
                             worker_options = None
                             try:
                                 worker_started = yield self._manager._session.call(
-                                    'crossbarfabriccenter.remote.node.start_worker', node_oid, worker_id, 'proxy',
-                                    worker_options)
+                                    "crossbarfabriccenter.remote.node.start_worker",
+                                    node_oid,
+                                    worker_id,
+                                    "proxy",
+                                    worker_options,
+                                )
                                 worker = yield self._manager._session.call(
-                                    'crossbarfabriccenter.remote.node.get_worker', node_oid, worker_id)
+                                    "crossbarfabriccenter.remote.node.get_worker", node_oid, worker_id
+                                )
                                 self.log.info(
-                                    '{func} Web cluster worker {worker_id} started on node {node_oid} [{worker_started}]',
+                                    "{func} Web cluster worker {worker_id} started on node {node_oid} [{worker_started}]",
                                     func=hltype(self._check_and_apply),
                                     node_oid=hlid(node_oid),
                                     worker_id=hlid(worker_id),
-                                    worker_started=worker_started)
+                                    worker_started=worker_started,
+                                )
                             except:
                                 self.log.failure()
                                 is_running_completely = False
@@ -198,68 +215,82 @@ class WebClusterMonitor(object):
                             transport = None
 
                             # FIXME: currently, we only have 1 transport on a web cluster worker (which is named "primary")
-                            transport_id = 'primary'
+                            transport_id = "primary"
                             try:
                                 transport = yield self._manager._session.call(
-                                    'crossbarfabriccenter.remote.proxy.get_proxy_transport', node_oid, worker_id,
-                                    transport_id)
+                                    "crossbarfabriccenter.remote.proxy.get_proxy_transport",
+                                    node_oid,
+                                    worker_id,
+                                    transport_id,
+                                )
                             except ApplicationError as e:
-                                if e.error != 'crossbar.error.no_such_object':
+                                if e.error != "crossbar.error.no_such_object":
                                     # anything but "no_such_object" is unexpected (and fatal)
                                     raise
                                 self.log.info(
-                                    '{func} No Transport {transport_id} currently running for Web cluster worker {worker_id}: starting transport ..',
+                                    "{func} No Transport {transport_id} currently running for Web cluster worker {worker_id}: starting transport ..",
                                     func=hltype(self._check_and_apply),
                                     worker_id=hlid(worker_id),
-                                    transport_id=hlid(transport_id))
+                                    transport_id=hlid(transport_id),
+                                )
                             else:
                                 self.log.debug(
-                                    '{func} Ok, transport {transport_id} already running on Web cluster worker {worker_id}',
+                                    "{func} Ok, transport {transport_id} already running on Web cluster worker {worker_id}",
                                     func=hltype(self._check_and_apply),
                                     worker_id=hlid(worker_id),
-                                    transport_id=hlid(transport_id))
+                                    transport_id=hlid(transport_id),
+                                )
 
                             # if there isn't a transport started (with transport ID as we expect) already,
                             # start a new transport ..
                             if not transport:
                                 transport_config = {
-                                    'id': transport_id,
-                                    'type': 'web',
-                                    'endpoint': {
-                                        'type': 'tcp',
-                                        'port':
-                                        int(webcluster.tcp_port) if webcluster.tcp_port else get_free_tcp_port(),
-                                        'shared': webcluster.tcp_shared is True,
+                                    "id": transport_id,
+                                    "type": "web",
+                                    "endpoint": {
+                                        "type": "tcp",
+                                        "port": int(webcluster.tcp_port)
+                                        if webcluster.tcp_port
+                                        else get_free_tcp_port(),
+                                        "shared": webcluster.tcp_shared is True,
                                     },
-                                    'paths': {},
-                                    'options': {
-                                        'access_log': webcluster.http_access_log is True,
-                                        'display_tracebacks': webcluster.http_display_tracebacks is True,
-                                        'hsts': webcluster.http_hsts is True,
-                                    }
+                                    "paths": {},
+                                    "options": {
+                                        "access_log": webcluster.http_access_log is True,
+                                        "display_tracebacks": webcluster.http_display_tracebacks is True,
+                                        "hsts": webcluster.http_hsts is True,
+                                    },
                                 }
                                 if webcluster.tcp_interface:
-                                    transport_config['endpoint']['interface'] = webcluster.tcp_interface
+                                    transport_config["endpoint"]["interface"] = webcluster.tcp_interface
                                 if webcluster.tcp_backlog:
-                                    transport_config['endpoint']['backlog'] = webcluster.tcp_backlog
+                                    transport_config["endpoint"]["backlog"] = webcluster.tcp_backlog
                                 if webcluster.http_hsts_max_age:
-                                    transport_config['options']['hsts_max_age'] = webcluster.http_hsts_max_age
+                                    transport_config["options"]["hsts_max_age"] = webcluster.http_hsts_max_age
                                 if webcluster.http_client_timeout:
-                                    transport_config['options']['client_timeout'] = webcluster.http_client_timeout
+                                    transport_config["options"]["client_timeout"] = webcluster.http_client_timeout
 
                                 try:
                                     transport_started = yield self._manager._session.call(
-                                        'crossbarfabriccenter.remote.proxy.start_proxy_transport', node_oid, worker_id,
-                                        transport_id, transport_config)
+                                        "crossbarfabriccenter.remote.proxy.start_proxy_transport",
+                                        node_oid,
+                                        worker_id,
+                                        transport_id,
+                                        transport_config,
+                                    )
                                     transport = yield self._manager._session.call(
-                                        'crossbarfabriccenter.remote.proxy.get_proxy_transport', node_oid, worker_id,
-                                        transport_id)
+                                        "crossbarfabriccenter.remote.proxy.get_proxy_transport",
+                                        node_oid,
+                                        worker_id,
+                                        transport_id,
+                                    )
                                     self.log.info(
-                                        '{func} Transport {transport_id} started on Web cluster worker {worker_id} [{transport_started}]',
+                                        "{func} Transport {transport_id} started on Web cluster worker {worker_id} [{transport_started}]",
                                         func=hltype(self._check_and_apply),
                                         worker_id=hlid(worker_id),
                                         transport_id=hlid(transport_id),
-                                        transport_started=transport_started)
+                                        transport_started=transport_started,
+                                    )
                                 except:
                                     self.log.failure()
                                     is_running_completely = False
@@ -271,72 +302,91 @@ class WebClusterMonitor(object):
                                 webservices = {}
                                 with self._manager.db.begin() as txn:
                                     for webservice_oid in self._manager.schema.idx_webcluster_webservices.select(
-                                            txn, from_key=(webcluster.oid, uuid.UUID(bytes=b'\0' * 16)),
-                                            return_keys=False):
+                                        txn, from_key=(webcluster.oid, uuid.UUID(bytes=b"\0" * 16)), return_keys=False
+                                    ):
                                         webservice = self._manager.schema.webservices[txn, webservice_oid]
                                         if webservice:
                                             webservices[webservice.path] = webservice
                                         else:
-                                            self.log.warn('No webservice object found for oid {webservice_oid}',
-                                                          webservice_oid=webservice_oid)
+                                            self.log.warn(
+                                                "No webservice object found for oid {webservice_oid}",
+                                                webservice_oid=webservice_oid,
+                                            )
 
                                 for path, webservice in webservices.items():
                                     service = None
                                     try:
                                         service = yield self._manager._session.call(
-                                            'crossbarfabriccenter.remote.proxy.get_web_transport_service', node_oid,
-                                            worker_id, transport_id, path)
+                                            "crossbarfabriccenter.remote.proxy.get_web_transport_service",
+                                            node_oid,
+                                            worker_id,
+                                            transport_id,
+                                            path,
+                                        )
                                     except ApplicationError as e:
                                         # anything but "not_running" is unexpected (and fatal)
-                                        if e.error != 'crossbar.error.not_running':
+                                        if e.error != "crossbar.error.not_running":
                                             raise
                                         self.log.info(
                                             '{func} No Web service currently running on path "{path}" for Web cluster worker {worker_id} web transport {transport_id}: starting web service ..',
                                             func=hltype(self._check_and_apply),
                                             path=hlval(path),
                                             worker_id=hlid(worker_id),
-                                            transport_id=hlid(transport_id))
+                                            transport_id=hlid(transport_id),
+                                        )
                                     else:
                                         self.log.debug(
                                             '{func} Ok, web service on path "{path}" is already running for Web cluster worker {worker_id} web transport {transport_id}',
                                             func=hltype(self._check_and_apply),
                                             path=hlval(path),
                                             worker_id=hlid(worker_id),
-                                            transport_id=hlid(transport_id))
+                                            transport_id=hlid(transport_id),
+                                        )
 
                                     if not service:
                                         webservice_config = webservice.marshal()
-                                        webservice_config.pop('oid', None)
-                                        webservice_config.pop('label', None)
-                                        webservice_config.pop('description', None)
-                                        webservice_config.pop('tags', None)
-                                        webservice_config.pop('cluster_oid', None)
-                                        webservice_config.pop('path', None)
+                                        webservice_config.pop("oid", None)
+                                        webservice_config.pop("label", None)
+                                        webservice_config.pop("description", None)
+                                        webservice_config.pop("tags", None)
+                                        webservice_config.pop("cluster_oid", None)
+                                        webservice_config.pop("path", None)
 
                                         # FIXME: this shouldn't be there (but should be cluster_oid)
-                                        webservice_config.pop('webcluster_oid', None)
+                                        webservice_config.pop("webcluster_oid", None)
                                         try:
                                             webservice_started = yield self._manager._session.call(
-                                                'crossbarfabriccenter.remote.proxy.start_web_transport_service',
-                                                node_oid, worker_id, transport_id, path, webservice_config)
+                                                "crossbarfabriccenter.remote.proxy.start_web_transport_service",
+                                                node_oid,
+                                                worker_id,
+                                                transport_id,
+                                                path,
+                                                webservice_config,
+                                            )
                                             self.log.info(
                                                 '{func} Web service started on transport {transport_id} and path "{path}" [{webservice_started}]',
                                                 func=hltype(self._check_and_apply),
                                                 transport_id=hlid(transport_id),
                                                 path=hlval(path),
-                                                webservice_started=webservice_started)
+                                                webservice_started=webservice_started,
+                                            )
                                         except:
                                             self.log.failure()
                                             is_running_completely = False
 
                             with self._manager.db.begin() as txn:
                                 for arealm_oid in self._manager.schema.idx_arealm_by_webcluster.select(
-                                        txn,
-                                        from_key=(webcluster.oid, ''),
-                                        to_key=(uuid.UUID(int=int(webcluster.oid) + 1), ''),
-                                        return_keys=False):
+                                    txn,
+                                    from_key=(webcluster.oid, ""),
+                                    to_key=(uuid.UUID(int=int(webcluster.oid) + 1), ""),
+                                    return_keys=False,
+                                ):
                                     arealm = self._manager.schema.arealms[txn, arealm_oid]
-                                    if arealm and arealm.status == ApplicationRealmStatus.RUNNING and arealm.workergroup_oid:
+                                    if (
+                                        arealm
+                                        and arealm.status == ApplicationRealmStatus.RUNNING
+                                        and arealm.workergroup_oid
+                                    ):
                                         self.log.debug(
                                             '{func} node {node_id} - worker {worker_id} - webcluster "{webcluster_name}": backend router workergroup {workergroup_oid} is associated with this frontend web cluster for application realm "{arealm_name}"',
                                             func=hltype(self._check_and_apply),
@@ -345,15 +395,18 @@ class WebClusterMonitor(object):
                                             webcluster_name=hlval(webcluster.name),
                                             arealm_name=hlval(arealm.name),
                                             arealm_oid=hlid(arealm_oid),
-                                            workergroup_oid=hlid(arealm.workergroup_oid))
+                                            workergroup_oid=hlid(arealm.workergroup_oid),
+                                        )
 
-                        wk = (node_oid, worker['id'])
+                        wk = (node_oid, worker["id"])
                         workers[wk] = worker
                 else:
-                    self.log.warn('{func} Web cluster node {node_oid} not running [status={status}]',
-                                  func=hltype(self._check_and_apply),
-                                  node_oid=hlid(node_oid),
-                                  status=hl(node.status if node else 'offline'))
+                    self.log.warn(
+                        "{func} Web cluster node {node_oid} not running [status={status}]",
+                        func=hltype(self._check_and_apply),
+                        node_oid=hlid(node_oid),
+                        status=hl(node.status if node else "offline"),
+                    )
                     is_running_completely = False
 
             if webcluster.status in [cluster.STATUS_STARTING] and is_running_completely:
@@ -364,13 +417,15 @@ class WebClusterMonitor(object):
                     self._manager.schema.webclusters[txn, webcluster.oid] = webcluster
 
                 webcluster_started = {
-                    'oid': str(webcluster.oid),
-                    'status': cluster.STATUS_BY_CODE[webcluster.status],
-                    'changed': webcluster.changed,
+                    "oid": str(webcluster.oid),
+                    "status": cluster.STATUS_BY_CODE[webcluster.status],
+                    "changed": webcluster.changed,
                 }
-                yield self._manager._session.publish('{}.on_webcluster_started'.format(self._manager._prefix),
-                                                     webcluster_started,
-                                                     options=self._manager._PUBOPTS)
+                yield self._manager._session.publish(
+                    "{}.on_webcluster_started".format(self._manager._prefix),
+                    webcluster_started,
+                    options=self._manager._PUBOPTS,
+                )
         except:
             self.log.failure()
 
@@ -378,29 +433,32 @@ class WebClusterMonitor(object):
         for node_oid, worker_id in self._workers:
             worker = self._workers[(node_oid, worker_id)]
             if worker:
-                status = worker['status'].upper()
+                status = worker["status"].upper()
             else:
-                status = 'MISSING'
+                status = "MISSING"
             self.log.info(
-                '{func} webcluster {webcluster_oid} worker {worker_id} on node {node_oid} has status {status}',
+                "{func} webcluster {webcluster_oid} worker {worker_id} on node {node_oid} has status {status}",
                 func=hltype(self._check_and_apply),
                 worker_id=hlid(worker_id),
                 node_oid=hlid(node_oid),
                 webcluster_oid=hlid(self._webcluster_oid),
-                status=hlval(status))
+                status=hlval(status),
+            )
 
         if is_running_completely:
-            color = 'green'
-            action = 'check & apply run completed successfully'
+            color = "green"
+            action = "check & apply run completed successfully"
         else:
-            color = 'red'
-            action = 'check & apply run finished with problems left'
+            color = "red"
+            action = "check & apply run finished with problems left"
 
         self._check_and_apply_in_progress = False
-        self.log.info('{func} {action} for webcluster {webcluster}!',
-                      action=hl(action, color=color, bold=True),
-                      func=hltype(self._check_and_apply),
-                      webcluster=hlid(self._webcluster_oid))
+        self.log.info(
+            "{func} {action} for webcluster {webcluster}!",
+            action=hl(action, color=color, bold=True),
+            func=hltype(self._check_and_apply),
+            webcluster=hlid(self._webcluster_oid),
+        )
 
 
 class WebClusterManager(object):
@@ -410,6 +468,7 @@ class WebClusterManager(object):
     a shared, common transport definition, such as regarding the Web services
     configured on URL paths of the Web transport.
     """
+
     log = make_logger()
 
     # publication options for management API events
@@ -418,23 +477,23 @@ class WebClusterManager(object):
     # map of allowed web services, see also crossbar.personality.Personality.WEB_SERVICE_CHECKERS
     _WEB_SERVICE_CHECKERS = {
         # none
-        'path': checkconfig.check_web_path_service_path,
-        'redirect': checkconfig.check_web_path_service_redirect,
+        "path": checkconfig.check_web_path_service_path,
+        "redirect": checkconfig.check_web_path_service_redirect,
         # resource
-        'reverseproxy': checkconfig.check_web_path_service_reverseproxy,
-        'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
-        'json': checkconfig.check_web_path_service_json,
-        'cgi': checkconfig.check_web_path_service_cgi,
-        'wsgi': checkconfig.check_web_path_service_wsgi,
-        'static': checkconfig.check_web_path_service_static,
-        'websocket': checkconfig.check_web_path_service_websocket,
-        'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
+        "reverseproxy": checkconfig.check_web_path_service_reverseproxy,
+        "nodeinfo": checkconfig.check_web_path_service_nodeinfo,
+        "json": checkconfig.check_web_path_service_json,
+        "cgi": checkconfig.check_web_path_service_cgi,
+        "wsgi": checkconfig.check_web_path_service_wsgi,
+        "static": checkconfig.check_web_path_service_static,
+        "websocket": checkconfig.check_web_path_service_websocket,
+        "websocket-reverseproxy": checkconfig.check_web_path_service_websocket_reverseproxy,
         # longpoll
-        'caller': checkconfig.check_web_path_service_caller,
-        'publisher': checkconfig.check_web_path_service_publisher,
+        "caller": checkconfig.check_web_path_service_caller,
+        "publisher": checkconfig.check_web_path_service_publisher,
         # webhook
-        'archive': archive.RouterWebServiceArchive.check,
-        'wap': wap.RouterWebServiceWap.check,
+        "archive": archive.RouterWebServiceArchive.check,
+        "wap": wap.RouterWebServiceWap.check,
     }
 
     def __init__(self, session, globaldb, globalschema, db, schema, reactor=None):
@@ -503,24 +562,25 @@ class WebClusterManager(object):
 
         :return:
         """
-        assert self._started is None, 'cannot start web cluster manager - already running!'
+        assert self._started is None, "cannot start web cluster manager - already running!"
         assert self._prefix is None
 
         self._started = time_ns()
 
         # crossbarfabriccenter.mrealm.webcluster
-        self._prefix = prefix[:-1] if prefix.endswith('.') else prefix
+        self._prefix = prefix[:-1] if prefix.endswith(".") else prefix
 
-        regs = yield self._session.register(self,
-                                            prefix='{}.'.format(self._prefix),
-                                            options=RegisterOptions(details_arg='details'))
+        regs = yield self._session.register(
+            self, prefix="{}.".format(self._prefix), options=RegisterOptions(details_arg="details")
+        )
         procs = [reg.procedure for reg in regs]
         self.log.debug(
             'Web cluster manager {api} registered management procedures using prefix "{prefix}" [{func}]:\n\n{procs}\n',
-            api=hl('Web cluster manager API', color='green', bold=True),
+            api=hl("Web cluster manager API", color="green", bold=True),
             func=hltype(self.start),
             prefix=hlval(self._prefix),
-            procs=hl(pformat(procs), color='white', bold=True))
+            procs=hl(pformat(procs), color="white", bold=True),
+        )
 
         # start all web cluster monitors ..
         cnt_started = 0
@@ -536,30 +596,36 @@ class WebClusterManager(object):
                     assert webcluster_oid not in self._monitors
                     self._monitors[webcluster_oid] = monitor
                     cnt_started += 1
-                    self.log.info('{func}(prefix="{prefix}"): {action} for web cluster {webcluster_oid} in {status})',
-                                  action=hl('cluster monitor started', color='green', bold=True),
-                                  prefix=hlval(prefix),
-                                  func=hltype(self.start),
-                                  webcluster_oid=hlid(webcluster_oid),
-                                  status=hlval(webcluster.status))
+                    self.log.info(
+                        '{func}(prefix="{prefix}"): {action} for web cluster {webcluster_oid} in {status})',
+                        action=hl("cluster monitor started", color="green", bold=True),
+                        prefix=hlval(prefix),
+                        func=hltype(self.start),
+                        webcluster_oid=hlid(webcluster_oid),
+                        status=hlval(webcluster.status),
+                    )
                 else:
                     cnt_skipped += 1
                     self.log.info(
                         '{func}(prefix="{prefix}"): {action} for web cluster {webcluster_oid} in status {status}',
-                        action=hl('cluster monitor skipped', color='green', bold=True),
+                        action=hl("cluster monitor skipped", color="green", bold=True),
                         prefix=hlval(prefix),
                         func=hltype(self.start),
                         webcluster_oid=hlid(webcluster_oid),
-                        status=hlval(webcluster.status))
+                        status=hlval(webcluster.status),
+                    )
         self.log.info(
-            'Web cluster manager has started monitors for {cnt_started} clusters ({cnt_skipped} skipped) [{func}]',
+            "Web cluster manager has started monitors for {cnt_started} clusters ({cnt_skipped} skipped) [{func}]",
             cnt_started=hlval(cnt_started),
             cnt_skipped=hlval(cnt_skipped),
-            func=hltype(self.start))
+            func=hltype(self.start),
+        )
 
-        self.log.info('Web cluster manager ready for management realm {mrealm_oid}! [{func}]',
-                      mrealm_oid=hlid(self._mrealm_oid),
-                      func=hltype(self.start))
+        self.log.info(
+            "Web cluster manager ready for management realm {mrealm_oid}! [{func}]",
+            mrealm_oid=hlid(self._mrealm_oid),
+            func=hltype(self.start),
+        )
 
         # return txaio.gather(dl)
 
@@ -570,7 +636,7 @@ class WebClusterManager(object):
 
         :return:
         """
-        assert self._started > 0, 'cannot stop web cluster manager - currently not running!'
+        assert self._started > 0, "cannot stop web cluster manager - currently not running!"
 
         # stop all web cluster monitors ..
         dl = []
@@ -579,17 +645,18 @@ class WebClusterManager(object):
             del self._monitors[webcluster_oid]
         self._started = None
         self.log.info(
-            'Ok, web cluster manager for management realm {mrealm_oid} stopped ({cnt_stopped} monitors stopped) [{func}]',
+            "Ok, web cluster manager for management realm {mrealm_oid} stopped ({cnt_stopped} monitors stopped) [{func}]",
             mrealm_oid=hlid(self._mrealm_oid),
             cnt_stopped=len(dl),
-            func=hltype(self.start))
+            func=hltype(self.start),
+        )
 
         # return txaio.gather(dl)
 
     @wamp.register(None, check_types=True)
-    def list_webclusters(self,
-                         return_names: Optional[bool] = False,
-                         details: Optional[CallDetails] = None) -> List[str]:
+    def list_webclusters(
+        self, return_names: Optional[bool] = False, details: Optional[CallDetails] = None
+    ) -> List[str]:
         """
         Returns list of web clusters defined. Detail information for a web cluster
         can be retrieved using :meth:`crossbar.master.cluster.webcluster.WebClusterManager.get_webcluster`.
@@ -614,7 +681,7 @@ class WebClusterManager(object):
         """
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(details={details})', func=hltype(self.list_webclusters), details=details)
+        self.log.info("{func}(details={details})", func=hltype(self.list_webclusters), details=details)
 
         with self.db.begin() as txn:
             if return_names:
@@ -672,15 +739,17 @@ class WebClusterManager(object):
         assert isinstance(webcluster_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(webcluster_oid={webcluster_oid}, details={details})',
-                      func=hltype(self.get_webcluster),
-                      webcluster_oid=hlid(webcluster_oid),
-                      details=details)
+        self.log.info(
+            "{func}(webcluster_oid={webcluster_oid}, details={details})",
+            func=hltype(self.get_webcluster),
+            webcluster_oid=hlid(webcluster_oid),
+            details=details,
+        )
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid webcluster_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid webcluster_oid: {}".format(str(e)))
 
         with self.db.begin() as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
@@ -688,8 +757,9 @@ class WebClusterManager(object):
         if webcluster:
             return webcluster.marshal()
         else:
-            raise ApplicationError('crossbar.error.no_such_object',
-                                   'no webcluster with oid {}'.format(webcluster_oid_))
+            raise ApplicationError(
+                "crossbar.error.no_such_object", "no webcluster with oid {}".format(webcluster_oid_)
+            )
 
     @wamp.register(None, check_types=True)
     def get_webcluster_by_name(self, webcluster_name: str, details: Optional[CallDetails] = None) -> dict:
@@ -706,16 +776,19 @@ class WebClusterManager(object):
         assert isinstance(webcluster_name, str)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(webcluster_name="{webcluster_name}", details={details})',
-                      func=hltype(self.get_webcluster_by_name),
-                      webcluster_name=hlid(webcluster_name),
-                      details=details)
+        self.log.info(
+            '{func}(webcluster_name="{webcluster_name}", details={details})',
+            func=hltype(self.get_webcluster_by_name),
+            webcluster_name=hlid(webcluster_name),
+            details=details,
+        )
 
         with self.db.begin() as txn:
             webcluster_oid = self.schema.idx_webclusters_by_name[txn, webcluster_name]
             if not webcluster_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no webcluster named {}'.format(webcluster_name))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no webcluster named {}".format(webcluster_name)
+                )
 
             webcluster = self.schema.webclusters[txn, webcluster_oid]
             assert webcluster
@@ -805,54 +878,62 @@ class WebClusterManager(object):
         assert isinstance(webcluster, dict)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(webcluster="{webcluster}", details={details})',
-                      func=hltype(self.create_webcluster),
-                      webcluster=webcluster,
-                      details=details)
+        self.log.info(
+            '{func}(webcluster="{webcluster}", details={details})',
+            func=hltype(self.create_webcluster),
+            webcluster=webcluster,
+            details=details,
+        )
 
         try:
             obj = WebCluster.parse(webcluster)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_configuration',
-                                   'could not parse web cluster configuration ({})'.format(e))
+            raise ApplicationError(
+                "wamp.error.invalid_configuration", "could not parse web cluster configuration ({})".format(e)
+            )
 
         if obj.name is None:
-            raise ApplicationError('wamp.error.invalid_configuration', 'missing "name" in web cluster configuration')
+            raise ApplicationError("wamp.error.invalid_configuration", 'missing "name" in web cluster configuration')
         else:
             if not checkconfig._CONFIG_ITEM_ID_PAT.match(obj.name):
                 raise ApplicationError(
-                    'wamp.error.invalid_configuration',
+                    "wamp.error.invalid_configuration",
                     'invalid name "{}" in web cluster configuration (must match {})'.format(
-                        obj.name, checkconfig._CONFIG_ITEM_ID_PAT_STR))
+                        obj.name, checkconfig._CONFIG_ITEM_ID_PAT_STR
+                    ),
+                )
 
         obj.oid = uuid.uuid4()
-        obj.status = cluster.STATUS_BY_NAME['STOPPED']
-        obj.changed = np.datetime64(time_ns(), 'ns')
+        obj.status = cluster.STATUS_BY_NAME["STOPPED"]
+        obj.changed = np.datetime64(time_ns(), "ns")
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
                 if not caller_oid:
-                    raise ApplicationError('wamp.error.no_such_principal',
-                                           'no user found for authid "{}"'.format(details.caller_authid))
+                    raise ApplicationError(
+                        "wamp.error.no_such_principal", 'no user found for authid "{}"'.format(details.caller_authid)
+                    )
             obj.owner_oid = caller_oid
         else:
-            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+            raise ApplicationError("wamp.error.no_such_principal", "cannot map user - no caller authid available")
 
         with self.db.begin(write=True) as txn:
             if self.schema.idx_webclusters_by_name[txn, obj.name]:
-                raise ApplicationError('crossbar.error.already_exists',
-                                       'duplicate name "{}" in web cluster configuration'.format(obj.name))
+                raise ApplicationError(
+                    "crossbar.error.already_exists",
+                    'duplicate name "{}" in web cluster configuration'.format(obj.name),
+                )
 
             self.schema.webclusters[txn, obj.oid] = obj
 
-        self.log.info('new WebCluster object stored in database:\n{obj}', obj=obj)
+        self.log.info("new WebCluster object stored in database:\n{obj}", obj=obj)
 
         res_obj = obj.marshal()
 
-        await self._session.publish('{}.on_webcluster_created'.format(self._prefix), res_obj, options=self._PUBOPTS)
+        await self._session.publish("{}.on_webcluster_created".format(self._prefix), res_obj, options=self._PUBOPTS)
 
-        self.log.info('Management API event <on_webcluster_created> published:\n{res_obj}', res_obj=res_obj)
+        self.log.info("Management API event <on_webcluster_created> published:\n{res_obj}", res_obj=res_obj)
 
         return res_obj
 
@@ -903,43 +984,47 @@ class WebClusterManager(object):
         """
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}.delete_webcluster(webcluster_oid={webcluster_oid}, details={details})',
-                      func=hltype(self.delete_webcluster),
-                      webcluster_oid=hlid(webcluster_oid),
-                      details=details)
+        self.log.info(
+            "{func}.delete_webcluster(webcluster_oid={webcluster_oid}, details={details})",
+            func=hltype(self.delete_webcluster),
+            webcluster_oid=hlid(webcluster_oid),
+            details=details,
+        )
 
         try:
             oid = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
                 if not caller_oid:
-                    raise ApplicationError('wamp.error.no_such_principal',
-                                           'no user found for authid "{}"'.format(details.caller_authid))
+                    raise ApplicationError(
+                        "wamp.error.no_such_principal", 'no user found for authid "{}"'.format(details.caller_authid)
+                    )
         else:
-            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+            raise ApplicationError("wamp.error.no_such_principal", "cannot map user - no caller authid available")
 
         with self.db.begin(write=True) as txn:
             cluster_obj = self.schema.webclusters[txn, oid]
             if cluster_obj:
                 if cluster_obj.owner_oid != caller_oid:
-                    raise ApplicationError('wamp.error.not_authorized',
-                                           'only owner is allowed to delete router cluster')
+                    raise ApplicationError(
+                        "wamp.error.not_authorized", "only owner is allowed to delete router cluster"
+                    )
                 if cluster_obj.status != cluster.STATUS_STOPPED:
-                    raise ApplicationError('crossbar.error.not_stopped')
+                    raise ApplicationError("crossbar.error.not_stopped")
                 del self.schema.webclusters[txn, oid]
             else:
-                raise ApplicationError('crossbar.error.no_such_object', 'no object with oid {} found'.format(oid))
+                raise ApplicationError("crossbar.error.no_such_object", "no object with oid {} found".format(oid))
 
         cluster_obj.changed = time_ns()
-        self.log.info('WebCluster object deleted from database:\n{cluster_obj}', cluster_obj=cluster_obj)
+        self.log.info("WebCluster object deleted from database:\n{cluster_obj}", cluster_obj=cluster_obj)
 
         res_obj = cluster_obj.marshal()
 
-        await self._session.publish('{}.on_webcluster_deleted'.format(self._prefix), res_obj, options=self._PUBOPTS)
+        await self._session.publish("{}.on_webcluster_deleted".format(self._prefix), res_obj, options=self._PUBOPTS)
 
         return res_obj
 
@@ -967,38 +1052,43 @@ class WebClusterManager(object):
         """
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(webcluster_oid="{webcluster_oid}", details={details})',
-                      func=hltype(self.start_webcluster),
-                      webcluster_oid=hlid(webcluster_oid),
-                      details=details)
+        self.log.info(
+            '{func}(webcluster_oid="{webcluster_oid}", details={details})',
+            func=hltype(self.start_webcluster),
+            webcluster_oid=hlid(webcluster_oid),
+            details=details,
+        )
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
                 if not caller_oid:
-                    raise ApplicationError('wamp.error.no_such_principal',
-                                           'no user found for authid "{}"'.format(details.caller_authid))
+                    raise ApplicationError(
+                        "wamp.error.no_such_principal", 'no user found for authid "{}"'.format(details.caller_authid)
+                    )
         else:
-            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+            raise ApplicationError("wamp.error.no_such_principal", "cannot map user - no caller authid available")
 
         with self.db.begin(write=True) as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no webcluster with oid {} found'.format(webcluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no webcluster with oid {} found".format(webcluster_oid_)
+                )
 
             if webcluster.owner_oid != caller_oid:
-                raise ApplicationError('wamp.error.not_authorized', 'only owner is allowed to start a web cluster')
+                raise ApplicationError("wamp.error.not_authorized", "only owner is allowed to start a web cluster")
 
             if webcluster.status not in [cluster.STATUS_STOPPED, cluster.STATUS_PAUSED]:
-                emsg = 'cannot start webcluster currently in state {}'.format(
-                    cluster.STATUS_BY_CODE[webcluster.status])
-                raise ApplicationError('crossbar.error.cannot_start', emsg)
+                emsg = "cannot start webcluster currently in state {}".format(
+                    cluster.STATUS_BY_CODE[webcluster.status]
+                )
+                raise ApplicationError("crossbar.error.cannot_start", emsg)
 
             webcluster.status = cluster.STATUS_STARTING
             webcluster.changed = time_ns()
@@ -1011,18 +1101,18 @@ class WebClusterManager(object):
         self._monitors[webcluster_oid_] = monitor
 
         webcluster_starting = {
-            'oid': str(webcluster.oid),
-            'status': cluster.STATUS_BY_CODE[webcluster.status],
-            'changed': webcluster.changed,
-            'who': {
-                'session': details.caller if details else None,
-                'authid': details.caller_authid if details else None,
-                'authrole': details.caller_authrole if details else None,
-            }
+            "oid": str(webcluster.oid),
+            "status": cluster.STATUS_BY_CODE[webcluster.status],
+            "changed": webcluster.changed,
+            "who": {
+                "session": details.caller if details else None,
+                "authid": details.caller_authid if details else None,
+                "authrole": details.caller_authrole if details else None,
+            },
         }
-        await self._session.publish('{}.on_webcluster_starting'.format(self._prefix),
-                                    webcluster_starting,
-                                    options=self._PUBOPTS)
+        await self._session.publish(
+            "{}.on_webcluster_starting".format(self._prefix), webcluster_starting, options=self._PUBOPTS
+        )
 
         return webcluster_starting
 
@@ -1056,25 +1146,28 @@ class WebClusterManager(object):
         """
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(webcluster_oid={webcluster_oid}, details={details})',
-                      webcluster_oid=hlid(webcluster_oid),
-                      func=hltype(self.stop_webcluster),
-                      details=details)
+        self.log.info(
+            "{func}(webcluster_oid={webcluster_oid}, details={details})",
+            webcluster_oid=hlid(webcluster_oid),
+            func=hltype(self.stop_webcluster),
+            details=details,
+        )
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         with self.db.begin(write=True) as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no webcluster with oid {} found'.format(webcluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no webcluster with oid {} found".format(webcluster_oid_)
+                )
 
             if webcluster.status not in [cluster.STATUS_STARTING, cluster.STATUS_RUNNING]:
-                emsg = 'cannot stop webcluster currently in state {}'.format(cluster.STATUS_BY_CODE[webcluster.status])
-                raise ApplicationError('crossbar.error.cannot_stop', emsg)
+                emsg = "cannot stop webcluster currently in state {}".format(cluster.STATUS_BY_CODE[webcluster.status])
+                raise ApplicationError("crossbar.error.cannot_stop", emsg)
 
             webcluster.status = cluster.STATUS_STOPPING
             webcluster.changed = time_ns()
@@ -1082,28 +1175,30 @@ class WebClusterManager(object):
             self.schema.webclusters[txn, webcluster_oid_] = webcluster
 
         webcluster_stopping = {
-            'oid': str(webcluster.oid),
-            'status': cluster.STATUS_BY_CODE[webcluster.status],
-            'changed': webcluster.changed,
-            'who': {
-                'session': details.caller if details else None,
-                'authid': details.caller_authid if details else None,
-                'authrole': details.caller_authrole if details else None,
-            }
+            "oid": str(webcluster.oid),
+            "status": cluster.STATUS_BY_CODE[webcluster.status],
+            "changed": webcluster.changed,
+            "who": {
+                "session": details.caller if details else None,
+                "authid": details.caller_authid if details else None,
+                "authrole": details.caller_authrole if details else None,
+            },
         }
 
-        await self._session.publish('{}.on_webcluster_stopping'.format(self._prefix),
-                                    webcluster_stopping,
-                                    options=self._PUBOPTS)
+        await self._session.publish(
+            "{}.on_webcluster_stopping".format(self._prefix), webcluster_stopping, options=self._PUBOPTS
+        )
 
         return webcluster_stopping
 
     @wamp.register(None, check_types=True)
-    def list_webcluster_nodes(self,
-                              webcluster_oid: str,
-                              return_names: Optional[bool] = None,
-                              filter_by_status: Optional[str] = None,
-                              details: Optional[CallDetails] = None) -> List[str]:
+    def list_webcluster_nodes(
+        self,
+        webcluster_oid: str,
+        return_names: Optional[bool] = None,
+        filter_by_status: Optional[str] = None,
+        details: Optional[CallDetails] = None,
+    ) -> List[str]:
         """
         List nodes currently associated with the given web cluster.
 
@@ -1139,28 +1234,29 @@ class WebClusterManager(object):
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info(
-            '{func}(webcluster_oid={webcluster_oid}, return_names={return_names}, filter_by_status={filter_by_status}, details={details})',
+            "{func}(webcluster_oid={webcluster_oid}, return_names={return_names}, filter_by_status={filter_by_status}, details={details})",
             func=hltype(self.list_webcluster_nodes),
             webcluster_oid=hlid(webcluster_oid),
             return_names=hlval(return_names),
             filter_by_status=hlval(filter_by_status),
-            details=details)
+            details=details,
+        )
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         node_oids = []
         with self.db.begin() as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no webcluster with oid {} found'.format(webcluster_oid_))
-            for _, node_oid in self.schema.webcluster_node_memberships.select(txn,
-                                                                              from_key=(webcluster_oid_,
-                                                                                        uuid.UUID(bytes=b'\0' * 16)),
-                                                                              return_values=False):
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no webcluster with oid {} found".format(webcluster_oid_)
+                )
+            for _, node_oid in self.schema.webcluster_node_memberships.select(
+                txn, from_key=(webcluster_oid_, uuid.UUID(bytes=b"\0" * 16)), return_values=False
+            ):
                 node_oids.append(node_oid)
 
         if filter_by_status:
@@ -1185,11 +1281,9 @@ class WebClusterManager(object):
         return res
 
     @wamp.register(None, check_types=True)
-    async def add_webcluster_node(self,
-                                  webcluster_oid: str,
-                                  node_oid: str,
-                                  config: Optional[dict] = None,
-                                  details: Optional[CallDetails] = None) -> dict:
+    async def add_webcluster_node(
+        self, webcluster_oid: str, node_oid: str, config: Optional[dict] = None, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Add a node to a web cluster. The node-to-webcluster association can be configured in ``config``:
 
@@ -1225,44 +1319,46 @@ class WebClusterManager(object):
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info(
-            '{func}(webcluster_oid={webcluster_oid}, node_oid={node_oid}, config={config}, details={details})',
+            "{func}(webcluster_oid={webcluster_oid}, node_oid={node_oid}, config={config}, details={details})",
             func=hltype(self.list_webcluster_nodes),
             webcluster_oid=hlid(webcluster_oid),
             node_oid=hlid(node_oid),
             config=config,
-            details=details)
+            details=details,
+        )
 
         config = config or {}
-        config['cluster_oid'] = webcluster_oid
-        config['node_oid'] = node_oid
+        config["cluster_oid"] = webcluster_oid
+        config["node_oid"] = node_oid
         membership = WebClusterNodeMembership.parse(config)
 
         with self.gdb.begin() as txn:
             node = self.gschema.nodes[txn, membership.node_oid]
             if not node or node.mrealm_oid != self._session._mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no node with oid {} found'.format(membership.node_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no node with oid {} found".format(membership.node_oid)
+                )
 
         with self.db.begin(write=True) as txn:
             webcluster = self.schema.webclusters[txn, membership.cluster_oid]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no webcluster with oid {} found'.format(membership.cluster_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no webcluster with oid {} found".format(membership.cluster_oid)
+                )
 
             self.schema.webcluster_node_memberships[txn, (membership.cluster_oid, membership.node_oid)] = membership
 
         res_obj = membership.marshal()
-        self.log.info('node added to web cluster:\n{membership}', membership=res_obj)
+        self.log.info("node added to web cluster:\n{membership}", membership=res_obj)
 
-        await self._session.publish('{}.on_webcluster_node_added'.format(self._prefix), res_obj, options=self._PUBOPTS)
+        await self._session.publish("{}.on_webcluster_node_added".format(self._prefix), res_obj, options=self._PUBOPTS)
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    async def remove_webcluster_node(self,
-                                     webcluster_oid: str,
-                                     node_oid: str,
-                                     details: Optional[CallDetails] = None) -> dict:
+    async def remove_webcluster_node(
+        self, webcluster_oid: str, node_oid: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Remove a node from a web cluster.
 
@@ -1287,44 +1383,48 @@ class WebClusterManager(object):
         try:
             node_oid_ = uuid.UUID(node_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
-        self.log.info('{func}(webcluster_oid={webcluster_oid}, node_oid={node_oid}, details={details})',
-                      webcluster_oid=hlid(webcluster_oid_),
-                      node_oid=hlid(node_oid_),
-                      func=hltype(self.remove_webcluster_node),
-                      details=details)
+        self.log.info(
+            "{func}(webcluster_oid={webcluster_oid}, node_oid={node_oid}, details={details})",
+            webcluster_oid=hlid(webcluster_oid_),
+            node_oid=hlid(node_oid_),
+            func=hltype(self.remove_webcluster_node),
+            details=details,
+        )
 
         with self.gdb.begin() as txn:
             node = self.gschema.nodes[txn, node_oid_]
             if not node or node.mrealm_oid != self._session._mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object', 'no node with oid {} found'.format(node_oid_))
+                raise ApplicationError("crossbar.error.no_such_object", "no node with oid {} found".format(node_oid_))
 
         with self.db.begin(write=True) as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(webcluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(webcluster_oid_)
+                )
 
             membership = self.schema.webcluster_node_memberships[txn, (webcluster_oid_, node_oid_)]
             if not membership:
                 raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no association between node {} and webcluster {} found'.format(node_oid_, webcluster_oid_))
+                    "crossbar.error.no_such_object",
+                    "no association between node {} and webcluster {} found".format(node_oid_, webcluster_oid_),
+                )
 
             del self.schema.webcluster_node_memberships[txn, (webcluster_oid_, node_oid_)]
 
         res_obj = membership.marshal()
-        self.log.info('node removed from web cluster:\n{res_obj}', membership=res_obj)
+        self.log.info("node removed from web cluster:\n{res_obj}", membership=res_obj)
 
-        await self._session.publish('{}.on_webcluster_node_removed'.format(self._prefix),
-                                    res_obj,
-                                    options=self._PUBOPTS)
+        await self._session.publish(
+            "{}.on_webcluster_node_removed".format(self._prefix), res_obj, options=self._PUBOPTS
+        )
 
         return res_obj
 
@@ -1355,45 +1455,48 @@ class WebClusterManager(object):
         try:
             node_oid_ = uuid.UUID(node_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
-        self.log.info('{func}(webcluster_oid={webcluster_oid}, node_oid={node_oid}, details={details})',
-                      webcluster_oid=hlid(webcluster_oid_),
-                      node_oid=hlid(node_oid_),
-                      func=hltype(self.get_webcluster_node),
-                      details=details)
+        self.log.info(
+            "{func}(webcluster_oid={webcluster_oid}, node_oid={node_oid}, details={details})",
+            webcluster_oid=hlid(webcluster_oid_),
+            node_oid=hlid(node_oid_),
+            func=hltype(self.get_webcluster_node),
+            details=details,
+        )
 
         with self.gdb.begin() as txn:
             node = self.gschema.nodes[txn, node_oid_]
             if not node or node.mrealm_oid != self._session._mrealm_oid:
-                raise ApplicationError('crossbar.error.no_such_object', 'no node with oid {} found'.format(node_oid_))
+                raise ApplicationError("crossbar.error.no_such_object", "no node with oid {} found".format(node_oid_))
 
         with self.db.begin() as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(webcluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(webcluster_oid_)
+                )
 
             membership = self.schema.webcluster_node_memberships[txn, (webcluster_oid_, node_oid_)]
             if not membership:
                 raise ApplicationError(
-                    'crossbar.error.no_such_object',
-                    'no association between node {} and webcluster {} found'.format(node_oid_, webcluster_oid_))
+                    "crossbar.error.no_such_object",
+                    "no association between node {} and webcluster {} found".format(node_oid_, webcluster_oid_),
+                )
 
         res_obj = membership.marshal()
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    def list_webcluster_services(self,
-                                 webcluster_oid: str,
-                                 prefix: Optional[str] = None,
-                                 details: Optional[CallDetails] = None) -> Dict[str, str]:
+    def list_webcluster_services(
+        self, webcluster_oid: str, prefix: Optional[str] = None, details: Optional[CallDetails] = None
+    ) -> Dict[str, str]:
         """
         List webservices defined on a webcluster, optionally filtering by prefix.
 
@@ -1415,41 +1518,42 @@ class WebClusterManager(object):
         assert prefix is None or isinstance(prefix, str)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(webcluster_oid={webcluster_oid}, prefix="{prefix}", details={details})',
-                      webcluster_oid=hlid(webcluster_oid),
-                      prefix=hlval(prefix),
-                      func=hltype(self.list_webcluster_services),
-                      details=details)
+        self.log.info(
+            '{func}(webcluster_oid={webcluster_oid}, prefix="{prefix}", details={details})',
+            webcluster_oid=hlid(webcluster_oid),
+            prefix=hlval(prefix),
+            func=hltype(self.list_webcluster_services),
+            details=details,
+        )
 
         if prefix:
-            raise NotImplementedError('prefix option not yet implemented')
+            raise NotImplementedError("prefix option not yet implemented")
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         with self.db.begin() as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(webcluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(webcluster_oid_)
+                )
 
             res = {}
             # FIXME: 1) to_key and 2) prefix option
-            for (_, path), webservice_oid in self.schema.idx_webservices_by_path.select(txn,
-                                                                                        from_key=(webcluster_oid_,
-                                                                                                  '')):
+            for (_, path), webservice_oid in self.schema.idx_webservices_by_path.select(
+                txn, from_key=(webcluster_oid_, "")
+            ):
                 res[path] = str(webservice_oid)
 
             return res
 
     @wamp.register(None, check_types=True)
-    async def add_webcluster_service(self,
-                                     webcluster_oid: str,
-                                     path: str,
-                                     webservice: dict,
-                                     details: Optional[CallDetails] = None) -> dict:
+    async def add_webcluster_service(
+        self, webcluster_oid: str, path: str, webservice: dict, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Add a Web service to a Web cluster.
 
@@ -1481,57 +1585,65 @@ class WebClusterManager(object):
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info(
-            '{func}(webcluster_oid={webcluster_oid}, path={path}, webservice={webservice}, details={details})',
+            "{func}(webcluster_oid={webcluster_oid}, path={path}, webservice={webservice}, details={details})",
             webcluster_oid=hlid(webcluster_oid),
             path=hlval(path),
             webservice=webservice,
             func=hltype(self.add_webcluster_service),
-            details=details)
+            details=details,
+        )
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
                 if not caller_oid:
-                    raise ApplicationError('wamp.error.no_such_principal',
-                                           'no user found for authid "{}"'.format(details.caller_authid))
+                    raise ApplicationError(
+                        "wamp.error.no_such_principal", 'no user found for authid "{}"'.format(details.caller_authid)
+                    )
         else:
-            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+            raise ApplicationError("wamp.error.no_such_principal", "cannot map user - no caller authid available")
 
-        if 'type' not in webservice:
-            raise ApplicationError('wamp.error.invalid_argument', 'missing type in webservice')
+        if "type" not in webservice:
+            raise ApplicationError("wamp.error.invalid_argument", "missing type in webservice")
 
-        webservice_type = webservice['type']
+        webservice_type = webservice["type"]
         if webservice_type not in self._WEB_SERVICE_CHECKERS:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid webservice type "{}"'.format(webservice_type))
+            raise ApplicationError(
+                "wamp.error.invalid_argument", 'invalid webservice type "{}"'.format(webservice_type)
+            )
 
-        if 'path' in webservice:
-            assert webservice['path'] == path
-            del webservice['path']
+        if "path" in webservice:
+            assert webservice["path"] == path
+            del webservice["path"]
 
         _personality = self._worker.personality
         _check = self._WEB_SERVICE_CHECKERS[webservice_type]
-        self.log.info('Checking web service configuration [personality={personality}, check={check}]:\n{webservice}',
-                      personality=_personality,
-                      check=_check,
-                      webservice=pformat(webservice))
+        self.log.info(
+            "Checking web service configuration [personality={personality}, check={check}]:\n{webservice}",
+            personality=_personality,
+            check=_check,
+            webservice=pformat(webservice),
+        )
 
         try:
             _check(_personality, webservice)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument',
-                                   'invalid webservice configuration for type "{}": {}'.format(webservice_type, e))
+            raise ApplicationError(
+                "wamp.error.invalid_argument",
+                'invalid webservice configuration for type "{}": {}'.format(webservice_type, e),
+            )
 
         try:
             webservice_obj = WebService.parse(webservice)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_configuration',
-                                   'could not parse web cluster configuration ({})'.format(e))
+            raise ApplicationError(
+                "wamp.error.invalid_configuration", "could not parse web cluster configuration ({})".format(e)
+            )
 
         webservice_obj.oid = uuid.uuid4()
         webservice_obj.path = path
@@ -1540,38 +1652,41 @@ class WebClusterManager(object):
         with self.db.begin(write=True) as txn:
             webcluster = self.schema.webclusters[txn, webservice_obj.webcluster_oid]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(webservice_obj.webcluster_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object",
+                    "no object with oid {} found".format(webservice_obj.webcluster_oid),
+                )
 
             if webcluster.owner_oid != caller_oid:
-                raise ApplicationError('wamp.error.not_authorized',
-                                       'only owner is allowed to add web service to a web cluster')
+                raise ApplicationError(
+                    "wamp.error.not_authorized", "only owner is allowed to add web service to a web cluster"
+                )
 
             if webcluster.status not in [cluster.STATUS_STOPPED, cluster.STATUS_PAUSED]:
-                emsg = 'cannot add web service to webcluster currently in state {}'.format(
-                    cluster.STATUS_BY_CODE[webcluster.status])
-                raise ApplicationError('crossbar.error.cannot_start', emsg)
+                emsg = "cannot add web service to webcluster currently in state {}".format(
+                    cluster.STATUS_BY_CODE[webcluster.status]
+                )
+                raise ApplicationError("crossbar.error.cannot_start", emsg)
 
             self.schema.webservices[txn, webservice_obj.oid] = webservice_obj
 
             webcluster.changed = time_ns()
             self.schema.webclusters[txn, webcluster.oid] = webcluster
 
-        self.log.info('New WebService object stored in database:\n{webservice_obj}', webservice_obj=webservice_obj)
+        self.log.info("New WebService object stored in database:\n{webservice_obj}", webservice_obj=webservice_obj)
 
         res_obj = webservice_obj.marshal()
 
-        await self._session.publish('{}.on_webservice_added'.format(self._prefix), res_obj, options=self._PUBOPTS)
+        await self._session.publish("{}.on_webservice_added".format(self._prefix), res_obj, options=self._PUBOPTS)
 
-        self.log.info('Management API event <on_webservice_added> published:\n{res_obj}', res_obj=res_obj)
+        self.log.info("Management API event <on_webservice_added> published:\n{res_obj}", res_obj=res_obj)
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    async def remove_webcluster_service(self,
-                                        webcluster_oid: str,
-                                        webservice_oid: str,
-                                        details: Optional[CallDetails] = None) -> dict:
+    async def remove_webcluster_service(
+        self, webcluster_oid: str, webservice_oid: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Remove the Web service from the Web cluster.
 
@@ -1602,63 +1717,67 @@ class WebClusterManager(object):
         assert details is None or isinstance(details, CallDetails)
 
         self.log.info(
-            '{klass}.remove_webcluster_service(webcluster_oid={webcluster_oid}, webservice_oid={webservice_oid}, details={details})',
+            "{klass}.remove_webcluster_service(webcluster_oid={webcluster_oid}, webservice_oid={webservice_oid}, details={details})",
             webcluster_oid=hlid(webcluster_oid),
             webservice_oid=hlid(webservice_oid),
             func=hltype(self.remove_webcluster_service),
-            details=details)
+            details=details,
+        )
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         try:
             webservice_oid_ = uuid.UUID(webservice_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         if details and details.caller_authid:
             with self.gdb.begin() as txn:
                 caller_oid = self.gschema.idx_users_by_email[txn, details.caller_authid]
                 if not caller_oid:
-                    raise ApplicationError('wamp.error.no_such_principal',
-                                           'no user found for authid "{}"'.format(details.caller_authid))
+                    raise ApplicationError(
+                        "wamp.error.no_such_principal", 'no user found for authid "{}"'.format(details.caller_authid)
+                    )
         else:
-            raise ApplicationError('wamp.error.no_such_principal', 'cannot map user - no caller authid available')
+            raise ApplicationError("wamp.error.no_such_principal", "cannot map user - no caller authid available")
 
         with self.db.begin(write=True) as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(webcluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(webcluster_oid_)
+                )
 
             if webcluster.owner_oid != caller_oid:
-                raise ApplicationError('wamp.error.not_authorized',
-                                       'only owner is allowed to remove a web service from a web cluster')
+                raise ApplicationError(
+                    "wamp.error.not_authorized", "only owner is allowed to remove a web service from a web cluster"
+                )
 
             webservice = self.schema.webservices[txn, webservice_oid_]
             if not webservice:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(webservice_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(webservice_oid_)
+                )
 
             del self.schema.webservices[txn, webservice_oid_]
 
-        self.log.info('WebService object removed from database:\n{webservice}', webservice=webservice)
+        self.log.info("WebService object removed from database:\n{webservice}", webservice=webservice)
 
         res_obj = webservice.marshal()
 
-        await self._session.publish('{}.on_webservice_removed'.format(self._prefix), res_obj, options=self._PUBOPTS)
+        await self._session.publish("{}.on_webservice_removed".format(self._prefix), res_obj, options=self._PUBOPTS)
 
-        self.log.info('Management API event <on_webservice_removed> published:\n{res_obj}', res_obj=res_obj)
+        self.log.info("Management API event <on_webservice_removed> published:\n{res_obj}", res_obj=res_obj)
 
         return res_obj
 
     @wamp.register(None, check_types=True)
-    def get_webcluster_service(self,
-                               webcluster_oid: str,
-                               webservice_oid: str,
-                               details: Optional[CallDetails] = None) -> dict:
+    def get_webcluster_service(
+        self, webcluster_oid: str, webservice_oid: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Get definition of a web service by ID.
 
@@ -1686,40 +1805,43 @@ class WebClusterManager(object):
         assert isinstance(webservice_oid, str)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(webcluster_oid={webcluster_oid}, webservice_oid={webservice_oid}, details={details})',
-                      webcluster_oid=hlid(webcluster_oid),
-                      webservice_oid=hlid(webservice_oid),
-                      func=hltype(self.get_webcluster_service),
-                      details=details)
+        self.log.info(
+            "{func}(webcluster_oid={webcluster_oid}, webservice_oid={webservice_oid}, details={details})",
+            webcluster_oid=hlid(webcluster_oid),
+            webservice_oid=hlid(webservice_oid),
+            func=hltype(self.get_webcluster_service),
+            details=details,
+        )
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         try:
             webservice_oid_ = uuid.UUID(webservice_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         with self.db.begin() as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(webcluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(webcluster_oid_)
+                )
 
             webservice = self.schema.webservices[txn, webservice_oid_]
             if not webservice:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(webservice_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(webservice_oid_)
+                )
 
         return webservice.marshal()
 
     @wamp.register(None, check_types=True)
-    def get_webcluster_service_by_path(self,
-                                       webcluster_oid: str,
-                                       path: str,
-                                       details: Optional[CallDetails] = None) -> dict:
+    def get_webcluster_service_by_path(
+        self, webcluster_oid: str, path: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Get definition of a web service by HTTP path.
 
@@ -1735,28 +1857,32 @@ class WebClusterManager(object):
         assert isinstance(path, str)
         assert details is None or isinstance(details, CallDetails)
 
-        self.log.info('{func}(webcluster_oid={webcluster_oid}, path="{path}", details={details})',
-                      webcluster_oid=hlid(webcluster_oid),
-                      path=hlval(path),
-                      func=hltype(self.get_webcluster_service_by_path),
-                      details=details)
+        self.log.info(
+            '{func}(webcluster_oid={webcluster_oid}, path="{path}", details={details})',
+            webcluster_oid=hlid(webcluster_oid),
+            path=hlval(path),
+            func=hltype(self.get_webcluster_service_by_path),
+            details=details,
+        )
 
         try:
             webcluster_oid_ = uuid.UUID(webcluster_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid oid "{}"'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", 'invalid oid "{}"'.format(str(e)))
 
         with self.db.begin() as txn:
             webcluster = self.schema.webclusters[txn, webcluster_oid_]
             if not webcluster:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no object with oid {} found'.format(webcluster_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no object with oid {} found".format(webcluster_oid_)
+                )
 
             webservice_oid = self.schema.idx_webservices_by_path[txn, (webcluster_oid_, path)]
 
             if not webservice_oid:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no webservice for path "{}" found'.format(path))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", 'no webservice for path "{}" found'.format(path)
+                )
 
             webservice = self.schema.webservices[txn, webservice_oid]
             assert webservice

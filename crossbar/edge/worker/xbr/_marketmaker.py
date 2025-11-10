@@ -5,65 +5,56 @@
 #
 ##############################################################################
 
-import os
 import binascii
+import os
+import uuid
 from binascii import b2a_hex
 from pprint import pformat
-import uuid
-from typing import Optional, List
+from typing import List, Optional
 
 import cfxdb.xbr
 import cfxdb.xbr.actor
 import cfxdb.xbr.block
-import cfxdb.xbrmm.channel
 import cfxdb.xbr.market
 import cfxdb.xbr.member
-import cfxdb.xbrmm.offer
 import cfxdb.xbr.schema
 import cfxdb.xbr.token
+import cfxdb.xbrmm.channel
+import cfxdb.xbrmm.offer
 import cfxdb.xbrmm.transaction
-
-import pyqrcode
-import numpy as np
-
-import web3
 import eth_keys
-from eth_account import Account
-
+import numpy as np
+import pyqrcode
 import requests
-from requests.exceptions import ConnectionError
-from hexbytes import HexBytes
-
 import txaio
+import web3
+from eth_account import Account
+from hexbytes import HexBytes
+from requests.exceptions import ConnectionError
 
 txaio.use_twisted()  # noqa
-from txaio import time_ns
-
-from twisted.internet.defer import inlineCallbacks
-from twisted.python.failure import Failure
-from twisted.internet.threads import deferToThread
-
-from autobahn import wamp
-from autobahn.twisted.component import Component
-from autobahn.wamp import component
-from autobahn.wamp.types import RegisterOptions, PublishOptions
-from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
-from autobahn.wamp.types import CallDetails
-from xbr import unpack_uint256, pack_uint256, recover_eip712_consent, \
-    is_address
-from autobahn.util import without_0x
-
-from crossbar._util import hl, hlid, hltype
-from crossbar.edge.worker.xbr._util import hlval, hlcontract
-from crossbar.edge.worker.xbr._authenticator import Authenticator
-
+import cfxdb
 import xbr
 import zlmdb
-import cfxdb
+from autobahn import wamp
+from autobahn.twisted.component import Component
+from autobahn.util import without_0x
+from autobahn.wamp import component
+from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
+from autobahn.wamp.types import CallDetails, PublishOptions, RegisterOptions
 from cfxdb.xbr import ActorType
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.threads import deferToThread
+from twisted.python.failure import Failure
+from txaio import time_ns
+from xbr import is_address, pack_uint256, recover_eip712_consent, unpack_uint256
 
-__all__ = ('MarketMaker', )
+from crossbar._util import hl, hlid, hltype
+from crossbar.edge.worker.xbr._authenticator import Authenticator
+from crossbar.edge.worker.xbr._util import hlcontract, hlval
+
+__all__ = ("MarketMaker",)
 
 
 def extract_member_adr(details: CallDetails):
@@ -75,11 +66,11 @@ def extract_member_adr(details: CallDetails):
 
     :return: Extracted XBR network member address.
     """
-    if details and details.caller_authrole == 'user' and details.caller_authid:
+    if details and details.caller_authrole == "user" and details.caller_authid:
         adr = details.caller_authid[7:]
         return without_0x(adr)
     else:
-        raise RuntimeError('no XBR member adress in call details\n{}'.format(details))
+        raise RuntimeError("no XBR member adress in call details\n{}".format(details))
 
 
 class MarketMaker(object):
@@ -125,24 +116,27 @@ class MarketMaker(object):
         self._status = self.STATUS_NONE
 
         # market maker private Ethereum key file
-        keypath = os.path.abspath(config['key'])
+        keypath = os.path.abspath(config["key"])
         if os.path.exists(keypath):
-            with open(keypath, 'rb') as f:
+            with open(keypath, "rb") as f:
                 self._eth_privkey_raw = f.read()
                 assert isinstance(self._eth_privkey_raw, bytes) and len(self._eth_privkey_raw) == 32
-                self.log.info('Existing XBR Market Maker Ethereum private key loaded from "{keypath}"',
-                              keypath=hlid(keypath))
+                self.log.info(
+                    'Existing XBR Market Maker Ethereum private key loaded from "{keypath}"', keypath=hlid(keypath)
+                )
         else:
             self._eth_privkey_raw = os.urandom(32)
-            with open(keypath, 'wb') as f:
+            with open(keypath, "wb") as f:
                 f.write(self._eth_privkey_raw)
-                self.log.info('New XBR Market Maker Ethereum private key generated and stored as {keypath}',
-                              keypath=hlid(keypath))
+                self.log.info(
+                    "New XBR Market Maker Ethereum private key generated and stored as {keypath}",
+                    keypath=hlid(keypath),
+                )
 
         # make sure the private key file has correct permissions
-        if os.stat(config['key']).st_mode & 511 != 384:  # 384 (decimal) == 0600 (octal)
-            os.chmod(config['key'], 384)
-            self.log.info('File permissions on market maker private Ethereum key fixed')
+        if os.stat(config["key"]).st_mode & 511 != 384:  # 384 (decimal) == 0600 (octal)
+            os.chmod(config["key"], 384)
+            self.log.info("File permissions on market maker private Ethereum key fixed")
 
         # make a private key object from the raw private key bytes
         self._eth_privkey = eth_keys.keys.PrivateKey(self._eth_privkey_raw)
@@ -151,27 +145,30 @@ class MarketMaker(object):
         # get the canonical address of the account
         self._eth_adr_raw = self._eth_privkey.public_key.to_canonical_address()
         self._eth_adr = web3.Web3.toChecksumAddress(self._eth_adr_raw)
-        qr = pyqrcode.create(self._eth_adr, error='L', mode='binary')
-        self.log.info('XBR Market Maker Ethereum (canonical/checksummed) address is {eth_adr}:\n{qrcode}',
-                      eth_adr=hlid(self._eth_adr),
-                      qrcode=qr.terminal())
+        qr = pyqrcode.create(self._eth_adr, error="L", mode="binary")
+        self.log.info(
+            "XBR Market Maker Ethereum (canonical/checksummed) address is {eth_adr}:\n{qrcode}",
+            eth_adr=hlid(self._eth_adr),
+            qrcode=qr.terminal(),
+        )
 
         # market maker database
-        cfg = self._config['database']
+        cfg = self._config["database"]
 
-        dbpath = cfg.get('path', None)
+        dbpath = cfg.get("path", None)
         assert isinstance(dbpath, str), "dbpath must be a string, was {}".format(type(dbpath))
 
-        maxsize = cfg.get('maxsize', 1024 * 2**20)
+        maxsize = cfg.get("maxsize", 1024 * 2**20)
         assert isinstance(maxsize, int), "maxsize must be an int, was {}".format(type(maxsize))
         # allow maxsize 128kiB to 128GiB
-        assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30, "maxsize must be >=128kiB and <=128GiB, was {}".format(
-            maxsize)
+        assert maxsize >= 128 * 1024 and maxsize <= 128 * 2**30, (
+            "maxsize must be >=128kiB and <=128GiB, was {}".format(maxsize)
+        )
 
-        readonly = cfg.get('readonly', False)
+        readonly = cfg.get("readonly", False)
         assert isinstance(readonly, bool), "readonly must be a bool, was {}".format(type(readonly))
 
-        sync = cfg.get('sync', True)
+        sync = cfg.get("sync", True)
         assert isinstance(sync, bool), "sync must be a bool, was {}".format(type(sync))
 
         # self._db = zlmdb.Database(dbpath=dbpath, maxsize=maxsize, readonly=readonly, sync=sync, context=self)
@@ -179,9 +176,11 @@ class MarketMaker(object):
         self._db.__enter__()
         self._schema = cfxdb.xbr.Schema.attach(self._db)
 
-        self.log.info('Attached XBR Market Maker database [dbpath="{dbpath}", maxsize={maxsize}]',
-                      dbpath=hlid(dbpath),
-                      maxsize=hlid(maxsize))
+        self.log.info(
+            'Attached XBR Market Maker database [dbpath="{dbpath}", maxsize={maxsize}]',
+            dbpath=hlid(dbpath),
+            maxsize=hlid(maxsize),
+        )
 
         self._xbrmm_db = xbrmm_db
         self._xbr = cfxdb.xbr.Schema.attach(self._xbrmm_db)
@@ -191,9 +190,9 @@ class MarketMaker(object):
         self._reactor = self._controller_session._reactor
 
         # target realm (where the maker should do its duty)
-        connection = self._config['connection']
-        transport = connection['transport']
-        realm = connection['realm']
+        connection = self._config["connection"]
+        transport = connection["transport"]
+        realm = connection["realm"]
 
         # market maker component on the target realm
         market = Component(transports=[transport], realm=realm)
@@ -210,7 +209,7 @@ class MarketMaker(object):
 
         # URI prefix under which the market maker registers procedures and publishes
         # event in the managed data market.
-        self._uri_prefix = 'xbr.marketmaker.'
+        self._uri_prefix = "xbr.marketmaker."
 
         self._ipfs_files_dir = ipfs_files_dir
 
@@ -223,26 +222,31 @@ class MarketMaker(object):
                 realm=hlid(details.realm),
                 session=hlid(details.session),
                 authid=hlid(details.authid),
-                authrole=hlid(details.authrole))
+                authrole=hlid(details.authrole),
+            )
 
             regs = await session.register(
                 self,
                 prefix=self._uri_prefix,
-                options=RegisterOptions(details_arg='details'),
+                options=RegisterOptions(details_arg="details"),
             )
-            self.log.info('XBR Market Maker registered {len_reg} procedures in data market realm "{realm}"',
-                          len_reg=hlid(len(regs)),
-                          realm=hlid(details.realm))
+            self.log.info(
+                'XBR Market Maker registered {len_reg} procedures in data market realm "{realm}"',
+                len_reg=hlid(len(regs)),
+                realm=hlid(details.realm),
+            )
             for reg in regs:
                 if isinstance(reg, Failure):
                     self.log.error("Failed to register: {f}", f=reg, log_failure=reg)
                 else:
-                    self.log.debug('  {proc}', proc=reg.procedure)
+                    self.log.debug("  {proc}", proc=reg.procedure)
 
-            regs = await session.register(Authenticator(xbrmm_db, session, self._reactor, self._market_oid),
-                                          options=RegisterOptions(details_arg='call_details'))
+            regs = await session.register(
+                Authenticator(xbrmm_db, session, self._reactor, self._market_oid),
+                options=RegisterOptions(details_arg="call_details"),
+            )
             for reg in regs:
-                self.log.info('{klass} registered procedure {proc}', klass=self.__class__.__name__, proc=reg.procedure)
+                self.log.info("{klass} registered procedure {proc}", klass=self.__class__.__name__, proc=reg.procedure)
 
             self._market_session = session
 
@@ -253,7 +257,8 @@ class MarketMaker(object):
                 'XBR Market Maker session detached from data market (realm="{realm}", reason="{reason}", message="{message}")',
                 realm=hlid(session._realm),
                 reason=hlid(details.reason),
-                message=hlid(details.message))
+                message=hlid(details.message),
+            )
 
         self._market = market
         self._market_session = None
@@ -325,139 +330,182 @@ class MarketMaker(object):
         """
         return self._coin
 
-    def _send_openChannel(self, ctype: int, openedAt: int, marketId: bytes, channelId: bytes, actor: bytes,
-                          delegate: bytes, marketmaker: bytes, recipient: bytes, amount: int, signature: bytes):
+    def _send_openChannel(
+        self,
+        ctype: int,
+        openedAt: int,
+        marketId: bytes,
+        channelId: bytes,
+        actor: bytes,
+        delegate: bytes,
+        marketmaker: bytes,
+        recipient: bytes,
+        amount: int,
+        signature: bytes,
+    ):
         # FIXME: estimate gas required for call
         gas = 1300000
-        gasPrice = self._w3.toWei('10', 'gwei')
+        gasPrice = self._w3.toWei("10", "gwei")
 
         # each submitted transaction must contain a nonce, which is obtained by the on-chain transaction number
         # for this account, including pending transactions (I think ..;) ..
-        nonce = self._w3.eth.getTransactionCount(self._eth_acct.address, block_identifier='pending')
-        self.log.info('{klass}._send_openChannel[1/4] - Ethereum transaction nonce: nonce={nonce}',
-                      klass=hl(self.__class__.__name__),
-                      nonce=nonce)
+        nonce = self._w3.eth.getTransactionCount(self._eth_acct.address, block_identifier="pending")
+        self.log.info(
+            "{klass}._send_openChannel[1/4] - Ethereum transaction nonce: nonce={nonce}",
+            klass=hl(self.__class__.__name__),
+            nonce=nonce,
+        )
 
         # serialize transaction raw data from contract call and transaction settings
         raw_transaction = xbr.xbrchannel.functions.openChannel(
-            ctype, openedAt, marketId, channelId, actor, delegate, marketmaker, recipient, amount,
-            signature).buildTransaction({
-                'from': self._eth_acct.address,
-                'gas': gas,
-                'gasPrice': gasPrice,
-                'chainId': self._chain_id,  # https://stackoverflow.com/a/57901206/884770
-                'nonce': nonce,
-            })
+            ctype, openedAt, marketId, channelId, actor, delegate, marketmaker, recipient, amount, signature
+        ).buildTransaction(
+            {
+                "from": self._eth_acct.address,
+                "gas": gas,
+                "gasPrice": gasPrice,
+                "chainId": self._chain_id,  # https://stackoverflow.com/a/57901206/884770
+                "nonce": nonce,
+            }
+        )
         self.log.info(
-            '{klass}._send_openChannel[2/4] - Ethereum transaction created: raw_transaction=\n{raw_transaction}\n',
+            "{klass}._send_openChannel[2/4] - Ethereum transaction created: raw_transaction=\n{raw_transaction}\n",
             klass=hl(self.__class__.__name__),
-            raw_transaction=raw_transaction)
+            raw_transaction=raw_transaction,
+        )
 
         # compute signed transaction from above serialized raw transaction
         signed_txn = self._w3.eth.account.sign_transaction(raw_transaction, private_key=self._eth_privkey_raw)
-        self.log.info('{klass}._send_openChannel[3/4] - Ethereum transaction signed: signed_txn=\n{signed_txn}\n',
-                      klass=hl(self.__class__.__name__),
-                      signed_txn=hlval(binascii.b2a_hex(signed_txn.rawTransaction).decode()))
+        self.log.info(
+            "{klass}._send_openChannel[3/4] - Ethereum transaction signed: signed_txn=\n{signed_txn}\n",
+            klass=hl(self.__class__.__name__),
+            signed_txn=hlval(binascii.b2a_hex(signed_txn.rawTransaction).decode()),
+        )
 
         # now send the pre-signed transaction to the blockchain via the gateway ..
         # https://web3py.readthedocs.io/en/stable/web3.eth.html  # web3.eth.Eth.sendRawTransaction
         txn_hash = self._w3.eth.sendRawTransaction(signed_txn.rawTransaction)
         txn_hash = bytes(txn_hash)
-        self.log.info('{klass}._send_openChannel[4/4] - Ethereum transaction submitted: txn_hash=0x{txn_hash}',
-                      klass=hl(self.__class__.__name__),
-                      txn_hash=hlval(binascii.b2a_hex(txn_hash).decode()))
+        self.log.info(
+            "{klass}._send_openChannel[4/4] - Ethereum transaction submitted: txn_hash=0x{txn_hash}",
+            klass=hl(self.__class__.__name__),
+            txn_hash=hlval(binascii.b2a_hex(txn_hash).decode()),
+        )
 
         return txn_hash
 
-    def _send_closeChannel(self, channelId: bytes, closeAt: int, channelSeq: int, balance: int, isFinal: bool,
-                           delegateSignature: bytes, marketmakerSignature: bytes):
+    def _send_closeChannel(
+        self,
+        channelId: bytes,
+        closeAt: int,
+        channelSeq: int,
+        balance: int,
+        isFinal: bool,
+        delegateSignature: bytes,
+        marketmakerSignature: bytes,
+    ):
         # FIXME: estimate gas required for call
         gas = 1300000
-        gasPrice = self._w3.toWei('10', 'gwei')
+        gasPrice = self._w3.toWei("10", "gwei")
 
         # each submitted transaction must contain a nonce, which is obtained by the on-chain transaction number
         # for this account, including pending transactions (I think ..;) ..
-        nonce = self._w3.eth.getTransactionCount(self._eth_acct.address, block_identifier='pending')
-        self.log.info('{klass}._send_closeChannel[1/4] - Ethereum transaction nonce: nonce={nonce}',
-                      klass=hl(self.__class__.__name__),
-                      nonce=nonce)
+        nonce = self._w3.eth.getTransactionCount(self._eth_acct.address, block_identifier="pending")
+        self.log.info(
+            "{klass}._send_closeChannel[1/4] - Ethereum transaction nonce: nonce={nonce}",
+            klass=hl(self.__class__.__name__),
+            nonce=nonce,
+        )
 
         # serialize transaction raw data from contract call and transaction settings
         raw_transaction = xbr.xbrchannel.functions.closeChannel(
-            channelId, closeAt, channelSeq, balance, isFinal, delegateSignature,
-            marketmakerSignature).buildTransaction({
-                'from': self._eth_acct.address,
-                'gas': gas,
-                'gasPrice': gasPrice,
-                'chainId': self._chain_id,  # https://stackoverflow.com/a/57901206/884770
-                'nonce': nonce,
-            })
+            channelId, closeAt, channelSeq, balance, isFinal, delegateSignature, marketmakerSignature
+        ).buildTransaction(
+            {
+                "from": self._eth_acct.address,
+                "gas": gas,
+                "gasPrice": gasPrice,
+                "chainId": self._chain_id,  # https://stackoverflow.com/a/57901206/884770
+                "nonce": nonce,
+            }
+        )
         self.log.info(
-            '{klass}._send_closeChannel[2/4] - Ethereum transaction created: raw_transaction=\n{raw_transaction}\n',
+            "{klass}._send_closeChannel[2/4] - Ethereum transaction created: raw_transaction=\n{raw_transaction}\n",
             klass=hl(self.__class__.__name__),
-            raw_transaction=raw_transaction)
+            raw_transaction=raw_transaction,
+        )
 
         # compute signed transaction from above serialized raw transaction
         signed_txn = self._w3.eth.account.sign_transaction(raw_transaction, private_key=self._eth_privkey_raw)
-        self.log.info('{klass}._send_closeChannel[3/4] - Ethereum transaction signed: signed_txn=\n{signed_txn}\n',
-                      klass=hl(self.__class__.__name__),
-                      signed_txn=hlval(binascii.b2a_hex(signed_txn.rawTransaction).decode()))
+        self.log.info(
+            "{klass}._send_closeChannel[3/4] - Ethereum transaction signed: signed_txn=\n{signed_txn}\n",
+            klass=hl(self.__class__.__name__),
+            signed_txn=hlval(binascii.b2a_hex(signed_txn.rawTransaction).decode()),
+        )
 
         # now send the pre-signed transaction to the blockchain via the gateway ..
         # https://web3py.readthedocs.io/en/stable/web3.eth.html  # web3.eth.Eth.sendRawTransaction
         txn_hash = self._w3.eth.sendRawTransaction(signed_txn.rawTransaction)
         txn_hash = bytes(txn_hash)
-        self.log.info('{klass}._send_closeChannel[4/4] - Ethereum transaction submitted: txn_hash=0x{txn_hash}',
-                      klass=hl(self.__class__.__name__),
-                      txn_hash=hlval(binascii.b2a_hex(txn_hash).decode()))
+        self.log.info(
+            "{klass}._send_closeChannel[4/4] - Ethereum transaction submitted: txn_hash=0x{txn_hash}",
+            klass=hl(self.__class__.__name__),
+            txn_hash=hlval(binascii.b2a_hex(txn_hash).decode()),
+        )
 
         return txn_hash
 
-    def _send_setConsent(self, marketId: bytes, delegate: bytes, delegateType: int, apiCatalog: bytes, consent: bool,
-                         servicePrefix: str):
+    def _send_setConsent(
+        self, marketId: bytes, delegate: bytes, delegateType: int, apiCatalog: bytes, consent: bool, servicePrefix: str
+    ):
         # FIXME: estimate gas required for call
         gas = 1300000
-        gasPrice = self._w3.toWei('10', 'gwei')
+        gasPrice = self._w3.toWei("10", "gwei")
 
         # each submitted transaction must contain a nonce, which is obtained by the on-chain transaction number
         # for this account, including pending transactions (I think ..;) ..
-        nonce = self._w3.eth.getTransactionCount(self._eth_acct.address, block_identifier='pending')
-        self.log.info('{klass}._send_setConsent[1/4] - Ethereum transaction nonce: nonce={nonce}',
-                      klass=hl(self.__class__.__name__),
-                      nonce=nonce)
+        nonce = self._w3.eth.getTransactionCount(self._eth_acct.address, block_identifier="pending")
+        self.log.info(
+            "{klass}._send_setConsent[1/4] - Ethereum transaction nonce: nonce={nonce}",
+            klass=hl(self.__class__.__name__),
+            nonce=nonce,
+        )
 
         # serialize transaction raw data from contract call and transaction settings
         raw_transaction = xbr.xbrmarket.functions.setConsent(
-            marketId, delegate, delegateType, apiCatalog, consent, servicePrefix).buildTransaction({
-                'from':
-                self._eth_acct.address,
-                'gas':
-                gas,
-                'gasPrice':
-                gasPrice,
-                'chainId':
-                self._chain_id,  # https://stackoverflow.com/a/57901206/884770
-                'nonce':
-                nonce
-            })
+            marketId, delegate, delegateType, apiCatalog, consent, servicePrefix
+        ).buildTransaction(
+            {
+                "from": self._eth_acct.address,
+                "gas": gas,
+                "gasPrice": gasPrice,
+                "chainId": self._chain_id,  # https://stackoverflow.com/a/57901206/884770
+                "nonce": nonce,
+            }
+        )
         self.log.info(
-            '{klass}._send_setConsent[2/4] - Ethereum transaction created: raw_transaction=\n{raw_transaction}\n',
+            "{klass}._send_setConsent[2/4] - Ethereum transaction created: raw_transaction=\n{raw_transaction}\n",
             klass=hl(self.__class__.__name__),
-            raw_transaction=raw_transaction)
+            raw_transaction=raw_transaction,
+        )
 
         # compute signed transaction from above serialized raw transaction
         signed_txn = self._w3.eth.account.sign_transaction(raw_transaction, private_key=self._eth_privkey_raw)
-        self.log.info('{klass}._send_setConsent[3/4] - Ethereum transaction signed: signed_txn=\n{signed_txn}\n',
-                      klass=hl(self.__class__.__name__),
-                      signed_txn=hlval(binascii.b2a_hex(signed_txn.rawTransaction).decode()))
+        self.log.info(
+            "{klass}._send_setConsent[3/4] - Ethereum transaction signed: signed_txn=\n{signed_txn}\n",
+            klass=hl(self.__class__.__name__),
+            signed_txn=hlval(binascii.b2a_hex(signed_txn.rawTransaction).decode()),
+        )
 
         # now send the pre-signed transaction to the blockchain via the gateway ..
         # https://web3py.readthedocs.io/en/stable/web3.eth.html  # web3.eth.Eth.sendRawTransaction
         txn_hash = self._w3.eth.sendRawTransaction(signed_txn.rawTransaction)
         txn_hash = bytes(txn_hash)
-        self.log.info('{klass}._send_setConsent[4/4] - Ethereum transaction submitted: txn_hash=0x{txn_hash}',
-                      klass=hl(self.__class__.__name__),
-                      txn_hash=hlval(binascii.b2a_hex(txn_hash).decode()))
+        self.log.info(
+            "{klass}._send_setConsent[4/4] - Ethereum transaction submitted: txn_hash=0x{txn_hash}",
+            klass=hl(self.__class__.__name__),
+            txn_hash=hlval(binascii.b2a_hex(txn_hash).decode()),
+        )
 
         return txn_hash
 
@@ -467,19 +515,21 @@ class MarketMaker(object):
 
         :return:
         """
-        self.log.info('{klass}.start() ..', klass=self.__class__.__name__)
+        self.log.info("{klass}.start() ..", klass=self.__class__.__name__)
 
         # get the market the market maker is supposed to work for:
         xbr_market_id = xbr.xbrmarket.functions.marketsByMaker(self._eth_adr).call()
-        if xbr_market_id != b'\x00' * 16:
-            assert (len(xbr_market_id) == 16)
+        if xbr_market_id != b"\x00" * 16:
+            assert len(xbr_market_id) == 16
             self._market_id = xbr_market_id
             self._market_oid = uuid.UUID(bytes=xbr_market_id)
-            self.log.info('Ok, {mmsg} and will be working for market {market_oid}.',
-                          mmsg=hl('XBR market maker is associated on-chain', bold=True),
-                          market_oid=hlid(self._market_oid))
+            self.log.info(
+                "Ok, {mmsg} and will be working for market {market_oid}.",
+                mmsg=hl("XBR market maker is associated on-chain", bold=True),
+                market_oid=hlid(self._market_oid),
+            )
         else:
-            raise RuntimeError('FATAL: market maker is not associated with any market')
+            raise RuntimeError("FATAL: market maker is not associated with any market")
 
         self._owner = xbr.xbrmarket.functions.getMarketOwner(self._market_oid.bytes).call()
 
@@ -491,19 +541,22 @@ class MarketMaker(object):
         self._verifying_contract = binascii.a2b_hex(self._verifying_contract_adr[2:])
 
         self.log.info(
-            'Verifying chain ID {verifying_chain_id} and verifying contract address {verifying_contract_adr}',
+            "Verifying chain ID {verifying_chain_id} and verifying contract address {verifying_contract_adr}",
             verifying_chain_id=hlid(self._verifying_chain_id),
-            verifying_contract_adr=hlid(self._verifying_contract_adr))
+            verifying_contract_adr=hlid(self._verifying_contract_adr),
+        )
 
         @inlineCallbacks
         def done(reactor, result):
-            self.log.info('market maker component done: {result}', result=result)
+            self.log.info("market maker component done: {result}", result=result)
             self._status = MarketMaker.STATUS_RUNNING
             if self._market_session:
-                yield self._market_session.publish('{}on_status'.format(self._uri_prefix),
-                                                   self._market_id,
-                                                   self._status,
-                                                   options=PublishOptions(acknowledge=True))
+                yield self._market_session.publish(
+                    "{}on_status".format(self._uri_prefix),
+                    self._market_id,
+                    self._status,
+                    options=PublishOptions(acknowledge=True),
+                )
 
         d = component._run(self._reactor, self._market, done)
 
@@ -515,21 +568,25 @@ class MarketMaker(object):
 
         :return:
         """
-        self.log.info('{klass}.stop() ..', klass=self.__class__.__name__)
+        self.log.info("{klass}.stop() ..", klass=self.__class__.__name__)
 
         self._status = MarketMaker.STATUS_SHUTDOWN_IN_PROGRESS
         if self._market_session:
-            yield self._market_session.publish('{}on_status'.format(self._uri_prefix),
-                                               self._id,
-                                               self._status,
-                                               options=PublishOptions(acknowledge=True))
+            yield self._market_session.publish(
+                "{}on_status".format(self._uri_prefix),
+                self._id,
+                self._status,
+                options=PublishOptions(acknowledge=True),
+            )
 
         self._status = MarketMaker.STATUS_STOPPED
         if self._market_session:
-            yield self._market_session.publish('{}on_status'.format(self._uri_prefix),
-                                               self._id,
-                                               self._status,
-                                               options=PublishOptions(acknowledge=True))
+            yield self._market_session.publish(
+                "{}on_status".format(self._uri_prefix),
+                self._id,
+                self._status,
+                options=PublishOptions(acknowledge=True),
+            )
         self._id = None
 
     # FIXME: remove after refactoring
@@ -541,15 +598,11 @@ class MarketMaker(object):
         :param details: Caller details.
         :return: Market maker status and blockchain synchronization information.
         """
+
         def do_status():
             res = {
-                'status': {
-                    0: 'NONE',
-                    1: 'RUNNING',
-                    2: 'SHUTDOWN_IN_PROGRESS',
-                    3: 'STOPPED'
-                }.get(self._status, None),
-                'current_block_no': self._w3.eth.blockNumber
+                "status": {0: "NONE", 1: "RUNNING", 2: "SHUTDOWN_IN_PROGRESS", 3: "STOPPED"}.get(self._status, None),
+                "current_block_no": self._w3.eth.blockNumber,
             }
 
             # res['current_block'] = self._w3.eth.getBlock('latest')
@@ -558,7 +611,7 @@ class MarketMaker(object):
             for account in self._w3.eth.accounts:
                 accounts[account] = self._w3.eth.getBalance(account)
 
-            res['accounts'] = accounts
+            res["accounts"] = accounts
 
             return res
 
@@ -567,8 +620,9 @@ class MarketMaker(object):
 
     @wamp.register(None, check_types=True)
     async def get_transaction_receipt(self, transaction: bytes, details: Optional[CallDetails] = None) -> dict:
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         def do_get_transaction_receipt(transaction: bytes):
             # get the full transaction receipt given the transaction hash
@@ -579,15 +633,15 @@ class MarketMaker(object):
 
         # copy over all information returned, all but two: "logs", "logsBloom"
         receipt = {}
-        receipt['transactionHash'] = r['transactionHash']
-        receipt['transactionIndex'] = r['transactionIndex']
-        receipt['blockNumber'] = r['blockNumber']
-        receipt['from'] = r['from']
-        receipt['to'] = r['to']
-        receipt['gasUsed'] = r['gasUsed']
-        receipt['cumulativeGasUsed'] = r['cumulativeGasUsed']
-        receipt['contractAddress'] = r['contractAddress']
-        receipt['status'] = r['status']
+        receipt["transactionHash"] = r["transactionHash"]
+        receipt["transactionIndex"] = r["transactionIndex"]
+        receipt["blockNumber"] = r["blockNumber"]
+        receipt["from"] = r["from"]
+        receipt["to"] = r["to"]
+        receipt["gasUsed"] = r["gasUsed"]
+        receipt["cumulativeGasUsed"] = r["cumulativeGasUsed"]
+        receipt["contractAddress"] = r["contractAddress"]
+        receipt["status"] = r["status"]
 
         # transform HexBytes so the result can be serialized
         for k in receipt:
@@ -597,27 +651,32 @@ class MarketMaker(object):
 
     @wamp.register(None, check_types=True)
     async def get_gas_price(self, details: Optional[CallDetails] = None) -> bytes:
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         def do_get_gas_price():
             # FIXME: read from eth gas station
-            return self._w3.toWei('10', 'gwei')
+            return self._w3.toWei("10", "gwei")
 
         gas_price = await deferToThread(do_get_gas_price)
         return gas_price
 
     @wamp.register(None, check_types=True)
     async def get_config(self, include_eula_text: bool = False, details: Optional[CallDetails] = None) -> dict:
-        assert isinstance(include_eula_text,
-                          bool), 'include_eula_text must be bool, was {}'.format(type(include_eula_text))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(include_eula_text, bool), "include_eula_text must be bool, was {}".format(
+            type(include_eula_text)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
-        self.log.debug('{func}(include_eula_text={include_eula_text}, details={details})',
-                       func=hltype(self.get_config),
-                       include_eula_text=hlval(include_eula_text),
-                       details=details)
+        self.log.debug(
+            "{func}(include_eula_text={include_eula_text}, details={details})",
+            func=hltype(self.get_config),
+            include_eula_text=hlval(include_eula_text),
+            details=details,
+        )
 
         def do_get_config(include_eula_text=False):
             now = time_ns()
@@ -629,86 +688,89 @@ class MarketMaker(object):
             eula_hash = str(xbr.xbrnetwork.functions.eula().call())
 
             # http request
-            eula_url = 'https://raw.githubusercontent.com/crossbario/xbr-protocol/master/ipfs/xbr-eula/XBR-EULA.txt'
+            eula_url = "https://raw.githubusercontent.com/crossbario/xbr-protocol/master/ipfs/xbr-eula/XBR-EULA.txt"
             if include_eula_text:
                 resp = requests.get(eula_url, timeout=10)
-                eula_text = resp.content.decode('utf8')
+                eula_text = resp.content.decode("utf8")
             else:
                 eula_text = None
 
             result = {
-                'now': now,
-                'chain': chain_id,
-                'verifying_chain_id': verifying_chain_id,
-                'verifying_contract_adr': verifying_contract_adr,
-                'contracts': {
-                    'xbrtoken': str(xbr.xbrtoken.address),
-                    'xbrnetwork': str(xbr.xbrnetwork.address),
-                    'xbrcatalog': str(xbr.xbrcatalog.address),
-                    'xbrmarket': str(xbr.xbrmarket.address),
-                    'xbrchannel': str(xbr.xbrchannel.address),
+                "now": now,
+                "chain": chain_id,
+                "verifying_chain_id": verifying_chain_id,
+                "verifying_contract_adr": verifying_contract_adr,
+                "contracts": {
+                    "xbrtoken": str(xbr.xbrtoken.address),
+                    "xbrnetwork": str(xbr.xbrnetwork.address),
+                    "xbrcatalog": str(xbr.xbrcatalog.address),
+                    "xbrmarket": str(xbr.xbrmarket.address),
+                    "xbrchannel": str(xbr.xbrchannel.address),
                 },
-                'eula': {
-                    'url': eula_url,
-                    'hash': eula_hash,
-                    'text': eula_text,
+                "eula": {
+                    "url": eula_url,
+                    "hash": eula_hash,
+                    "text": eula_text,
                 },
-                'coin': self.coin,
-                'owner': self.owner,
-                'market': str(self.market),
-                'marketmaker': self.address,
+                "coin": self.coin,
+                "owner": self.owner,
+                "market": str(self.market),
+                "marketmaker": self.address,
             }
-            self.log.debug('{func}::do_get_config() ->\n{result}',
-                           func=hltype(self.get_config),
-                           result=pformat(result))
+            self.log.debug(
+                "{func}::do_get_config() ->\n{result}", func=hltype(self.get_config), result=pformat(result)
+            )
             return result
 
         config = await deferToThread(do_get_config, include_eula_text=include_eula_text)
-        self.log.debug('{func}() ->\n{result}', func=hltype(self.get_config), result=pformat(config))
+        self.log.debug("{func}() ->\n{result}", func=hltype(self.get_config), result=pformat(config))
         return config
 
     @wamp.register(None, check_types=True)
     async def get_status(self, details: Optional[CallDetails] = None) -> dict:
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         def do_get_status():
             now = time_ns()
             chain_id = int(self._w3.net.version)
-            block_info = self._w3.eth.getBlock('latest')
-            block_number = int(block_info['number'])
-            block_hash = bytes(block_info['hash'])
-            block_gas_limit = int(block_info['gasLimit'])
+            block_info = self._w3.eth.getBlock("latest")
+            block_number = int(block_info["number"])
+            block_hash = bytes(block_info["hash"])
+            block_gas_limit = int(block_info["gasLimit"])
             status = {
-                'now': now,
-                'chain': chain_id,
-                'block': {
-                    'number': block_number,
-                    'hash': block_hash,
-                    'gas_limit': block_gas_limit,
+                "now": now,
+                "chain": chain_id,
+                "block": {
+                    "number": block_number,
+                    "hash": block_hash,
+                    "gas_limit": block_gas_limit,
                 },
             }
             return status
 
         status = await deferToThread(do_get_status)
-        status['status'] = self._status
+        status["status"] = self._status
         return status
 
     @wamp.register(None, check_types=True)
-    async def place_offer(self,
-                          key_id,
-                          api_id,
-                          uri,
-                          valid_from,
-                          delegate_adr,
-                          delegate_signature,
-                          privkey=None,
-                          price=None,
-                          categories=None,
-                          expires=None,
-                          copies=None,
-                          provider_id=None,
-                          details: Optional[CallDetails] = None):
+    async def place_offer(
+        self,
+        key_id,
+        api_id,
+        uri,
+        valid_from,
+        delegate_adr,
+        delegate_signature,
+        privkey=None,
+        price=None,
+        categories=None,
+        expires=None,
+        copies=None,
+        provider_id=None,
+        details: Optional[CallDetails] = None,
+    ):
         """
         Called by a XBR Provider (XBR Seller delegate) to offer a data encryption key for sale. A key is offered
         as applying to a specific API, and the key price, and the URI under which the data is provided must
@@ -772,32 +834,35 @@ class MarketMaker(object):
         assert isinstance(api_id, bytes) and len(api_id) == 16, 'api_id must be bytes[16], but was "{}"'.format(api_id)
         assert isinstance(uri, str), 'uri must be str, but was "{}"'.format(uri)
         assert isinstance(valid_from, int), 'valid_from must be int, but was "{}"'.format(valid_from)
-        assert isinstance(
-            delegate_adr,
-            bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
-        assert isinstance(delegate_signature, bytes) and len(
-            delegate_signature) == 65, 'delegate_signature must be bytes[65]. but was "{}"'.format(delegate_signature)
-        assert privkey is None or isinstance(
-            privkey, bytes) and len(privkey) == 32, 'privkey must be bytes[32], but was "{}"'.format(privkey)
-        assert price is None or (isinstance(price, bytes)
-                                 and len(price) == 32), 'price must be bytes[32], but was "{}"'.format(price)
+        assert isinstance(delegate_adr, bytes) and len(delegate_adr) == 20, (
+            'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
+        )
+        assert isinstance(delegate_signature, bytes) and len(delegate_signature) == 65, (
+            'delegate_signature must be bytes[65]. but was "{}"'.format(delegate_signature)
+        )
+        assert privkey is None or isinstance(privkey, bytes) and len(privkey) == 32, (
+            'privkey must be bytes[32], but was "{}"'.format(privkey)
+        )
+        assert price is None or (isinstance(price, bytes) and len(price) == 32), (
+            'price must be bytes[32], but was "{}"'.format(price)
+        )
         assert categories is None or (
-            isinstance(categories, dict) and (isinstance(k, str)
-                                              for k in categories.keys()) and (isinstance(v, str)
-                                                                               for v in categories.values())
-        ), 'invalid categories type (must be dict) or category key or value type (must both be string)'
+            isinstance(categories, dict)
+            and (isinstance(k, str) for k in categories.keys())
+            and (isinstance(v, str) for v in categories.values())
+        ), "invalid categories type (must be dict) or category key or value type (must both be string)"
         assert expires is None or isinstance(expires, int), 'expires must be int, but was "{}"'.format(expires)
         assert copies is None or isinstance(copies, int), 'copies must be int, but was "{}"'.format(copies)
 
         try:
             key_id = uuid.UUID(bytes=key_id)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid key_id: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid key_id: {}".format(str(e)))
 
         try:
             api_id = uuid.UUID(bytes=api_id)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid api_id: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid api_id: {}".format(str(e)))
 
         if price is not None:
             price = unpack_uint256(price)
@@ -808,7 +873,7 @@ class MarketMaker(object):
         uri_is_valid = _URI_PAT_STRICT_LAST_EMPTY.match(uri)
         # uri_is_valid = _URI_PAT_LOOSE_LAST_EMPTY.match(uri)
         if not uri_is_valid:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid uri (must be exact or prefix)')
+            raise ApplicationError("wamp.error.invalid_argument", "invalid uri (must be exact or prefix)")
 
         now = time_ns()
         max_future_time = now + (24 * 60 * 60 * 10**9)
@@ -816,24 +881,27 @@ class MarketMaker(object):
         # FIXME: ABJS!
         if False:
             if not isinstance(valid_from, int) or valid_from < (now - min_validity) or valid_from > max_future_time:
-                raise ApplicationError('wamp.error.invalid_argument', 'invalid valid_from type or value')
+                raise ApplicationError("wamp.error.invalid_argument", "invalid valid_from type or value")
 
-        if expires is not None and (not isinstance(expires, int) or expires <= valid_from or expires > max_future_time
-                                    or (expires - valid_from) < min_validity):
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid expires type or value')
+        if expires is not None and (
+            not isinstance(expires, int)
+            or expires <= valid_from
+            or expires > max_future_time
+            or (expires - valid_from) < min_validity
+        ):
+            raise ApplicationError("wamp.error.invalid_argument", "invalid expires type or value")
 
         # FIXME: XBRSIG - check the supplied offer information to match the delegate signature according to the delegate address
 
         with self._db.begin(write=True) as txn:
-
             # sanity check that offer keys are unique
             offer_id = self._schema.idx_offer_by_key[txn, key_id]
             if offer_id:
-                raise Exception('key already offered')
+                raise Exception("key already offered")
 
             # ok, all good, create and persist the key offer:
             offer = cfxdb.xbrmm.Offer()
-            offer.timestamp = np.datetime64(now, 'ns')
+            offer.timestamp = np.datetime64(now, "ns")
             offer.offer = uuid.uuid4()
 
             # FIXME: finally nail what/how we track/map
@@ -845,11 +913,11 @@ class MarketMaker(object):
             offer.key = key_id
             offer.api = api_id
             offer.uri = uri
-            offer.valid_from = np.datetime64(valid_from, 'ns') if valid_from else None
+            offer.valid_from = np.datetime64(valid_from, "ns") if valid_from else None
             offer.signature = delegate_signature
             offer.price = price
             offer.categories = categories
-            offer.expires = np.datetime64(expires, 'ns') if expires else None
+            offer.expires = np.datetime64(expires, "ns") if expires else None
             offer.copies = copies
             offer.remaining = copies
 
@@ -859,14 +927,16 @@ class MarketMaker(object):
 
         # publish market maker event: new offer placed
         if self._market_session:
-            await self._market_session.publish('{}on_offer_placed'.format(self._uri_prefix),
-                                               offer_created,
-                                               options=PublishOptions(acknowledge=True))
+            await self._market_session.publish(
+                "{}on_offer_placed".format(self._uri_prefix), offer_created, options=PublishOptions(acknowledge=True)
+            )
 
-        self.log.info('{operation}: key {key_id} offered for {price} XBR',
-                      operation=hlcontract('{}.on_offer_placed'.format(self.__class__.__name__)),
-                      price=hlval(int(price / 10**18)),
-                      key_id=hlid(key_id))
+        self.log.info(
+            "{operation}: key {key_id} offered for {price} XBR",
+            operation=hlcontract("{}.on_offer_placed".format(self.__class__.__name__)),
+            price=hlval(int(price / 10**18)),
+            key_id=hlid(key_id),
+        )
 
         return offer_created
 
@@ -881,33 +951,37 @@ class MarketMaker(object):
         :return: Detail information about the offer requested.
         :rtype: dict
         """
-        assert (isinstance(offer_id, bytes)
-                and len(offer_id) == 16), 'offer_id must be bytes[16], was "{}"'.format(offer_id)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert isinstance(offer_id, bytes) and len(offer_id) == 16, 'offer_id must be bytes[16], was "{}"'.format(
+            offer_id
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
         try:
             offer_id = uuid.UUID(bytes=offer_id)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid offer_id: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid offer_id: {}".format(str(e)))
 
         with self._db.begin() as txn:
             offer = self._schema.offers[txn, offer_id]
             if not offer:
-                raise ApplicationError('crossbar.error.no_such_object', 'no offer with ID "{}"'.format(offer_id))
+                raise ApplicationError("crossbar.error.no_such_object", 'no offer with ID "{}"'.format(offer_id))
 
         return offer.marshal()
 
     @wamp.register(None, check_types=True)
-    def query_offers(self,
-                     api_id,
-                     from_ts,
-                     until_ts=None,
-                     uri=None,
-                     categories=None,
-                     seller_id=None,
-                     limit=None,
-                     details: Optional[CallDetails] = None):
+    def query_offers(
+        self,
+        api_id,
+        from_ts,
+        until_ts=None,
+        uri=None,
+        categories=None,
+        seller_id=None,
+        limit=None,
+        details: Optional[CallDetails] = None,
+    ):
         """
         Return data encryption key offers for the given API and timerange, optionally filtered
         by one or more categories.
@@ -973,8 +1047,9 @@ class MarketMaker(object):
         :return: Returns a list of data encryption key offers.
         :rtype: list
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
         raise NotImplementedError()
 
@@ -999,19 +1074,19 @@ class MarketMaker(object):
         :rtype: dict
         """
         assert isinstance(key_id, bytes) and len(key_id) == 16, 'key_id must be bytes[16], was "{}"'.format(key_id)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
         try:
             key_id = uuid.UUID(bytes=key_id)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid key_id: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid key_id: {}".format(str(e)))
 
         with self._db.begin(write=True) as txn:
-
             offer_id = self._schema.idx_offer_by_key[txn, key_id]
             if not offer_id:
-                raise ApplicationError('crossbar.error.no_such_object', 'no offer for key with ID "{}"'.format(key_id))
+                raise ApplicationError("crossbar.error.no_such_object", 'no offer for key with ID "{}"'.format(key_id))
 
             # FIXME: check the caller is the same as the original caller that placed the offer - or, at least
             # that the authid or XBR delegate or publisher matches
@@ -1019,13 +1094,13 @@ class MarketMaker(object):
             assert offer
 
             # we won't delete the offer (that would destroy information), but set the offered expired
-            offer.expires = np.datetime64(time_ns(), 'ns')
+            offer.expires = np.datetime64(time_ns(), "ns")
 
         offer_revoked = offer.marshal()
         if self._market_session:
-            yield self._market_session.publish('{}on_offer_revoked'.format(self._uri_prefix),
-                                               offer_revoked,
-                                               options=PublishOptions(acknowledge=True))
+            yield self._market_session.publish(
+                "{}on_offer_revoked".format(self._uri_prefix), offer_revoked, options=PublishOptions(acknowledge=True)
+            )
 
         return offer_revoked
 
@@ -1047,53 +1122,58 @@ class MarketMaker(object):
         :rtype: dict
         """
         assert isinstance(key_id, bytes) and len(key_id) == 16, 'key_id must be bytes[16], was "{}"'.format(key_id)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
         try:
             key_id = uuid.UUID(bytes=key_id)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid key_id: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid key_id: {}".format(str(e)))
 
         with self._db.begin() as txn:
-
             offer_id = self._schema.idx_offer_by_key[txn, key_id]
             if not offer_id:
-                raise ApplicationError('crossbar.error.no_such_object', 'no offer for key with ID "{}"'.format(key_id))
+                raise ApplicationError("crossbar.error.no_such_object", 'no offer for key with ID "{}"'.format(key_id))
 
             offer = self._schema.offers[txn, offer_id]
             assert offer
 
         if not offer.price:
-            raise NotImplementedError('dynamic key pricing not implemented')
+            raise NotImplementedError("dynamic key pricing not implemented")
 
-        now = np.datetime64(time_ns(), 'ns')
+        now = np.datetime64(time_ns(), "ns")
         if offer.expires and offer.expires < now:
-            expired_for = str(np.timedelta64(now - offer.expires, 's'))
+            expired_for = str(np.timedelta64(now - offer.expires, "s"))
             raise ApplicationError(
-                'xbr.error.offer_expired', 'the offer for key with ID "{}" already expired {} ({} ago)'.format(
-                    key_id, offer.expires, expired_for))
+                "xbr.error.offer_expired",
+                'the offer for key with ID "{}" already expired {} ({} ago)'.format(
+                    key_id, offer.expires, expired_for
+                ),
+            )
 
         # static pricing
         quote = {
-            'timestamp': time_ns(),
-            'key': key_id.bytes,
-            'price': pack_uint256(offer.price),
-            'expires': int(offer.expires),
+            "timestamp": time_ns(),
+            "key": key_id.bytes,
+            "price": pack_uint256(offer.price),
+            "expires": int(offer.expires),
         }
         return quote
 
     @wamp.register(None, check_types=True)
-    async def buy_key(self,
-                      delegate_adr,
-                      buyer_pubkey,
-                      key_id,
-                      channel_oid,
-                      channel_seq,
-                      amount,
-                      balance,
-                      signature,
-                      details: Optional[CallDetails] = None):
+    async def buy_key(
+        self,
+        delegate_adr,
+        buyer_pubkey,
+        key_id,
+        channel_oid,
+        channel_seq,
+        amount,
+        balance,
+        signature,
+        details: Optional[CallDetails] = None,
+    ):
         """
         Called by a XBR Consumer to buy a key. The market maker will (given sufficient balance)
         forward the purchase request and call into the XBR Provider selling the key.
@@ -1134,19 +1214,22 @@ class MarketMaker(object):
             data encryption key is itself encrypted (sealed) to the ``buyer_pubkey``.
         :rtype: dict
         """
-        assert isinstance(delegate_adr, bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20]'
-        assert isinstance(buyer_pubkey, bytes) and len(buyer_pubkey) == 32, 'buyer_pubkey must be bytes[32]'
-        assert isinstance(key_id, bytes) and len(key_id) == 16, 'key_id must be bytes[16]'
-        assert isinstance(channel_oid, bytes) and len(channel_oid) == 16, 'channel_oid must be bytes[20]'
-        assert isinstance(channel_seq, int), 'channel_seq must be int, but was {}'.format(type(channel_seq))
-        assert isinstance(amount, bytes) and len(amount) == 32, 'amount must be bytes[32], but was {}'.format(
-            type(amount))
-        assert isinstance(balance, bytes) and len(balance) == 32, 'balance must be bytes[32], but was {}'.format(
-            type(balance))
-        assert isinstance(signature, bytes), 'signature must be bytes, but was {}'.format(type(signature))
-        assert len(signature) == (32 + 32 + 1), 'signature must be bytes[65], but was bytes[{}]'.format(len(signature))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert isinstance(delegate_adr, bytes) and len(delegate_adr) == 20, "delegate_adr must be bytes[20]"
+        assert isinstance(buyer_pubkey, bytes) and len(buyer_pubkey) == 32, "buyer_pubkey must be bytes[32]"
+        assert isinstance(key_id, bytes) and len(key_id) == 16, "key_id must be bytes[16]"
+        assert isinstance(channel_oid, bytes) and len(channel_oid) == 16, "channel_oid must be bytes[20]"
+        assert isinstance(channel_seq, int), "channel_seq must be int, but was {}".format(type(channel_seq))
+        assert isinstance(amount, bytes) and len(amount) == 32, "amount must be bytes[32], but was {}".format(
+            type(amount)
+        )
+        assert isinstance(balance, bytes) and len(balance) == 32, "balance must be bytes[32], but was {}".format(
+            type(balance)
+        )
+        assert isinstance(signature, bytes), "signature must be bytes, but was {}".format(type(signature))
+        assert len(signature) == (32 + 32 + 1), "signature must be bytes[65], but was bytes[{}]".format(len(signature))
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
         channel_oid = uuid.UUID(bytes=channel_oid)
         amount = unpack_uint256(amount)
@@ -1154,28 +1237,40 @@ class MarketMaker(object):
         is_final = False
 
         self.log.debug(
-            'EIP712 verifying signature for channel_oid={channel_oid}, channel_seq={channel_seq}, balance={balance}, is_final={is_final}',
+            "EIP712 verifying signature for channel_oid={channel_oid}, channel_seq={channel_seq}, balance={balance}, is_final={is_final}",
             klass=self.__class__.__name__,
             channel_oid=hlid(channel_oid),
             channel_seq=hlval(channel_seq),
             amount=hlval(amount),
             balance=hlval(balance),
-            is_final=hlval(is_final))
+            is_final=hlval(is_final),
+        )
 
         # FIXME
         close_at = 1
         # close_at = self._w3.eth.blockNumber
 
         # XBRSIG[2/8]: check the signature (over all input data for the buying of the key)
-        signer_address = xbr.recover_eip712_channel_close(self._verifying_chain_id, self._verifying_contract, close_at,
-                                                          self._market_oid.bytes, channel_oid.bytes, channel_seq,
-                                                          balance, is_final, signature)
+        signer_address = xbr.recover_eip712_channel_close(
+            self._verifying_chain_id,
+            self._verifying_contract,
+            close_at,
+            self._market_oid.bytes,
+            channel_oid.bytes,
+            channel_seq,
+            balance,
+            is_final,
+            signature,
+        )
         if signer_address != delegate_adr:
-            self.log.warn('EIP712 signature invalid: signer_address={signer_address}, delegate_adr={delegate_adr}',
-                          signer_address=signer_address,
-                          delegate_adr=delegate_adr)
-            raise ApplicationError('xbr.error.invalid_signature',
-                                   'EIP712 signature invalid or not signed by buyer delegate')
+            self.log.warn(
+                "EIP712 signature invalid: signer_address={signer_address}, delegate_adr={delegate_adr}",
+                signer_address=signer_address,
+                delegate_adr=delegate_adr,
+            )
+            raise ApplicationError(
+                "xbr.error.invalid_signature", "EIP712 signature invalid or not signed by buyer delegate"
+            )
 
         # FIXME: check that the delegate_adr fits what we expect for the buyer
         # FIXME: check that the channel_seq fits what we expect for the payment channel (payment_balance.seq)
@@ -1183,25 +1278,26 @@ class MarketMaker(object):
         try:
             key_id = uuid.UUID(bytes=key_id)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid key_id: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid key_id: {}".format(str(e)))
 
         if not isinstance(amount, int) or amount < 0:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid amount type or value: {}'.format(amount))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid amount type or value: {}".format(amount))
 
         if not isinstance(balance, int) or balance < 0:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid balance type or value: {}'.format(balance))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid balance type or value: {}".format(balance))
 
         if not self._market_session:
-            raise Exception('no market maker session')
+            raise Exception("no market maker session")
 
         self.log.debug(
-            'BUY key: delegate_adr={delegate_adr}, buyer_pubkey={buyer_pubkey}, key_id={key_id}, amount={amount}, signature={signature}, details={details}',
-            delegate_adr=hlid('0x' + binascii.b2a_hex(delegate_adr).decode()),
-            buyer_pubkey=hlid('0x' + binascii.b2a_hex(buyer_pubkey).decode()),
+            "BUY key: delegate_adr={delegate_adr}, buyer_pubkey={buyer_pubkey}, key_id={key_id}, amount={amount}, signature={signature}, details={details}",
+            delegate_adr=hlid("0x" + binascii.b2a_hex(delegate_adr).decode()),
+            buyer_pubkey=hlid("0x" + binascii.b2a_hex(buyer_pubkey).decode()),
             key_id=hlid(key_id),
             amount=hlval(amount),
-            signature=hlid('0x' + binascii.b2a_hex(signature).decode()),
-            details=details)
+            signature=hlid("0x" + binascii.b2a_hex(signature).decode()),
+            details=details,
+        )
 
         is_free = None
         seller = None
@@ -1211,27 +1307,31 @@ class MarketMaker(object):
         # DB transaction 1.1/2
         #
         with self._db.begin() as txn:
-
             payment_channel_oid = channel_oid
             payment_channel = self._schema.payment_channels[txn, payment_channel_oid]
             if not payment_channel:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no payment channel at address "{}"'.format(payment_channel_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", 'no payment channel at address "{}"'.format(payment_channel_oid)
+                )
 
             if payment_channel.state == 1:
                 payment_balance = self._schema.payment_balances[txn, payment_channel_oid]
                 if payment_balance.remaining <= 0:
                     raise ApplicationError(
-                        'crossbar.error.no_such_object',
+                        "crossbar.error.no_such_object",
                         'payment channel at address "{}" has no (positive) balance remaining'.format(
-                            payment_channel_oid))
+                            payment_channel_oid
+                        ),
+                    )
             else:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'payment channel at address "{}" not in state OPEN'.format(payment_channel_oid))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object",
+                    'payment channel at address "{}" not in state OPEN'.format(payment_channel_oid),
+                )
 
             offer_id = self._schema.idx_offer_by_key[txn, key_id]
             if not offer_id:
-                raise ApplicationError('crossbar.error.no_such_object', 'no offer for key with ID "{}"'.format(key_id))
+                raise ApplicationError("crossbar.error.no_such_object", 'no offer for key with ID "{}"'.format(key_id))
 
             # the original offer for the key the buyer delegate wants to buy
             offer = self._schema.offers[txn, offer_id]
@@ -1244,19 +1344,22 @@ class MarketMaker(object):
             if offer.price:
                 if amount < offer.price:
                     raise ApplicationError(
-                        'xbr.error.insufficient_amount',
-                        'The amount offered to pay ({}) is less than the offer price {}'.format(amount, offer.price))
+                        "xbr.error.insufficient_amount",
+                        "The amount offered to pay ({}) is less than the offer price {}".format(amount, offer.price),
+                    )
 
                 if offer.price > payment_balance.remaining:
                     # FIXME: try to swap in an active payment channel usable by the
                     #     buyer delegate (the caller of this procedure)
                     raise ApplicationError(
-                        'xbr.error.insufficient_payment_balance',
-                        'Not enough remaining balance left ({}) in payment channel to buy key for {} from the market maker'
-                        .format(payment_balance.remaining, offer.price))
+                        "xbr.error.insufficient_payment_balance",
+                        "Not enough remaining balance left ({}) in payment channel to buy key for {} from the market maker".format(
+                            payment_balance.remaining, offer.price
+                        ),
+                    )
                 is_free = False
             else:
-                self.log.info('Key {key_id} is free!', key_id=hlid(str(key_id)))
+                self.log.info("Key {key_id} is free!", key_id=hlid(str(key_id)))
                 is_free = True
 
             seller = bytes(offer.seller)
@@ -1264,10 +1367,9 @@ class MarketMaker(object):
         # check if the seller has an active paying channel, that is open and with sufficient remaining amount
         auto_close_paying_channel = True
         while True:
-            paying_channel, paying_balance = self._get_active_channel_and_balance(seller, 'paying')
+            paying_channel, paying_balance = self._get_active_channel_and_balance(seller, "paying")
             if paying_channel and paying_balance and offer.price > paying_balance.remaining:
                 if auto_close_paying_channel:
-
                     # FIXME: paying_channel.close_balance/channel_seq appears to be None
                     # channel_seq = paying_channel.close_channel_seq
                     # channel_balance = paying_channel.close_balance
@@ -1276,65 +1378,90 @@ class MarketMaker(object):
                     channel_is_final = True
 
                     marketmaker_signature = xbr.sign_eip712_channel_close(
-                        self._eth_privkey_raw, self._verifying_chain_id, self._verifying_contract, close_at,
-                        self._market_oid.bytes, paying_channel.channel_oid.bytes, channel_seq, channel_balance,
-                        channel_is_final)
+                        self._eth_privkey_raw,
+                        self._verifying_chain_id,
+                        self._verifying_contract,
+                        close_at,
+                        self._market_oid.bytes,
+                        paying_channel.channel_oid.bytes,
+                        channel_seq,
+                        channel_balance,
+                        channel_is_final,
+                    )
                     # call into seller delegate to get close signature
-                    proc_close = 'xbr.provider.{}.close_channel'.format(offer.seller_authid)
+                    proc_close = "xbr.provider.{}.close_channel".format(offer.seller_authid)
                     try:
-                        receipt = await self._market_session.call(proc_close, self._eth_adr_raw,
-                                                                  paying_channel.channel_oid.bytes, channel_seq,
-                                                                  pack_uint256(channel_balance), channel_is_final,
-                                                                  marketmaker_signature)
-                        delegate_signature = receipt['signature']
+                        receipt = await self._market_session.call(
+                            proc_close,
+                            self._eth_adr_raw,
+                            paying_channel.channel_oid.bytes,
+                            channel_seq,
+                            pack_uint256(channel_balance),
+                            channel_is_final,
+                            marketmaker_signature,
+                        )
+                        delegate_signature = receipt["signature"]
                     except Exception as e:
                         self.log.failure()
                         raise ApplicationError(
-                            'xbr.error.insufficient_paying_balance',
-                            'not enough remaining balance {} XBR left in paying channel 0x{} to buy key for {} XBR from the seller delegate 0x{} - auto-close of paying channel failed:\n{}'
-                            .format(
-                                binascii.b2a_hex(paying_channel.channel_oid.bytes).decode(), paying_balance.remaining,
+                            "xbr.error.insufficient_paying_balance",
+                            "not enough remaining balance {} XBR left in paying channel 0x{} to buy key for {} XBR from the seller delegate 0x{} - auto-close of paying channel failed:\n{}".format(
+                                binascii.b2a_hex(paying_channel.channel_oid.bytes).decode(),
+                                paying_balance.remaining,
                                 offer.price,
-                                binascii.b2a_hex(seller).decode(), e))
+                                binascii.b2a_hex(seller).decode(),
+                                e,
+                            ),
+                        )
                     else:
                         # FIXME: check delegate closing signature
 
                         self.log.info(
-                            'Auto-closing paying channel {paying_channel_oid} (at seq={channel_seq}, balance={channel_balance}) ..',
-                            paying_channel_oid=hlid('0x' +
-                                                    binascii.b2a_hex(paying_channel.channel_oid.bytes).decode()),
+                            "Auto-closing paying channel {paying_channel_oid} (at seq={channel_seq}, balance={channel_balance}) ..",
+                            paying_channel_oid=hlid(
+                                "0x" + binascii.b2a_hex(paying_channel.channel_oid.bytes).decode()
+                            ),
                             channel_seq=hlval(channel_seq),
-                            channel_balance=hlval(int(channel_balance / 10**18)))
+                            channel_balance=hlval(int(channel_balance / 10**18)),
+                        )
 
                         # close the channel in market maker
-                        await self.close_channel(paying_channel.channel_oid.bytes,
-                                                 channel_seq,
-                                                 pack_uint256(channel_balance),
-                                                 channel_is_final,
-                                                 delegate_signature,
-                                                 details=details)
+                        await self.close_channel(
+                            paying_channel.channel_oid.bytes,
+                            channel_seq,
+                            pack_uint256(channel_balance),
+                            channel_is_final,
+                            delegate_signature,
+                            details=details,
+                        )
 
                         # notify the seller delegate of the closed channel
-                        topic_close = 'xbr.provider.{}.on_channel_closed'.format(offer.seller_authid)
-                        await self._market_session.publish(topic_close,
-                                                           paying_channel.channel_oid.bytes,
-                                                           channel_seq,
-                                                           pack_uint256(channel_balance),
-                                                           channel_is_final,
-                                                           options=PublishOptions(acknowledge=True))
+                        topic_close = "xbr.provider.{}.on_channel_closed".format(offer.seller_authid)
+                        await self._market_session.publish(
+                            topic_close,
+                            paying_channel.channel_oid.bytes,
+                            channel_seq,
+                            pack_uint256(channel_balance),
+                            channel_is_final,
+                            options=PublishOptions(acknowledge=True),
+                        )
 
                         self.log.info(
-                            'Auto-close of paying channel {paying_channel_oid} succeeded',
-                            paying_channel_oid=hlid('0x' +
-                                                    binascii.b2a_hex(paying_channel.channel_oid.bytes).decode()))
+                            "Auto-close of paying channel {paying_channel_oid} succeeded",
+                            paying_channel_oid=hlid(
+                                "0x" + binascii.b2a_hex(paying_channel.channel_oid.bytes).decode()
+                            ),
+                        )
                 else:
                     raise ApplicationError(
-                        'xbr.error.insufficient_paying_balance',
-                        'not enough remaining balance {} XBR left in paying channel 0x{} to buy key for {} XBR from the seller delegate 0x{}'
-                        .format(
-                            binascii.b2a_hex(paying_channel.channel_oid).decode(), paying_balance.remaining,
+                        "xbr.error.insufficient_paying_balance",
+                        "not enough remaining balance {} XBR left in paying channel 0x{} to buy key for {} XBR from the seller delegate 0x{}".format(
+                            binascii.b2a_hex(paying_channel.channel_oid).decode(),
+                            paying_balance.remaining,
                             offer.price,
-                            binascii.b2a_hex(seller).decode()))
+                            binascii.b2a_hex(seller).decode(),
+                        ),
+                    )
             else:
                 # we found an open paying channel for the seller with sufficient balance remaining
                 paying_channel_oid = paying_channel.channel_oid
@@ -1344,7 +1471,6 @@ class MarketMaker(object):
         # DB transaction 1.2/2
         #
         with self._db.begin(write=True) as txn:
-
             # the amount paid is what the original offer was, which might be less than
             # the amount offered to pay (the call parameter "amount" to this procedure), but
             # cannot by less than the offer price.
@@ -1353,23 +1479,31 @@ class MarketMaker(object):
             seq_after = paying_balance.seq + 1
 
             # XBRSIG[3/8]: compute EIP712 typed data signature, signed by the market maker
-            marketmaker_signature = xbr.sign_eip712_channel_close(self._eth_privkey_raw, self._verifying_chain_id,
-                                                                  self._verifying_contract, close_at,
-                                                                  self._market_oid.bytes, paying_channel_oid.bytes,
-                                                                  seq_after, balance_after, False)
+            marketmaker_signature = xbr.sign_eip712_channel_close(
+                self._eth_privkey_raw,
+                self._verifying_chain_id,
+                self._verifying_contract,
+                close_at,
+                self._market_oid.bytes,
+                paying_channel_oid.bytes,
+                seq_after,
+                balance_after,
+                False,
+            )
 
             self.log.debug(
-                'EIP712 signature successfully created: delegate_adr={delegate_adr}, buyer_pubkey={buyer_pubkey}, key_id={key_id}, amount={amount}, balance={balance}',
+                "EIP712 signature successfully created: delegate_adr={delegate_adr}, buyer_pubkey={buyer_pubkey}, key_id={key_id}, amount={amount}, balance={balance}",
                 klass=self.__class__.__name__,
                 delegate_adr=hlid(self._eth_adr),
-                buyer_pubkey=hlid('0x' + binascii.b2a_hex(buyer_pubkey).decode()),
-                key_id=hlid('0x' + binascii.b2a_hex(key_id.bytes).decode()),
+                buyer_pubkey=hlid("0x" + binascii.b2a_hex(buyer_pubkey).decode()),
+                key_id=hlid("0x" + binascii.b2a_hex(key_id.bytes).decode()),
                 amount=hlval(amount_paid),
-                balance=hlval(payment_balance.remaining))
+                balance=hlval(payment_balance.remaining),
+            )
 
             transaction = cfxdb.xbrmm.Transaction()
             transaction.tid = uuid.uuid4()
-            transaction.created = np.datetime64(now, 'ns')
+            transaction.created = np.datetime64(now, "ns")
             transaction.created_payment_channel_seq = payment_balance.seq
             transaction.created_paying_channel_seq = paying_balance.seq
             transaction.amount = amount_paid
@@ -1401,38 +1535,55 @@ class MarketMaker(object):
             self._schema.paying_balances[txn, paying_channel_oid] = paying_balance
 
             self.log.debug(
-                'Balance of payment channel BEFORE call to provider: payment_balance.remaining={payment_balance_remaining}, payment_balance.inflight={payment_balance_inflight}',
+                "Balance of payment channel BEFORE call to provider: payment_balance.remaining={payment_balance_remaining}, payment_balance.inflight={payment_balance_inflight}",
                 payment_balance_remaining=payment_balance.remaining,
                 payment_balance_inflight=payment_balance.inflight,
             )
             self.log.debug(
-                'Balance of paying channel BEFORE call to provider: paying_balance.remaining={paying_balance_remaining}, paying_balance.inflight={paying_balance_inflight}',
+                "Balance of paying channel BEFORE call to provider: paying_balance.remaining={paying_balance_remaining}, paying_balance.inflight={paying_balance_inflight}",
                 paying_balance_remaining=paying_balance.remaining,
                 paying_balance_inflight=paying_balance.inflight,
             )
 
         # now call into the XBR seller delegate (data provider) buying the data encryption key
-        proc_buy = 'xbr.provider.{}.sell'.format(offer.seller_authid)
+        proc_buy = "xbr.provider.{}.sell".format(offer.seller_authid)
         try:
-            seller_receipt = await self._market_session.call(proc_buy, self._eth_adr_raw, buyer_pubkey, key_id.bytes,
-                                                             paying_channel_oid.bytes, seq_after,
-                                                             pack_uint256(amount_paid), pack_uint256(balance_after),
-                                                             marketmaker_signature)
+            seller_receipt = await self._market_session.call(
+                proc_buy,
+                self._eth_adr_raw,
+                buyer_pubkey,
+                key_id.bytes,
+                paying_channel_oid.bytes,
+                seq_after,
+                pack_uint256(amount_paid),
+                pack_uint256(balance_after),
+                marketmaker_signature,
+            )
 
-            seller_signature = seller_receipt['signature']
-            sealed_key = seller_receipt['sealed_key']
+            seller_signature = seller_receipt["signature"]
+            sealed_key = seller_receipt["sealed_key"]
 
             # XBRSIG[6/8]: check seller signature
-            signer_address = xbr.recover_eip712_channel_close(self._verifying_chain_id, self._verifying_contract,
-                                                              close_at, self._market_oid.bytes,
-                                                              paying_channel_oid.bytes, seq_after, balance_after,
-                                                              False, seller_signature)
+            signer_address = xbr.recover_eip712_channel_close(
+                self._verifying_chain_id,
+                self._verifying_contract,
+                close_at,
+                self._market_oid.bytes,
+                paying_channel_oid.bytes,
+                seq_after,
+                balance_after,
+                False,
+                seller_signature,
+            )
             if signer_address != paying_channel.delegate:
-                self.log.warn('EIP712 signature invalid: signer_address={signer_address}, delegate_adr={delegate_adr}',
-                              signer_address=signer_address,
-                              delegate_adr=delegate_adr)
-                raise ApplicationError('xbr.error.invalid_signature',
-                                       'EIP712 signature invalid or not signed by seller delegate')
+                self.log.warn(
+                    "EIP712 signature invalid: signer_address={signer_address}, delegate_adr={delegate_adr}",
+                    signer_address=signer_address,
+                    delegate_adr=delegate_adr,
+                )
+                raise ApplicationError(
+                    "xbr.error.invalid_signature", "EIP712 signature invalid or not signed by seller delegate"
+                )
 
         except Exception as e:
             # the call to the provider failed, we rollback the logical transaction on both payment and paying channel
@@ -1447,7 +1598,7 @@ class MarketMaker(object):
                     paying_balance = self._schema.paying_balances[txn, paying_channel_oid]
 
                     transaction.status = cfxdb.xbrmm.Transaction.STATUS_FAILED
-                    transaction.completed = np.datetime64(time_ns(), 'ns')
+                    transaction.completed = np.datetime64(time_ns(), "ns")
                     transaction.completed_payment_channel_seq = payment_balance.seq
                     transaction.completed_paying_channel_seq = paying_balance.seq
                     transaction.result_len = None
@@ -1464,11 +1615,12 @@ class MarketMaker(object):
                     self._schema.paying_balances[txn, payment_channel_oid] = paying_balance
 
                 self.log.debug(
-                    'MM Key Buy ERROR: balance of payment channel AFTER call to provider: remaining={remaining}, inflight={inflight}',
+                    "MM Key Buy ERROR: balance of payment channel AFTER call to provider: remaining={remaining}, inflight={inflight}",
                     remaining=hlid(payment_balance.remaining),
-                    inflight=hlid(payment_balance.inflight))
+                    inflight=hlid(payment_balance.inflight),
+                )
                 self.log.debug(
-                    'MM Key Buy ERROR: balance of paying channel AFTER call to provider: paying_balance.remaining={paying_balance_remaining}, paying_balance.inflight={paying_balance_inflight}',
+                    "MM Key Buy ERROR: balance of paying channel AFTER call to provider: paying_balance.remaining={paying_balance_remaining}, paying_balance.inflight={paying_balance_inflight}",
                     paying_balance_remaining=hlid(paying_balance.remaining),
                     paying_balance_inflight=hlid(paying_balance.inflight),
                 )
@@ -1476,9 +1628,11 @@ class MarketMaker(object):
                 raise e
             else:
                 raise ApplicationError(
-                    'xbr.error.transaction_failed',
+                    "xbr.error.transaction_failed",
                     'market maker could not buy key from seller delegate "{}": {}'.format(
-                        binascii.b2a_hex(seller).decode(), e))
+                        binascii.b2a_hex(seller).decode(), e
+                    ),
+                )
 
         # the call to the provider succeed, we commit the logical transaction on both payment and paying channel
         #
@@ -1494,7 +1648,7 @@ class MarketMaker(object):
             paying_balance = self._schema.paying_balances[txn, paying_channel_oid]
 
             transaction.status = cfxdb.xbrmm.Transaction.STATUS_SUCCESS
-            transaction.completed = np.datetime64(time_ns(), 'ns')
+            transaction.completed = np.datetime64(time_ns(), "ns")
             transaction.completed_payment_channel_seq = payment_balance.seq
             transaction.completed_paying_channel_seq = paying_balance.seq
             self._schema.transactions[txn, transaction.tid] = transaction
@@ -1524,102 +1678,105 @@ class MarketMaker(object):
                 # self._schema.paying_channels[txn, paying_channel_oid] = chn
 
         if payment_channel_ran_empty and self._market_session:
-            await self._market_session.publish('{}on_payment_channel_empty'.format(self._uri_prefix),
-                                               payment_channel_oid.bytes,
-                                               options=PublishOptions(acknowledge=True))
+            await self._market_session.publish(
+                "{}on_payment_channel_empty".format(self._uri_prefix),
+                payment_channel_oid.bytes,
+                options=PublishOptions(acknowledge=True),
+            )
 
         if paying_channel_ran_empty and self._market_session:
-            await self._market_session.publish('{}on_paying_channel_empty'.format(self._uri_prefix),
-                                               paying_channel_oid.bytes,
-                                               options=PublishOptions(acknowledge=True))
+            await self._market_session.publish(
+                "{}on_paying_channel_empty".format(self._uri_prefix),
+                paying_channel_oid.bytes,
+                options=PublishOptions(acknowledge=True),
+            )
         self.log.debug(
-            'MM Key Buy SUCCESS: balance of payment channel AFTER call to provider: remaining={remaining}, inflight={inflight}',
+            "MM Key Buy SUCCESS: balance of payment channel AFTER call to provider: remaining={remaining}, inflight={inflight}",
             remaining=hlid(payment_balance.remaining),
-            inflight=hlid(payment_balance.inflight))
+            inflight=hlid(payment_balance.inflight),
+        )
 
         self.log.debug(
-            'MM Key Buy SUCCESS: balance of paying channel AFTER call to provider: paying_balance.remaining={paying_balance_remaining}, paying_balance.inflight={paying_balance_inflight}',
+            "MM Key Buy SUCCESS: balance of paying channel AFTER call to provider: paying_balance.remaining={paying_balance_remaining}, paying_balance.inflight={paying_balance_inflight}",
             paying_balance_remaining=hlid(paying_balance.remaining),
             paying_balance_inflight=hlid(paying_balance.inflight),
         )
 
         # XBRSIG[7/8]: compute EIP712 typed data signature, signed by the market maker
-        marketmaker_signature = xbr.sign_eip712_channel_close(self._eth_privkey_raw, self._verifying_chain_id,
-                                                              self._verifying_contract, close_at,
-                                                              self._market_oid.bytes, payment_channel_oid.bytes,
-                                                              payment_balance.seq, payment_balance.remaining, False)
+        marketmaker_signature = xbr.sign_eip712_channel_close(
+            self._eth_privkey_raw,
+            self._verifying_chain_id,
+            self._verifying_contract,
+            close_at,
+            self._market_oid.bytes,
+            payment_channel_oid.bytes,
+            payment_balance.seq,
+            payment_balance.remaining,
+            False,
+        )
         receipt = {
             # key ID that has been bought
-            'key_id': key_id.bytes,
-
+            "key_id": key_id.bytes,
             # buyer delegate address that bought the key
-            'delegate': delegate_adr,
-
+            "delegate": delegate_adr,
             # buyer delegate Ed25519 public key with which the bought key was sealed
-            'buyer_pubkey': buyer_pubkey,
-
+            "buyer_pubkey": buyer_pubkey,
             # finally return what the consumer (buyer) was actually interested in:
             # the data encryption key, sealed (public key Ed25519 encrypted) to the
             # public key of the buyer delegate
-            'sealed_key': sealed_key,
-
+            "sealed_key": sealed_key,
             # the offer ID under which the key is sold
-            'offer_id': offer.offer.bytes if (offer and offer.offer) else None,
-
+            "offer_id": offer.offer.bytes if (offer and offer.offer) else None,
             # whether this key was free rated (cost nothing)
-            'free_rated': is_free,
-
+            "free_rated": is_free,
             # amount originally offered to pay
-            'amount': pack_uint256(amount),
-
+            "amount": pack_uint256(amount),
             # amount the seller offered the key for - and hence the amount actually paid (always <= amount)
-            'amount_paid': pack_uint256(amount_paid),
-
+            "amount_paid": pack_uint256(amount_paid),
             # current payment channel sequence number (after tx)
-            'channel_seq': payment_balance.seq,
-
+            "channel_seq": payment_balance.seq,
             # the payment channel over which the XBR transaction ran - address of the payment channel (on-chain)
-            'payment_channel': payment_channel_oid.bytes,
-
+            "payment_channel": payment_channel_oid.bytes,
             # payment channel remaining real-time balance (off-chain)
-            'remaining': pack_uint256(payment_balance.remaining),
-
+            "remaining": pack_uint256(payment_balance.remaining),
             # payment channel in-flight real-time balance (off-chain)
-            'inflight': pack_uint256(payment_balance.inflight),
-
+            "inflight": pack_uint256(payment_balance.inflight),
             # market maker signature
-            'signature': marketmaker_signature,
-
+            "signature": marketmaker_signature,
             # seller (delegate) signature
             # 'seller_signature': seller_signature,
         }
 
         # FIXME: publish on_transaction_complete event
 
-        self.log.info('{operation}: transaction complete - delegate {delegate} bought key {key_id} for {amount} XBR',
-                      operation=hlcontract('{}.on_transaction_complete'.format(self.__class__.__name__)),
-                      amount=hlval(int(amount_paid / 10**18)),
-                      delegate=hlid('0x' + binascii.b2a_hex(delegate_adr).decode()),
-                      key_id=hlid(key_id))
+        self.log.info(
+            "{operation}: transaction complete - delegate {delegate} bought key {key_id} for {amount} XBR",
+            operation=hlcontract("{}.on_transaction_complete".format(self.__class__.__name__)),
+            amount=hlval(int(amount_paid / 10**18)),
+            delegate=hlid("0x" + binascii.b2a_hex(delegate_adr).decode()),
+            key_id=hlid(key_id),
+        )
 
         return receipt
 
     @wamp.register(None, check_types=True)
-    async def open_channel(self,
-                           member_adr: bytes,
-                           market_oid: bytes,
-                           channel_oid: bytes,
-                           verifying_chain_id: int,
-                           current_block_number: int,
-                           verifying_contract_adr: bytes,
-                           channel_type: int,
-                           delegate: bytes,
-                           marketmaker: bytes,
-                           recipient: bytes,
-                           amount: bytes,
-                           signature: bytes,
-                           attributes: Optional[dict] = None,
-                           details: Optional[CallDetails] = None) -> dict:
+    async def open_channel(
+        self,
+        member_adr: bytes,
+        market_oid: bytes,
+        channel_oid: bytes,
+        verifying_chain_id: int,
+        current_block_number: int,
+        verifying_contract_adr: bytes,
+        channel_type: int,
+        delegate: bytes,
+        marketmaker: bytes,
+        recipient: bytes,
+        amount: bytes,
+        signature: bytes,
+        attributes: Optional[dict] = None,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Open a new XBR payment/paying channel for processing off-chain micro-transactions.
 
@@ -1655,86 +1812,113 @@ class MarketMaker(object):
 
         :return: XBR channel information.
         """
-        assert isinstance(member_adr, bytes), 'member_adr must be bytes, was {}'.format(type(member_adr))
-        assert len(member_adr) == 20, 'member_adr must be bytes[20], was bytes[{}]'.format(len(member_adr))
-        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
-        assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
-        assert isinstance(channel_oid, bytes), 'channel_oid must be bytes, was {}'.format(type(channel_oid))
-        assert len(channel_oid) == 16, 'channel_oid must be bytes[16], was bytes[{}]'.format(len(channel_oid))
-        assert isinstance(verifying_chain_id,
-                          int), 'verifying_chain_id must be int, was {}'.format(type(verifying_chain_id))
-        assert isinstance(current_block_number,
-                          int), 'current_block_number mus be int, was {}'.format(type(current_block_number))
-        assert isinstance(
-            verifying_contract_adr,
-            bytes) and len(verifying_contract_adr) == 20, 'verifying_contract_adr mus be bytes[20], was {}'.format(
-                type(verifying_contract_adr))
-        assert isinstance(channel_type, int), 'channel_type must be int, was {}'.format(type(channel_type))
+        assert isinstance(member_adr, bytes), "member_adr must be bytes, was {}".format(type(member_adr))
+        assert len(member_adr) == 20, "member_adr must be bytes[20], was bytes[{}]".format(len(member_adr))
+        assert isinstance(market_oid, bytes), "market_oid must be bytes, was {}".format(type(market_oid))
+        assert len(market_oid) == 16, "market_oid must be bytes[16], was bytes[{}]".format(len(market_oid))
+        assert isinstance(channel_oid, bytes), "channel_oid must be bytes, was {}".format(type(channel_oid))
+        assert len(channel_oid) == 16, "channel_oid must be bytes[16], was bytes[{}]".format(len(channel_oid))
+        assert isinstance(verifying_chain_id, int), "verifying_chain_id must be int, was {}".format(
+            type(verifying_chain_id)
+        )
+        assert isinstance(current_block_number, int), "current_block_number mus be int, was {}".format(
+            type(current_block_number)
+        )
+        assert isinstance(verifying_contract_adr, bytes) and len(verifying_contract_adr) == 20, (
+            "verifying_contract_adr mus be bytes[20], was {}".format(type(verifying_contract_adr))
+        )
+        assert isinstance(channel_type, int), "channel_type must be int, was {}".format(type(channel_type))
         assert channel_type in [ActorType.PROVIDER, ActorType.CONSUMER]
-        assert isinstance(delegate, bytes), 'delegate must be bytes, was {}'.format(type(delegate))
-        assert len(delegate) == 20, 'delegate must be bytes[20], was bytes[{}]'.format(len(delegate))
-        assert isinstance(marketmaker, bytes), 'marketmaker must be bytes, was {}'.format(type(marketmaker))
-        assert len(marketmaker) == 20, 'marketmaker must be bytes[16], was bytes[{}]'.format(len(marketmaker))
-        assert isinstance(recipient, bytes), 'recipient must be bytes, was {}'.format(type(recipient))
-        assert len(recipient) == 20, 'recipient must be bytes[16], was bytes[{}]'.format(len(recipient))
-        assert isinstance(amount, bytes), 'amount must be bytes, was {}'.format(type(amount))
-        assert len(amount) == 32, 'amount must be bytes[16], was bytes[{}]'.format(len(amount))
-        assert isinstance(signature, bytes) and len(signature) == 65, 'signature must be bytes[65], was {}'.format(
-            type(signature))
-        assert attributes is None or isinstance(attributes, dict), 'attributes must be dict, was {}'.format(
-            type(attributes))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(delegate, bytes), "delegate must be bytes, was {}".format(type(delegate))
+        assert len(delegate) == 20, "delegate must be bytes[20], was bytes[{}]".format(len(delegate))
+        assert isinstance(marketmaker, bytes), "marketmaker must be bytes, was {}".format(type(marketmaker))
+        assert len(marketmaker) == 20, "marketmaker must be bytes[16], was bytes[{}]".format(len(marketmaker))
+        assert isinstance(recipient, bytes), "recipient must be bytes, was {}".format(type(recipient))
+        assert len(recipient) == 20, "recipient must be bytes[16], was bytes[{}]".format(len(recipient))
+        assert isinstance(amount, bytes), "amount must be bytes, was {}".format(type(amount))
+        assert len(amount) == 32, "amount must be bytes[16], was bytes[{}]".format(len(amount))
+        assert isinstance(signature, bytes) and len(signature) == 65, "signature must be bytes[65], was {}".format(
+            type(signature)
+        )
+        assert attributes is None or isinstance(attributes, dict), "attributes must be dict, was {}".format(
+            type(attributes)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         market_oid_ = uuid.UUID(bytes=market_oid)
         channel_oid_ = uuid.UUID(bytes=channel_oid)
         amount_ = unpack_uint256(amount)
 
         try:
-            signer_address = xbr.recover_eip712_channel_open(verifying_chain_id, verifying_contract_adr, channel_type,
-                                                             current_block_number, market_oid_.bytes,
-                                                             channel_oid_.bytes, member_adr, delegate, marketmaker,
-                                                             recipient, amount_, signature)
+            signer_address = xbr.recover_eip712_channel_open(
+                verifying_chain_id,
+                verifying_contract_adr,
+                channel_type,
+                current_block_number,
+                market_oid_.bytes,
+                channel_oid_.bytes,
+                member_adr,
+                delegate,
+                marketmaker,
+                recipient,
+                amount_,
+                signature,
+            )
         except Exception as e:
-            self.log.warn('EIP712 signature recovery failed: {err}', err=str(e))
-            raise ApplicationError('xbr.error.invalid_signature', 'EIP712 signature recovery failed ({})'.format(e))
+            self.log.warn("EIP712 signature recovery failed: {err}", err=str(e))
+            raise ApplicationError("xbr.error.invalid_signature", "EIP712 signature recovery failed ({})".format(e))
 
         if signer_address != member_adr:
-            self.log.warn('EIP712 signature invalid: signer_address={signer_address}, member_adr={member_adr}',
-                          signer_address=signer_address,
-                          member_adr=member_adr)
-            raise ApplicationError('xbr.error.invalid_signature', 'EIP712 signature invalid')
+            self.log.warn(
+                "EIP712 signature invalid: signer_address={signer_address}, member_adr={member_adr}",
+                signer_address=signer_address,
+                member_adr=member_adr,
+            )
+            raise ApplicationError("xbr.error.invalid_signature", "EIP712 signature invalid")
 
         self.log.info(
-            '{klass}.open_channel(member_adr={member_adr}, market_oid={market_oid}, channel_oid={channel_oid}, '
-            'delegate={delegate} recipient={recipient} details={details})',
+            "{klass}.open_channel(member_adr={member_adr}, market_oid={market_oid}, channel_oid={channel_oid}, "
+            "delegate={delegate} recipient={recipient} details={details})",
             klass=self.__class__.__name__,
             member_adr=hlid(member_adr),
             market_oid=hlid(market_oid_),
             channel_oid=hlid(channel_oid_),
-            delegate=hlid('0x' + b2a_hex(delegate).decode()),
-            recipient=hlid('0x' + b2a_hex(recipient).decode()),
-            details=details)
+            delegate=hlid("0x" + b2a_hex(delegate).decode()),
+            recipient=hlid("0x" + b2a_hex(recipient).decode()),
+            details=details,
+        )
 
         def _set_allowance():
-            xbr.xbrtoken.functions.approve(xbr.xbrchannel.address, amount_).transact({
-                'from': marketmaker,
-                'gas': 100000
-            })
+            xbr.xbrtoken.functions.approve(xbr.xbrchannel.address, amount_).transact(
+                {"from": marketmaker, "gas": 100000}
+            )
             return xbr.xbrtoken.functions.allowance(marketmaker, xbr.xbrchannel.address).call()
 
         if channel_type == cfxdb.xbrmm.ChannelType.PAYMENT:
             allowance = await deferToThread(
-                lambda: xbr.xbrtoken.functions.allowance(member_adr, xbr.xbrchannel.address).call())
+                lambda: xbr.xbrtoken.functions.allowance(member_adr, xbr.xbrchannel.address).call()
+            )
             assert allowance == amount_
         elif channel_type == cfxdb.xbrmm.ChannelType.PAYING:
             allowance = await deferToThread(_set_allowance)
             assert allowance == amount_
 
         try:
-            txn_hash = await deferToThread(self._send_openChannel, channel_type, current_block_number,
-                                           market_oid_.bytes, channel_oid_.bytes, member_adr, delegate, marketmaker,
-                                           recipient, amount_, signature)
+            txn_hash = await deferToThread(
+                self._send_openChannel,
+                channel_type,
+                current_block_number,
+                market_oid_.bytes,
+                channel_oid_.bytes,
+                member_adr,
+                delegate,
+                marketmaker,
+                recipient,
+                amount_,
+                signature,
+            )
         except Exception as e:
             self.log.failure()
             # FIXME: we have to retry, but not in-line before returning from this call
@@ -1744,23 +1928,25 @@ class MarketMaker(object):
             self._controller_session._trigger_monitor_blockchain()
 
             open_channel_submitted = {
-                'transaction': txn_hash,
-                'channel_oid': channel_oid_.bytes,
-                'market_oid': market_oid_.bytes,
+                "transaction": txn_hash,
+                "channel_oid": channel_oid_.bytes,
+                "market_oid": market_oid_.bytes,
             }
             return open_channel_submitted
 
     @wamp.register(None, check_types=True)
-    async def close_channel(self,
-                            channel_oid: bytes,
-                            verifying_chain_id: int,
-                            current_block_number: int,
-                            verifying_contract_adr: bytes,
-                            closing_balance: bytes,
-                            closing_seq: int,
-                            closing_is_final: bool,
-                            delegate_signature: bytes,
-                            details: Optional[CallDetails] = None) -> dict:
+    async def close_channel(
+        self,
+        channel_oid: bytes,
+        verifying_chain_id: int,
+        current_block_number: int,
+        verifying_contract_adr: bytes,
+        closing_balance: bytes,
+        closing_seq: int,
+        closing_is_final: bool,
+        delegate_signature: bytes,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Trigger closing this channel.
 
@@ -1798,27 +1984,28 @@ class MarketMaker(object):
 
         :return: XBR channel information.
         """
-        assert isinstance(channel_oid, bytes), 'channel_oid must be bytes, was {}'.format(type(channel_oid))
-        assert len(channel_oid) == 16, 'channel_oid must be bytes[16], was bytes[{}]'.format(len(channel_oid))
-        assert isinstance(verifying_chain_id,
-                          int), 'verifying_chain_id must be int, was {}'.format(type(verifying_chain_id))
-        assert isinstance(current_block_number,
-                          int), 'current_block_number mus be int, was {}'.format(type(current_block_number))
-        assert isinstance(
-            verifying_contract_adr,
-            bytes) and len(verifying_contract_adr) == 20, 'verifying_contract_adr mus be bytes[20], was {}'.format(
-                type(verifying_contract_adr))
-        assert isinstance(closing_balance,
-                          bytes) and len(closing_balance) == 32, 'closing_balance must be bytes[32], was {}'.format(
-                              type(closing_balance))
-        assert isinstance(closing_seq, int), 'closing_seq must be int, was {}'.format(type(closing_seq))
-        assert isinstance(closing_is_final, bool), 'closing_final must be bool, was {}'.format(type(closing_is_final))
-        assert isinstance(
-            delegate_signature,
-            bytes) and len(delegate_signature) == 65, 'delegate_signature must be bytes[65], was {}'.format(
-                type(delegate_signature))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(channel_oid, bytes), "channel_oid must be bytes, was {}".format(type(channel_oid))
+        assert len(channel_oid) == 16, "channel_oid must be bytes[16], was bytes[{}]".format(len(channel_oid))
+        assert isinstance(verifying_chain_id, int), "verifying_chain_id must be int, was {}".format(
+            type(verifying_chain_id)
+        )
+        assert isinstance(current_block_number, int), "current_block_number mus be int, was {}".format(
+            type(current_block_number)
+        )
+        assert isinstance(verifying_contract_adr, bytes) and len(verifying_contract_adr) == 20, (
+            "verifying_contract_adr mus be bytes[20], was {}".format(type(verifying_contract_adr))
+        )
+        assert isinstance(closing_balance, bytes) and len(closing_balance) == 32, (
+            "closing_balance must be bytes[32], was {}".format(type(closing_balance))
+        )
+        assert isinstance(closing_seq, int), "closing_seq must be int, was {}".format(type(closing_seq))
+        assert isinstance(closing_is_final, bool), "closing_final must be bool, was {}".format(type(closing_is_final))
+        assert isinstance(delegate_signature, bytes) and len(delegate_signature) == 65, (
+            "delegate_signature must be bytes[65], was {}".format(type(delegate_signature))
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         closing_balance_ = unpack_uint256(closing_balance)
         channel_oid_ = uuid.UUID(bytes=channel_oid)
@@ -1833,27 +2020,37 @@ class MarketMaker(object):
         delegate = channel.delegate
 
         self.log.info(
-            '{operation}(channel_oid={channel_oid}, closing_seq={closing_seq}, closing_balance={closing_balance}, closing_is_final={closing_is_final})',
-            operation=hlcontract('{}.close_channel'.format(self.__class__.__name__)),
+            "{operation}(channel_oid={channel_oid}, closing_seq={closing_seq}, closing_balance={closing_balance}, closing_is_final={closing_is_final})",
+            operation=hlcontract("{}.close_channel".format(self.__class__.__name__)),
             channel_oid=hlid(channel_oid_),
             closing_seq=closing_seq,
             closing_balance=hlval(int(closing_balance_ / 10**18)),
-            closing_is_final=hlval(closing_is_final))
+            closing_is_final=hlval(closing_is_final),
+        )
 
         try:
-            signer_address = xbr.recover_eip712_channel_close(verifying_chain_id, verifying_contract_adr,
-                                                              current_block_number, self.market.bytes,
-                                                              channel_oid_.bytes, closing_seq, closing_balance_,
-                                                              closing_is_final, delegate_signature)
+            signer_address = xbr.recover_eip712_channel_close(
+                verifying_chain_id,
+                verifying_contract_adr,
+                current_block_number,
+                self.market.bytes,
+                channel_oid_.bytes,
+                closing_seq,
+                closing_balance_,
+                closing_is_final,
+                delegate_signature,
+            )
         except Exception as e:
-            self.log.warn('EIP712 signature recovery failed: {err}', err=str(e))
-            raise ApplicationError('xbr.error.invalid_signature', 'EIP712 signature recovery failed ({})'.format(e))
+            self.log.warn("EIP712 signature recovery failed: {err}", err=str(e))
+            raise ApplicationError("xbr.error.invalid_signature", "EIP712 signature recovery failed ({})".format(e))
 
         if signer_address != delegate:
-            self.log.warn('EIP712 signature invalid: signer_address={signer_address}, delegate_adr={delegate_adr}',
-                          signer_address=signer_address,
-                          delegate_adr=delegate)
-            raise ApplicationError('xbr.error.invalid_signature', 'EIP712 signature invalid')
+            self.log.warn(
+                "EIP712 signature invalid: signer_address={signer_address}, delegate_adr={delegate_adr}",
+                signer_address=signer_address,
+                delegate_adr=delegate,
+            )
+            raise ApplicationError("xbr.error.invalid_signature", "EIP712 signature invalid")
 
         # FIXME: check channel has no in-flight transactions currently
 
@@ -1868,23 +2065,33 @@ class MarketMaker(object):
                 if channel:
                     channel_type = cfxdb.xbrmm.ChannelType.PAYING
             if not channel:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no channel with address "{}"'.format(channel_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", 'no channel with address "{}"'.format(channel_oid_)
+                )
 
         marketmaker_signature = None
         if closing_is_final:
             # create new signature with closing final flag set
-            marketmaker_signature = xbr.sign_eip712_channel_close(self._eth_privkey_raw, verifying_chain_id,
-                                                                  verifying_contract_adr, current_block_number,
-                                                                  channel.market_oid.bytes, channel_oid_.bytes,
-                                                                  closing_seq, closing_balance_, closing_is_final)
+            marketmaker_signature = xbr.sign_eip712_channel_close(
+                self._eth_privkey_raw,
+                verifying_chain_id,
+                verifying_contract_adr,
+                current_block_number,
+                channel.market_oid.bytes,
+                channel_oid_.bytes,
+                closing_seq,
+                closing_balance_,
+                closing_is_final,
+            )
 
         # The payment channel is open (and operating off-chain)
         if channel.state != cfxdb.xbrmm.ChannelState.OPEN:
             raise ApplicationError(
-                'xbr.error.channel_not_open',
-                'channel {} of type {} exists, but is not open (channel is in state {})'.format(
-                    channel_oid_, channel._channel_type, channel.state))
+                "xbr.error.channel_not_open",
+                "channel {} of type {} exists, but is not open (channel is in state {})".format(
+                    channel_oid_, channel._channel_type, channel.state
+                ),
+            )
 
         # Set the payment channel to closing (one of the channel participants has requested to closed the channel)
         channel.state = cfxdb.xbrmm.ChannelState.CLOSING
@@ -1912,13 +2119,20 @@ class MarketMaker(object):
             elif channel_type == cfxdb.xbrmm.ChannelType.PAYING:
                 self._schema.paying_channels[txn, channel_oid_] = channel
             else:
-                assert False, 'should not arrive here'
+                assert False, "should not arrive here"
 
         # submit transaction to blockchain
         try:
-            txn_hash = await deferToThread(self._send_closeChannel, channel.channel_oid.bytes, current_block_number,
-                                           closing_seq, closing_balance_, closing_is_final, delegate_signature,
-                                           marketmaker_signature)
+            txn_hash = await deferToThread(
+                self._send_closeChannel,
+                channel.channel_oid.bytes,
+                current_block_number,
+                closing_seq,
+                closing_balance_,
+                closing_is_final,
+                delegate_signature,
+                marketmaker_signature,
+            )
         except Exception as e:
             self.log.failure()
             # FIXME: we have to retry, but not in-line before returning from this call
@@ -1928,30 +2142,31 @@ class MarketMaker(object):
             self._controller_session._trigger_monitor_blockchain()
 
             closing = {
-                'transaction': txn_hash,
-                'market_oid': channel.market_oid.bytes,
-                'channel_oid': channel.channel_oid.bytes,
-                'state': channel.state,
-                'balance': pack_uint256(channel.close_balance),
-                'seq': channel.close_channel_seq,
-                'is_final': channel.close_is_final,
+                "transaction": txn_hash,
+                "market_oid": channel.market_oid.bytes,
+                "channel_oid": channel.channel_oid.bytes,
+                "state": channel.state,
+                "balance": pack_uint256(channel.close_balance),
+                "seq": channel.close_channel_seq,
+                "is_final": channel.close_is_final,
             }
 
             # publish on_channel_closing event
             if self._market_session:
                 if channel_type == 1:
                     # FIXME: xbr.marketmaker.buyer.<buyer-delegate-adr>.on_payment_channel_closing
-                    topic = '{}on_payment_channel_closing'.format(self._uri_prefix)
+                    topic = "{}on_payment_channel_closing".format(self._uri_prefix)
                 else:
                     # FIXME: xbr.marketmaker.seller.<seller-delegate-adr>.on_paying_channel_closing
-                    topic = '{}on_paying_channel_closing'.format(self._uri_prefix)
+                    topic = "{}on_paying_channel_closing".format(self._uri_prefix)
                 await self._market_session.publish(topic, closing, options=PublishOptions(acknowledge=True))
 
             self.log.info(
-                '{operation}: channel {channel_oid} moved to {state} state - on-chain transaction will trigger asynchronously ..',
-                operation=hlcontract('{}.on_channel_closing'.format(self.__class__.__name__)),
-                state=hlval('CLOSING'),
-                channel_oid=hlid(channel_oid))
+                "{operation}: channel {channel_oid} moved to {state} state - on-chain transaction will trigger asynchronously ..",
+                operation=hlcontract("{}.on_channel_closing".format(self.__class__.__name__)),
+                state=hlval("CLOSING"),
+                channel_oid=hlid(channel_oid),
+            )
 
             return closing
 
@@ -1969,49 +2184,55 @@ class MarketMaker(object):
         :return: Payment channel information.
         :rtype: dict
         """
-        assert isinstance(
-            channel_oid,
-            bytes) and len(channel_oid) == 16, 'channel_oid must be bytes[16], was "{}"'.format(channel_oid)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert isinstance(channel_oid, bytes) and len(channel_oid) == 16, (
+            'channel_oid must be bytes[16], was "{}"'.format(channel_oid)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
         try:
             channel_oid_ = uuid.UUID(bytes=channel_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid channel_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid channel_oid: {}".format(str(e)))
 
         with self._db.begin() as txn:
             channel = self._schema.payment_channels[txn, channel_oid_]
             if not channel:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no payment channel {} found'.format(channel_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no payment channel {} found".format(channel_oid_)
+                )
 
         return channel.marshal()
 
     @wamp.register(None, check_types=True)
-    def get_channels_by_delegate(self,
-                                 delegate_adr: bytes,
-                                 channel_type: int,
-                                 filter_open: Optional[bool] = True,
-                                 details: Optional[CallDetails] = None):
-
+    def get_channels_by_delegate(
+        self,
+        delegate_adr: bytes,
+        channel_type: int,
+        filter_open: Optional[bool] = True,
+        details: Optional[CallDetails] = None,
+    ):
         if channel_type not in [cfxdb.xbrmm.ChannelType.PAYMENT, cfxdb.xbrmm.ChannelType.PAYING]:
-            raise ApplicationError("xbr.marketmaker.error.invalid_channel_type",
-                                   "Channel type must be 1 (payment) or 2 (paying), was {}".format(channel_type))
+            raise ApplicationError(
+                "xbr.marketmaker.error.invalid_channel_type",
+                "Channel type must be 1 (payment) or 2 (paying), was {}".format(channel_type),
+            )
 
         if not is_address(delegate_adr):
-            raise ApplicationError("xbr.marketmaker.error.invalid_delegate_adr",
-                                   "Delegate address must be if length 20 was {}".format(len(delegate_adr)))
+            raise ApplicationError(
+                "xbr.marketmaker.error.invalid_delegate_adr",
+                "Delegate address must be if length 20 was {}".format(len(delegate_adr)),
+            )
 
-        t_zero = np.datetime64(0, 'ns')
-        t_now = np.datetime64(time_ns(), 'ns')
+        t_zero = np.datetime64(0, "ns")
+        t_now = np.datetime64(time_ns(), "ns")
         channels = []
         with self._db.begin() as txn:
             if channel_type == cfxdb.xbrmm.ChannelType.PAYMENT:
-                for channel_oid in self._schema.idx_payment_channel_by_delegate.select(txn,
-                                                                                       from_key=(delegate_adr, t_zero),
-                                                                                       to_key=(delegate_adr, t_now),
-                                                                                       return_keys=False):
+                for channel_oid in self._schema.idx_payment_channel_by_delegate.select(
+                    txn, from_key=(delegate_adr, t_zero), to_key=(delegate_adr, t_now), return_keys=False
+                ):
                     if filter_open:
                         # channel must be open with positive remaining off-chain balance
                         channel = self._schema.payment_channels[txn, channel_oid]
@@ -2022,10 +2243,9 @@ class MarketMaker(object):
                     else:
                         channels.append(channel_oid.bytes)
             else:
-                for channel_oid in self._schema.idx_paying_channel_by_delegate.select(txn,
-                                                                                      from_key=(delegate_adr, t_zero),
-                                                                                      to_key=(delegate_adr, t_now),
-                                                                                      return_keys=False):
+                for channel_oid in self._schema.idx_paying_channel_by_delegate.select(
+                    txn, from_key=(delegate_adr, t_zero), to_key=(delegate_adr, t_now), return_keys=False
+                ):
                     if filter_open:
                         # channel must be open with positive remaining off-chain balance
                         channel = self._schema.paying_channels[txn, channel_oid]
@@ -2041,22 +2261,25 @@ class MarketMaker(object):
     @wamp.register(None, check_types=True)
     def get_channels_by_actor(self, member_adr, channel_type, filter_open=True, details: Optional[CallDetails] = None):
         if channel_type not in [cfxdb.xbrmm.ChannelType.PAYMENT, cfxdb.xbrmm.ChannelType.PAYING]:
-            raise ApplicationError("xbr.marketmaker.error.invalid_channel_type",
-                                   "Channel type must be 1 (payment) or 2 (paying), was {}".format(channel_type))
+            raise ApplicationError(
+                "xbr.marketmaker.error.invalid_channel_type",
+                "Channel type must be 1 (payment) or 2 (paying), was {}".format(channel_type),
+            )
 
         if not is_address(member_adr):
-            raise ApplicationError("xbr.marketmaker.error.invalid_member_adr",
-                                   "Delegate address must be if length 20 was {}".format(len(member_adr)))
+            raise ApplicationError(
+                "xbr.marketmaker.error.invalid_member_adr",
+                "Delegate address must be if length 20 was {}".format(len(member_adr)),
+            )
 
-        t_zero = np.datetime64(0, 'ns')
-        t_now = np.datetime64(time_ns(), 'ns')
+        t_zero = np.datetime64(0, "ns")
+        t_now = np.datetime64(time_ns(), "ns")
         channels = []
         with self._db.begin() as txn:
             if channel_type == cfxdb.xbrmm.ChannelType.PAYMENT:
-                for channel_oid in self._schema.idx_payment_channel_by_actor.select(txn,
-                                                                                    from_key=(member_adr, t_zero),
-                                                                                    to_key=(member_adr, t_now),
-                                                                                    return_keys=False):
+                for channel_oid in self._schema.idx_payment_channel_by_actor.select(
+                    txn, from_key=(member_adr, t_zero), to_key=(member_adr, t_now), return_keys=False
+                ):
                     if filter_open:
                         # channel must be open with positive remaining off-chain balance
                         channel = self._schema.payment_channels[txn, channel_oid]
@@ -2067,10 +2290,9 @@ class MarketMaker(object):
                     else:
                         channels.append(channel_oid.bytes)
             else:
-                for channel_oid in self._schema.idx_paying_channel_by_recipient.select(txn,
-                                                                                       from_key=(member_adr, t_zero),
-                                                                                       to_key=(member_adr, t_now),
-                                                                                       return_keys=False):
+                for channel_oid in self._schema.idx_paying_channel_by_recipient.select(
+                    txn, from_key=(member_adr, t_zero), to_key=(member_adr, t_now), return_keys=False
+                ):
                     if filter_open:
                         # channel must be open with positive remaining off-chain balance
                         channel = self._schema.paying_channels[txn, channel_oid]
@@ -2098,21 +2320,24 @@ class MarketMaker(object):
         :return: Payment channel balance information.
         :rtype: dict
         """
-        assert (isinstance(channel_oid, bytes)
-                and len(channel_oid) == 16), 'channel_oid must be bytes[16], was "{}"'.format(channel_oid)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert isinstance(channel_oid, bytes) and len(channel_oid) == 16, (
+            'channel_oid must be bytes[16], was "{}"'.format(channel_oid)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
         try:
             channel_oid_ = uuid.UUID(bytes=channel_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid channel_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid channel_oid: {}".format(str(e)))
 
         with self._db.begin() as txn:
             balance = self._schema.payment_balances[txn, channel_oid_]
             if not balance:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no payment channel {} found'.format(channel_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no payment channel {} found".format(channel_oid_)
+                )
 
         return balance.marshal()
 
@@ -2130,21 +2355,24 @@ class MarketMaker(object):
         :return: Paying channel information.
         :rtype: dict
         """
-        assert (isinstance(channel_oid, bytes)
-                and len(channel_oid) == 16), 'channel_oid must be bytes[16], was "{}"'.format(channel_oid)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert isinstance(channel_oid, bytes) and len(channel_oid) == 16, (
+            'channel_oid must be bytes[16], was "{}"'.format(channel_oid)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
         try:
             channel_oid_ = uuid.UUID(bytes=channel_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid channel_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid channel_oid: {}".format(str(e)))
 
         with self._db.begin() as txn:
             channel = self._schema.paying_channels[txn, channel_oid_]
             if not channel:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no paying channel {} found'.format(channel_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no paying channel {} found".format(channel_oid_)
+                )
 
         return channel.marshal()
 
@@ -2163,21 +2391,24 @@ class MarketMaker(object):
         :return: Paying channel balance information.
         :rtype: dict
         """
-        assert (isinstance(channel_oid, bytes)
-                and len(channel_oid) == 16), 'channel_oid must be bytes[20], was "{}"'.format(channel_oid)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert isinstance(channel_oid, bytes) and len(channel_oid) == 16, (
+            'channel_oid must be bytes[20], was "{}"'.format(channel_oid)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
         try:
             channel_oid_ = uuid.UUID(bytes=channel_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid channel_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid channel_oid: {}".format(str(e)))
 
         with self._db.begin() as txn:
             balance = self._schema.paying_balances[txn, channel_oid_]
             if not balance:
-                raise ApplicationError('crossbar.error.no_such_object',
-                                       'no paying channel {} found'.format(channel_oid_))
+                raise ApplicationError(
+                    "crossbar.error.no_such_object", "no paying channel {} found".format(channel_oid_)
+                )
 
         return balance.marshal()
 
@@ -2195,23 +2426,28 @@ class MarketMaker(object):
         :return: Payment channel and balance details: ``(channel, balance)``.
         :rtype: tuple
         """
-        assert isinstance(
-            delegate_adr,
-            bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert isinstance(delegate_adr, bytes) and len(delegate_adr) == 20, (
+            'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
-        self.log.info('{operation}(delegate_adr={delegate_adr}) ..',
-                      operation=hlcontract('{}.get_active_payment_channel'.format(self.__class__.__name__)),
-                      delegate_adr=hlid('0x' + binascii.b2a_hex(delegate_adr).decode()))
+        self.log.info(
+            "{operation}(delegate_adr={delegate_adr}) ..",
+            operation=hlcontract("{}.get_active_payment_channel".format(self.__class__.__name__)),
+            delegate_adr=hlid("0x" + binascii.b2a_hex(delegate_adr).decode()),
+        )
 
-        channel, _ = self._get_active_channel_and_balance(delegate_adr, channel_type='payment')
+        channel, _ = self._get_active_channel_and_balance(delegate_adr, channel_type="payment")
 
         if channel:
-            self.log.info('{operation}(delegate_adr={delegate_adr}): found active payment channel {channel_oid}',
-                          operation=hlcontract('{}.get_active_payment_channel'.format(self.__class__.__name__)),
-                          delegate_adr=hlid('0x' + binascii.b2a_hex(delegate_adr).decode()),
-                          channel_oid=hlid(channel.channel_oid))
+            self.log.info(
+                "{operation}(delegate_adr={delegate_adr}): found active payment channel {channel_oid}",
+                operation=hlcontract("{}.get_active_payment_channel".format(self.__class__.__name__)),
+                delegate_adr=hlid("0x" + binascii.b2a_hex(delegate_adr).decode()),
+                channel_oid=hlid(channel.channel_oid),
+            )
 
             return channel.marshal()
         else:
@@ -2231,24 +2467,28 @@ class MarketMaker(object):
         :return: Paying channel and balance details: ``(channel, balance)``.
         :rtype: tuple
         """
-        assert isinstance(
-            delegate_adr,
-            bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        assert isinstance(delegate_adr, bytes) and len(delegate_adr) == 20, (
+            'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            'details must be autobahn.wamp.types.CallDetails, but was "{}"'.format(details)
+        )
 
-        self.log.info('{operation}(delegate_adr={delegate_adr}) ..',
-                      operation=hlcontract('{}.get_active_paying_channel'.format(self.__class__.__name__)),
-                      delegate_adr=hlid('0x' + binascii.b2a_hex(delegate_adr).decode()))
+        self.log.info(
+            "{operation}(delegate_adr={delegate_adr}) ..",
+            operation=hlcontract("{}.get_active_paying_channel".format(self.__class__.__name__)),
+            delegate_adr=hlid("0x" + binascii.b2a_hex(delegate_adr).decode()),
+        )
 
-        channel, _ = self._get_active_channel_and_balance(delegate_adr, channel_type='paying')
+        channel, _ = self._get_active_channel_and_balance(delegate_adr, channel_type="paying")
 
         if channel:
-
-            self.log.info('{operation}(delegate_adr={delegate_adr}): found active paying channel {channel_oid}',
-                          operation=hlcontract('{}.get_active_paying_channel'.format(self.__class__.__name__)),
-                          delegate_adr=hlid('0x' + binascii.b2a_hex(delegate_adr).decode()),
-                          channel_oid=hlid(channel.channel_oid))
+            self.log.info(
+                "{operation}(delegate_adr={delegate_adr}): found active paying channel {channel_oid}",
+                operation=hlcontract("{}.get_active_paying_channel".format(self.__class__.__name__)),
+                delegate_adr=hlid("0x" + binascii.b2a_hex(delegate_adr).decode()),
+                channel_oid=hlid(channel.channel_oid),
+            )
 
             return channel.marshal()
         else:
@@ -2263,24 +2503,22 @@ class MarketMaker(object):
 
         which contain the currently active payment/paying channel per buyer/seller delegate address.
         """
-        assert isinstance(
-            delegate_adr,
-            bytes) and len(delegate_adr) == 20, 'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
-        assert channel_type in ['payment', 'paying'], 'invalid channel_type "{}"'.format(channel_type)
+        assert isinstance(delegate_adr, bytes) and len(delegate_adr) == 20, (
+            'delegate_adr must be bytes[20], but was "{}"'.format(delegate_adr)
+        )
+        assert channel_type in ["payment", "paying"], 'invalid channel_type "{}"'.format(channel_type)
 
-        t_zero = np.datetime64(0, 'ns')
-        t_now = np.datetime64(time_ns(), 'ns')
+        t_zero = np.datetime64(0, "ns")
+        t_now = np.datetime64(time_ns(), "ns")
         channel_oid, channel, balance = None, None, None
         with self._db.begin() as txn:
-
             # find next open payment/paying channel (if any)
             channel_oid = None
             cnt_searched = 0
-            if channel_type == 'payment':
-                for adr in self._schema.idx_payment_channel_by_delegate.select(txn,
-                                                                               from_key=(delegate_adr, t_zero),
-                                                                               to_key=(delegate_adr, t_now),
-                                                                               return_keys=False):
+            if channel_type == "payment":
+                for adr in self._schema.idx_payment_channel_by_delegate.select(
+                    txn, from_key=(delegate_adr, t_zero), to_key=(delegate_adr, t_now), return_keys=False
+                ):
                     cnt_searched += 1
                     channel_oid = adr
                     channel = self._schema.payment_channels[txn, channel_oid]
@@ -2291,10 +2529,9 @@ class MarketMaker(object):
                             break
                     channel_oid, channel, balance = None, None, None
             else:
-                for adr in self._schema.idx_paying_channel_by_delegate.select(txn,
-                                                                              from_key=(delegate_adr, t_zero),
-                                                                              to_key=(delegate_adr, t_now),
-                                                                              return_keys=False):
+                for adr in self._schema.idx_paying_channel_by_delegate.select(
+                    txn, from_key=(delegate_adr, t_zero), to_key=(delegate_adr, t_now), return_keys=False
+                ):
                     cnt_searched += 1
                     channel_oid = adr
                     channel = self._schema.paying_channels[txn, channel_oid]
@@ -2309,14 +2546,18 @@ class MarketMaker(object):
                 return None, None
             else:
                 self.log.debug(
-                    'active {channel_type}-channel at {channel_oid} found for delegate with address 0x{delegate_adr}',
+                    "active {channel_type}-channel at {channel_oid} found for delegate with address 0x{delegate_adr}",
                     channel_type=channel_type,
                     channel_oid=channel_oid,
-                    delegate_adr=binascii.b2a_hex(delegate_adr).decode())
+                    delegate_adr=binascii.b2a_hex(delegate_adr).decode(),
+                )
 
-            assert channel, 'internal error: no channel object in table schema.payment_channels (or schema.paying_channels) for channel address "{}"'.format(
-                channel_oid)
-            assert balance, 'internal error: balance record for channel missing'
+            assert channel, (
+                'internal error: no channel object in table schema.payment_channels (or schema.paying_channels) for channel address "{}"'.format(
+                    channel_oid
+                )
+            )
+            assert balance, "internal error: balance record for channel missing"
 
         return channel, balance
 
@@ -2343,58 +2584,64 @@ class MarketMaker(object):
         balance_xbr = xbr.xbrtoken.functions.balanceOf(sender_addr).call()
 
         if amount > balance_xbr:
-            raise Exception('insufficient on-chain XBR token amount {} on sender address {}'.format(
-                balance_xbr, sender_addr))
+            raise Exception(
+                "insufficient on-chain XBR token amount {} on sender address {}".format(balance_xbr, sender_addr)
+            )
 
         self.log.info(
-            'Submitting blockchain transaction for of {amount} XBR from {sender_addr} (on-chain: {balance_eth} ETH, {balance_xbr} XBR) to {recipient_addr} ..',
+            "Submitting blockchain transaction for of {amount} XBR from {sender_addr} (on-chain: {balance_eth} ETH, {balance_xbr} XBR) to {recipient_addr} ..",
             amount=hl(amount),
             balance_eth=hl(balance_eth),
             balance_xbr=hl(balance_xbr),
             sender_addr=hl(sender_addr),
-            recipient_addr=hl(recipient_addr))
+            recipient_addr=hl(recipient_addr),
+        )
 
         try:
             # send blockchain transaction from explicit sender account
-            success = xbr.xbrtoken.functions.transfer(recipient_addr, raw_amount).transact({
-                'from': sender_addr,
-                'gas': 100000
-            })
+            success = xbr.xbrtoken.functions.transfer(recipient_addr, raw_amount).transact(
+                {"from": sender_addr, "gas": 100000}
+            )
         except ConnectionError:
-            raise Exception('failed to transfer tokens: request timeout for blockchain transaction')
+            raise Exception("failed to transfer tokens: request timeout for blockchain transaction")
 
         # FIXME
         except Exception as e:
             msg = str(e)
-            if 'VM Exception while processing transaction: revert' in msg:
-                raise Exception('insufficient on-chain XBR token amount {} on sender address {}'.format(
-                    balance_xbr, sender_addr))
+            if "VM Exception while processing transaction: revert" in msg:
+                raise Exception(
+                    "insufficient on-chain XBR token amount {} on sender address {}".format(balance_xbr, sender_addr)
+                )
 
         # FIXME: wait for the transaction to be mined and safely engraved on-chain ..
 
         if success:
-            self.log.info('Transferred {amount} XBR from {sender_addr} to {recipient_addr}',
-                          amount=hl(amount),
-                          sender_addr=hl(sender_addr),
-                          recipient_addr=hl(recipient_addr))
+            self.log.info(
+                "Transferred {amount} XBR from {sender_addr} to {recipient_addr}",
+                amount=hl(amount),
+                sender_addr=hl(sender_addr),
+                recipient_addr=hl(recipient_addr),
+            )
         else:
-            raise Exception('failed to transfer tokens [2]')
+            raise Exception("failed to transfer tokens [2]")
 
     @wamp.register(None, check_types=True)
-    async def set_consent(self,
-                          member_adr: bytes,
-                          market_oid: bytes,
-                          verifying_chain_id: int,
-                          current_block_number: int,
-                          verifying_contract_adr: bytes,
-                          delegate: bytes,
-                          delegate_type: int,
-                          catalog_oid: bytes,
-                          consent: bool,
-                          service_prefix: str,
-                          signature: bytes,
-                          attributes: Optional[dict] = None,
-                          details: Optional[CallDetails] = None) -> dict:
+    async def set_consent(
+        self,
+        member_adr: bytes,
+        market_oid: bytes,
+        verifying_chain_id: int,
+        current_block_number: int,
+        verifying_contract_adr: bytes,
+        delegate: bytes,
+        delegate_type: int,
+        catalog_oid: bytes,
+        consent: bool,
+        service_prefix: str,
+        signature: bytes,
+        attributes: Optional[dict] = None,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Set XBR data consent status.
 
@@ -2451,8 +2698,9 @@ class MarketMaker(object):
         assert isinstance(verifying_contract_adr, bytes) and len(verifying_contract_adr) == 20
         assert isinstance(signature, bytes) and len(signature) == 65
         assert attributes is None or isinstance(attributes, dict)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         is_address(member_adr)
 
@@ -2489,27 +2737,47 @@ class MarketMaker(object):
             raise RuntimeError('attributes must be dict, was "{}"'.format(type(attributes)))
 
         if not isinstance(signature, bytes):
-            raise RuntimeError('Invalid type {} for signature'.format(type(signature)))
+            raise RuntimeError("Invalid type {} for signature".format(type(signature)))
 
         if len(signature) != (32 + 32 + 1):
-            raise RuntimeError('Invalid signature length {} - must be 65'.format(len(signature)))
+            raise RuntimeError("Invalid signature length {} - must be 65".format(len(signature)))
 
         try:
-            signer_address = recover_eip712_consent(verifying_chain_id, verifying_contract_adr, member_adr,
-                                                    current_block_number, _market_oid.bytes, delegate, delegate_type,
-                                                    _catalog_oid.bytes, consent, service_prefix, signature)
+            signer_address = recover_eip712_consent(
+                verifying_chain_id,
+                verifying_contract_adr,
+                member_adr,
+                current_block_number,
+                _market_oid.bytes,
+                delegate,
+                delegate_type,
+                _catalog_oid.bytes,
+                consent,
+                service_prefix,
+                signature,
+            )
         except Exception as e:
-            self.log.warn('EIP712 signature recovery failed (member_adr={}): {}', member_adr, str(e))
-            raise ApplicationError('xbr.error.invalid_signature', f'EIP712 signature recovery failed ({e})')
+            self.log.warn("EIP712 signature recovery failed (member_adr={}): {}", member_adr, str(e))
+            raise ApplicationError("xbr.error.invalid_signature", f"EIP712 signature recovery failed ({e})")
 
         if member_adr != signer_address:
-            self.log.warn('EIP712 signature invalid: signer_address={signer_address}, member_adr={member_adr}',
-                          signer_address, member_adr)
-            raise ApplicationError('xbr.error.invalid_signature', 'EIP712 signature invalid')
+            self.log.warn(
+                "EIP712 signature invalid: signer_address={signer_address}, member_adr={member_adr}",
+                signer_address,
+                member_adr,
+            )
+            raise ApplicationError("xbr.error.invalid_signature", "EIP712 signature invalid")
 
         try:
-            _txn_hash = await deferToThread(self._send_setConsent, _market_oid.bytes, delegate, delegate_type,
-                                            _catalog_oid.bytes, consent, service_prefix)
+            _txn_hash = await deferToThread(
+                self._send_setConsent,
+                _market_oid.bytes,
+                delegate,
+                delegate_type,
+                _catalog_oid.bytes,
+                consent,
+                service_prefix,
+            )
             print(_txn_hash)
         except Exception as e:
             self.log.failure()
@@ -2532,48 +2800,52 @@ class MarketMaker(object):
             return consent_.marshal()
 
     @wamp.register(None, check_types=True)
-    def get_consent(self,
-                    market_oid: bytes,
-                    member: bytes,
-                    delegate: bytes,
-                    delegate_type: int,
-                    catalog_oid: bytes,
-                    include_attributes: bool = False,
-                    details: Optional[CallDetails] = None) -> dict:
-
+    def get_consent(
+        self,
+        market_oid: bytes,
+        member: bytes,
+        delegate: bytes,
+        delegate_type: int,
+        catalog_oid: bytes,
+        include_attributes: bool = False,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         assert isinstance(market_oid, bytes) and len(market_oid) == 16
         assert isinstance(member, bytes) and len(member) == 20
         assert isinstance(delegate, bytes) and len(delegate) == 20
         assert isinstance(delegate_type, int)
         assert isinstance(catalog_oid, bytes) and len(catalog_oid) == 16
-        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert type(include_attributes), "include_attributes must be bool, was {}".format(type(include_attributes))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         _market_oid = uuid.UUID(bytes=market_oid)
         _catalog_oid = uuid.UUID(bytes=catalog_oid)
 
-        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
+        assert type(include_attributes), "include_attributes must be bool, was {}".format(type(include_attributes))
 
         with self._db.begin() as txn:
             consent = self._xbr.consents[txn, (_catalog_oid, member, delegate, delegate_type, _market_oid)]
             if not consent:
-                raise ApplicationError('crossbar.error.no_such_object', 'no consent {}'.format(consent))
+                raise ApplicationError("crossbar.error.no_such_object", "no consent {}".format(consent))
 
             return consent.marshal()
 
     @wamp.register(None, check_types=True)
-    async def find_consents(self,
-                            created_from: Optional[int] = None,
-                            limit: Optional[int] = None,
-                            include_owners: Optional[List[bytes]] = None,
-                            include_delegates: Optional[List[bytes]] = None,
-                            include_markets: Optional[List[bytes]] = None,
-                            include_apis: Optional[List[bytes]] = None,
-                            include_titles: Optional[List[str]] = None,
-                            include_descriptions: Optional[List[str]] = None,
-                            include_tags: Optional[List[str]] = None,
-                            details: Optional[CallDetails] = None) -> List[bytes]:
+    async def find_consents(
+        self,
+        created_from: Optional[int] = None,
+        limit: Optional[int] = None,
+        include_owners: Optional[List[bytes]] = None,
+        include_delegates: Optional[List[bytes]] = None,
+        include_markets: Optional[List[bytes]] = None,
+        include_apis: Optional[List[bytes]] = None,
+        include_titles: Optional[List[str]] = None,
+        include_descriptions: Optional[List[str]] = None,
+        include_tags: Optional[List[str]] = None,
+        details: Optional[CallDetails] = None,
+    ) -> List[bytes]:
         """
         Search for XBR Consents by
 
@@ -2644,24 +2916,23 @@ class MarketMaker(object):
 
         assert owner_adr_hex == owner_adr_authid
 
-        t_zero = np.datetime64(0, 'ns')
-        t_now = np.datetime64(time_ns(), 'ns')
+        t_zero = np.datetime64(0, "ns")
+        t_now = np.datetime64(time_ns(), "ns")
 
         with self._xbrmm_db.begin() as txn:
-            catalogs = self._xbr.idx_catalogs_by_owner.select(txn,
-                                                              from_key=(owner_adr, t_zero),
-                                                              to_key=(owner_adr, t_now),
-                                                              return_keys=False)
+            catalogs = self._xbr.idx_catalogs_by_owner.select(
+                txn, from_key=(owner_adr, t_zero), to_key=(owner_adr, t_now), return_keys=False
+            )
             result = []
             for catalog in catalogs:
                 _catalog = self._xbr.catalogs[txn, catalog]
                 marshaled = _catalog.marshal()
-                meta_file = os.path.join(self._ipfs_files_dir, marshaled['meta'])
+                meta_file = os.path.join(self._ipfs_files_dir, marshaled["meta"])
                 if os.path.exists(meta_file):
                     # Is there really async IO from file system ?
-                    marshaled['meta_data'] = open(meta_file).read()
+                    marshaled["meta_data"] = open(meta_file).read()
                 else:
-                    marshaled['meta_data'] = ''
+                    marshaled["meta_data"] = ""
                 result.append(marshaled)
             return result
 

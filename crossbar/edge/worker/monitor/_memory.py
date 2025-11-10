@@ -5,12 +5,12 @@
 #
 ##############################################################################
 
-from twisted.internet.defer import succeed
 from autobahn.util import utcnow
+from twisted.internet.defer import succeed
 
 from crossbar.edge.worker.monitor._base import Monitor
 
-__all__ = ('MemoryMonitor', )
+__all__ = ("MemoryMonitor",)
 
 
 class MemoryMonitor(Monitor):
@@ -18,7 +18,7 @@ class MemoryMonitor(Monitor):
     RAM monitoring.
     """
 
-    ID = u'memory'
+    ID = "memory"
 
     def __init__(self, config=None):
         Monitor.__init__(self, config)
@@ -33,10 +33,9 @@ class MemoryMonitor(Monitor):
         #
         current = {
             # the UTC timestamp when measurement was taken
-            u'timestamp': utcnow(),
-
+            "timestamp": utcnow(),
             # the effective last period in secods
-            u'last_period': self._last_period,
+            "last_period": self._last_period,
         }
 
         # FIXME: add ratio of ram usage
@@ -44,9 +43,9 @@ class MemoryMonitor(Monitor):
         with open("/proc/meminfo") as f:
             res = f.read()
             new = res.split()
-            new_clean = [x.replace(":", "") for x in new if x != 'kB']
+            new_clean = [x.replace(":", "") for x in new if x != "kB"]
             for i in range(0, len(new_clean), 2):
-                k = u'{}'.format(new_clean[i])
+                k = "{}".format(new_clean[i])
                 current[k] = int(new_clean[i + 1])
 
         self._last_value = current

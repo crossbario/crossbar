@@ -7,4 +7,4 @@
 
 from .pairme import RouterWebServicePairMe
 
-__all__ = ('RouterWebServicePairMe', )
+__all__ = ("RouterWebServicePairMe",)

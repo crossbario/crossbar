@@ -5,14 +5,13 @@
 #
 #####################################################################################
 
-from twisted.web.http_headers import Headers
-from twisted.internet.defer import inlineCallbacks
-
 from autobahn.wamp.types import ComponentConfig, PublishOptions
+from twisted.internet.defer import inlineCallbacks
+from twisted.web.http_headers import Headers
 
-from crossbar.test import TestCase
-from crossbar.bridge.rest.test import MockTransport, MockWebTransport
 from crossbar.bridge.rest import MessageForwarder
+from crossbar.bridge.rest.test import MockTransport, MockWebTransport
+from crossbar.test import TestCase
 
 
 class MessageForwarderTestCase(TestCase):
@@ -34,7 +33,7 @@ class MessageForwarderTestCase(TestCase):
 
         self.assertNotEqual(res.id, None)
         self.assertEqual(m.maderequest["args"], ("POST", b"https://foo.com/msg"))
-        self.assertEqual(m.maderequest["kwargs"], {
-            "data": b'{"args":["hi"],"kwargs":{}}',
-            "headers": Headers({b"Content-Type": [b"application/json"]})
-        })
+        self.assertEqual(
+            m.maderequest["kwargs"],
+            {"data": b'{"args":["hi"],"kwargs":{}}', "headers": Headers({b"Content-Type": [b"application/json"]})},
+        )

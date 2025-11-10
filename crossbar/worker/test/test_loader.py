@@ -15,6 +15,7 @@ class AppSessionLoaderTests(TestCase):
     """
     Tests for C{_appsession_loader}.
     """
+
     def test_unknown_types(self):
         """
         An unknown type will raise an exception.
@@ -37,6 +38,7 @@ class AppSessionLoaderTests(TestCase):
         klass = _appsession_loader(config)
 
         from .examples.goodclass import AppSession
+
         self.assertIs(klass, AppSession)
 
     def test_class_non_applicationsession(self):
@@ -60,11 +62,12 @@ class AppSessionLoaderTests(TestCase):
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
-        self.assertIn(("Failed to import class 'crossbar.worker.test.examples.importerr"
-                       "or.AppSession'"), str(e.exception.args[0]))
+        self.assertIn(
+            ("Failed to import class 'crossbar.worker.test.examples.importerror.AppSession'"), str(e.exception.args[0])
+        )
 
         s = str(e.exception.args[0])
-        self.assertTrue('ImportError' in s or 'ModuleNotFoundError' in s)
+        self.assertTrue("ImportError" in s or "ModuleNotFoundError" in s)
 
     def test_class_syntaxerror(self):
         """
@@ -75,6 +78,7 @@ class AppSessionLoaderTests(TestCase):
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
-        self.assertIn(("Failed to import class 'crossbar.worker.test.examples.syntaxerr"
-                       "or.AppSession'"), str(e.exception.args[0]))
+        self.assertIn(
+            ("Failed to import class 'crossbar.worker.test.examples.syntaxerror.AppSession'"), str(e.exception.args[0])
+        )
         self.assertIn(("SyntaxError"), str(e.exception.args[0]))

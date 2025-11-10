@@ -5,40 +5,38 @@
 #
 #####################################################################################
 
-import attr
 import collections
-
 from itertools import count
 
+import attr
 import txaio
 
 txaio.use_twisted()
 
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.protocol import Protocol
 from txaio import make_logger
 
-from .protocol import (
-    MQTTParser,
-    Failure,
-)
 from ._events import (
-    Connect,
     ConnACK,
-    Subscribe,
-    SubACK,
-    Unsubscribe,
-    UnsubACK,
-    Publish,
-    PubACK,
-    PubREC,
-    PubREL,
-    PubCOMP,
+    Connect,
+    Disconnect,
     PingREQ,
     PingRESP,
-    Disconnect,
+    PubACK,
+    PubCOMP,
+    Publish,
+    PubREC,
+    PubREL,
+    SubACK,
+    Subscribe,
+    UnsubACK,
+    Unsubscribe,
 )
-
-from twisted.internet.protocol import Protocol
-from twisted.internet.defer import inlineCallbacks, returnValue
+from .protocol import (
+    Failure,
+    MQTTParser,
+)
 
 _ids = count()
 _SIXTEEN_BIT_MAX = 65535
@@ -46,13 +44,11 @@ _SIXTEEN_BIT_MAX = 65535
 
 @attr.s
 class Session(object):
-
     client_id = attr.ib()
     queued_messages = attr.ib(default=attr.Factory(collections.deque))
     _count = attr.ib(default=attr.Factory(count))
 
     def get_packet_id(self):
-
         x = next(self._count)
         if x == _SIXTEEN_BIT_MAX or x == 0:
             self._count = count(start=1)
@@ -62,7 +58,6 @@ class Session(object):
 
 @attr.s
 class Message(object):
-
     topic = attr.ib()
     body = attr.ib()
     qos = attr.ib()
@@ -70,7 +65,6 @@ class Message(object):
 
 
 class MQTTServerTwistedProtocol(Protocol):
-
     log = make_logger()
 
     def __init__(self, handler, reactor, _id_maker=_ids):
@@ -85,7 +79,6 @@ class MQTTServerTwistedProtocol(Protocol):
 
     @property
     def _connected(self):
-
         if not self.transport:
             return False
 
@@ -130,7 +123,6 @@ class MQTTServerTwistedProtocol(Protocol):
             self._timeout = None
 
     def send_suback(self, packet_identifier, return_codes):
-
         # MQTT-3.8.4-1 - we always need to send back this SubACK, even
         #                if the subscriptions are unsuccessful -- their
         #                unsuccessfulness is listed in the return codes
@@ -139,7 +131,6 @@ class MQTTServerTwistedProtocol(Protocol):
         self._send_packet(suback)
 
     def send_publish(self, topic, qos, body, retained):
-
         if qos not in [0, 1, 2]:
             raise ValueError("QoS must be [0, 1, 2]")
 
@@ -149,33 +140,32 @@ class MQTTServerTwistedProtocol(Protocol):
             self._flush_publishes = self._reactor.callLater(0, self._flush_saved_messages)
 
     def _send_publish(self, topic, qos, body, retained):
-
         if qos == 0:
-            publish = Publish(duplicate=False,
-                              qos_level=qos,
-                              retain=retained,
-                              packet_identifier=None,
-                              topic_name=topic,
-                              payload=body)
+            publish = Publish(
+                duplicate=False, qos_level=qos, retain=retained, packet_identifier=None, topic_name=topic, payload=body
+            )
 
         elif qos == 1:
             packet_id = self.session.get_packet_id()
-            publish = Publish(duplicate=False,
-                              qos_level=qos,
-                              retain=retained,
-                              packet_identifier=packet_id,
-                              topic_name=topic,
-                              payload=body)
+            publish = Publish(
+                duplicate=False,
+                qos_level=qos,
+                retain=retained,
+                packet_identifier=packet_id,
+                topic_name=topic,
+                payload=body,
+            )
 
         elif qos == 2:
-
             packet_id = self.session.get_packet_id()
-            publish = Publish(duplicate=False,
-                              qos_level=qos,
-                              retain=retained,
-                              packet_identifier=packet_id,
-                              topic_name=topic,
-                              payload=body)
+            publish = Publish(
+                duplicate=False,
+                qos_level=qos,
+                retain=retained,
+                packet_identifier=packet_id,
+                topic_name=topic,
+                payload=body,
+            )
 
         else:
             self.log.warn(log_category="MQ303")
@@ -184,24 +174,24 @@ class MQTTServerTwistedProtocol(Protocol):
         self._send_packet(publish)
 
     def _lose_connection(self):
-        self.log.debug(log_category="MQ400",
-                       client_id=self.session.client_id,
-                       seconds=self._timeout_time,
-                       conn_id=self._connection_id)
+        self.log.debug(
+            log_category="MQ400",
+            client_id=self.session.client_id,
+            seconds=self._timeout_time,
+            conn_id=self._connection_id,
+        )
         if self.transport:
             self.transport.loseConnection()
         else:
             self.log.debug(log_category="MQ404")
 
     def _send_packet(self, packet):
-        self.log.trace(log_category="MQ101",
-                       client_id=self.session.client_id,
-                       packet=packet,
-                       conn_id=self._connection_id)
+        self.log.trace(
+            log_category="MQ101", client_id=self.session.client_id, packet=packet, conn_id=self._connection_id
+        )
         self.transport.write(packet.serialise())
 
     def _flush_saved_messages(self):
-
         if self._flush_publishes:
             self._flush_publishes = None
 
@@ -216,7 +206,6 @@ class MQTTServerTwistedProtocol(Protocol):
 
     @inlineCallbacks
     def _handle(self, data):
-
         try:
             res = yield self._handle_data(data)
             returnValue(res)
@@ -224,7 +213,6 @@ class MQTTServerTwistedProtocol(Protocol):
             raise
 
     def _handle_data(self, data):
-
         events = self._mqtt.data_received(data)
 
         if events:
@@ -236,12 +224,10 @@ class MQTTServerTwistedProtocol(Protocol):
 
     @inlineCallbacks
     def _handle_events(self, events):
-
         for event in events:
-            self.log.trace(log_category="MQ100",
-                           conn_id=self._connection_id,
-                           client_id=self.session.client_id,
-                           packet=event)
+            self.log.trace(
+                log_category="MQ100", conn_id=self._connection_id, client_id=self.session.client_id, packet=event
+            )
 
             if isinstance(event, Connect):
                 try:
@@ -388,7 +374,6 @@ class MQTTServerTwistedProtocol(Protocol):
                 continue
 
             elif isinstance(event, PubACK):
-
                 try:
                     self._handler.process_puback(event)
                 except:
@@ -398,7 +383,6 @@ class MQTTServerTwistedProtocol(Protocol):
                     returnValue(None)
 
             elif isinstance(event, PubREC):
-
                 try:
                     self._handler.process_pubrec(event)
                 except:
@@ -414,7 +398,6 @@ class MQTTServerTwistedProtocol(Protocol):
                 self._send_packet(resp)
 
             elif isinstance(event, PubREL):
-
                 try:
                     self._handler.process_pubrel(event)
                 except:
@@ -428,7 +411,6 @@ class MQTTServerTwistedProtocol(Protocol):
                 continue
 
             elif isinstance(event, PubCOMP):
-
                 try:
                     self._handler.process_pubcomp(event)
                 except:
@@ -449,9 +431,9 @@ class MQTTServerTwistedProtocol(Protocol):
                 if isinstance(event, Failure):
                     self.log.error(log_category="MQ401", client_id=self.session.client_id, error=event.reason)
                 else:
-                    self.log.error(log_category="MQ402",
-                                   client_id=self.session.client_id,
-                                   packet_id=event.__class__.__name__)
+                    self.log.error(
+                        log_category="MQ402", client_id=self.session.client_id, packet_id=event.__class__.__name__
+                    )
 
                 # Conformance statement MQTT-4.8.0-1: Must close the connection
                 # on a protocol violation.

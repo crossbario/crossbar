@@ -7,9 +7,9 @@
 
 import re
 
-from twisted.internet.protocol import Protocol, Factory
+from twisted.internet.protocol import Factory, Protocol
 
-__all__ = ('FlashPolicyProtocol', 'FlashPolicyFactory')
+__all__ = ("FlashPolicyProtocol", "FlashPolicyFactory")
 
 
 class FlashPolicyProtocol(Protocol):

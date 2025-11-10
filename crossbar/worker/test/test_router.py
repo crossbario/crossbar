@@ -6,23 +6,20 @@
 #####################################################################################
 
 import os
-import treq
 import unittest
 
-from twisted.internet import reactor, defer
-from twisted.internet.selectreactor import SelectReactor
-
-from crossbar.test import TestCase
-from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
-from crossbar.worker import router
-
-from txaio import make_logger
-
+import treq
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.message import Publish, Published, Subscribe, Subscribed
-from autobahn.wamp.message import Register, Registered, Hello, Welcome
+from autobahn.wamp.message import Hello, Publish, Published, Register, Registered, Subscribe, Subscribed, Welcome
 from autobahn.wamp.role import RoleBrokerFeatures, RoleDealerFeatures
 from autobahn.wamp.types import ComponentConfig
+from twisted.internet import defer, reactor
+from twisted.internet.selectreactor import SelectReactor
+from txaio import make_logger
+
+from crossbar.router.role import RouterPermissions, RouterRoleStaticAuth
+from crossbar.test import TestCase
+from crossbar.worker import router
 
 from .examples.goodclass import _
 
@@ -45,6 +42,7 @@ class FakeWAMPTransport(object):
     """
     A fake WAMP transport that responds to all messages with successes.
     """
+
     def __init__(self, session):
         self._messages = []
         self._session = session
@@ -58,10 +56,8 @@ class FakeWAMPTransport(object):
 
         if isinstance(message, Hello):
             self._session.onMessage(
-                Welcome(1, {
-                    "broker": RoleBrokerFeatures(),
-                    "dealer": RoleDealerFeatures()
-                }, authrole="anonymous"))
+                Welcome(1, {"broker": RoleBrokerFeatures(), "dealer": RoleDealerFeatures()}, authrole="anonymous")
+            )
         elif isinstance(message, Register):
             self._session.onMessage(Registered(message.request, message.request))
         elif isinstance(message, Publish):
@@ -113,30 +109,25 @@ class RouterWorkerSessionTests(TestCase):
         r.onOpen(transport)
 
         realm_config = {
-            "name":
-            "realm1",
-            'roles': [{
-                'name': 'anonymous',
-                'permissions': [{
-                    'subscribe': True,
-                    'register': True,
-                    'call': True,
-                    'uri': '*',
-                    'publish': True
-                }]
-            }]
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "anonymous",
+                    "permissions": [{"subscribe": True, "register": True, "call": True, "uri": "*", "publish": True}],
+                }
+            ],
         }
 
         r.start_router_realm("realm1", realm_config)
 
-        permissions = RouterPermissions('', True, True, True, True, True)
-        routera = r._router_factory.get('realm1')
-        routera.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=permissions))
+        permissions = RouterPermissions("", True, True, True, True, True)
+        routera = r._router_factory.get("realm1")
+        routera.add_role(RouterRoleStaticAuth(router, "anonymous", default_permissions=permissions))
 
         component_config = {
             "type": "class",
             "classname": "crossbar.worker.test.examples.goodclass.AppSession",
-            "realm": "realm1"
+            "realm": "realm1",
         }
 
         r.start_router_component("newcomponent", component_config)
@@ -162,18 +153,13 @@ class RouterWorkerSessionTests(TestCase):
         r.onOpen(transport)
 
         realm_config = {
-            "name":
-            "realm1",
-            'roles': [{
-                'name': 'anonymous',
-                'permissions': [{
-                    'subscribe': True,
-                    'register': True,
-                    'call': True,
-                    'uri': '*',
-                    'publish': True
-                }]
-            }]
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "anonymous",
+                    "permissions": [{"subscribe": True, "register": True, "call": True, "uri": "*", "publish": True}],
+                }
+            ],
         }
 
         r.start_router_realm("realm1", realm_config)
@@ -200,7 +186,7 @@ class RouterWorkerSessionTests(TestCase):
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {"name": "realm1", 'roles': []}
+        realm_config = {"name": "realm1", "roles": []}
 
         r.start_router_realm("realm1", realm_config)
 
@@ -224,14 +210,14 @@ class RouterWorkerSessionTests(TestCase):
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {"name": "realm1", 'roles': []}
+        realm_config = {"name": "realm1", "roles": []}
 
         r.start_router_realm("realm1", realm_config)
 
         component_config = {
             "type": "class",
             "classname": "crossbar.worker.test.examples.badclass.AppSession",
-            "realm": "realm1"
+            "realm": "realm1",
         }
 
         with self.assertRaises(ApplicationError) as e:
@@ -247,12 +233,12 @@ class WebTests(TestCase):
     def setUp(self):
         self.cbdir = self.mktemp()
         os.makedirs(self.cbdir)
-        config_extras = DottableDict({
-            "worker":
-            "worker1",
-            "cbdir":
-            self.cbdir.decode('utf8') if not isinstance(self.cbdir, str) else self.cbdir
-        })
+        config_extras = DottableDict(
+            {
+                "worker": "worker1",
+                "cbdir": self.cbdir.decode("utf8") if not isinstance(self.cbdir, str) else self.cbdir,
+            }
+        )
         self.config = ComponentConfig("realm1", extra=config_extras)
 
     def test_root_not_required(self):
@@ -267,27 +253,21 @@ class WebTests(TestCase):
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {"name": "realm1", 'roles': []}
+        realm_config = {"name": "realm1", "roles": []}
 
         # Make a file
-        with open(os.path.join(self.cbdir, 'file.txt'), "wb") as f:
+        with open(os.path.join(self.cbdir, "file.txt"), "wb") as f:
             f.write(b"hello!")
 
         r.start_router_realm("realm1", realm_config)
         r.start_router_transport(
-            "component1", {
+            "component1",
+            {
                 "type": "web",
-                "endpoint": {
-                    "type": "tcp",
-                    "port": 8080
-                },
-                "paths": {
-                    "static": {
-                        "directory": ".",
-                        "type": "static"
-                    }
-                }
-            })
+                "endpoint": {"type": "tcp", "port": 8080},
+                "paths": {"static": {"directory": ".", "type": "static"}},
+            },
+        )
 
         d1 = treq.get("http://localhost:8080/", reactor=temp_reactor)
         d1.addCallback(lambda resp: self.assertEqual(resp.code, 404))
@@ -332,24 +312,17 @@ class WSGITests(TestCase):
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {"name": "realm1", 'roles': []}
+        realm_config = {"name": "realm1", "roles": []}
 
         r.start_router_realm("realm1", realm_config)
         r.start_router_transport(
-            "component1", {
+            "component1",
+            {
                 "type": "web",
-                "endpoint": {
-                    "type": "tcp",
-                    "port": 8080
-                },
-                "paths": {
-                    "/": {
-                        "module": "crossbar.worker.test.test_router",
-                        "object": "hello",
-                        "type": "wsgi"
-                    }
-                }
-            })
+                "endpoint": {"type": "tcp", "port": 8080},
+                "paths": {"/": {"module": "crossbar.worker.test.test_router", "object": "hello", "type": "wsgi"}},
+            },
+        )
 
         # Make a request to the WSGI app.
         d = treq.get("http://localhost:8080/", reactor=temp_reactor)
@@ -377,28 +350,20 @@ class WSGITests(TestCase):
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        realm_config = {"name": "realm1", 'roles': []}
+        realm_config = {"name": "realm1", "roles": []}
 
         r.start_router_realm("realm1", realm_config)
         r.start_router_transport(
-            "component1", {
+            "component1",
+            {
                 "type": "web",
-                "endpoint": {
-                    "type": "tcp",
-                    "port": 8080
-                },
+                "endpoint": {"type": "tcp", "port": 8080},
                 "paths": {
-                    "/": {
-                        "module": "crossbar.worker.test.test_router",
-                        "object": "hello",
-                        "type": "wsgi"
-                    },
-                    "json": {
-                        "type": "json",
-                        "value": {}
-                    }
-                }
-            })
+                    "/": {"module": "crossbar.worker.test.test_router", "object": "hello", "type": "wsgi"},
+                    "json": {"type": "json", "value": {}},
+                },
+            },
+        )
 
         # Make a request to the /json endpoint, which is technically a child of
         # the WSGI app, but is not served by WSGI.
@@ -484,8 +449,8 @@ def hello(environ, start_response):
     """
     A super dumb WSGI app for testing.
     """
-    start_response('200 OK', [('Content-Type', 'text/html')])
-    return [b'hello!']
+    start_response("200 OK", [("Content-Type", "text/html")])
+    return [b"hello!"]
 
 
 # Ugh global state, but it's just for a test...
@@ -497,10 +462,11 @@ def sleep(environ, start_response):
     A super dumb WSGI app for testing.
     """
     from time import sleep
-    start_response('200 OK', [('Content-Type', 'text/html')])
+
+    start_response("200 OK", [("Content-Type", "text/html")])
     # Count how many concurrent responses there are.
     count.append(None)
     res = len(count)
     sleep(0.1)
     count.pop(0)
-    return [str(res).encode('ascii')]
+    return [str(res).encode("ascii")]

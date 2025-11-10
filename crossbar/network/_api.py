@@ -8,52 +8,43 @@
 ##############################################################################
 
 import os
-import threading
 import re
-from typing import List
+import threading
 import uuid
-from pprint import pformat
 from binascii import b2a_hex
 from pathlib import Path
-from typing import Optional, Dict
+from pprint import pformat
+from typing import Dict, List, Optional
+
+import cfxdb
+import eth_keys
+import numpy as np
+import pyqrcode
+import treq
+import xbr
+import zlmdb
+from autobahn import wamp
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.types import CallDetails, CallResult, PublishOptions, RegisterOptions
+from cfxdb.xbr import ActorType
+from eth_account import Account
+from hexbytes import HexBytes
+from twisted.internet.threads import deferToThread
+from twisted.web.client import ResponseNeverReceived
 
 # txaio.use_twisted()  # noqa
 from txaio import time_ns
-
-from twisted.internet.threads import deferToThread
-
-import numpy as np
-import pyqrcode
-
-from autobahn.wamp.types import RegisterOptions, CallResult, PublishOptions, CallDetails
-from autobahn.twisted.wamp import ApplicationSession
-from autobahn.wamp.exception import ApplicationError
-from autobahn import wamp
-import xbr
-from xbr import pack_uint256, make_w3, is_address, is_bytes16, is_chain_id, \
-    is_block_number, is_signature, is_cs_pubkey
-
-import treq
-import zlmdb
-
-from crossbar.common import checkconfig
+from xbr import is_address, is_block_number, is_bytes16, is_chain_id, is_cs_pubkey, is_signature, make_w3, pack_uint256
 
 from crossbar._version import __version__
-from crossbar.network._util import extract_member_oid
+from crossbar.common import checkconfig
 from crossbar.edge.personality import check_blockchain
+from crossbar.network._util import extract_member_oid
 
-from twisted.web.client import ResponseNeverReceived
-
-from ._util import hl, hlid, hlval, maybe_from_env, hltype
-
-from hexbytes import HexBytes
-import eth_keys
-from eth_account import Account
-
-import cfxdb
-from cfxdb.xbr import ActorType
 from ._backend import Backend
 from ._mailgw import MailGateway
+from ._util import hl, hlid, hltype, hlval, maybe_from_env
 
 
 class Network(ApplicationSession):
@@ -65,7 +56,8 @@ class Network(ApplicationSession):
         This API covers the global parts of the XBR Network - APIs to individual XBR Data Markets, XBR Data Catalogs
         and XBR Cloud Domains are exposed by crossbar.
     """
-    XBR_COIN_OID = uuid.UUID('74f53317-cbd6-4dc8-9214-195d0f9e98f9')
+
+    XBR_COIN_OID = uuid.UUID("74f53317-cbd6-4dc8-9214-195d0f9e98f9")
 
     @staticmethod
     def check_config(personality, extra: Optional[Dict]) -> Dict:
@@ -78,23 +70,25 @@ class Network(ApplicationSession):
         :return: Normalized and auto-substituted configuration.
         :rtype: dict
         """
-        if extra and 'blockchain' in extra:
-            check_blockchain(personality, extra['blockchain'])
+        if extra and "blockchain" in extra:
+            check_blockchain(personality, extra["blockchain"])
         else:
             raise checkconfig.InvalidConfigException(
-                'missing mandatory attribute "blockchain" in XBR network backend configuration')
+                'missing mandatory attribute "blockchain" in XBR network backend configuration'
+            )
         return extra
 
     def __init__(self, config):
         from twisted.internet import reactor
+
         self._reactor = reactor
 
-        self._status = 'starting'
-        self.ident = '{}:{}:XBRNetwork@{}'.format(os.getpid(), threading.get_ident(), __version__)
+        self._status = "starting"
+        self.ident = "{}:{}:XBRNetwork@{}".format(os.getpid(), threading.get_ident(), __version__)
 
-        self.log.info('{klass}[{ident}].__init__()', klass=hl(self.__class__.__name__), ident=hlid(self.ident))
+        self.log.info("{klass}[{ident}].__init__()", klass=hl(self.__class__.__name__), ident=hlid(self.ident))
 
-        self._dbpath = os.path.abspath(config.extra.get('dbpath', './.xbrnetwork'))
+        self._dbpath = os.path.abspath(config.extra.get("dbpath", "./.xbrnetwork"))
         # self._db = zlmdb.Database(dbpath=self._dbpath, maxsize=2**30, readonly=False, sync=True, context=self)
         self._db = zlmdb.Database.open(dbpath=self._dbpath, maxsize=2**30, readonly=False, sync=True, context=self)
         self._db.__enter__()
@@ -108,43 +102,46 @@ class Network(ApplicationSession):
             cnt_verified_actions = self._xbrnetwork.verified_actions.count(txn)
 
         self.log.info(
-            'Database opened from {dbpath} (cnt_accounts={cnt_accounts}, cnt_idx_accounts_by_username={cnt_idx_accounts_by_username}, cnt_verified_actions={cnt_verified_actions})',
+            "Database opened from {dbpath} (cnt_accounts={cnt_accounts}, cnt_idx_accounts_by_username={cnt_idx_accounts_by_username}, cnt_verified_actions={cnt_verified_actions})",
             dbpath=hlid(self._dbpath),
             cnt_accounts=hl(cnt_accounts),
             cnt_idx_accounts_by_username=hl(cnt_idx_accounts_by_username),
-            cnt_verified_actions=hl(cnt_verified_actions))
+            cnt_verified_actions=hl(cnt_verified_actions),
+        )
 
         # External URL of web site. This is used for generating eg links in emails sent.
         #
-        assert 'siteurl' in config.extra, 'external URL of web site required'
-        website_url_from_env, website_url = maybe_from_env(config.extra['siteurl'])
+        assert "siteurl" in config.extra, "external URL of web site required"
+        website_url_from_env, website_url = maybe_from_env(config.extra["siteurl"])
         if website_url_from_env:
-            self.log.info('External web site URL "{website_url}" configured from environment variable {envvar}',
-                          website_url=hlval(website_url),
-                          envvar=hlval(config.extra['siteurl']))
+            self.log.info(
+                'External web site URL "{website_url}" configured from environment variable {envvar}',
+                website_url=hlval(website_url),
+                envvar=hlval(config.extra["siteurl"]),
+            )
         else:
             self.log.info('External web site URL "{website_url}" from configuration', website_url=hlval(website_url))
 
         # Mailgun gateway configuration
         #
-        if 'MAILGUN_KEY' in os.environ:
-            mailgun_key = os.environ['MAILGUN_KEY']
-        elif 'mailgun' in config.extra and 'key' in config.extra['mailgun']:
-            mailgun_key = config.extra['mailgun']['key']
+        if "MAILGUN_KEY" in os.environ:
+            mailgun_key = os.environ["MAILGUN_KEY"]
+        elif "mailgun" in config.extra and "key" in config.extra["mailgun"]:
+            mailgun_key = config.extra["mailgun"]["key"]
         else:
-            raise RuntimeError('no mailgun key configured (neither from config, nor environment variable')
+            raise RuntimeError("no mailgun key configured (neither from config, nor environment variable")
 
-        if 'MAILGUN_URL' in os.environ:
-            mailgun_url = os.environ['MAILGUN_URL']
-        elif 'mailgun' in config.extra and 'url' in config.extra['mailgun']:
-            mailgun_url = config.extra['mailgun']['url']
+        if "MAILGUN_URL" in os.environ:
+            mailgun_url = os.environ["MAILGUN_URL"]
+        elif "mailgun" in config.extra and "url" in config.extra["mailgun"]:
+            mailgun_url = config.extra["mailgun"]["url"]
         else:
-            raise RuntimeError('no mailgun url configured (neither from config, nor environment variable')
+            raise RuntimeError("no mailgun url configured (neither from config, nor environment variable")
 
-        if 'MAILGUN_FROM' in os.environ:
-            mailgun_from = os.environ['MAILGUN_FROM']
-        elif 'mailgun' in config.extra and 'from' in config.extra['mailgun']:
-            mailgun_from = config.extra['mailgun']['from']
+        if "MAILGUN_FROM" in os.environ:
+            mailgun_from = os.environ["MAILGUN_FROM"]
+        elif "mailgun" in config.extra and "from" in config.extra["mailgun"]:
+            mailgun_from = config.extra["mailgun"]["from"]
         else:
             mailgun_from = "The XBR project <no-reply@mailing.crossbar.io>"
 
@@ -153,51 +150,56 @@ class Network(ApplicationSession):
 
         # Market listing whitelist configuration
         self._markets_whitelist = []
-        if 'markets_whitelist' in config.extra:
-            assert isinstance(config.extra['markets_whitelist'], list), 'Must be a list of market UUIDs'
-            for market in config.extra['markets_whitelist']:
+        if "markets_whitelist" in config.extra:
+            assert isinstance(config.extra["markets_whitelist"], list), "Must be a list of market UUIDs"
+            for market in config.extra["markets_whitelist"]:
                 try:
                     market_uuid = uuid.UUID(market)
                     self._markets_whitelist.append(market_uuid)
                 except ValueError:
-                    assert False, f'Must be a list of market UUIDs, found invalid uuid {market} in list'
+                    assert False, f"Must be a list of market UUIDs, found invalid uuid {market} in list"
 
         # Blockchain gateway configuration
         #
-        self._bc_gw_config = config.extra['blockchain']['gateway']
-        self.log.info('Initializing Web3 from blockchain gateway configuration\n\n{gateway}\n',
-                      gateway=pformat(self._bc_gw_config))
+        self._bc_gw_config = config.extra["blockchain"]["gateway"]
+        self.log.info(
+            "Initializing Web3 from blockchain gateway configuration\n\n{gateway}\n",
+            gateway=pformat(self._bc_gw_config),
+        )
         self._w3 = make_w3(self._bc_gw_config)
         xbr.setProvider(self._w3)
 
-        self._chain_id = config.extra['blockchain'].get('chain_id', 1)
-        self.log.info('Using chain ID {chain_id}', chain_id=hlid(self._chain_id))
+        self._chain_id = config.extra["blockchain"].get("chain_id", 1)
+        self.log.info("Using chain ID {chain_id}", chain_id=hlid(self._chain_id))
 
         # ipfs file caching config
-        self._ipfs_files_directory = config.extra.get('ipfs_files_directory', './.ipfs_files')
+        self._ipfs_files_directory = config.extra.get("ipfs_files_directory", "./.ipfs_files")
         self._ipfs_files_path = os.path.join(config.extra.get("cbdir"), self._ipfs_files_directory)
         if not os.path.exists(self._ipfs_files_path):
             Path(self._ipfs_files_path).mkdir()
 
         # market maker private Ethereum key file
-        keypath = os.path.abspath(config.extra['blockchain']['key'])
+        keypath = os.path.abspath(config.extra["blockchain"]["key"])
         if os.path.exists(keypath):
-            with open(keypath, 'rb') as f:
+            with open(keypath, "rb") as f:
                 self._eth_privkey_raw = f.read()
                 assert isinstance(self._eth_privkey_raw, bytes) and len(self._eth_privkey_raw) == 32
-                self.log.info('Existing XBR Network Backend Ethereum private key loaded from "{keypath}"',
-                              keypath=hlid(keypath))
+                self.log.info(
+                    'Existing XBR Network Backend Ethereum private key loaded from "{keypath}"', keypath=hlid(keypath)
+                )
         else:
             self._eth_privkey_raw = os.urandom(32)
-            with open(keypath, 'wb') as f:
+            with open(keypath, "wb") as f:
                 f.write(self._eth_privkey_raw)
-                self.log.info('New XBR Network Backend Ethereum private key generated and stored as {keypath}',
-                              keypath=hlid(keypath))
+                self.log.info(
+                    "New XBR Network Backend Ethereum private key generated and stored as {keypath}",
+                    keypath=hlid(keypath),
+                )
 
         # make sure the private key file has correct permissions
         if os.stat(keypath).st_mode & 511 != 384:  # 384 (decimal) == 0600 (octal)
             os.chmod(keypath, 384)
-            self.log.info('File permissions on XBR Network Backend private Ethereum key fixed')
+            self.log.info("File permissions on XBR Network Backend private Ethereum key fixed")
 
         # make a private key object from the raw private key bytes
         self._eth_privkey = eth_keys.keys.PrivateKey(self._eth_privkey_raw)
@@ -209,17 +211,29 @@ class Network(ApplicationSession):
 
         # XBR Network backend
         #
-        self._network = Backend(self, self._db, self._meta, self._xbr, self._xbrnetwork, self._chain_id,
-                                self._eth_privkey_raw, self._w3, self._mailgw, config.extra['blockchain'],
-                                self._ipfs_files_path)
+        self._network = Backend(
+            self,
+            self._db,
+            self._meta,
+            self._xbr,
+            self._xbrnetwork,
+            self._chain_id,
+            self._eth_privkey_raw,
+            self._w3,
+            self._mailgw,
+            config.extra["blockchain"],
+            self._ipfs_files_path,
+        )
 
         ApplicationSession.__init__(self, config)
 
     async def onJoin(self, details):
-        self.log.info('{klass}[{ident}].onJoin(details={details})',
-                      klass=self.__class__.__name__,
-                      ident=self.ident,
-                      details=details)
+        self.log.info(
+            "{klass}[{ident}].onJoin(details={details})",
+            klass=self.__class__.__name__,
+            ident=self.ident,
+            details=details,
+        )
 
         await self.register(self, options=RegisterOptions(details=True))
 
@@ -230,33 +244,36 @@ class Network(ApplicationSession):
 
         eth_balance, xbr_balance = await deferToThread(get_balances, self._eth_adr)
 
-        qr = pyqrcode.create(self._eth_adr, error='L', mode='binary')
+        qr = pyqrcode.create(self._eth_adr, error="L", mode="binary")
         self.log.info(
-            '\n\n  {component}\n\n  Chain: {chain_id}\n  Address: {eth_adr}\n  ETH: {eth_balance}\n  XBR: {xbr_balance}\n{qrcode}',
-            component=hl('XBR Network Backend (planet.xbr.network)'),
+            "\n\n  {component}\n\n  Chain: {chain_id}\n  Address: {eth_adr}\n  ETH: {eth_balance}\n  XBR: {xbr_balance}\n{qrcode}",
+            component=hl("XBR Network Backend (planet.xbr.network)"),
             chain_id=hlid(self._chain_id),
             eth_adr=hlid(self._eth_adr),
             eth_balance=hlval(eth_balance),
             xbr_balance=hlval(xbr_balance),
-            qrcode=qr.terminal())
+            qrcode=qr.terminal(),
+        )
 
-        self._status = 'ready'
+        self._status = "ready"
         status = await self.get_status()
-        await self.publish('xbr.network.on_status', status, options=PublishOptions(acknowledge=True))
+        await self.publish("xbr.network.on_status", status, options=PublishOptions(acknowledge=True))
 
     def onLeave(self, details):
-        self.log.info('{klass}[{ident}].onLeave(details={details})',
-                      klass=self.__class__.__name__,
-                      ident=self.ident,
-                      details=details)
-        self._status = 'stopping'
+        self.log.info(
+            "{klass}[{ident}].onLeave(details={details})",
+            klass=self.__class__.__name__,
+            ident=self.ident,
+            details=details,
+        )
+        self._status = "stopping"
         self._network.stop()
         # status = await self.get_status()
         # await self.publish('xbr.network.on_status', status, options=PublishOptions(acknowledge=True))
         # self.publish('xbr.network.on_status', status)
         ApplicationSession.onLeave(self, details)
 
-    @wamp.register('xbr.network.echo')
+    @wamp.register("xbr.network.echo")
     def echo(self, *args, **kwargs):
         """
         Test/Development test procedure: echo back any and all positional arguments
@@ -279,22 +296,25 @@ class Network(ApplicationSession):
         :return: The positional and keyword arguments as provided to the call.
         :rtype: :class:`autobahn.wamp.types.CallResult`
         """
-        details = kwargs.pop('details', None)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        details = kwargs.pop("details", None)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         cnt_args = len(args)
         cnt_kwargs = len(kwargs)
 
-        self.log.info('{klass}.echo(cnt_args={cnt_args}, cnt_kwargs={cnt_kwargs}, details={details})',
-                      klass=self.__class__.__name__,
-                      cnt_args=cnt_args,
-                      cnt_kwargs=cnt_kwargs,
-                      details=details)
+        self.log.info(
+            "{klass}.echo(cnt_args={cnt_args}, cnt_kwargs={cnt_kwargs}, details={details})",
+            klass=self.__class__.__name__,
+            cnt_args=cnt_args,
+            cnt_kwargs=cnt_kwargs,
+            details=details,
+        )
 
         return CallResult(*args, **kwargs)
 
-    @wamp.register('xbr.network.get_transaction_receipt', check_types=True)
+    @wamp.register("xbr.network.get_transaction_receipt", check_types=True)
     async def get_transaction_receipt(self, transaction: bytes, details: Optional[CallDetails] = None) -> dict:
         """
 
@@ -302,22 +322,23 @@ class Network(ApplicationSession):
         :param details:
         :return:
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         r = await deferToThread(self._network._get_transaction_receipt, transaction)
         receipt = {}
 
         # copy over all information returned, all but two: "logs", "logsBloom"
-        receipt['transactionHash'] = r['transactionHash']
-        receipt['transactionIndex'] = r['transactionIndex']
-        receipt['blockNumber'] = r['blockNumber']
-        receipt['from'] = r['from']
-        receipt['to'] = r['to']
-        receipt['gasUsed'] = r['gasUsed']
-        receipt['cumulativeGasUsed'] = r['cumulativeGasUsed']
-        receipt['contractAddress'] = r['contractAddress']
-        receipt['status'] = r['status']
+        receipt["transactionHash"] = r["transactionHash"]
+        receipt["transactionIndex"] = r["transactionIndex"]
+        receipt["blockNumber"] = r["blockNumber"]
+        receipt["from"] = r["from"]
+        receipt["to"] = r["to"]
+        receipt["gasUsed"] = r["gasUsed"]
+        receipt["cumulativeGasUsed"] = r["cumulativeGasUsed"]
+        receipt["contractAddress"] = r["contractAddress"]
+        receipt["status"] = r["status"]
 
         # transform HexBytes so the result can be serialized
         for k in receipt:
@@ -325,20 +346,21 @@ class Network(ApplicationSession):
                 receipt[k] = bytes(receipt[k])
         return receipt
 
-    @wamp.register('xbr.network.get_gas_price', check_types=True)
+    @wamp.register("xbr.network.get_gas_price", check_types=True)
     async def get_gas_price(self, details: Optional[CallDetails] = None) -> bytes:
         """
 
         :param details:
         :return:
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         gas_price = await deferToThread(self._network._get_gas_price)
         return gas_price
 
-    @wamp.register('xbr.network.get_config', check_types=True)
+    @wamp.register("xbr.network.get_config", check_types=True)
     async def get_config(self, include_eula_text: bool = False, details: Optional[CallDetails] = None) -> dict:
         """
         Get backend configuration / settings.
@@ -387,16 +409,18 @@ class Network(ApplicationSession):
                 * ``text``: Actual EULA text.
             * ``from``: Email sending address for system emails.
         """
-        assert isinstance(include_eula_text,
-                          bool), 'include_eula_text must be bool, was {}'.format(type(include_eula_text))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(include_eula_text, bool), "include_eula_text must be bool, was {}".format(
+            type(include_eula_text)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         config = await deferToThread(self._network.get_config, include_eula_text=include_eula_text)
-        config['from'] = self._mailgun_from
+        config["from"] = self._mailgun_from
         return config
 
-    @wamp.register('xbr.network.get_status', check_types=True)
+    @wamp.register("xbr.network.get_status", check_types=True)
     async def get_status(self, details: Optional[CallDetails] = None) -> dict:
         """
         Get backend status.
@@ -433,28 +457,31 @@ class Network(ApplicationSession):
                 * ``hash``: Current block hash
                 * ``gas_limit``: Current block gas limit
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         status = await deferToThread(self._network.get_status)
-        status['status'] = self._status
+        status["status"] = self._status
         return status
 
-    @wamp.register('xbr.network.onboard_member', check_types=True)
-    async def onboard_member(self,
-                             member_username: str,
-                             member_email: str,
-                             client_pubkey: bytes,
-                             wallet_type: str,
-                             wallet_adr: bytes,
-                             chain_id: int,
-                             block_number: int,
-                             contract_adr: bytes,
-                             eula_hash: str,
-                             profile_hash: Optional[str],
-                             profile_data: Optional[bytes],
-                             signature: bytes,
-                             details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.onboard_member", check_types=True)
+    async def onboard_member(
+        self,
+        member_username: str,
+        member_email: str,
+        client_pubkey: bytes,
+        wallet_type: str,
+        wallet_adr: bytes,
+        chain_id: int,
+        block_number: int,
+        contract_adr: bytes,
+        eula_hash: str,
+        profile_hash: Optional[str],
+        profile_data: Optional[bytes],
+        signature: bytes,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         On-board new member with the given information. If all is fine with the supplied information, the
         member will be sent a verification email to the email address specified.
@@ -521,17 +548,20 @@ class Network(ApplicationSession):
             * ``action``: Type of action being verified, eg ``"onboard_member"``
             * ``vaction_oid``: ID of action verified (16 bytes UUID).
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
-        assert isinstance(client_pubkey,
-                          bytes), 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
-        assert len(client_pubkey) == 32, 'client_pubkey must be bytes[32], but was bytes[{}]'.format(
-            len(client_pubkey))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
+        assert isinstance(client_pubkey, bytes), 'client_pubkey must be bytes, but was "{}"'.format(
+            type(client_pubkey)
+        )
+        assert len(client_pubkey) == 32, "client_pubkey must be bytes[32], but was bytes[{}]".format(
+            len(client_pubkey)
+        )
         assert isinstance(wallet_adr, bytes), 'wallet_adr must be bytes, but was "{}"'.format(type(wallet_adr))
-        assert len(wallet_adr) == 20, 'wallet_adr must be bytes[20], but was bytes[{}]'.format(len(wallet_adr))
+        assert len(wallet_adr) == 20, "wallet_adr must be bytes[20], but was bytes[{}]".format(len(wallet_adr))
 
         self.log.info(
-            '{klass}.onboard_member(wallet_type={wallet_type}, eula_hash={eula_hash}, profile_hash={profile_hash}, wallet_adr={wallet_adr}, member_email={member_email}, member_username={member_username}, details={details})',
+            "{klass}.onboard_member(wallet_type={wallet_type}, eula_hash={eula_hash}, profile_hash={profile_hash}, wallet_adr={wallet_adr}, member_email={member_email}, member_username={member_username}, details={details})",
             klass=self.__class__.__name__,
             wallet_type=wallet_type,
             eula_hash=eula_hash,
@@ -539,25 +569,37 @@ class Network(ApplicationSession):
             wallet_adr=wallet_adr,
             member_email=member_email,
             member_username=member_username,
-            details=details)
-        onboard_request_submitted = await self._network.onboard_member(member_username, member_email, client_pubkey,
-                                                                       wallet_type, wallet_adr, chain_id, block_number,
-                                                                       contract_adr, eula_hash, profile_hash,
-                                                                       profile_data, signature)
+            details=details,
+        )
+        onboard_request_submitted = await self._network.onboard_member(
+            member_username,
+            member_email,
+            client_pubkey,
+            wallet_type,
+            wallet_adr,
+            chain_id,
+            block_number,
+            contract_adr,
+            eula_hash,
+            profile_hash,
+            profile_data,
+            signature,
+        )
 
         # FIXME: eligible_authid == authid of the user that is on-boarding
         eligible_authid = None
-        await self.publish('xbr.network.on_onboard_member_vcode_sent',
-                           onboard_request_submitted,
-                           options=PublishOptions(acknowledge=True, eligible_authid=eligible_authid))
+        await self.publish(
+            "xbr.network.on_onboard_member_vcode_sent",
+            onboard_request_submitted,
+            options=PublishOptions(acknowledge=True, eligible_authid=eligible_authid),
+        )
 
         return onboard_request_submitted
 
-    @wamp.register('xbr.network.verify_onboard_member', check_types=True)
-    async def verify_onboard_member(self,
-                                    vaction_oid: bytes,
-                                    vaction_code: str,
-                                    details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.verify_onboard_member", check_types=True)
+    async def verify_onboard_member(
+        self, vaction_oid: bytes, vaction_code: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Verify on-boarding of a new member by submitting a verification code.
 
@@ -595,26 +637,27 @@ class Network(ApplicationSession):
             * ``member_oid``: ID of newly on-boarded member (16 bytes UUID).
         """
         self.log.info(
-            '{klass}.verify_onboard_member(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})',
+            "{klass}.verify_onboard_member(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})",
             klass=self.__class__.__name__,
             vaction_oid=vaction_oid,
             vaction_code=vaction_code,
-            details=details)
+            details=details,
+        )
         onboard_request_verified = await self._network.verify_onboard_member(vaction_oid, vaction_code)
 
         # FIXME: eligible_authid == authid of the user that was on-boarded
         eligible_authid = None
-        await self.publish('xbr.network.on_onboard_member_vcode_verified',
-                           onboard_request_verified,
-                           options=PublishOptions(acknowledge=True, eligible_authid=eligible_authid))
+        await self.publish(
+            "xbr.network.on_onboard_member_vcode_verified",
+            onboard_request_verified,
+            options=PublishOptions(acknowledge=True, eligible_authid=eligible_authid),
+        )
         return onboard_request_verified
 
-    @wamp.register('xbr.network.backup_wallet', check_types=True)
-    def backup_wallet(self,
-                      member_oid: bytes,
-                      wallet_data: bytes,
-                      signature: bytes,
-                      details: Optional[CallDetails] = None) -> bytes:
+    @wamp.register("xbr.network.backup_wallet", check_types=True)
+    def backup_wallet(
+        self, member_oid: bytes, wallet_data: bytes, signature: bytes, details: Optional[CallDetails] = None
+    ) -> bytes:
         """
         If the account is using a hosted wallet (account ``wallet_type == "hosted"``), after creating a new client wallet
         private key, the client should upload the (encrypted) private key - encrypted with a password - by calling
@@ -631,21 +674,24 @@ class Network(ApplicationSession):
 
         :return: SHA256 hash computed over ``wallet_data``
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
-    @wamp.register('xbr.network.recover_wallet', check_types=True)
-    def recover_wallet(self,
-                       member_email: str,
-                       chain_id: int,
-                       block_number: int,
-                       contract_adr: bytes,
-                       req_nonce: int,
-                       wallet_adr: bytes,
-                       signature: bytes,
-                       details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.recover_wallet", check_types=True)
+    def recover_wallet(
+        self,
+        member_email: str,
+        chain_id: int,
+        block_number: int,
+        contract_adr: bytes,
+        req_nonce: int,
+        wallet_adr: bytes,
+        signature: bytes,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Recover a hosted wallet (account ``wallet_type == "hosted"``)
 
@@ -676,16 +722,16 @@ class Network(ApplicationSession):
                     "vaction_code": "PXFH-GF4Y-7ALJ"
                 }
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
-    @wamp.register('xbr.network.verify_recover_wallet', check_types=True)
-    def verify_recover_wallet(self,
-                              vaction_oid: bytes,
-                              vaction_code: str,
-                              details: Optional[CallDetails] = None) -> bytes:
+    @wamp.register("xbr.network.verify_recover_wallet", check_types=True)
+    def verify_recover_wallet(
+        self, vaction_oid: bytes, vaction_code: str, details: Optional[CallDetails] = None
+    ) -> bytes:
         """
         Verify recovery of a (hosted) wallet the member by submitting a verification code.
 
@@ -698,12 +744,13 @@ class Network(ApplicationSession):
 
         :return: The serialized wallet data (encrypted with a password).
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
-    @wamp.register('xbr.network.get_member', check_types=True)
+    @wamp.register("xbr.network.get_member", check_types=True)
     async def get_member(self, member_oid: bytes, details: Optional[CallDetails] = None) -> dict:
         """
         Retrieve information for member given member ID (not wallet address).
@@ -738,8 +785,9 @@ class Network(ApplicationSession):
                 }
 
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         # caller_authid=member-e939a1c8-8af0-4359-9415-acafc4a35ffa
         assert details and details.caller_authid and len(details.caller_authid) == 43
@@ -756,7 +804,7 @@ class Network(ApplicationSession):
 
         return member
 
-    @wamp.register('xbr.network.get_member_by_wallet', check_types=True)
+    @wamp.register("xbr.network.get_member_by_wallet", check_types=True)
     async def get_member_by_wallet(self, wallet_adr: bytes, details: Optional[CallDetails] = None) -> Optional[dict]:
         """
         Retrieve information for member given member wallet address (not member ID).
@@ -770,10 +818,12 @@ class Network(ApplicationSession):
 
         :return: Member information.
         """
-        assert isinstance(wallet_adr, bytes) and len(wallet_adr) == 20, 'wallet_adr must be bytes[20], was {}'.format(
-            type(wallet_adr))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(wallet_adr, bytes) and len(wallet_adr) == 20, "wallet_adr must be bytes[20], was {}".format(
+            type(wallet_adr)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         with self._db.begin() as txn:
             account_oid = self._xbrnetwork.idx_accounts_by_wallet[txn, wallet_adr]
@@ -783,7 +833,7 @@ class Network(ApplicationSession):
         result = await self.get_member(account_oid.bytes, details=details)
         return result
 
-    @wamp.register('xbr.network.is_member', check_types=True)
+    @wamp.register("xbr.network.is_member", check_types=True)
     async def is_member(self, wallet_adr: bytes, details: Optional[CallDetails] = None) -> bool:
         """
         Check if the given Ethereum address is a member in the XBR network.
@@ -798,10 +848,12 @@ class Network(ApplicationSession):
 
         :return: Flag indicating whether the address is a member or not.
         """
-        assert isinstance(wallet_adr, bytes) and len(wallet_adr) == 20, 'wallet_adr must be bytes[20], was {}'.format(
-            type(wallet_adr))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(wallet_adr, bytes) and len(wallet_adr) == 20, "wallet_adr must be bytes[20], was {}".format(
+            type(wallet_adr)
+        )
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         # FIXME: we currently lack records in accounts for members that were created outside _our_ onboarding
         with self._db.begin() as txn:
@@ -811,17 +863,19 @@ class Network(ApplicationSession):
             else:
                 return False
 
-    @wamp.register('xbr.network.login_member', check_types=True)
-    async def login_member(self,
-                           member_email: str,
-                           client_pubkey: bytes,
-                           chain_id: int,
-                           block_number: int,
-                           contract_adr: bytes,
-                           timestamp: int,
-                           wallet_adr: bytes,
-                           signature: bytes,
-                           details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.login_member", check_types=True)
+    async def login_member(
+        self,
+        member_email: str,
+        client_pubkey: bytes,
+        chain_id: int,
+        block_number: int,
+        contract_adr: bytes,
+        timestamp: int,
+        wallet_adr: bytes,
+        signature: bytes,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         When a user is already member in the XBR network, a user client may call this procedure to login.
 
@@ -875,17 +929,20 @@ class Network(ApplicationSession):
             * ``action``: Type of action being verified, eg ``"login-member"``
             * ``vaction_oid``: ID of action verified (16 bytes UUID).
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
-        assert isinstance(client_pubkey,
-                          bytes), 'client_pubkey must be bytes, but was "{}"'.format(type(client_pubkey))
-        assert len(client_pubkey) == 32, 'client_pubkey must be bytes[32], but was bytes[{}]'.format(
-            len(client_pubkey))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
+        assert isinstance(client_pubkey, bytes), 'client_pubkey must be bytes, but was "{}"'.format(
+            type(client_pubkey)
+        )
+        assert len(client_pubkey) == 32, "client_pubkey must be bytes[32], but was bytes[{}]".format(
+            len(client_pubkey)
+        )
         assert isinstance(wallet_adr, bytes), 'wallet_adr must be bytes, but was "{}"'.format(type(wallet_adr))
-        assert len(wallet_adr) == 20, 'wallet_adr must be bytes[20], but was bytes[{}]'.format(len(wallet_adr))
+        assert len(wallet_adr) == 20, "wallet_adr must be bytes[20], but was bytes[{}]".format(len(wallet_adr))
 
         self.log.info(
-            '{klass}.login_member(member_email={member_email}, client_pubkey={client_pubkey}, chain_id={chain_id}, block_number={block_number}, timestamp={timestamp}, wallet_adr={wallet_adr}, signature={signature}, details={details})',
+            "{klass}.login_member(member_email={member_email}, client_pubkey={client_pubkey}, chain_id={chain_id}, block_number={block_number}, timestamp={timestamp}, wallet_adr={wallet_adr}, signature={signature}, details={details})",
             klass=self.__class__.__name__,
             member_email=member_email,
             client_pubkey=client_pubkey,
@@ -894,16 +951,17 @@ class Network(ApplicationSession):
             timestamp=timestamp,
             wallet_adr=wallet_adr,
             signature=signature,
-            details=details)
-        login_request_submitted = await self._network.login_member(member_email, client_pubkey, chain_id, block_number,
-                                                                   contract_adr, timestamp, wallet_adr, signature)
+            details=details,
+        )
+        login_request_submitted = await self._network.login_member(
+            member_email, client_pubkey, chain_id, block_number, contract_adr, timestamp, wallet_adr, signature
+        )
         return login_request_submitted
 
-    @wamp.register('xbr.network.verify_login_member', check_types=True)
-    async def verify_login_member(self,
-                                  vaction_oid: bytes,
-                                  vaction_code: str,
-                                  details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.verify_login_member", check_types=True)
+    async def verify_login_member(
+        self, vaction_oid: bytes, vaction_code: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Verify login of member by submitting a verification code.
 
@@ -934,22 +992,24 @@ class Network(ApplicationSession):
                     "created": 1573675753141788247,
                 }
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         self.log.info(
-            '{klass}.verify_login_member(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})',
+            "{klass}.verify_login_member(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})",
             klass=self.__class__.__name__,
             vaction_oid=vaction_oid,
             vaction_code=vaction_code,
-            details=details)
+            details=details,
+        )
         login_request_verified = self._network.verify_login_member(vaction_oid, vaction_code)
-        await self.publish('xbr.network.on_member_login',
-                           login_request_verified,
-                           options=PublishOptions(acknowledge=True))
+        await self.publish(
+            "xbr.network.on_member_login", login_request_verified, options=PublishOptions(acknowledge=True)
+        )
         return login_request_verified
 
-    @wamp.register('xbr.network.logout_member', check_types=True)
+    @wamp.register("xbr.network.logout_member", check_types=True)
     async def logout_member(self, details: CallDetails):
         """
         Logout the currently authenticated authid and delete the (WAMP-cryptosign) client
@@ -966,16 +1026,18 @@ class Network(ApplicationSession):
 
         :return: Client key removed information.
         """
-        self.log.info('{klass}.logout_member(details={details})', klass=self.__class__.__name__, details=details)
+        self.log.info("{klass}.logout_member(details={details})", klass=self.__class__.__name__, details=details)
 
         caller_session_id = details.caller
         member_oid = extract_member_oid(details)
 
-        caller_pubkey = await self.call('xbr.network.authenticator.pubkey_by_session', caller_session_id)
+        caller_pubkey = await self.call("xbr.network.authenticator.pubkey_by_session", caller_session_id)
         assert is_cs_pubkey(caller_pubkey)
-        self.log.info('{klass}.logout_member with caller pubkey {caller_pubkey})',
-                      klass=self.__class__.__name__,
-                      caller_pubkey=hlid(b2a_hex(caller_pubkey).decode()))
+        self.log.info(
+            "{klass}.logout_member with caller pubkey {caller_pubkey})",
+            klass=self.__class__.__name__,
+            caller_pubkey=hlid(b2a_hex(caller_pubkey).decode()),
+        )
 
         with self._db.begin() as txn:
             account = self._xbrnetwork.accounts[txn, member_oid]
@@ -987,34 +1049,37 @@ class Network(ApplicationSession):
         with self._db.begin(write=True) as txn:
             del self._xbrnetwork.user_keys[txn, caller_pubkey]
 
-        self.log.info('Ok, deleted client login for pubkey {caller_pubkey} of member {member_oid} ',
-                      caller_pubkey=hlid(b2a_hex(caller_pubkey).decode()),
-                      member_oid=hlid(member_oid))
+        self.log.info(
+            "Ok, deleted client login for pubkey {caller_pubkey} of member {member_oid} ",
+            caller_pubkey=hlid(b2a_hex(caller_pubkey).decode()),
+            member_oid=hlid(member_oid),
+        )
 
         logout_info = {
-            'logged_out': time_ns(),
-            'from_session': caller_session_id,
-            'member_oid': member_oid.bytes,
-            'pubkey': caller_pubkey,
+            "logged_out": time_ns(),
+            "from_session": caller_session_id,
+            "member_oid": member_oid.bytes,
+            "pubkey": caller_pubkey,
         }
 
         def kill():
-            self.call('wamp.session.kill_by_authid', details.caller_authid)
-            self.publish('xbr.network.on_logout',
-                         logout_info,
-                         options=PublishOptions(eligible_authid=[details.caller_authid]))
+            self.call("wamp.session.kill_by_authid", details.caller_authid)
+            self.publish(
+                "xbr.network.on_logout", logout_info, options=PublishOptions(eligible_authid=[details.caller_authid])
+            )
             self.log.info(
-                'Ok, session {caller_session} logged out for client with pubkey {caller_pubkey} of member {member_oid} ',
+                "Ok, session {caller_session} logged out for client with pubkey {caller_pubkey} of member {member_oid} ",
                 caller_session=hlid(caller_session_id),
                 caller_pubkey=hlid(b2a_hex(caller_pubkey).decode()),
-                member_oid=hlid(member_oid))
+                member_oid=hlid(member_oid),
+            )
 
         # first return from this call, before killing its session ..
         self._reactor.callLater(0, kill)
 
         return logout_info
 
-    @wamp.register('xbr.network.get_member_logins', check_types=True)
+    @wamp.register("xbr.network.get_member_logins", check_types=True)
     def get_member_logins(self, member_oid: bytes, details: Optional[CallDetails] = None) -> list:
         """
         Get client keys currently associated with the member.
@@ -1030,8 +1095,9 @@ class Network(ApplicationSession):
 
         :return: List of client public keys currently associated with the member.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
         assert isinstance(member_oid, bytes) and len(member_oid) == 16
 
         # caller_authid=member-e939a1c8-8af0-4359-9415-acafc4a35ffa
@@ -1042,22 +1108,21 @@ class Network(ApplicationSession):
 
         member_oid_ = uuid.UUID(bytes=member_oid)
         if member_oid_ != member_oid_from_authid:
-            raise RuntimeError('only own information can be accessed!')
+            raise RuntimeError("only own information can be accessed!")
 
-        t_zero = np.datetime64(0, 'ns')
-        t_now = np.datetime64(time_ns(), 'ns')
+        t_zero = np.datetime64(0, "ns")
+        t_now = np.datetime64(time_ns(), "ns")
 
         pubkeys = []
         with self._db.begin() as txn:
-            for pubkey in self._xbrnetwork.idx_user_key_by_account.select(txn,
-                                                                          from_key=(member_oid_, t_zero),
-                                                                          to_key=(member_oid_, t_now),
-                                                                          return_keys=False):
+            for pubkey in self._xbrnetwork.idx_user_key_by_account.select(
+                txn, from_key=(member_oid_, t_zero), to_key=(member_oid_, t_now), return_keys=False
+            ):
                 pubkeys.append(pubkey)
 
         return pubkeys
 
-    @wamp.register('xbr.network.get_member_login', check_types=True)
+    @wamp.register("xbr.network.get_member_login", check_types=True)
     def get_member_login(self, member_oid: bytes, client_pubkey: bytes, details: Optional[CallDetails] = None) -> dict:
         """
         Get client key details.
@@ -1072,8 +1137,9 @@ class Network(ApplicationSession):
 
         :return: Client key information.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
         assert isinstance(member_oid, bytes) and len(member_oid) == 16
 
         # caller_authid=member-e939a1c8-8af0-4359-9415-acafc4a35ffa
@@ -1084,33 +1150,35 @@ class Network(ApplicationSession):
 
         member_oid_ = uuid.UUID(bytes=member_oid)
         if member_oid_ != member_oid_from_authid:
-            raise RuntimeError('only own information can be accessed [1]')
+            raise RuntimeError("only own information can be accessed [1]")
 
         with self._db.begin() as txn:
             userkey = self._xbrnetwork.user_keys[txn, client_pubkey]
             if not userkey:
-                raise RuntimeError('no such pubkey')
+                raise RuntimeError("no such pubkey")
             if userkey.owner != member_oid_:
-                raise RuntimeError('only own information can be accessed [2]')
+                raise RuntimeError("only own information can be accessed [2]")
 
         return userkey.marshal()
 
-    @wamp.register('xbr.network.create_coin', check_types=True)
-    async def create_coin(self,
-                          member_oid: bytes,
-                          coin_oid: bytes,
-                          chain_id: int,
-                          block_number: int,
-                          contract_adr: bytes,
-                          name: str,
-                          symbol: str,
-                          decimals: int,
-                          initial_supply: bytes,
-                          meta_hash: Optional[str],
-                          meta_data: Optional[bytes],
-                          signature: bytes,
-                          attributes: Optional[dict],
-                          details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.create_coin", check_types=True)
+    async def create_coin(
+        self,
+        member_oid: bytes,
+        coin_oid: bytes,
+        chain_id: int,
+        block_number: int,
+        contract_adr: bytes,
+        name: str,
+        symbol: str,
+        decimals: int,
+        initial_supply: bytes,
+        meta_hash: Optional[str],
+        meta_data: Optional[bytes],
+        signature: bytes,
+        attributes: Optional[dict],
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Create a new ERC20 coin for use in data markets as a means of payment.
 
@@ -1145,22 +1213,34 @@ class Network(ApplicationSession):
         assert meta_data is None or isinstance(meta_data, bytes)
         assert (meta_hash is None and meta_data is None) or (meta_hash is not None and meta_data is not None)
         assert attributes is None or isinstance(attributes, dict)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         member_oid_ = uuid.UUID(bytes=member_oid)
         coin_oid_ = uuid.UUID(bytes=coin_oid)
 
-        request = await self._network.create_coin(member_oid_, coin_oid_, chain_id, block_number, contract_adr, name,
-                                                  symbol, decimals, initial_supply, meta_hash, meta_data, signature,
-                                                  attributes)
+        request = await self._network.create_coin(
+            member_oid_,
+            coin_oid_,
+            chain_id,
+            block_number,
+            contract_adr,
+            name,
+            symbol,
+            decimals,
+            initial_supply,
+            meta_hash,
+            meta_data,
+            signature,
+            attributes,
+        )
         return request
 
-    @wamp.register('xbr.network.verify_create_coin', check_types=True)
-    async def verify_create_coin(self,
-                                 vaction_oid: bytes,
-                                 vaction_code: str,
-                                 details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.verify_create_coin", check_types=True)
+    async def verify_create_coin(
+        self, vaction_oid: bytes, vaction_code: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Verify creating a new ERC20 coin by submitting a verification code.
 
@@ -1195,24 +1275,26 @@ class Network(ApplicationSession):
             * ``market_oid``: ID of newly created coin (16 bytes UUID).
         """
         self.log.info(
-            '{klass}.verify_create_coin(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})',
+            "{klass}.verify_create_coin(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})",
             klass=self.__class__.__name__,
             vaction_oid=vaction_oid,
             vaction_code=vaction_code,
-            details=details)
+            details=details,
+        )
         request_verified = await self._network.verify_create_coin(vaction_oid, vaction_code)
 
-        eligible_authrole = 'member'
-        await self.publish('xbr.network.on_new_coin',
-                           request_verified,
-                           options=PublishOptions(acknowledge=True, eligible_authrole=eligible_authrole))
+        eligible_authrole = "member"
+        await self.publish(
+            "xbr.network.on_new_coin",
+            request_verified,
+            options=PublishOptions(acknowledge=True, eligible_authrole=eligible_authrole),
+        )
         return request_verified
 
-    @wamp.register('xbr.network.get_coin', check_types=True)
-    def get_coin(self,
-                 coin_oid: bytes,
-                 include_attributes: bool = False,
-                 details: Optional[CallDetails] = None) -> Optional[dict]:
+    @wamp.register("xbr.network.get_coin", check_types=True)
+    def get_coin(
+        self, coin_oid: bytes, include_attributes: bool = False, details: Optional[CallDetails] = None
+    ) -> Optional[dict]:
         """
         Retrieve basic information for the given ERC20 coin for markets.
 
@@ -1225,34 +1307,33 @@ class Network(ApplicationSession):
 
         :return: Market information.
         """
-        assert isinstance(coin_oid, bytes), 'coin_oid must be bytes, was {}'.format(type(coin_oid))
-        assert len(coin_oid) == 16, 'coin_oid must be bytes[16], was bytes[{}]'.format(len(coin_oid))
-        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(coin_oid, bytes), "coin_oid must be bytes, was {}".format(type(coin_oid))
+        assert len(coin_oid) == 16, "coin_oid must be bytes[16], was bytes[{}]".format(len(coin_oid))
+        assert type(include_attributes), "include_attributes must be bool, was {}".format(type(include_attributes))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         try:
             coin_oid_ = uuid.UUID(bytes=coin_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid market_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid market_oid: {}".format(str(e)))
 
         # FIXME: the only coin currently defined is the XBR coin hard-coded here
         if coin_oid_ != self.XBR_COIN_OID:
-            raise RuntimeError('no coin with oid {}'.format(coin_oid_))
+            raise RuntimeError("no coin with oid {}".format(coin_oid_))
 
         coin = {
-            'oid': coin_oid_.bytes,
-            'address': xbr.xbrtoken.address,
-            'name': 'XBR',
-            'decimals': 18,
-            'initial_supply': pack_uint256(1000000000 * 10**18),
-            'attributes': {
-                'title': 'XBR Coin'
-            }
+            "oid": coin_oid_.bytes,
+            "address": xbr.xbrtoken.address,
+            "name": "XBR",
+            "decimals": 18,
+            "initial_supply": pack_uint256(1000000000 * 10**18),
+            "attributes": {"title": "XBR Coin"},
         }
         return coin
 
-    @wamp.register('xbr.network.get_coin_by_symbol', check_types=True)
+    @wamp.register("xbr.network.get_coin_by_symbol", check_types=True)
     def get_coin_by_symbol(self, symbol: str, details: Optional[CallDetails] = None) -> Optional[bytes]:
         """
         Get coin by coin name.
@@ -1264,20 +1345,20 @@ class Network(ApplicationSession):
 
         :return: If found, the OID of the coin.
         """
-        assert isinstance(symbol, str), 'coin_name must be str, was {}'.format(type(symbol))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(symbol, str), "coin_name must be str, was {}".format(type(symbol))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
-        if symbol == 'XBR':
+        if symbol == "XBR":
             return self.XBR_COIN_OID.bytes
         else:
             return None
 
-    @wamp.register('xbr.network.get_coin_balance', check_types=True)
-    async def get_coin_balance(self,
-                               member_oid: bytes,
-                               coin_oid: bytes,
-                               details: Optional[CallDetails] = None) -> bytes:
+    @wamp.register("xbr.network.get_coin_balance", check_types=True)
+    async def get_coin_balance(
+        self, member_oid: bytes, coin_oid: bytes, details: Optional[CallDetails] = None
+    ) -> bytes:
         """
         Get the current balance in the given coins, held by the given member.
 
@@ -1289,26 +1370,27 @@ class Network(ApplicationSession):
 
         :return: Current balance of given member and coin.
         """
-        assert isinstance(member_oid, bytes), 'member_oid must be bytes, was {}'.format(type(member_oid))
-        assert len(member_oid) == 16, 'member_oid must be bytes[16], was bytes[{}]'.format(len(member_oid))
-        assert isinstance(coin_oid, bytes), 'coin_oid must be bytes, was {}'.format(type(coin_oid))
-        assert len(coin_oid) == 16, 'coin_oid must be bytes[16], was bytes[{}]'.format(len(coin_oid))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(member_oid, bytes), "member_oid must be bytes, was {}".format(type(member_oid))
+        assert len(member_oid) == 16, "member_oid must be bytes[16], was bytes[{}]".format(len(member_oid))
+        assert isinstance(coin_oid, bytes), "coin_oid must be bytes, was {}".format(type(coin_oid))
+        assert len(coin_oid) == 16, "coin_oid must be bytes[16], was bytes[{}]".format(len(coin_oid))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         try:
             coin_oid_ = uuid.UUID(bytes=coin_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid coin_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid coin_oid: {}".format(str(e)))
 
         # FIXME: the only coin currently defined is the XBR coin hard-coded here
         if coin_oid_ != self.XBR_COIN_OID:
-            raise RuntimeError('no coin with oid {}'.format(coin_oid_))
+            raise RuntimeError("no coin with oid {}".format(coin_oid_))
 
         try:
             member_oid_ = uuid.UUID(bytes=member_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid member_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid member_oid: {}".format(str(e)))
 
         with self._db.begin() as txn:
             account = self._xbrnetwork.accounts[txn, member_oid_]
@@ -1325,13 +1407,15 @@ class Network(ApplicationSession):
 
         return balance
 
-    @wamp.register('xbr.network.find_coins', check_types=False)
-    async def find_coins(self,
-                         created_from: Optional[int] = None,
-                         limit: Optional[int] = None,
-                         include_owners: Optional[List[bytes]] = None,
-                         include_names: Optional[List[str]] = None,
-                         details: Optional[CallDetails] = None) -> List[bytes]:
+    @wamp.register("xbr.network.find_coins", check_types=False)
+    async def find_coins(
+        self,
+        created_from: Optional[int] = None,
+        limit: Optional[int] = None,
+        include_owners: Optional[List[bytes]] = None,
+        include_names: Optional[List[str]] = None,
+        details: Optional[CallDetails] = None,
+    ) -> List[bytes]:
         """
 
         :param created_from:
@@ -1341,22 +1425,23 @@ class Network(ApplicationSession):
         :param details:
         :return:
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
-        if (include_owners is not None or include_names is not None):
-            raise NotImplementedError('filters are not yet implemented')
+        if include_owners is not None or include_names is not None:
+            raise NotImplementedError("filters are not yet implemented")
 
         if created_from is not None:
-            raise NotImplementedError('created_from is not yet implemented')
+            raise NotImplementedError("created_from is not yet implemented")
 
         if limit is not None:
-            raise NotImplementedError('limit is not yet implemented')
+            raise NotImplementedError("limit is not yet implemented")
 
         # FIXME: the only coin currently defined is the XBR coin hard-coded here
         return [self.XBR_COIN_OID.bytes]
 
-    @wamp.register('xbr.network.does_hash_exist', check_types=True)
+    @wamp.register("xbr.network.does_hash_exist", check_types=True)
     async def does_hash_exist(self, ipfs_hash: str, details: Optional[CallDetails] = None):
         # https://ethereum.stackexchange.com/a/70204
         if not re.match("^Qm[1-9A-HJ-NP-Za-km-z]{44}$", ipfs_hash):
@@ -1367,32 +1452,34 @@ class Network(ApplicationSession):
             return True
 
         try:
-            response = await treq.get(f'https://ipfs.infura.io:5001/api/v0/cat?arg={ipfs_hash}', timeout=5)
+            response = await treq.get(f"https://ipfs.infura.io:5001/api/v0/cat?arg={ipfs_hash}", timeout=5)
             content = (await response.content()).decode()
-            with open(file_path, 'w') as file:
+            with open(file_path, "w") as file:
                 file.write(content)
             return True
         except ResponseNeverReceived:
             return False
 
-    @wamp.register('xbr.network.create_market', check_types=True)
-    async def create_market(self,
-                            member_oid: bytes,
-                            market_oid: bytes,
-                            verifying_chain_id: int,
-                            current_block_number: int,
-                            verifying_contract_adr: bytes,
-                            coin_adr: bytes,
-                            terms_hash: Optional[str],
-                            meta_hash: Optional[str],
-                            meta_data: Optional[bytes],
-                            market_maker_adr: bytes,
-                            provider_security: bytes,
-                            consumer_security: bytes,
-                            market_fee: bytes,
-                            signature: bytes,
-                            attributes: Optional[dict],
-                            details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.create_market", check_types=True)
+    async def create_market(
+        self,
+        member_oid: bytes,
+        market_oid: bytes,
+        verifying_chain_id: int,
+        current_block_number: int,
+        verifying_contract_adr: bytes,
+        coin_adr: bytes,
+        terms_hash: Optional[str],
+        meta_hash: Optional[str],
+        meta_data: Optional[bytes],
+        market_maker_adr: bytes,
+        provider_security: bytes,
+        consumer_security: bytes,
+        market_fee: bytes,
+        signature: bytes,
+        attributes: Optional[dict],
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Create a new XBR Data Market.
 
@@ -1430,24 +1517,36 @@ class Network(ApplicationSession):
         assert isinstance(market_fee, bytes) and len(market_fee) == 32
         assert is_signature(signature)
         assert attributes is None or isinstance(attributes, dict)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         member_oid_ = uuid.UUID(bytes=member_oid)
         market_oid_ = uuid.UUID(bytes=market_oid)
 
-        request_submitted = await self._network.create_market(member_oid_, market_oid_, verifying_chain_id,
-                                                              current_block_number, verifying_contract_adr, coin_adr,
-                                                              terms_hash, meta_hash, meta_data, market_maker_adr,
-                                                              provider_security, consumer_security, market_fee,
-                                                              signature, attributes)
+        request_submitted = await self._network.create_market(
+            member_oid_,
+            market_oid_,
+            verifying_chain_id,
+            current_block_number,
+            verifying_contract_adr,
+            coin_adr,
+            terms_hash,
+            meta_hash,
+            meta_data,
+            market_maker_adr,
+            provider_security,
+            consumer_security,
+            market_fee,
+            signature,
+            attributes,
+        )
         return request_submitted
 
-    @wamp.register('xbr.network.verify_create_market', check_types=True)
-    async def verify_create_market(self,
-                                   vaction_oid: bytes,
-                                   vaction_code: str,
-                                   details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.verify_create_market", check_types=True)
+    async def verify_create_market(
+        self, vaction_oid: bytes, vaction_code: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Verify creating a new data market by submitting a verification code.
 
@@ -1484,28 +1583,33 @@ class Network(ApplicationSession):
             * ``market_oid``: ID of newly created market (16 bytes UUID).
         """
         self.log.info(
-            '{klass}.verify_create_market(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})',
+            "{klass}.verify_create_market(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})",
             klass=self.__class__.__name__,
             vaction_oid=vaction_oid,
             vaction_code=vaction_code,
-            details=details)
+            details=details,
+        )
         create_market_request_verified = await self._network.verify_create_market(vaction_oid, vaction_code)
 
-        eligible_authrole = 'member'
-        await self.publish('xbr.network.on_new_market',
-                           create_market_request_verified,
-                           options=PublishOptions(acknowledge=True, eligible_authrole=eligible_authrole))
+        eligible_authrole = "member"
+        await self.publish(
+            "xbr.network.on_new_market",
+            create_market_request_verified,
+            options=PublishOptions(acknowledge=True, eligible_authrole=eligible_authrole),
+        )
         return create_market_request_verified
 
-    @wamp.register('xbr.network.remove_market', check_types=True)
-    def remove_market(self,
-                      member_oid: bytes,
-                      chain_id: int,
-                      block_number: int,
-                      contract_adr: bytes,
-                      market_adr: bytes,
-                      signature: bytes,
-                      details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.remove_market", check_types=True)
+    def remove_market(
+        self,
+        member_oid: bytes,
+        chain_id: int,
+        block_number: int,
+        contract_adr: bytes,
+        market_adr: bytes,
+        signature: bytes,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Remove an existing XBR Data Market. The caller of this procedure must be the owner of the market, and
         all the market must be fully cleared first.
@@ -1528,12 +1632,13 @@ class Network(ApplicationSession):
 
         :return: Data market removal information.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
-    @wamp.register('xbr.network.update_market', check_types=True)
+    @wamp.register("xbr.network.update_market", check_types=True)
     def update_market(self, market_oid: bytes, attributes: Optional[dict], details: Optional[CallDetails] = None):
         """
         Update off-chain information attached to market, such as attributes.
@@ -1546,25 +1651,28 @@ class Network(ApplicationSession):
         :param details: Caller details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
-        assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
+        assert isinstance(market_oid, bytes), "market_oid must be bytes, was {}".format(type(market_oid))
+        assert len(market_oid) == 16, "market_oid must be bytes[16], was bytes[{}]".format(len(market_oid))
         assert attributes is None or isinstance(attributes, dict)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         try:
             _market_oid = uuid.UUID(bytes=market_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid market_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid market_oid: {}".format(str(e)))
 
         self._network.update_market(_market_oid, attributes)
 
-    @wamp.register('xbr.network.get_market', check_types=True)
-    async def get_market(self,
-                         market_oid: bytes,
-                         include_attributes: Optional[bool] = False,
-                         include_terms_text: Optional[bool] = False,
-                         details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.get_market", check_types=True)
+    async def get_market(
+        self,
+        market_oid: bytes,
+        include_attributes: Optional[bool] = False,
+        include_terms_text: Optional[bool] = False,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Retrieve basic information for the given XBR Data Market.
 
@@ -1590,21 +1698,22 @@ class Network(ApplicationSession):
 
         :return: Market information.
         """
-        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
-        assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
-        assert type(include_attributes), 'include_attributes must be bool, was {}'.format(type(include_attributes))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(market_oid, bytes), "market_oid must be bytes, was {}".format(type(market_oid))
+        assert len(market_oid) == 16, "market_oid must be bytes[16], was bytes[{}]".format(len(market_oid))
+        assert type(include_attributes), "include_attributes must be bool, was {}".format(type(include_attributes))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         try:
             _market_oid = uuid.UUID(bytes=market_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid market_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid market_oid: {}".format(str(e)))
 
         market = await self._network.get_market(_market_oid, include_attributes, include_terms_text)
         return market
 
-    @wamp.register('xbr.network.get_markets_by_owner', check_types=True)
+    @wamp.register("xbr.network.get_markets_by_owner", check_types=True)
     def get_markets_by_owner(self, owner_oid: bytes, details: Optional[CallDetails] = None) -> list:
         """
         Get list of XBR Data Markets owned by the given member.
@@ -1616,32 +1725,32 @@ class Network(ApplicationSession):
 
         :return: List of markets owned by the given member.
         """
-        assert isinstance(owner_oid, bytes), 'owner_oid must be bytes, was {}'.format(type(owner_oid))
-        assert len(owner_oid) == 16, 'owner_oid must be bytes[16], was bytes[{}]'.format(len(owner_oid))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(owner_oid, bytes), "owner_oid must be bytes, was {}".format(type(owner_oid))
+        assert len(owner_oid) == 16, "owner_oid must be bytes[16], was bytes[{}]".format(len(owner_oid))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         member_oid_from_authid_ = extract_member_oid(details)
         owner_oid_ = uuid.UUID(bytes=owner_oid)
         if owner_oid_ != member_oid_from_authid_:
-            raise RuntimeError('only own information can be accessed!')
+            raise RuntimeError("only own information can be accessed!")
 
-        t_zero = np.datetime64(0, 'ns')
-        t_now = np.datetime64(time_ns(), 'ns')
+        t_zero = np.datetime64(0, "ns")
+        t_now = np.datetime64(time_ns(), "ns")
 
         markets = []
         with self._db.begin() as txn:
             owner = self._xbrnetwork.accounts[txn, owner_oid_]
             owner_adr = bytes(owner.wallet_address)
-            for market_oid in self._xbr.idx_markets_by_owner.select(txn,
-                                                                    from_key=(owner_adr, t_zero),
-                                                                    to_key=(owner_adr, t_now),
-                                                                    return_keys=False):
+            for market_oid in self._xbr.idx_markets_by_owner.select(
+                txn, from_key=(owner_adr, t_zero), to_key=(owner_adr, t_now), return_keys=False
+            ):
                 markets.append(market_oid.bytes)
 
         return markets
 
-    @wamp.register('xbr.network.get_actors_in_market', check_types=True)
+    @wamp.register("xbr.network.get_actors_in_market", check_types=True)
     def get_actors_in_market(self, market_oid: bytes, details: Optional[CallDetails] = None) -> list:
         """
         Get list of market actors in a given market.
@@ -1653,25 +1762,25 @@ class Network(ApplicationSession):
 
         :return: List of addresses of markets joined by the given actor.
         """
-        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
-        assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(market_oid, bytes), "market_oid must be bytes, was {}".format(type(market_oid))
+        assert len(market_oid) == 16, "market_oid must be bytes[16], was bytes[{}]".format(len(market_oid))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         market_oid_ = uuid.UUID(bytes=market_oid)
 
         actors_in_market = []
         with self._db.begin() as txn:
-            from_key = (market_oid_, b'\0' * 20, 0)
-            to_key = (market_oid_, b'\xff' * 20, 255)
-            for _, actor_adr, actor_type in self._xbr.actors.select(txn,
-                                                                    from_key=from_key,
-                                                                    to_key=to_key,
-                                                                    return_values=False):
+            from_key = (market_oid_, b"\0" * 20, 0)
+            to_key = (market_oid_, b"\xff" * 20, 255)
+            for _, actor_adr, actor_type in self._xbr.actors.select(
+                txn, from_key=from_key, to_key=to_key, return_values=False
+            ):
                 actors_in_market.append((actor_adr, actor_type))
         return actors_in_market
 
-    @wamp.register('xbr.network.get_actor_in_market', check_types=True)
+    @wamp.register("xbr.network.get_actor_in_market", check_types=True)
     def get_actor_in_market(self, market_oid: bytes, actor_adr: bytes, details: Optional[CallDetails] = None) -> list:
         """
         Get information on an actor in a market.
@@ -1684,12 +1793,13 @@ class Network(ApplicationSession):
 
         :return: Information on the actor in the market.
         """
-        assert isinstance(market_oid, bytes), 'market_oid must be bytes, was {}'.format(type(market_oid))
-        assert len(market_oid) == 16, 'market_oid must be bytes[16], was bytes[{}]'.format(len(market_oid))
-        assert isinstance(actor_adr, bytes), 'actor_adr must be bytes, was {}'.format(type(actor_adr))
-        assert len(actor_adr) == 20, 'actor_adr must be bytes[20], was bytes[{}]'.format(len(actor_adr))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(market_oid, bytes), "market_oid must be bytes, was {}".format(type(market_oid))
+        assert len(market_oid) == 16, "market_oid must be bytes[16], was bytes[{}]".format(len(market_oid))
+        assert isinstance(actor_adr, bytes), "actor_adr must be bytes, was {}".format(type(actor_adr))
+        assert len(actor_adr) == 20, "actor_adr must be bytes[20], was bytes[{}]".format(len(actor_adr))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         market_oid_ = uuid.UUID(bytes=market_oid)
 
@@ -1697,22 +1807,22 @@ class Network(ApplicationSession):
         with self._db.begin() as txn:
             from_key = (market_oid_, actor_adr, 0)
             to_key = (market_oid_, actor_adr, 255)
-            for (market_id, _, actor_type), actor in self._xbr.actors.select(txn,
-                                                                             from_key=from_key,
-                                                                             to_key=to_key,
-                                                                             return_keys=True,
-                                                                             return_values=True):
+            for (market_id, _, actor_type), actor in self._xbr.actors.select(
+                txn, from_key=from_key, to_key=to_key, return_keys=True, return_values=True
+            ):
                 result.append(actor.marshal())
 
-        self.log.info('{func}(market_oid={market_oid}, actor_adr={actor_adr}) ->\n{result}',
-                      func=hltype(self.get_actor_in_market),
-                      market_oid=hlid(market_oid_),
-                      actor_adr=hlid('0x' + b2a_hex(actor_adr).decode()),
-                      result=pformat(result))
+        self.log.info(
+            "{func}(market_oid={market_oid}, actor_adr={actor_adr}) ->\n{result}",
+            func=hltype(self.get_actor_in_market),
+            market_oid=hlid(market_oid_),
+            actor_adr=hlid("0x" + b2a_hex(actor_adr).decode()),
+            result=pformat(result),
+        )
 
         return result
 
-    @wamp.register('xbr.network.get_markets_by_actor', check_types=True)
+    @wamp.register("xbr.network.get_markets_by_actor", check_types=True)
     def get_markets_by_actor(self, actor_oid: bytes, details: Optional[CallDetails] = None) -> list:
         """
         Get list of XBR Data Markets the actor is joined to.
@@ -1724,10 +1834,11 @@ class Network(ApplicationSession):
 
         :return: List of markets joined by the given actor.
         """
-        assert isinstance(actor_oid, bytes), 'owner_oid must be bytes, was {}'.format(type(actor_oid))
-        assert len(actor_oid) == 16, 'owner_oid must be bytes[16], was bytes[{}]'.format(len(actor_oid))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(actor_oid, bytes), "owner_oid must be bytes, was {}".format(type(actor_oid))
+        assert len(actor_oid) == 16, "owner_oid must be bytes[16], was bytes[{}]".format(len(actor_oid))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         actor_oid_ = uuid.UUID(bytes=actor_oid)
 
@@ -1735,19 +1846,18 @@ class Network(ApplicationSession):
         # if actor_oid_ != member_oid_from_authid_:
         #     raise RuntimeError('only own information can be accessed!')
 
-        t_zero = np.datetime64(0, 'ns')
-        t_now = np.datetime64(time_ns(), 'ns')
+        t_zero = np.datetime64(0, "ns")
+        t_now = np.datetime64(time_ns(), "ns")
 
         markets = []
         with self._db.begin() as txn:
             account = self._xbrnetwork.accounts[txn, actor_oid_]
             if not account:
-                raise RuntimeError('actor_oid: no member with oid {}'.format(actor_oid_))
+                raise RuntimeError("actor_oid: no member with oid {}".format(actor_oid_))
             actor_adr = bytes(account.wallet_address)
-            for market_oid in self._xbr.idx_markets_by_actor.select(txn,
-                                                                    from_key=(actor_adr, t_zero),
-                                                                    to_key=(actor_adr, t_now),
-                                                                    return_keys=False):
+            for market_oid in self._xbr.idx_markets_by_actor.select(
+                txn, from_key=(actor_adr, t_zero), to_key=(actor_adr, t_now), return_keys=False
+            ):
                 if self._markets_whitelist and market_oid not in self._markets_whitelist:
                     continue
                 markets.append(market_oid.bytes)
@@ -1757,7 +1867,7 @@ class Network(ApplicationSession):
 
         return markets
 
-    @wamp.register('xbr.network.get_markets_by_coin', check_types=True)
+    @wamp.register("xbr.network.get_markets_by_coin", check_types=True)
     def get_markets_by_coin(self, coin_oid: bytes, details: Optional[CallDetails] = None) -> list:
         """
         Get list of XBR Data Markets using a specific coin as a means of payment.
@@ -1769,10 +1879,11 @@ class Network(ApplicationSession):
 
         :return: List of addresses of markets using the specified coin as a means of payment.
         """
-        assert isinstance(coin_oid, bytes), 'coin_oid must be bytes, was {}'.format(type(coin_oid))
-        assert len(coin_oid) == 16, 'coin_oid must be bytes[16], was bytes[{}]'.format(len(coin_oid))
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert isinstance(coin_oid, bytes), "coin_oid must be bytes, was {}".format(type(coin_oid))
+        assert len(coin_oid) == 16, "coin_oid must be bytes[16], was bytes[{}]".format(len(coin_oid))
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
@@ -1792,17 +1903,19 @@ class Network(ApplicationSession):
         #
         # return markets
 
-    @wamp.register('xbr.network.find_markets', check_types=False)
-    async def find_markets(self,
-                           created_from: Optional[int] = None,
-                           limit: Optional[int] = None,
-                           include_owners: Optional[List[bytes]] = None,
-                           include_actors: Optional[List[bytes]] = None,
-                           include_titles: Optional[List[str]] = None,
-                           include_descriptions: Optional[List[str]] = None,
-                           include_tags: Optional[List[str]] = None,
-                           include_apis: Optional[List[bytes]] = None,
-                           details: Optional[CallDetails] = None) -> List[bytes]:
+    @wamp.register("xbr.network.find_markets", check_types=False)
+    async def find_markets(
+        self,
+        created_from: Optional[int] = None,
+        limit: Optional[int] = None,
+        include_owners: Optional[List[bytes]] = None,
+        include_actors: Optional[List[bytes]] = None,
+        include_titles: Optional[List[str]] = None,
+        include_descriptions: Optional[List[str]] = None,
+        include_tags: Optional[List[str]] = None,
+        include_apis: Optional[List[bytes]] = None,
+        details: Optional[CallDetails] = None,
+    ) -> List[bytes]:
         """
         Search for XBR Data Markets by
 
@@ -1859,28 +1972,35 @@ class Network(ApplicationSession):
 
         :return: List of addresses of markets matching the search criteria.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         created_from = created_from or 0
         limit = limit or 10
 
-        if (include_owners is not None or include_actors is not None or include_titles is not None
-                or include_descriptions is not None or include_tags is not None or include_apis is not None):
-            raise NotImplementedError('filters are not yet implemented')
+        if (
+            include_owners is not None
+            or include_actors is not None
+            or include_titles is not None
+            or include_descriptions is not None
+            or include_tags is not None
+            or include_apis is not None
+        ):
+            raise NotImplementedError("filters are not yet implemented")
 
         if created_from is not None and created_from < 0:
-            raise ValueError('limit must be a non-negative integer')
+            raise ValueError("limit must be a non-negative integer")
 
         if limit is not None and limit < 1:
-            raise ValueError('limit must be a strictly positive integer')
+            raise ValueError("limit must be a strictly positive integer")
 
         if limit is not None and limit > 10:
-            raise ValueError('limit exceeded system limit')
+            raise ValueError("limit exceeded system limit")
 
         def get_latest():
-            block_info = self._w3.eth.getBlock('latest')
-            return int(block_info['number'])
+            block_info = self._w3.eth.getBlock("latest")
+            return int(block_info["number"])
 
         latest = await deferToThread(get_latest)
         market_oids = []
@@ -1895,18 +2015,20 @@ class Network(ApplicationSession):
 
         return market_oids
 
-    @wamp.register('xbr.network.join_market', check_types=False)
-    async def join_market(self,
-                          member_id: bytes,
-                          market_id: bytes,
-                          chain_id: int,
-                          block_number: int,
-                          contract_adr: bytes,
-                          actor_type: int,
-                          meta_hash: Optional[bytes],
-                          meta_data: Optional[bytes],
-                          signature: bytes,
-                          details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.join_market", check_types=False)
+    async def join_market(
+        self,
+        member_id: bytes,
+        market_id: bytes,
+        chain_id: int,
+        block_number: int,
+        contract_adr: bytes,
+        actor_type: int,
+        meta_hash: Optional[bytes],
+        meta_data: Optional[bytes],
+        signature: bytes,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Join an existing data market as a buyer (data consumer) and/or seller (data provider).
 
@@ -1951,33 +2073,36 @@ class Network(ApplicationSession):
 
         :return:
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         member_id_ = uuid.UUID(bytes=member_id)
         market_id_ = uuid.UUID(bytes=market_id)
-        assert actor_type in [ActorType.PROVIDER, ActorType.CONSUMER,
-                              ActorType.PROVIDER_CONSUMER], 'invalid actor_type {}'.format(actor_type)
+        assert actor_type in [ActorType.PROVIDER, ActorType.CONSUMER, ActorType.PROVIDER_CONSUMER], (
+            "invalid actor_type {}".format(actor_type)
+        )
 
         self.log.info(
-            '{klass}.join_market(member_id={member_id}, market_id={market_id}, chain_id={chain_id}, block_number={block_number}, signature={signature}, details={details})',
+            "{klass}.join_market(member_id={member_id}, market_id={market_id}, chain_id={chain_id}, block_number={block_number}, signature={signature}, details={details})",
             klass=self.__class__.__name__,
             member_id=member_id_,
             market_id=market_id_,
             chain_id=chain_id,
             block_number=block_number,
             signature=signature,
-            details=details)
+            details=details,
+        )
 
-        submitted = await self._network.join_market(member_id_, market_id_, chain_id, block_number, contract_adr,
-                                                    actor_type, meta_hash, meta_data, signature)
+        submitted = await self._network.join_market(
+            member_id_, market_id_, chain_id, block_number, contract_adr, actor_type, meta_hash, meta_data, signature
+        )
         return submitted
 
-    @wamp.register('xbr.network.verify_join_market', check_types=True)
-    async def verify_join_market(self,
-                                 vaction_oid: bytes,
-                                 vaction_code: str,
-                                 details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.verify_join_market", check_types=True)
+    async def verify_join_market(
+        self, vaction_oid: bytes, vaction_code: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Verify joining a market by submitting a verification code.
 
@@ -2008,34 +2133,38 @@ class Network(ApplicationSession):
                     "joined": 1573675753141788247,
                 }
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         self.log.info(
-            '{klass}.verify_join_market(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})',
+            "{klass}.verify_join_market(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})",
             klass=self.__class__.__name__,
             vaction_oid=vaction_oid,
             vaction_code=vaction_code,
-            details=details)
+            details=details,
+        )
         join_market_request_verified = await self._network.verify_join_market(vaction_oid, vaction_code)
-        await self.publish('xbr.network.on_market_join',
-                           join_market_request_verified,
-                           options=PublishOptions(acknowledge=True))
+        await self.publish(
+            "xbr.network.on_market_join", join_market_request_verified, options=PublishOptions(acknowledge=True)
+        )
         return join_market_request_verified
 
-    @wamp.register('xbr.network.create_catalog', check_types=True)
-    async def create_catalog(self,
-                             member_oid: bytes,
-                             catalog_oid: bytes,
-                             verifying_chain_id: int,
-                             current_block_number: int,
-                             verifying_contract_adr: bytes,
-                             terms_hash: Optional[str],
-                             meta_hash: Optional[str],
-                             meta_data: Optional[bytes],
-                             signature: bytes,
-                             attributes: Optional[dict],
-                             details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.create_catalog", check_types=True)
+    async def create_catalog(
+        self,
+        member_oid: bytes,
+        catalog_oid: bytes,
+        verifying_chain_id: int,
+        current_block_number: int,
+        verifying_contract_adr: bytes,
+        terms_hash: Optional[str],
+        meta_hash: Optional[str],
+        meta_data: Optional[bytes],
+        signature: bytes,
+        attributes: Optional[dict],
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Create a new XBR Data FbsRepository.
 
@@ -2075,31 +2204,40 @@ class Network(ApplicationSession):
         assert meta_data is None or isinstance(meta_data, bytes)
         assert is_signature(signature)
         assert attributes is None or isinstance(attributes, dict)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         try:
             _member_oid = uuid.UUID(bytes=member_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid member_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid member_oid: {}".format(str(e)))
 
         member_oid_from_authid_ = extract_member_oid(details)
         if _member_oid != member_oid_from_authid_:
-            raise RuntimeError('Can only create catalog for own self!')
+            raise RuntimeError("Can only create catalog for own self!")
 
         _catalog_oid = uuid.UUID(bytes=catalog_oid)
 
-        submitted = await self._network.create_catalog(_member_oid, _catalog_oid, verifying_chain_id,
-                                                       current_block_number, verifying_contract_adr, terms_hash,
-                                                       meta_hash, meta_data, attributes, signature)
+        submitted = await self._network.create_catalog(
+            _member_oid,
+            _catalog_oid,
+            verifying_chain_id,
+            current_block_number,
+            verifying_contract_adr,
+            terms_hash,
+            meta_hash,
+            meta_data,
+            attributes,
+            signature,
+        )
 
         return submitted
 
-    @wamp.register('xbr.network.verify_create_catalog', check_types=True)
-    async def verify_create_catalog(self,
-                                    vaction_oid: bytes,
-                                    vaction_code: str,
-                                    details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.verify_create_catalog", check_types=True)
+    async def verify_create_catalog(
+        self, vaction_oid: bytes, vaction_code: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Verify creating a new data API catalog by submitting a verification code.
 
@@ -2136,26 +2274,31 @@ class Network(ApplicationSession):
             * ``catalog_oid``: ID of newly created catalog (16 bytes UUID).
         """
         self.log.info(
-            '{klass}.verify_create_market(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})',
+            "{klass}.verify_create_market(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})",
             klass=self.__class__.__name__,
             vaction_oid=vaction_oid,
             vaction_code=vaction_code,
-            details=details)
+            details=details,
+        )
 
         created_catalog_request_verified = await self._network.verify_create_catalog(vaction_oid, vaction_code)
-        await self.publish('xbr.network.on_catalog_created',
-                           created_catalog_request_verified,
-                           options=PublishOptions(acknowledge=True))
+        await self.publish(
+            "xbr.network.on_catalog_created",
+            created_catalog_request_verified,
+            options=PublishOptions(acknowledge=True),
+        )
         return created_catalog_request_verified
 
-    @wamp.register('xbr.network.remove_catalog', check_types=True)
-    def remove_catalog(self,
-                       member_oid: bytes,
-                       chain_id: int,
-                       block_number: int,
-                       contract_adr: bytes,
-                       signature: bytes,
-                       details: Optional[CallDetails] = None):
+    @wamp.register("xbr.network.remove_catalog", check_types=True)
+    def remove_catalog(
+        self,
+        member_oid: bytes,
+        chain_id: int,
+        block_number: int,
+        contract_adr: bytes,
+        signature: bytes,
+        details: Optional[CallDetails] = None,
+    ):
         """
         Remove an existing XBR Data FbsRepository.
 
@@ -2175,12 +2318,13 @@ class Network(ApplicationSession):
 
         :return: Data catalog removal information.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
-    @wamp.register('xbr.network.get_catalogs_by_owner', check_types=True)
+    @wamp.register("xbr.network.get_catalogs_by_owner", check_types=True)
     def get_catalogs_by_owner(self, member_oid: bytes, details: Optional[CallDetails] = None):
         """
         Get list of XBR Data Catalogs owned by the given member.
@@ -2192,34 +2336,33 @@ class Network(ApplicationSession):
 
         :return: List of OIDs of catalogs owned by the given member.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         member_oid_from_authid = extract_member_oid(details)
         member_oid_ = uuid.UUID(bytes=member_oid)
         if member_oid_ != member_oid_from_authid:
-            raise RuntimeError('only own catalogs can be accessed!')
+            raise RuntimeError("only own catalogs can be accessed!")
 
-        t_zero = np.datetime64(0, 'ns')
-        t_now = np.datetime64(time_ns(), 'ns')
+        t_zero = np.datetime64(0, "ns")
+        t_now = np.datetime64(time_ns(), "ns")
 
         catalogs = []
         with self._db.begin() as txn:
             owner = self._xbrnetwork.accounts[txn, member_oid_from_authid]
             owner_adr = bytes(owner.wallet_address)
-            for catalog_oid in self._xbr.idx_catalogs_by_owner.select(txn,
-                                                                      from_key=(owner_adr, t_zero),
-                                                                      to_key=(owner_adr, t_now),
-                                                                      return_keys=False):
+            for catalog_oid in self._xbr.idx_catalogs_by_owner.select(
+                txn, from_key=(owner_adr, t_zero), to_key=(owner_adr, t_now), return_keys=False
+            ):
                 catalogs.append(catalog_oid.bytes)
 
         return catalogs
 
-    @wamp.register('xbr.network.get_catalog', check_types=True)
-    def get_catalog(self,
-                    catalog_oid: bytes,
-                    include_attributes: bool = False,
-                    details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.get_catalog", check_types=True)
+    def get_catalog(
+        self, catalog_oid: bytes, include_attributes: bool = False, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Retrieve basic information for the given XBR Data FbsRepository.
 
@@ -2230,27 +2373,30 @@ class Network(ApplicationSession):
 
         :return: FbsRepository information.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         try:
             _catalog_oid = uuid.UUID(bytes=catalog_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid _catalog_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid _catalog_oid: {}".format(str(e)))
 
         catalog = self._network.get_catalog(_catalog_oid, include_attributes)
         return catalog.marshal()
 
-    @wamp.register('xbr.network.find_catalogs', check_types=False)
-    async def find_catalogs(self,
-                            created_from: Optional[int] = None,
-                            limit: Optional[int] = None,
-                            include_owners: Optional[List[bytes]] = None,
-                            include_apis: Optional[List[bytes]] = None,
-                            include_titles: Optional[List[str]] = None,
-                            include_descriptions: Optional[List[str]] = None,
-                            include_tags: Optional[List[str]] = None,
-                            details: Optional[CallDetails] = None) -> List[bytes]:
+    @wamp.register("xbr.network.find_catalogs", check_types=False)
+    async def find_catalogs(
+        self,
+        created_from: Optional[int] = None,
+        limit: Optional[int] = None,
+        include_owners: Optional[List[bytes]] = None,
+        include_apis: Optional[List[bytes]] = None,
+        include_titles: Optional[List[str]] = None,
+        include_descriptions: Optional[List[str]] = None,
+        include_tags: Optional[List[str]] = None,
+        details: Optional[CallDetails] = None,
+    ) -> List[bytes]:
         """
         Search for XBR Data Catalogs by
 
@@ -2299,8 +2445,8 @@ class Network(ApplicationSession):
         limit = limit or 10
 
         def get_latest():
-            block_info = self._w3.eth.getBlock('latest')
-            return int(block_info['number'])
+            block_info = self._w3.eth.getBlock("latest")
+            return int(block_info["number"])
 
         latest = await deferToThread(get_latest)
         catalog_oids = []
@@ -2312,21 +2458,23 @@ class Network(ApplicationSession):
                         break
         return catalog_oids
 
-    @wamp.register('xbr.network.publish_api', check_types=True)
-    def publish_api(self,
-                    member_oid: bytes,
-                    catalog_oid: bytes,
-                    api_oid: bytes,
-                    verifying_chain_id: int,
-                    current_block_number: int,
-                    verifying_contract_adr: bytes,
-                    schema_hash: str,
-                    schema_data: bytes,
-                    meta_hash: Optional[str],
-                    meta_data: Optional[bytes],
-                    signature: bytes,
-                    attributes: Optional[dict] = None,
-                    details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.publish_api", check_types=True)
+    def publish_api(
+        self,
+        member_oid: bytes,
+        catalog_oid: bytes,
+        api_oid: bytes,
+        verifying_chain_id: int,
+        current_block_number: int,
+        verifying_contract_adr: bytes,
+        schema_hash: str,
+        schema_data: bytes,
+        meta_hash: Optional[str],
+        meta_data: Optional[bytes],
+        signature: bytes,
+        attributes: Optional[dict] = None,
+        details: Optional[CallDetails] = None,
+    ) -> dict:
         """
         Publish an API to an existing XBR Data FbsRepository.
 
@@ -2374,16 +2522,28 @@ class Network(ApplicationSession):
         assert (meta_hash is None and meta_data is None) or (meta_hash is not None and meta_data is not None)
         assert is_signature(signature)
         assert attributes is None or isinstance(attributes, dict)
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         member_oid_ = uuid.UUID(bytes=member_oid)
         catalog_oid_ = uuid.UUID(bytes=catalog_oid)
         api_oid_ = uuid.UUID(bytes=api_oid)
 
-        result = self._network.publish_api(member_oid_, catalog_oid_, api_oid_, verifying_chain_id,
-                                           current_block_number, verifying_contract_adr, schema_hash, schema_data,
-                                           meta_hash, meta_data, signature, attributes)
+        result = self._network.publish_api(
+            member_oid_,
+            catalog_oid_,
+            api_oid_,
+            verifying_chain_id,
+            current_block_number,
+            verifying_contract_adr,
+            schema_hash,
+            schema_data,
+            meta_hash,
+            meta_data,
+            signature,
+            attributes,
+        )
 
         # member_oid_ = uuid.UUID(bytes=member_oid)
         # catalog_oid = uuid.UUID(bytes=catalog_oid)
@@ -2391,11 +2551,10 @@ class Network(ApplicationSession):
 
         return result
 
-    @wamp.register('xbr.network.verify_publish_api', check_types=True)
-    async def verify_publish_api(self,
-                                 vaction_oid: bytes,
-                                 vaction_code: str,
-                                 details: Optional[CallDetails] = None) -> dict:
+    @wamp.register("xbr.network.verify_publish_api", check_types=True)
+    async def verify_publish_api(
+        self, vaction_oid: bytes, vaction_code: str, details: Optional[CallDetails] = None
+    ) -> dict:
         """
         Verify publishing an API to an API catalog by submitting a verification code.
 
@@ -2434,19 +2593,20 @@ class Network(ApplicationSession):
             * ``api_oid``: OID of newly published API (16 bytes UUID).
         """
         self.log.info(
-            '{klass}.verify_publish_api(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})',
+            "{klass}.verify_publish_api(vaction_oid={vaction_oid}, vaction_code={vaction_code}, details={details})",
             klass=self.__class__.__name__,
             vaction_oid=vaction_oid,
             vaction_code=vaction_code,
-            details=details)
+            details=details,
+        )
 
         created_catalog_request_verified = self._network.verify_publish_api(vaction_oid, vaction_code)
-        await self.publish('xbr.network.on_api_published',
-                           created_catalog_request_verified,
-                           options=PublishOptions(acknowledge=True))
+        await self.publish(
+            "xbr.network.on_api_published", created_catalog_request_verified, options=PublishOptions(acknowledge=True)
+        )
         return created_catalog_request_verified
 
-    @wamp.register('xbr.network.get_api', check_types=True)
+    @wamp.register("xbr.network.get_api", check_types=True)
     def get_api(self, api_oid: bytes, include_attributes: bool = False, details: Optional[CallDetails] = None) -> dict:
         """
         Retrieve basic information for the given XBR API.
@@ -2458,27 +2618,30 @@ class Network(ApplicationSession):
 
         :return: API information.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         try:
             _api_oid = uuid.UUID(bytes=api_oid)
         except Exception as e:
-            raise ApplicationError('wamp.error.invalid_argument', 'invalid api_oid: {}'.format(str(e)))
+            raise ApplicationError("wamp.error.invalid_argument", "invalid api_oid: {}".format(str(e)))
 
         api = self._network.get_api(_api_oid, include_attributes)
         return api.marshal()
 
-    @wamp.register('xbr.network.find_apis', check_types=False)
-    async def find_apis(self,
-                        created_from: Optional[int] = None,
-                        limit: Optional[int] = None,
-                        include_owners: Optional[List[bytes]] = None,
-                        include_catalogs: Optional[List[bytes]] = None,
-                        include_titles: Optional[List[str]] = None,
-                        include_descriptions: Optional[List[str]] = None,
-                        include_tags: Optional[List[str]] = None,
-                        details: Optional[CallDetails] = None) -> List[bytes]:
+    @wamp.register("xbr.network.find_apis", check_types=False)
+    async def find_apis(
+        self,
+        created_from: Optional[int] = None,
+        limit: Optional[int] = None,
+        include_owners: Optional[List[bytes]] = None,
+        include_catalogs: Optional[List[bytes]] = None,
+        include_titles: Optional[List[str]] = None,
+        include_descriptions: Optional[List[str]] = None,
+        include_tags: Optional[List[str]] = None,
+        details: Optional[CallDetails] = None,
+    ) -> List[bytes]:
         """
         Search for XBR APIs by
 
@@ -2527,8 +2690,8 @@ class Network(ApplicationSession):
         limit = limit or 10
 
         def get_latest():
-            block_info = self._w3.eth.getBlock('latest')
-            return int(block_info['number'])
+            block_info = self._w3.eth.getBlock("latest")
+            return int(block_info["number"])
 
         latest = await deferToThread(get_latest)
         api_oids = []
@@ -2540,14 +2703,16 @@ class Network(ApplicationSession):
                         break
         return api_oids
 
-    @wamp.register('xbr.network.create_domain', check_types=True)
-    def create_domain(self,
-                      member_oid: bytes,
-                      chain_id: int,
-                      block_number: int,
-                      contract_adr: bytes,
-                      signature: bytes,
-                      details: Optional[CallDetails] = None):
+    @wamp.register("xbr.network.create_domain", check_types=True)
+    def create_domain(
+        self,
+        member_oid: bytes,
+        chain_id: int,
+        block_number: int,
+        contract_adr: bytes,
+        signature: bytes,
+        details: Optional[CallDetails] = None,
+    ):
         """
         Create a new XBR Cloud Domain.
 
@@ -2567,19 +2732,22 @@ class Network(ApplicationSession):
 
         :return: Cloud domain creation information.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
-    @wamp.register('xbr.network.remove_domain', check_types=True)
-    def remove_domain(self,
-                      member_oid: bytes,
-                      chain_id: int,
-                      block_number: int,
-                      contract_adr: bytes,
-                      signature: bytes,
-                      details: Optional[CallDetails] = None):
+    @wamp.register("xbr.network.remove_domain", check_types=True)
+    def remove_domain(
+        self,
+        member_oid: bytes,
+        chain_id: int,
+        block_number: int,
+        contract_adr: bytes,
+        signature: bytes,
+        details: Optional[CallDetails] = None,
+    ):
         """
         Remove an existing XBR Cloud Domain.
 
@@ -2599,12 +2767,13 @@ class Network(ApplicationSession):
 
         :return: Cloud domain removal information.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
-    @wamp.register('xbr.network.get_domains_by_owner', check_types=True)
+    @wamp.register("xbr.network.get_domains_by_owner", check_types=True)
     def get_domains_by_owner(self, member_oid: bytes, details: Optional[CallDetails] = None):
         """
         Get list of XBR Cloud Domains owned by the given member.
@@ -2616,12 +2785,13 @@ class Network(ApplicationSession):
 
         :return: List of addresses of domains owned by the given member.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
-    @wamp.register('xbr.network.get_domain', check_types=True)
+    @wamp.register("xbr.network.get_domain", check_types=True)
     def get_domain(self, domain_adr: bytes, details: Optional[CallDetails] = None):
         """
         Retrieve basic information for the given XBR Cloud Domain.
@@ -2633,18 +2803,21 @@ class Network(ApplicationSession):
 
         :return: Domain information.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()
 
-    @wamp.register('xbr.network.find_domains', check_types=True)
-    def find_domains(self,
-                     include_owners: Optional[list] = None,
-                     include_titles: Optional[list] = None,
-                     include_descs: Optional[list] = None,
-                     include_tags: Optional[list] = None,
-                     details: Optional[CallDetails] = None):
+    @wamp.register("xbr.network.find_domains", check_types=True)
+    def find_domains(
+        self,
+        include_owners: Optional[list] = None,
+        include_titles: Optional[list] = None,
+        include_descs: Optional[list] = None,
+        include_tags: Optional[list] = None,
+        details: Optional[CallDetails] = None,
+    ):
         """
         Search for XBR Cloud Domains by owner, label, description, tags, etc.
 
@@ -2661,7 +2834,8 @@ class Network(ApplicationSession):
 
         :return: List of addresses of cloud domains matching the search criteria.
         """
-        assert details is None or isinstance(
-            details, CallDetails), 'details must be `autobahn.wamp.types.CallDetails`, but was `{}`'.format(details)
+        assert details is None or isinstance(details, CallDetails), (
+            "details must be `autobahn.wamp.types.CallDetails`, but was `{}`".format(details)
+        )
 
         raise NotImplementedError()

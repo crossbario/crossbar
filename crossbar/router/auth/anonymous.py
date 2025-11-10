@@ -6,17 +6,17 @@
 #####################################################################################
 
 from typing import Union
-from txaio import make_logger, as_future
 
 from autobahn import util
-from autobahn.wamp.types import Accept, Deny, HelloDetails, Challenge
+from autobahn.wamp.types import Accept, Challenge, Deny, HelloDetails
+from txaio import as_future, make_logger
 
-from crossbar.router.auth.pending import PendingAuth
 from crossbar._util import hlid, hltype, hlval
+from crossbar.router.auth.pending import PendingAuth
 
 __all__ = (
-    'PendingAuthAnonymous',
-    'PendingAuthAnonymousProxy',
+    "PendingAuthAnonymous",
+    "PendingAuthAnonymousProxy",
 )
 
 
@@ -27,39 +27,39 @@ class PendingAuthAnonymous(PendingAuth):
 
     log = make_logger()
 
-    AUTHMETHOD = 'anonymous'
+    AUTHMETHOD = "anonymous"
 
     def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
         self.log.info(
-            '{func}(realm={realm}, details.realm={authrealm}, details.authid={authid}, details.authrole={authrole}) [config={config}]',
+            "{func}(realm={realm}, details.realm={authrealm}, details.authid={authid}, details.authrole={authrole}) [config={config}]",
             func=hltype(self.hello),
             realm=hlid(realm),
             authrealm=hlid(details.realm),
             authid=hlid(details.authid),
             authrole=hlid(details.authrole),
-            config=self._config)
+            config=self._config,
+        )
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
 
-        self._authid = self._config.get('authid', util.generate_serial_number())
+        self._authid = self._config.get("authid", util.generate_serial_number())
 
-        self._session_details['authmethod'] = 'anonymous'
-        self._session_details['authextra'] = details.authextra
+        self._session_details["authmethod"] = "anonymous"
+        self._session_details["authextra"] = details.authextra
 
         # WAMP-anonymous "static"
-        if self._config['type'] == 'static':
-
-            self._authprovider = 'static'
+        if self._config["type"] == "static":
+            self._authprovider = "static"
 
             # FIXME: if cookie tracking is enabled, set authid to cookie value
             # self._authid = self._transport._cbtid
 
             principal = {
-                'realm': realm,
-                'authid': self._authid,
-                'role': self._config.get('role', 'anonymous'),
-                'extra': details.authextra
+                "realm": realm,
+                "authid": self._authid,
+                "role": self._config.get("role", "anonymous"),
+                "extra": details.authextra,
             }
 
             error = self._assign_principal(principal)
@@ -69,9 +69,8 @@ class PendingAuthAnonymous(PendingAuth):
             return self._accept()
 
         # WAMP-Ticket "dynamic"
-        elif self._config['type'] == 'dynamic':
-
-            self._authprovider = 'dynamic'
+        elif self._config["type"] == "dynamic":
+            self._authprovider = "dynamic"
 
             init_d = as_future(self._init_dynamic_authenticator)
 
@@ -79,8 +78,9 @@ class PendingAuthAnonymous(PendingAuth):
                 if result:
                     return result
 
-                d = self._authenticator_session.call(self._authenticator, self._realm, self._authid,
-                                                     self._session_details)
+                d = self._authenticator_session.call(
+                    self._authenticator, self._realm, self._authid, self._session_details
+                )
 
                 def on_authenticate_ok(_principal):
                     _error = self._assign_principal(_principal)
@@ -101,8 +101,11 @@ class PendingAuthAnonymous(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
-                self._config['type']))
+            return Deny(
+                message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
+                    self._config["type"]
+                )
+            )
 
 
 class PendingAuthAnonymousProxy(PendingAuthAnonymous):
@@ -111,36 +114,35 @@ class PendingAuthAnonymousProxy(PendingAuthAnonymous):
     """
 
     log = make_logger()
-    AUTHMETHOD = 'anonymous-proxy'
+    AUTHMETHOD = "anonymous-proxy"
 
     def hello(self, realm, details):
-        self.log.debug('{func}(realm="{realm}", details={details})',
-                       func=hltype(self.hello),
-                       realm=hlval(realm),
-                       details=details)
+        self.log.debug(
+            '{func}(realm="{realm}", details={details})', func=hltype(self.hello), realm=hlval(realm), details=details
+        )
         extra = details.authextra or {}
 
-        for attr in ['proxy_authid', 'proxy_authrole', 'proxy_realm']:
+        for attr in ["proxy_authid", "proxy_authrole", "proxy_realm"]:
             if attr not in extra:
-                return Deny(message='missing required attribute {}'.format(attr))
+                return Deny(message="missing required attribute {}".format(attr))
 
-        realm = extra['proxy_realm']
-        details.authid = extra['proxy_authid']
-        details.authrole = extra['proxy_authrole']
-        details.authextra = extra.get('proxy_authextra', None)
+        realm = extra["proxy_realm"]
+        details.authid = extra["proxy_authid"]
+        details.authrole = extra["proxy_authrole"]
+        details.authextra = extra.get("proxy_authextra", None)
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
         self._authid = details.authid
         self._authrole = details.authrole
-        self._session_details['authmethod'] = self.AUTHMETHOD
-        self._session_details['authextra'] = details.authextra
-        self._authprovider = 'static'
+        self._session_details["authmethod"] = self.AUTHMETHOD
+        self._session_details["authextra"] = details.authextra
+        self._authprovider = "static"
 
         # FIXME: if cookie tracking is enabled, set authid to cookie value
         # self._authid = self._transport._cbtid
 
-        principal = {'realm': realm, 'authid': details.authid, 'role': details.authrole, 'extra': details.authextra}
+        principal = {"realm": realm, "authid": details.authid, "role": details.authrole, "extra": details.authextra}
 
         error = self._assign_principal(principal)
         if error:

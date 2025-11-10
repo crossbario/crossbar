@@ -1,24 +1,25 @@
+import json
 import os
 import sys
 import venv
-import json
-from os.path import abspath
-from os.path import join
+from os.path import abspath, join
 from subprocess import check_call  # nosec
 
 import click
 
 from crossbar.quickstart.main import hl  # XXX "util" or similar instead?
 
-__all__ = ('main', )
+__all__ = ("main",)
 
 
 @click.command()
-@click.option("--framework",
-              prompt=True,
-              type=click.Choice(['twisted', 'asyncio']),
-              help="The Python networking framework to use",
-              default="twisted")
+@click.option(
+    "--framework",
+    prompt=True,
+    type=click.Choice(["twisted", "asyncio"]),
+    help="The Python networking framework to use",
+    default="twisted",
+)
 @click.option(
     "--directory",
     prompt=True,
@@ -33,35 +34,42 @@ __all__ = ('main', )
     metavar="URI",
 )
 def main(framework, directory, cfc):
-    """
-    """
+    """ """
     directory = abspath(directory)
     if cfc is None:
         cfc = "ws://localhost:4444"
 
-    click.echo('{cb} Project Quickstart (virtualenv)\n'.format(cb=hl('Crossbar.io / XBR'), ))
-    click.echo("  Framework:  {fw}\n"
-               "  Location:   {d}\n"
-               "  CFC URI:    {fabric_uri}\n".format(
-                   fw=framework,
-                   d=directory,
-                   fabric_uri=cfc,
-               ))
+    click.echo(
+        "{cb} Project Quickstart (virtualenv)\n".format(
+            cb=hl("Crossbar.io / XBR"),
+        )
+    )
+    click.echo(
+        "  Framework:  {fw}\n  Location:   {d}\n  CFC URI:    {fabric_uri}\n".format(
+            fw=framework,
+            d=directory,
+            fabric_uri=cfc,
+        )
+    )
 
     os.mkdir(directory)
-    venv_location = join(directory, 'venv')
+    venv_location = join(directory, "venv")
     _create_virtualenv(venv_location, framework)
     _create_applications(directory, venv_location, cfc)
     _create_makefile(directory, venv_location)
 
-    click.echo("\n"
-               "Quickstart Successful\n"
-               "\n"
-               "There is Makefile in '{mf}'\n"
-               "Starting one shell per target, run these (in this order):\n"
-               "  - make etcd\n"
-               "  - make cfc\n"
-               "  - make app0\n".format(mf=click.style(directory, bold=True, fg='yellow'), ))
+    click.echo(
+        "\n"
+        "Quickstart Successful\n"
+        "\n"
+        "There is Makefile in '{mf}'\n"
+        "Starting one shell per target, run these (in this order):\n"
+        "  - make etcd\n"
+        "  - make cfc\n"
+        "  - make app0\n".format(
+            mf=click.style(directory, bold=True, fg="yellow"),
+        )
+    )
 
 
 def _create_makefile(directory, venv_location):
@@ -72,7 +80,8 @@ def _create_makefile(directory, venv_location):
     }
     os.mkdir(join(directory, "etcd-data"))
     with open(join(directory, "Makefile"), "w") as makefile:
-        makefile.write("""
+        makefile.write(
+            """
 # generated makefile used command:
 # {command_line}
 
@@ -102,7 +111,8 @@ cfc:
 
 app0:
 \t{venv}/bin/crossbar edge start --cbdir {top_level}/app0/.crossbar
-""".format(**template_args))
+""".format(**template_args)
+        )
 
 
 def _create_applications(location, venv, cfc):
@@ -114,8 +124,8 @@ def _create_applications(location, venv, cfc):
     check_call([cbfx, "master", "init", "--appdir", master])  # nosec
     with open(join(master, ".crossbar", "config.json")) as f:
         data = json.load(f)
-    data['workers'][0]['transports'][0]['endpoint']['port'] = 4444
-    with open(join(master, ".crossbar", "config.json"), 'w') as f:
+    data["workers"][0]["transports"][0]["endpoint"]["port"] = 4444
+    with open(join(master, ".crossbar", "config.json"), "w") as f:
         json.dump(data, f, indent=4)
 
     # create an 'edge' node (application)
@@ -125,12 +135,12 @@ def _create_applications(location, venv, cfc):
         data = json.load(f)
 
     if cfc:
-        data['controller']['fabric'] = {
-            'transport': {
-                'url': cfc,
+        data["controller"]["fabric"] = {
+            "transport": {
+                "url": cfc,
             }
         }
-    with open(join(app0, ".crossbar", "config.json"), 'w') as f:
+    with open(join(app0, ".crossbar", "config.json"), "w") as f:
         json.dump(data, f, indent=4)
 
 

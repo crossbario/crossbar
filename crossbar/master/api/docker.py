@@ -7,7 +7,7 @@
 
 from crossbar.master.api.remote import RemoteApi
 
-__all__ = ('RemoteDockerApi', )
+__all__ = ("RemoteDockerApi",)
 
 
 class RemoteDockerApi(RemoteApi):

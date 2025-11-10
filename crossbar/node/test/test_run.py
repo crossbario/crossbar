@@ -13,8 +13,9 @@ import unittest
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.task import LoopingCall
 
-from crossbar.node import main
 from crossbar import edge
+from crossbar.node import main
+
 from .test_cli import CLITestBase
 
 # Turn this to `True` to print the stdout/stderr of the Crossbars spawned
@@ -22,7 +23,6 @@ DEBUG = False
 
 
 def make_lc(self, reactor, func):
-
     if DEBUG:
         self.stdout_length = 0
         self.stderr_length = 0
@@ -32,10 +32,10 @@ def make_lc(self, reactor, func):
             stdout = self.stdout.getvalue()
             stderr = self.stderr.getvalue()
 
-            if self.stdout.getvalue()[self.stdout_length:]:
-                print(self.stdout.getvalue()[self.stdout_length:], file=sys.__stdout__)
-            if self.stderr.getvalue()[self.stderr_length:]:
-                print(self.stderr.getvalue()[self.stderr_length:], file=sys.__stderr__)
+            if self.stdout.getvalue()[self.stdout_length :]:
+                print(self.stdout.getvalue()[self.stdout_length :], file=sys.__stdout__)
+            if self.stderr.getvalue()[self.stderr_length :]:
+                print(self.stderr.getvalue()[self.stderr_length :], file=sys.__stderr__)
 
             self.stdout_length = len(stdout)
             self.stderr_length = len(stderr)
@@ -54,7 +54,6 @@ if not os.environ.get("CB_FULLTESTS"):
     @unittest.skip("FIXME (broken unit test)")
     class ContainerRunningTests(CLITestBase):
         def setUp(self):
-
             CLITestBase.setUp(self)
 
             # Set up the configuration directories
@@ -65,12 +64,11 @@ if not os.environ.get("CB_FULLTESTS"):
             os.mkdir(self.code_location)
 
         def _start_run(self, config, app, stdout_expected, stderr_expected, end_on):
-
-            if 'version' not in config:
-                config['version'] = 2
+            if "version" not in config:
+                config["version"] = 2
 
             with open(self.config, "wb") as f:
-                f.write(json.dumps(config, ensure_ascii=False).encode('utf8'))
+                f.write(json.dumps(config, ensure_ascii=False).encode("utf8"))
 
             with open(self.code_location + "/myapp.py", "w") as f:
                 f.write(app)
@@ -82,9 +80,12 @@ if not os.environ.get("CB_FULLTESTS"):
             # In case it hard-locks
             reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-            main.main("crossbar", ["start", "--cbdir={}".format(self.cbdir), "--logformat=syslogd"],
-                      reactor=reactor,
-                      personality=edge.Personality)
+            main.main(
+                "crossbar",
+                ["start", "--cbdir={}".format(self.cbdir), "--logformat=syslogd"],
+                reactor=reactor,
+                personality=edge.Personality,
+            )
 
             out = self.stdout.getvalue()
             err = self.stderr.getvalue()
@@ -112,69 +113,58 @@ if not os.environ.get("CB_FULLTESTS"):
                         pass
 
             config = {
-                "version":
-                2,
+                "version": 2,
                 "controller": {},
-                "workers": [{
-                    "type":
-                    "router",
-                    "options": {
-                        "pythonpath": ["."]
-                    },
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "directory": ".",
-                                "type": "static"
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "options": {"pythonpath": ["."]},
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"directory": ".", "type": "static"}, "ws": {"type": "websocket"}},
+                            }
+                        ],
                     },
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8080
-                            },
-                            "url": "ws://127.0.0.1:8080/ws"
-                        }
-                    }]
-                }]
+                    {
+                        "type": "container",
+                        "options": {"pythonpath": [self.code_location]},
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8080},
+                                    "url": "ws://127.0.0.1:8080/ws",
+                                },
+                            }
+                        ],
+                    },
+                ],
             }
 
             myapp = """#!/usr/bin/env python
@@ -208,53 +198,47 @@ if not os.environ.get("CB_FULLTESTS"):
                         pass
 
             config = {
-                "version":
-                2,
+                "version": 2,
                 "controller": {},
-                "workers": [{
-                    "type":
-                    "router",
-                    "options": {
-                        "pythonpath": ["."]
-                    },
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "directory": ".",
-                                "type": "static"
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "options": {"pythonpath": ["."]},
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type": "guest",
-                    "executable": sys.executable,
-                    "arguments": [os.path.join(self.code_location, "myapp.py")]
-                }]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"directory": ".", "type": "static"}, "ws": {"type": "websocket"}},
+                            }
+                        ],
+                    },
+                    {
+                        "type": "guest",
+                        "executable": sys.executable,
+                        "arguments": [os.path.join(self.code_location, "myapp.py")],
+                    },
+                ],
             }
 
             myapp = """#!/usr/bin/env python
@@ -279,69 +263,58 @@ if not os.environ.get("CB_FULLTESTS"):
                         pass
 
             config = {
-                "version":
-                2,
+                "version": 2,
                 "controller": {},
-                "workers": [{
-                    "type":
-                    "router",
-                    "options": {
-                        "pythonpath": ["."]
-                    },
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "directory": ".",
-                                "type": "static"
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "options": {"pythonpath": ["."]},
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"directory": ".", "type": "static"}, "ws": {"type": "websocket"}},
+                            }
+                        ],
                     },
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8080
-                            },
-                            "url": "ws://127.0.0.1:8080/ws"
-                        }
-                    }]
-                }]
+                    {
+                        "type": "container",
+                        "options": {"pythonpath": [self.code_location]},
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8080},
+                                    "url": "ws://127.0.0.1:8080/ws",
+                                },
+                            }
+                        ],
+                    },
+                ],
             }
 
             myapp = """#!/usr/bin/env python
@@ -365,63 +338,55 @@ if not os.environ.get("CB_FULLTESTS"):
             to the caller.
             """
             config = {
-                "workers": [{
-                    "type":
-                    "router",
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": ".."
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"type": "static", "directory": ".."}, "ws": {"type": "websocket"}},
+                            }
+                        ],
                     },
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8080
-                            },
-                            "url": "ws://127.0.0.1:8080/ws"
-                        }
-                    }]
-                }]
+                    {
+                        "type": "container",
+                        "options": {"pythonpath": [self.code_location]},
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8080},
+                                    "url": "ws://127.0.0.1:8080/ws",
+                                },
+                            }
+                        ],
+                    },
+                ]
             }
 
             myapp = """from twisted.logger import Logger
@@ -465,62 +430,55 @@ if not os.environ.get("CB_FULLTESTS"):
             self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
         def test_failure1(self):
-
             config = {
-                "workers": [{
-                    "type":
-                    "router",
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": ".."
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8080
-                            },
-                            "url": "ws://127.0.0.1:8080/ws"
-                        }
-                    }]
-                }]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"type": "static", "directory": ".."}, "ws": {"type": "websocket"}},
+                            }
+                        ],
+                    },
+                    {
+                        "type": "container",
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8080},
+                                    "url": "ws://127.0.0.1:8080/ws",
+                                },
+                            }
+                        ],
+                    },
+                ]
             }
 
             myapp = """from twisted.logger import Logger
@@ -547,65 +505,56 @@ if not os.environ.get("CB_FULLTESTS"):
             self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
         def test_failure2(self):
-
             config = {
-                "workers": [{
-                    "type":
-                    "router",
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": ".."
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"type": "static", "directory": ".."}, "ws": {"type": "websocket"}},
+                            }
+                        ],
                     },
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession2",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8080
-                            },
-                            "url": "ws://127.0.0.1:8080/ws"
-                        }
-                    }]
-                }]
+                    {
+                        "type": "container",
+                        "options": {"pythonpath": [self.code_location]},
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession2",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8080},
+                                    "url": "ws://127.0.0.1:8080/ws",
+                                },
+                            }
+                        ],
+                    },
+                ]
             }
 
             myapp = """
@@ -636,65 +585,56 @@ if not os.environ.get("CB_FULLTESTS"):
             self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
         def test_failure3(self):
-
             config = {
-                "workers": [{
-                    "type":
-                    "router",
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": ".."
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"type": "static", "directory": ".."}, "ws": {"type": "websocket"}},
+                            }
+                        ],
                     },
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8080
-                            },
-                            "url": "ws://127.0.0.1:8080/ws"
-                        }
-                    }]
-                }]
+                    {
+                        "type": "container",
+                        "options": {"pythonpath": [self.code_location]},
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8080},
+                                    "url": "ws://127.0.0.1:8080/ws",
+                                },
+                            }
+                        ],
+                    },
+                ]
             }
 
             myapp = """
@@ -723,65 +663,56 @@ if not os.environ.get("CB_FULLTESTS"):
             self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
         def test_failure4(self):
-
             config = {
-                "workers": [{
-                    "type":
-                    "router",
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": ".."
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"type": "static", "directory": ".."}, "ws": {"type": "websocket"}},
+                            }
+                        ],
                     },
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8080
-                            },
-                            "url": "ws://127.0.0.1:8080/ws"
-                        }
-                    }]
-                }]
+                    {
+                        "type": "container",
+                        "options": {"pythonpath": [self.code_location]},
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8080},
+                                    "url": "ws://127.0.0.1:8080/ws",
+                                },
+                            }
+                        ],
+                    },
+                ]
             }
 
             myapp = """
@@ -810,68 +741,58 @@ if not os.environ.get("CB_FULLTESTS"):
             self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
         def test_failure5(self):
-
             config = {
-                "version":
-                2,
+                "version": 2,
                 "controller": {},
-                "workers": [{
-                    "type":
-                    "router",
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": ".."
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"type": "static", "directory": ".."}, "ws": {"type": "websocket"}},
+                            }
+                        ],
                     },
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8080
-                            },
-                            "url": "ws://127.0.0.1:8080/ws"
-                        }
-                    }]
-                }]
+                    {
+                        "type": "container",
+                        "options": {"pythonpath": [self.code_location]},
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8080},
+                                    "url": "ws://127.0.0.1:8080/ws",
+                                },
+                            }
+                        ],
+                    },
+                ],
             }
 
             myapp = """
@@ -904,68 +825,58 @@ if not os.environ.get("CB_FULLTESTS"):
             self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
         def test_failure6(self):
-
             config = {
-                "version":
-                2,
+                "version": 2,
                 "controller": {},
-                "workers": [{
-                    "type":
-                    "router",
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": ".."
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"type": "static", "directory": ".."}, "ws": {"type": "websocket"}},
+                            }
+                        ],
                     },
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8080
-                            },
-                            "url": "ws://127.0.0.1:8080/ws"
-                        }
-                    }]
-                }]
+                    {
+                        "type": "container",
+                        "options": {"pythonpath": [self.code_location]},
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8080},
+                                    "url": "ws://127.0.0.1:8080/ws",
+                                },
+                            }
+                        ],
+                    },
+                ],
             }
 
             myapp = """
@@ -999,73 +910,65 @@ if not os.environ.get("CB_FULLTESTS"):
                 pass
 
             expected_stdout = [
-                "Session ended: CloseDetails", "Sleeping a couple of secs and then shutting down",
-                "Container is hosting no more components: shutting down"
+                "Session ended: CloseDetails",
+                "Sleeping a couple of secs and then shutting down",
+                "Container is hosting no more components: shutting down",
             ]
             expected_stderr = []
 
             self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
         def test_failure7(self):
-
             config = {
-                "workers": [{
-                    "type":
-                    "router",
-                    "realms": [{
-                        "name":
-                        "realm1",
-                        "roles": [{
-                            "name":
-                            "anonymous",
-                            "permissions": [{
-                                "uri": "*",
-                                "allow": {
-                                    "publish": True,
-                                    "subscribe": True,
-                                    "call": True,
-                                    "register": True
-                                }
-                            }]
-                        }]
-                    }],
-                    "transports": [{
-                        "type": "web",
-                        "endpoint": {
-                            "type": "tcp",
-                            "port": 8080
-                        },
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": ".."
-                            },
-                            "ws": {
-                                "type": "websocket"
+                "workers": [
+                    {
+                        "type": "router",
+                        "realms": [
+                            {
+                                "name": "realm1",
+                                "roles": [
+                                    {
+                                        "name": "anonymous",
+                                        "permissions": [
+                                            {
+                                                "uri": "*",
+                                                "allow": {
+                                                    "publish": True,
+                                                    "subscribe": True,
+                                                    "call": True,
+                                                    "register": True,
+                                                },
+                                            }
+                                        ],
+                                    }
+                                ],
                             }
-                        }
-                    }]
-                }, {
-                    "type":
-                    "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
+                        ],
+                        "transports": [
+                            {
+                                "type": "web",
+                                "endpoint": {"type": "tcp", "port": 8080},
+                                "paths": {"/": {"type": "static", "directory": ".."}, "ws": {"type": "websocket"}},
+                            }
+                        ],
                     },
-                    "components": [{
-                        "type": "class",
-                        "classname": "myapp.MySession",
-                        "realm": "realm1",
-                        "transport": {
-                            "type": "websocket",
-                            "endpoint": {
-                                "type": "tcp",
-                                "host": "127.0.0.1",
-                                "port": 8090
-                            },
-                            "url": "ws://127.0.0.1:8090/ws"
-                        }
-                    }]
-                }]
+                    {
+                        "type": "container",
+                        "options": {"pythonpath": [self.code_location]},
+                        "components": [
+                            {
+                                "type": "class",
+                                "classname": "myapp.MySession",
+                                "realm": "realm1",
+                                "transport": {
+                                    "type": "websocket",
+                                    "endpoint": {"type": "tcp", "host": "127.0.0.1", "port": 8090},
+                                    "url": "ws://127.0.0.1:8090/ws",
+                                },
+                            }
+                        ],
+                    },
+                ]
             }
 
             myapp = """
@@ -1089,7 +992,7 @@ if not os.environ.get("CB_FULLTESTS"):
                 pass
 
             expected_stdout = []
-            expected_stderr = [("Could not connect container component to router - transport " "establishment failed")]
+            expected_stderr = [("Could not connect container component to router - transport establishment failed")]
 
             self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
@@ -1108,9 +1011,9 @@ if not os.environ.get("CB_FULLTESTS"):
             cbdir = os.path.join(appdir, ".crossbar")
 
             reactor = SelectReactor()
-            main.main("crossbar", ["init", "--appdir={}".format(appdir)],
-                      reactor=reactor,
-                      personality=edge.Personality)
+            main.main(
+                "crossbar", ["init", "--appdir={}".format(appdir)], reactor=reactor, personality=edge.Personality
+            )
 
             self.assertIn("Application template initialized", self.stdout.getvalue())
 
@@ -1120,9 +1023,12 @@ if not os.environ.get("CB_FULLTESTS"):
             # In case it hard-locks
             reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-            main.main("crossbar", ["start", "--cbdir={}".format(cbdir.path), "--logformat=syslogd"],
-                      reactor=reactor,
-                      personality=edge.Personality)
+            main.main(
+                "crossbar",
+                ["start", "--cbdir={}".format(cbdir.path), "--logformat=syslogd"],
+                reactor=reactor,
+                personality=edge.Personality,
+            )
 
             stdout_expected = ["published to 'oncounter'"]
 

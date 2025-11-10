@@ -15,10 +15,12 @@ class RouterWebServiceWebSocket(RouterWebService):
     """
     WAMP-WebSocket service.
     """
+
     @staticmethod
     def create(transport, path, config):
-        websocket_factory = WampWebSocketServerFactory(transport._worker._router_session_factory, transport.cbdir,
-                                                       config, transport.templates)
+        websocket_factory = WampWebSocketServerFactory(
+            transport._worker._router_session_factory, transport.cbdir, config, transport.templates
+        )
 
         # FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
         websocket_factory.startFactory()
@@ -32,6 +34,7 @@ class RouterWebServiceWebSocketReverseProxy(RouterWebService):
     """
     Reverse WebSocket service.
     """
+
     @staticmethod
     def create(transport, path, config):
         ws_rproxy_factory = WebSocketReverseProxyServerFactory(transport._worker._reactor, config)

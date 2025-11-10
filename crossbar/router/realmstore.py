@@ -6,27 +6,29 @@
 #####################################################################################
 
 from collections import deque
-from typing import Optional, List, Dict, Any
-
-from txaio import use_twisted  # noqa
-from txaio import make_logger, time_ns
+from typing import Any, Dict, List, Optional
 
 from autobahn.util import hltype, hlval
 from autobahn.wamp.interfaces import ISession
-from autobahn.wamp.types import CloseDetails, SessionDetails
 from autobahn.wamp.message import Publish
+from autobahn.wamp.types import CloseDetails, SessionDetails
+from txaio import (
+    make_logger,
+    time_ns,
+    use_twisted,  # noqa
+)
 
 from crossbar.interfaces import IRealmStore
 from crossbar.router.observation import UriObservationMap
 
 __all__ = (
-    'RealmStoreMemory',
-    'QueuedCall',
+    "RealmStoreMemory",
+    "QueuedCall",
 )
 
 
 class QueuedCall(object):
-    __slots__ = ('session', 'call', 'registration', 'authorization')
+    __slots__ = ("session", "call", "registration", "authorization")
 
     def __init__(self, session, call, registration, authorization):
         self.session = session
@@ -42,12 +44,13 @@ class RealmStoreMemory(object):
 
     log = make_logger()
 
-    STORE_TYPE = 'memory'
+    STORE_TYPE = "memory"
 
     GLOBAL_HISTORY_LIMIT = 100
     """
     The global history limit, in case not overridden.
     """
+
     def __init__(self, personality, factory, config):
         """
 
@@ -76,11 +79,11 @@ class RealmStoreMemory(object):
         self._factory = factory
         self._config = config
 
-        self._type = self._config.get('type', None)
+        self._type = self._config.get("type", None)
         assert self._type == self.STORE_TYPE
 
         # limit to event history per subscription
-        self._limit = self._config.get('limit', self.GLOBAL_HISTORY_LIMIT)
+        self._limit = self._config.get("limit", self.GLOBAL_HISTORY_LIMIT)
 
         # map of publication ID -> event dict
         self._event_store = {}
@@ -96,9 +99,9 @@ class RealmStoreMemory(object):
 
         self._running = False
 
-        self.log.info('{func} realm store initialized (type="{stype}")',
-                      stype=hlval(self._type),
-                      func=hltype(self.__init__))
+        self.log.info(
+            '{func} realm store initialized (type="{stype}")', stype=hlval(self._type), func=hltype(self.__init__)
+        )
 
     def type(self) -> str:
         """
@@ -117,7 +120,7 @@ class RealmStoreMemory(object):
         Implements :meth:`crossbar._interfaces.IRealmStore.start`
         """
         if self._running:
-            raise RuntimeError('store is already running')
+            raise RuntimeError("store is already running")
         else:
             self.log.info(
                 '{func} starting realm store type="{stype}"',
@@ -127,16 +130,16 @@ class RealmStoreMemory(object):
 
         # currently nothing to do in stores of type "memory"
         self._running = True
-        self.log.info('{func} realm store ready!', func=hltype(self.start))
+        self.log.info("{func} realm store ready!", func=hltype(self.start))
 
     def stop(self):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.stop`
         """
         if not self._running:
-            raise RuntimeError('store is not running')
+            raise RuntimeError("store is not running")
         else:
-            self.log.info('{func} stopping realm store', func=hltype(self.start))
+            self.log.info("{func} stopping realm store", func=hltype(self.start))
 
         # currently nothing to do in stores of type "memory"
         self._running = False
@@ -145,55 +148,61 @@ class RealmStoreMemory(object):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_joined`
         """
-        self.log.info('{func} new session joined session={session}, details={details}',
-                      func=hltype(self.store_session_joined),
-                      session=session,
-                      details=details)
+        self.log.info(
+            "{func} new session joined session={session}, details={details}",
+            func=hltype(self.store_session_joined),
+            session=session,
+            details=details,
+        )
 
     def store_session_left(self, session: ISession, details: CloseDetails):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_session_left`
         """
-        self.log.info('{func} session left session={session}, details={details}',
-                      func=hltype(self.store_session_left),
-                      session=session,
-                      details=details)
+        self.log.info(
+            "{func} session left session={session}, details={details}",
+            func=hltype(self.store_session_left),
+            session=session,
+            details=details,
+        )
 
     def attach_subscription_map(self, subscription_map: UriObservationMap):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.attach_subscription_map`
         """
-        for sub in self._config.get('event-history', []):
-            uri = sub['uri']
-            match = sub.get('match', 'exact')
-            observation, was_already_observed, was_first_observer = subscription_map.add_observer(self,
-                                                                                                  uri=uri,
-                                                                                                  match=match)
+        for sub in self._config.get("event-history", []):
+            uri = sub["uri"]
+            match = sub.get("match", "exact")
+            observation, was_already_observed, was_first_observer = subscription_map.add_observer(
+                self, uri=uri, match=match
+            )
             subscription_id = observation.id
 
             # for in-memory history, we just use a double-ended queue
-            self._event_history[subscription_id] = (sub.get('limit', self._limit), deque())
+            self._event_history[subscription_id] = (sub.get("limit", self._limit), deque())
 
     def store_event(self, session: ISession, publication_id: int, publish: Publish):
         """
         Implements :meth:`crossbar._interfaces.IRealmStore.store_event`
         """
-        assert (publication_id not in self._event_store)
+        assert publication_id not in self._event_store
         evt = {
-            'time_ns': time_ns(),
-            'realm': session._realm,
-            'session_id': session._session_id,
-            'authid': session._authid,
-            'authrole': session._authrole,
-            'publication': publication_id,
-            'topic': publish.topic,
-            'args': publish.args,
-            'kwargs': publish.kwargs
+            "time_ns": time_ns(),
+            "realm": session._realm,
+            "session_id": session._session_id,
+            "authid": session._authid,
+            "authrole": session._authrole,
+            "publication": publication_id,
+            "topic": publish.topic,
+            "args": publish.args,
+            "kwargs": publish.kwargs,
         }
         self._event_store[publication_id] = evt
-        self.log.debug("Event {publication_id} stored in {store_type}-store",
-                       store_type=self.STORE_TYPE,
-                       publication_id=publication_id)
+        self.log.debug(
+            "Event {publication_id} stored in {store_type}-store",
+            store_type=self.STORE_TYPE,
+            publication_id=publication_id,
+        )
 
     def store_event_history(self, publication_id: int, subscription_id: int, receiver: ISession):
         """
@@ -203,14 +212,17 @@ class RealmStoreMemory(object):
         # assert(subscription_id in self._event_history)
 
         if publication_id not in self._event_store:
-            self.log.warn('INTERNAL WARNING: event for publication {publication_id} not in event store',
-                          publication_id=publication_id)
+            self.log.warn(
+                "INTERNAL WARNING: event for publication {publication_id} not in event store",
+                publication_id=publication_id,
+            )
 
         if subscription_id not in self._event_history:
             self.log.warn(
-                'INTERNAL WARNING: subscription {subscription_id} for publication {publication_id} not in event store',
+                "INTERNAL WARNING: subscription {subscription_id} for publication {publication_id} not in event store",
                 subscription_id=subscription_id,
-                publication_id=publication_id)
+                publication_id=publication_id,
+            )
             return
 
         limit, history = self._event_history[subscription_id]
@@ -227,20 +239,22 @@ class RealmStoreMemory(object):
             "Event {publication_id} history stored in {store_type}-store for subscription {subscription_id}",
             store_type=self.STORE_TYPE,
             publication_id=publication_id,
-            subscription_id=subscription_id)
+            subscription_id=subscription_id,
+        )
 
         # purge history if over limit
         if len(history) > limit:
-
             # remove leftmost event from history
             purged_publication_id = history.popleft()
 
             # remove the purged publication from event subscriptions
             self._event_subscriptions[purged_publication_id].remove(subscription_id)
 
-            self.log.debug("Event {publication_id} purged from history for subscription {subscription_id}",
-                           publication_id=purged_publication_id,
-                           subscription_id=subscription_id)
+            self.log.debug(
+                "Event {publication_id} purged from history for subscription {subscription_id}",
+                publication_id=purged_publication_id,
+                subscription_id=subscription_id,
+            )
 
             # if no more event subscriptions exist for publication, remove that too
             if not self._event_subscriptions[purged_publication_id]:

@@ -9,17 +9,17 @@ import unittest
 
 from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
 
-WILDCARDS = ['', '.', 'a..c', 'a.b.', 'a..', '.b.', '..', 'x..', '.x.', '..x', 'x..x', 'x.x.', '.x.x', 'x.x.x']
+WILDCARDS = ["", ".", "a..c", "a.b.", "a..", ".b.", "..", "x..", ".x.", "..x", "x..x", "x.x.", ".x.x", "x.x.x"]
 
 MATCHES = {
-    'abc': [''],
-    'a.b': ['.'],
-    'a.b.c': ['a..c', 'a.b.', 'a..', '.b.', '..'],
-    'a.x.c': ['a..c', 'a..', '..', '.x.'],
-    'a.b.x': ['a.b.', 'a..', '.b.', '..', '..x'],
-    'a.x.x': ['a..', '..', '.x.', '..x', '.x.x'],
-    'x.y.z': ['..', 'x..'],
-    'a.b.c.d': []
+    "abc": [""],
+    "a.b": ["."],
+    "a.b.c": ["a..c", "a.b.", "a..", ".b.", ".."],
+    "a.x.c": ["a..c", "a..", "..", ".x."],
+    "a.b.x": ["a.b.", "a..", ".b.", "..", "..x"],
+    "a.x.x": ["a..", "..", ".x.", "..x", ".x.x"],
+    "x.y.z": ["..", "x.."],
+    "a.b.c.d": [],
 }
 
 
@@ -36,7 +36,7 @@ class AbstractTestMatcher(object):
         for i, w in enumerate(WILDCARDS):
             self.assertEqual(matcher[w], i)
         try:
-            matcher['NA']
+            matcher["NA"]
         except Exception as e:
             self.assertTrue(type(e) is KeyError)
 
@@ -49,7 +49,7 @@ class AbstractTestMatcher(object):
         for w in WILDCARDS:
             self.assertFalse(w in matcher)
         try:
-            del matcher['NA']
+            del matcher["NA"]
         except Exception as e:
             self.assertTrue(type(e) is KeyError)
 
@@ -59,7 +59,7 @@ class AbstractTestMatcher(object):
             matcher[w] = None
         for w in WILDCARDS:
             self.assertTrue(w in matcher)
-        self.assertFalse('NA' in matcher)
+        self.assertFalse("NA" in matcher)
 
     def test_get(self):
         matcher = self.Matcher()
@@ -67,8 +67,8 @@ class AbstractTestMatcher(object):
             matcher[w] = i
         for i, w in enumerate(WILDCARDS):
             self.assertEqual(matcher.get(w), i)
-        self.assertTrue(matcher.get('NA') is None)
-        self.assertEqual(matcher.get('NA', ''), '')
+        self.assertTrue(matcher.get("NA") is None)
+        self.assertEqual(matcher.get("NA", ""), "")
 
     def test_iter_matches(self):
         matcher = self.Matcher()

@@ -7,4 +7,4 @@
 
 from crossbar.network.node.node import XbrNetworkNode, XbrNetworkNodeControllerSession
 
-__all__ = ('XbrNetworkNode', 'XbrNetworkNodeControllerSession')
+__all__ = ("XbrNetworkNode", "XbrNetworkNodeControllerSession")

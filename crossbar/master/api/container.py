@@ -7,30 +7,29 @@
 
 from crossbar.master.api.remote import RemoteApi
 
-__all__ = ('RemoteContainerApi', )
+__all__ = ("RemoteContainerApi",)
 
 
 class RemoteContainerApi(RemoteApi):
-
     # remote procedures and topics are exposed under this prefix
-    PREFIX = u'crossbarfabriccenter.remote.container.'
+    PREFIX = "crossbarfabriccenter.remote.container."
 
     PROCS = {
         # these are worker level procedures
-        u'worker': [
-            (u'get_components', u'get_components'),
-            (u'get_component', u'get_component'),
-            (u'start_component', u'start_component'),
-            (u'stop_component', u'stop_component'),
+        "worker": [
+            ("get_components", "get_components"),
+            ("get_component", "get_component"),
+            ("start_component", "start_component"),
+            ("stop_component", "stop_component"),
         ],
     }
 
     EVENTS = {
         # these are worker level topics
-        u'worker': [
-            u'on_container_component_starting',
-            u'on_container_component_started',
-            u'on_container_component_stopping',
-            u'on_container_component_stopped',
+        "worker": [
+            "on_container_component_starting",
+            "on_container_component_started",
+            "on_container_component_stopping",
+            "on_container_component_stopped",
         ]
     }
