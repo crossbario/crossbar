@@ -285,6 +285,29 @@ All repositories successfully updated with Phase 1.1 infrastructure:
 
 **Blockers**: Requires Phase 1.1 complete
 
+#### Phase 1.2 Completion Summary
+
+**Status**: ⏳ **IN PROGRESS** (2025-11-26)
+
+All repositories tracking Phase 1.2 build tooling modernization:
+
+| Repository | Branch | Issue | PR | Status |
+|------------|--------|-------|----|----|
+| txaio | modernization-phase-1.2 | [#202](https://github.com/crossbario/txaio/issues/202) | [#203](https://github.com/crossbario/txaio/pull/203) | ⏳ In progress |
+| autobahn-python | modernization-phase-1.2 | [#1787](https://github.com/crossbario/autobahn-python/issues/1787) | [#1788](https://github.com/crossbario/autobahn-python/pull/1788) | ⏳ In progress |
+| zlmdb | modernization-phase-1.2 | [#79](https://github.com/crossbario/zlmdb/issues/79) | [#80](https://github.com/crossbario/zlmdb/pull/80) | ⏳ In progress |
+| cfxdb | modernization-phase-1.2 | [#102](https://github.com/crossbario/cfxdb/issues/102) | [#103](https://github.com/crossbario/cfxdb/pull/103) | ⏳ In progress |
+| wamp-xbr | modernization-phase-1.2 | [#154](https://github.com/wamp-proto/wamp-xbr/issues/154) | [#155](https://github.com/wamp-proto/wamp-xbr/pull/155) | ⏳ In progress |
+| crossbar | modernization-phase-1.2 | [#2140](https://github.com/crossbario/crossbar/issues/2140) | [#2141](https://github.com/crossbario/crossbar/pull/2141) | ⏳ In progress |
+
+**Scope**:
+- Modernize build systems to use pyproject.toml (PEP 621)
+- Add/update ruff configuration (replacing flake8)
+- Add/update mypy configuration
+- Add/update pytest/coverage configuration
+- Remove legacy build files (setup.py minimized, setup.cfg, requirements.txt removed)
+- Ensure all checks pass: `just check cpy314`
+
 ### Phase 1.3: Wheel Building
 
 **Objective**: Ensure native wheels for all platforms (x86-64, ARM64) and Python implementations (CPython, PyPy).
@@ -466,5 +489,5 @@ All repositories successfully updated with Phase 1.1 infrastructure:
 
 ---
 
-Last updated: 2025-11-24
-Status: Phase 0 ready to start
+Last updated: 2025-11-26
+Status: Phase 1.2 in progress
