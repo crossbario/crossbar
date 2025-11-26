@@ -839,12 +839,63 @@ usage, and PyPy compatibility.
 - **CFFI-based (PyPy compatible)**: ~7 packages (incl. autobahn, zlmdb)
 - **CPyExt-based (limited PyPy)**: ~18 packages
 
+### Critical: Vendored Dependencies Architecture
+
+A key architectural decision in the WAMP ecosystem is **vendoring** of certain
+dependencies to ensure consistent behavior, CFFI-only bindings, and PyPy compatibility.
+
+#### Vendored Packages
+
+| Vendored Package | Vendored Into | Location | Notes |
+|------------------|---------------|----------|-------|
+| **LMDB** | zlmdb | `zlmdb/lmdb/` | CFFI bindings (`_lmdb_cffi.so`), NOT py-lmdb |
+| **FlatBuffers** | autobahn | `flatbuffers/` (top-level) | Bundled as separate package in wheel |
+| **FlatBuffers** | zlmdb | `zlmdb/flatbuffers/` | Reflection schemas |
+
+#### Why Vendoring Matters
+
+1. **LMDB in zlmdb**: zlmdb vendors its own CFFI-based LMDB bindings instead of
+   depending on `py-lmdb` from PyPI. This ensures:
+   - CFFI bindings (not CPyExt) for PyPy compatibility
+   - Consistent API across all platforms
+   - No dependency on external py-lmdb package
+
+2. **FlatBuffers in autobahn**: autobahn vendors the Google FlatBuffers Python
+   library as a top-level `flatbuffers` package in its wheel:
+   ```toml
+   # autobahn's pyproject.toml
+   [tool.setuptools.packages.find]
+   include = ["autobahn*", "twisted.plugins", "flatbuffers*"]
+   ```
+
+3. **Crossbar's Dependencies**: Crossbar should **NOT** have direct dependencies on:
+   - `lmdb` or `py-lmdb` - uses zlmdb's vendored LMDB
+   - `flatbuffers` - uses autobahn's vendored FlatBuffers
+
+#### ⚠️ Known Issue: Redundant lmdb Dependency
+
+**Problem**: crossbar's `pyproject.toml` currently includes `"lmdb>=1.4.0"` as a
+direct dependency, which is **incorrect/redundant**.
+
+```toml
+# WRONG - should be removed from crossbar/pyproject.toml:
+"lmdb>=1.4.0",
+```
+
+**Why it's wrong**:
+- Crossbar imports `zlmdb`, never `lmdb` directly
+- zlmdb vendors its own CFFI LMDB bindings (`zlmdb/lmdb/_lmdb_cffi.so`)
+- Having `lmdb>=1.4.0` may install py-lmdb (CPyExt) which conflicts with the design
+
+**Action**: Remove `"lmdb>=1.4.0"` from crossbar's dependencies.
+
 ### Dependency Tree - WAMP Ecosystem Core
 
 ```
 crossbar==25.11.1
 ├── [OWN] autobahn[twisted,encryption,compress,serialization,scram]==25.11.1  [NATIVE:CFFI] ✅ PyPy
-│   │   └── nvx: _utf8validator, _xormasker (WebSocket accelerators)
+│   │   ├── nvx: _utf8validator, _xormasker (WebSocket accelerators)
+│   │   └── [VENDORED] flatbuffers (top-level package in wheel)
 │   ├── [OWN] txaio>=25.9.2
 │   ├── cryptography>=3.4.6  [NATIVE:CFFI] ✅ PyPy
 │   │   └── cffi>=2.0.0
@@ -857,13 +908,16 @@ crossbar==25.11.1
 ├── [OWN] txaio>=25.9.2  (pure Python)
 │
 ├── [OWN] zlmdb>=25.10.2  [NATIVE:CFFI] ✅ PyPy
-│   │   └── lmdb: _lmdb_cffi (LMDB bindings)
+│   │   ├── [VENDORED] lmdb: _lmdb_cffi (CFFI bindings, NOT py-lmdb!)
+│   │   └── [VENDORED] flatbuffers (reflection schemas)
 │   ├── cffi>=1.15.1  [NATIVE:CFFI] ✅ PyPy
 │   ├── cbor2>=5.4.6
 │   ├── PyNaCl>=1.5.0  [NATIVE:CFFI] ✅ PyPy
 │   │   └── cffi>=2.0.0
 │   ├── numpy>=1.24.1  [NATIVE:CPyExt] ⚠️
 │   └── [OWN] txaio>=23.1.1
+│
+│   ⚠️ NOTE: crossbar should NOT depend on lmdb or flatbuffers directly!
 │
 ├── [OWN] cfxdb>=25.11.1
 │   ├── [OWN] autobahn>=25.10.2
@@ -1151,7 +1205,7 @@ Jinja2==3.1.6
 jinja2-highlight==0.6.1
 jsonschema==4.25.1
 jsonschema-specifications==2025.9.1
-lmdb==1.7.5  [NATIVE:CPyExt+CFFI]
+lmdb==1.7.5  [NATIVE:CPyExt] ⚠️ REDUNDANT - zlmdb vendors CFFI LMDB, remove from deps!
 MarkupSafe==3.0.3  [NATIVE:CPyExt]
 mistune==3.1.4
 mnemonic==0.21
