@@ -834,16 +834,17 @@ usage, and PyPy compatibility.
 
 - **Total packages (runtime)**: ~160 transitive dependencies
 - **Direct dependencies**: ~45 packages
-- **WAMP ecosystem (own)**: 5 packages
+- **WAMP ecosystem (own)**: 5 packages (2 with native CFFI extensions)
 - **Packages with native extensions**: ~25 packages
-- **CFFI-based (PyPy compatible)**: ~5 packages
-- **CPyExt-based (limited PyPy)**: ~20 packages
+- **CFFI-based (PyPy compatible)**: ~7 packages (incl. autobahn, zlmdb)
+- **CPyExt-based (limited PyPy)**: ~18 packages
 
 ### Dependency Tree - WAMP Ecosystem Core
 
 ```
 crossbar==25.11.1
-├── [OWN] autobahn[twisted,encryption,compress,serialization,scram]==25.11.1
+├── [OWN] autobahn[twisted,encryption,compress,serialization,scram]==25.11.1  [NATIVE:CFFI] ✅ PyPy
+│   │   └── nvx: _utf8validator, _xormasker (WebSocket accelerators)
 │   ├── [OWN] txaio>=25.9.2
 │   ├── cryptography>=3.4.6  [NATIVE:CFFI] ✅ PyPy
 │   │   └── cffi>=2.0.0
@@ -855,7 +856,8 @@ crossbar==25.11.1
 │
 ├── [OWN] txaio>=25.9.2  (pure Python)
 │
-├── [OWN] zlmdb>=25.10.2
+├── [OWN] zlmdb>=25.10.2  [NATIVE:CFFI] ✅ PyPy
+│   │   └── lmdb: _lmdb_cffi (LMDB bindings)
 │   ├── cffi>=1.15.1  [NATIVE:CFFI] ✅ PyPy
 │   ├── cbor2>=5.4.6
 │   ├── PyNaCl>=1.5.0  [NATIVE:CFFI] ✅ PyPy
@@ -894,12 +896,16 @@ crossbar==25.11.1
 | Package | Version | Type | PyPI Wheels | PyPy |
 |---------|---------|------|-------------|------|
 | txaio | 25.9.2 | Pure Python | ✅ py3-none-any | ✅ |
-| autobahn | 25.11.1 | Pure Python | ✅ py3-none-any | ✅ |
-| zlmdb | 25.10.2 | Pure Python | ✅ py3-none-any | ✅ |
+| autobahn | 25.11.1 | **Native (CFFI)** | ✅ cp311-manylinux, etc. | ✅ |
+| zlmdb | 25.10.2 | **Native (CFFI)** | ✅ cp311-manylinux, etc. | ✅ |
 | cfxdb | 25.11.1 | Pure Python | ✅ py3-none-any | ✅ |
 | xbr (wamp-xbr) | 25.11.1 | Pure Python | ✅ py3-none-any | ✅ |
 
-**Note**: All WAMP ecosystem packages are pure Python for maximum portability.
+**Note**: autobahn and zlmdb include CFFI-based native extensions for performance:
+- **autobahn**: `_nvx_utf8validator`, `_nvx_xormasker` (WebSocket frame masking/validation accelerators)
+- **zlmdb**: `_lmdb_cffi` (CFFI bindings to LMDB database)
+
+These use CFFI (not CPyExt), ensuring full PyPy compatibility with near-native performance.
 
 #### Group 2: Cryptography & Security (CFFI-based, PyPy Compatible)
 
@@ -1020,6 +1026,8 @@ These packages use CFFI (Foreign Function Interface) and work well on PyPy.
 These packages use CFFI and run efficiently on both CPython and PyPy:
 
 ```
+✅ autobahn         - [OWN] WebSocket accelerators (_nvx_utf8validator, _nvx_xormasker)
+✅ zlmdb            - [OWN] LMDB bindings (_lmdb_cffi)
 ✅ cryptography     - Crypto primitives via Rust/CFFI
 ✅ PyNaCl           - libsodium via CFFI
 ✅ bcrypt           - bcrypt via CFFI
@@ -1092,7 +1100,7 @@ argon2-cffi==25.1.0
 argon2-cffi-bindings==25.1.0
 arrow==1.4.0
 attrs==25.4.0
-autobahn==25.11.1  [WAMP]
+autobahn==25.11.1  [WAMP, NATIVE:CFFI]
 Automat==25.4.16
 base58==2.1.1
 bcrypt==5.0.0  [NATIVE:CFFI]
@@ -1104,7 +1112,7 @@ brotli==1.2.0  [NATIVE:CPyExt]
 cbor2==5.7.1  [NATIVE:CPyExt+Fallback]
 certifi==2025.11.12
 cffi==2.0.0  [NATIVE:CFFI]
-cfxdb==25.11.1  [WAMP]
+cfxdb==25.11.1  [WAMP, Pure Python]
 chardet==5.2.0
 charset-normalizer==3.4.4  [NATIVE:CPyExt]
 ckzg==2.1.5  [NATIVE:CPyExt]
@@ -1193,7 +1201,7 @@ tabulate==0.9.0
 toolz==1.1.0
 treq==25.5.0
 Twisted==25.5.0
-txaio==25.9.2  [WAMP]
+txaio==25.9.2  [WAMP, Pure Python]
 txtorcon==24.8.0
 typing_extensions==4.15.0
 u-msgpack-python==2.8.0
@@ -1205,9 +1213,9 @@ wcwidth==0.2.14
 web3==7.14.0
 Werkzeug==3.1.3
 wsaccel==0.6.7  [NATIVE:CPyExt]
-xbr==25.11.1  [WAMP]
+xbr==25.11.1  [WAMP, Pure Python]
 yarl==1.22.0  [NATIVE:CPyExt]
-zlmdb==25.10.2  [WAMP]
+zlmdb==25.10.2  [WAMP, NATIVE:CFFI]
 zope.interface==8.1.1  [NATIVE:CPyExt]
 ```
 
