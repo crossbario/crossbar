@@ -101,7 +101,8 @@ dependencies = [
     "jinja2>=3.1.2",
     "jinja2-highlight>=0.6.1",
     "jsonschema>=4.0.0",
-    "lmdb>=1.4.0",
+    # NOTE: LMDB access is through zlmdb which vendors its own CFFI bindings
+    # Do NOT add "lmdb" or "py-lmdb" here - crossbar imports zlmdb, never lmdb directly
     "MarkupSafe>=2.1.2",
     "mistune>=2.0.4",
     "morphys>=1.0",

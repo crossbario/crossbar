@@ -872,22 +872,22 @@ dependencies to ensure consistent behavior, CFFI-only bindings, and PyPy compati
    - `lmdb` or `py-lmdb` - uses zlmdb's vendored LMDB
    - `flatbuffers` - uses autobahn's vendored FlatBuffers
 
-#### ⚠️ Known Issue: Redundant lmdb Dependency
+#### ✅ Resolved: Redundant lmdb Dependency (Removed)
 
-**Problem**: crossbar's `pyproject.toml` currently includes `"lmdb>=1.4.0"` as a
-direct dependency, which is **incorrect/redundant**.
+**Issue**: crossbar's `pyproject.toml` previously included `"lmdb>=1.4.0"` as a
+direct dependency, which was **incorrect/redundant**.
 
-```toml
-# WRONG - should be removed from crossbar/pyproject.toml:
-"lmdb>=1.4.0",
-```
-
-**Why it's wrong**:
+**Why it was wrong**:
 - Crossbar imports `zlmdb`, never `lmdb` directly
 - zlmdb vendors its own CFFI LMDB bindings (`zlmdb/lmdb/_lmdb_cffi.so`)
-- Having `lmdb>=1.4.0` may install py-lmdb (CPyExt) which conflicts with the design
+- Having `lmdb>=1.4.0` could install py-lmdb (CPyExt) which conflicts with the design
 
-**Action**: Remove `"lmdb>=1.4.0"` from crossbar's dependencies.
+**Resolution**: Removed `"lmdb>=1.4.0"` from crossbar's pyproject.toml dependencies.
+Added comment to prevent future re-introduction:
+```toml
+# NOTE: LMDB access is through zlmdb which vendors its own CFFI bindings
+# Do NOT add "lmdb" or "py-lmdb" here - crossbar imports zlmdb, never lmdb directly
+```
 
 ### Dependency Tree - WAMP Ecosystem Core
 
@@ -1042,7 +1042,6 @@ These packages use CFFI (Foreign Function Interface) and work well on PyPy.
 
 | Package | Version | PyPI Wheels | Notes |
 |---------|---------|-------------|-------|
-| lmdb | 1.7.5 | ✅ x86_64, ARM64 | Use LMDB_FORCE_CFFI=1 for PyPy |
 | numpy | 2.3.5 | ✅ x86_64, ARM64 | CPyExt, but has PyPy wheels |
 | psutil | 7.1.3 | ✅ x86_64, ARM64 | CPyExt |
 | regex | 2025.11.3 | ✅ x86_64, ARM64 | CPyExt |
