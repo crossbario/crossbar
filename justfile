@@ -11,11 +11,34 @@ set positional-arguments := true
 # project base directory = directory of this justfile
 PROJECT_DIR := justfile_directory()
 
-# Default recipe: list all recipes
+# Default recipe: show project info and list all recipes
 default:
-    @echo ""
-    @just --list
-    @echo ""
+    #!/usr/bin/env bash
+    set -e
+    VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+    GIT_REV=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    echo ""
+    echo "==============================================================================="
+    echo "                              Crossbar.io                                      "
+    echo ""
+    echo "    Multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router       "
+    echo "    for microservices and distributed applications                            "
+    echo ""
+    echo "   Python Package:         crossbar                                           "
+    echo "   Python Package Version: ${VERSION}                                         "
+    echo "   Git Version:            ${GIT_REV}                                         "
+    echo "   Protocol Specification: https://wamp-proto.org/                            "
+    echo "   Documentation:          https://crossbar.io/docs/                          "
+    echo "   Package Releases:       https://pypi.org/project/crossbar/                 "
+    echo "   Source Code:            https://github.com/crossbario/crossbar             "
+    echo "   Copyright:              typedef int GmbH (Germany/EU)                      "
+    echo "   License:                EUPL-1.2                                           "
+    echo ""
+    echo "       >>>   Created by The WAMP/Autobahn/Crossbar.io OSS Project   <<<       "
+    echo "==============================================================================="
+    echo ""
+    just --list
+    echo ""
 
 # Tell uv to use project-local cache directory.
 export UV_CACHE_DIR := './.uv-cache'
