@@ -489,5 +489,215 @@ All repositories tracking Phase 1.2 build tooling modernization:
 
 ---
 
+## Appendix: Crossbar.io - WAMP Ecosystem Integration Hub
+
+This appendix provides a deep analysis of how Crossbar.io serves as the integration
+point for all WAMP ecosystem packages, and documents the critical `install-dev-local`
+recipe that enables cross-repository development.
+
+### WAMP Ecosystem Dependency Architecture
+
+Crossbar integrates all core WAMP ecosystem packages with extensive usage:
+
+| Package | Import Count | Purpose |
+|---------|-------------|---------|
+| autobahn-python | 394+ | WAMP protocol implementation, WebSocket client/server |
+| txaio | 157+ | Twisted/asyncio abstraction layer |
+| cfxdb | 55 | Database schema for management realms (LMDB-based) |
+| wamp-xbr | 30 | XBR blockchain/marketplace features |
+| zlmdb | 13 | Object-relational database layer on LMDB |
+
+The dependency chain is strictly ordered:
+
+```
+txaio (foundation)
+    ↓
+autobahn-python (protocol layer)
+    ↓
+┌───┴───┐
+│       │
+zlmdb   wamp-xbr
+│
+cfxdb
+    ↓
+crossbar (application layer - integrates all)
+```
+
+### The `install-dev-local` Recipe
+
+The justfile's `install-dev-local` recipe is the **linchpin** enabling cross-repository
+development across the entire WAMP ecosystem:
+
+```bash
+just install-dev-local cpy311
+```
+
+**What it does:**
+
+1. **Auto-detects sibling repositories** (`../txaio`, `../autobahn-python`, etc.)
+2. **Installs them in dependency order** in editable mode (`pip install -e`)
+3. **Gracefully degrades** to PyPI versions if repos are missing
+4. **Respects the dependency chain** while allowing local development
+
+**Implementation highlights:**
+
+```bash
+# Install local WAMP packages in editable mode
+if [ -d "../txaio" ]; then
+    echo "  ✓ Installing txaio from ../txaio"
+    ${VENV_PYTHON} -m pip install -e "../txaio"
+fi
+
+if [ -d "../autobahn-python" ]; then
+    echo "  ✓ Installing autobahn-python with extras from ../autobahn-python"
+    ${VENV_PYTHON} -m pip install -e "../autobahn-python[twisted,encryption,compress,serialization,scram]"
+fi
+
+for pkg in zlmdb cfxdb wamp-xbr; do
+    pkg_path="../${pkg}"
+    if [ -d "${pkg_path}" ]; then
+        echo "  ✓ Installing ${pkg} from ${pkg_path}"
+        ${VENV_PYTHON} -m pip install -e "${pkg_path}"
+    fi
+done
+```
+
+**Why this matters:**
+
+- Enables **simultaneous development** across multiple repos
+- Changes in txaio/autobahn immediately visible in crossbar
+- No need for manual pip commands or version juggling
+- Pip's resolver uses already-installed local packages for remaining deps
+- Critical for debugging cross-package issues
+
+### asgard1 Infrastructure Design
+
+The development server (asgard1) layout is specifically designed to support this workflow:
+
+```
+/home/oberstet/work/wamp/
+├── txaio/              # Foundation package
+├── autobahn-python/    # Protocol layer
+├── zlmdb/              # Database layer
+├── cfxdb/              # Crossbar DB access
+├── wamp-xbr/           # Blockchain extensions
+└── crossbar/           # Integration hub
+```
+
+This layout ensures:
+- All repos are sibling directories (required by `install-dev-local`)
+- AI agents can work across repos
+- Changes can be tested end-to-end before push
+
+### pyproject.toml Dependency Configuration
+
+Crossbar's `pyproject.toml` demonstrates sophisticated dependency management:
+
+```toml
+dependencies = [
+    # WAMP packages with explicit extras
+    "autobahn[twisted,encryption,compress,serialization,scram]>=25.10.2",
+    "txaio>=25.11.1",
+    "zlmdb>=25.11.1",
+    "cfxdb>=25.11.1",
+    "xbr>=25.11.1",
+    # ... 160+ total transitive dependencies
+]
+
+[project.optional-dependencies]
+dev = [
+    # Standard development tools
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    # ...
+]
+
+dev-latest = [
+    # Install from GitHub master for testing
+    "autobahn @ git+https://github.com/crossbario/autobahn-python.git",
+    "txaio @ git+https://github.com/crossbario/txaio.git",
+    # ...
+]
+```
+
+Three installation modes are supported:
+1. **Standard**: `just install` - Uses PyPI versions
+2. **Latest**: `just install-dev-latest` - Uses GitHub master branches
+3. **Local**: `just install-dev-local` - Uses local editable repos (for development)
+
+### Build Environment Configuration
+
+Crossbar sets critical environment variables for PyPy compatibility:
+
+```python
+os.environ['LMDB_FORCE_CFFI'] = '1'       # CFFI bindings (not CPyExt)
+os.environ['SODIUM_INSTALL'] = 'bundled'  # Self-contained libsodium
+os.environ['PYUBJSON_NO_EXTENSION'] = '1' # Pure Python UBJSON
+```
+
+These ensure:
+- Pure Python/CFFI dependencies only
+- No CPython extension API usage
+- Full PyPy compatibility
+- Consistent behavior across implementations
+
+### Cross-Repo Development Workflow Example
+
+**Scenario:** Fix a bug in autobahn that affects crossbar
+
+```bash
+# 1. Set up crossbar with local packages
+cd /home/oberstet/work/wamp/crossbar
+just install-dev-local cpy311
+
+# 2. Make changes in autobahn
+cd ../autobahn-python
+# ... edit code ...
+
+# 3. Test immediately in crossbar (no reinstall needed!)
+cd ../crossbar
+just test cpy311
+
+# 4. If tests pass, commit both repos
+cd ../autobahn-python
+git add . && git commit -m "fix: ..."
+
+cd ../crossbar
+# crossbar tests still use the local autobahn
+```
+
+This workflow is only possible because:
+- Repos are in sibling directories
+- Editable installs point to actual source
+- No version conflicts (pip uses local packages)
+
+### Key Design Patterns
+
+1. **Dependency Ordering**: Always install foundation → protocol → infrastructure → application
+
+2. **Optional Features via Extras**: Autobahn installed with 5 extras for crossbar:
+   - `twisted` - Twisted networking framework
+   - `encryption` - End-to-end encryption
+   - `compress` - Message compression
+   - `serialization` - Multiple serializers (JSON, CBOR, MsgPack, FlatBuffers)
+   - `scram` - SCRAM authentication
+
+3. **Graceful Degradation**: Missing local repos fall back to PyPI versions
+
+4. **Version Constraints**:
+   - Strict for WAMP packages (protocol compliance)
+   - Conservative for Twisted (stability)
+   - Restrictive for Ethereum stack (API volatility)
+
+### Remaining Modernization Opportunities
+
+- [ ] Increase type hints coverage (currently `disallow_untyped_defs = false`)
+- [ ] Create DEPENDENCIES.md documenting ~160+ transitive dependencies
+- [ ] Automated dependency security scanning
+- [ ] RHEL9 native RPM packaging
+
+---
+
 Last updated: 2025-11-26
 Status: Phase 1.2 in progress
