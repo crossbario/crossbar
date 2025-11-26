@@ -824,5 +824,418 @@ These enable:
 
 ---
 
+## Appendix: Crossbar.io Dependencies Analysis
+
+This appendix provides a comprehensive analysis of all transitive dependencies for
+Crossbar.io, including classification by type, native extension status, CFFI vs CPyExt
+usage, and PyPy compatibility.
+
+### Overview Statistics
+
+- **Total packages (runtime)**: ~160 transitive dependencies
+- **Direct dependencies**: ~45 packages
+- **WAMP ecosystem (own)**: 5 packages
+- **Packages with native extensions**: ~25 packages
+- **CFFI-based (PyPy compatible)**: ~5 packages
+- **CPyExt-based (limited PyPy)**: ~20 packages
+
+### Dependency Tree - WAMP Ecosystem Core
+
+```
+crossbar==25.11.1
+├── [OWN] autobahn[twisted,encryption,compress,serialization,scram]==25.11.1
+│   ├── [OWN] txaio>=25.9.2
+│   ├── cryptography>=3.4.6  [NATIVE:CFFI] ✅ PyPy
+│   │   └── cffi>=2.0.0
+│   ├── hyperlink>=21.0.0
+│   ├── msgpack>=1.0.2  [NATIVE:CPyExt] ⚠️
+│   ├── ujson>=4.0.2  [NATIVE:CPyExt] ⚠️
+│   ├── cbor2>=5.2.0  [NATIVE:CPyExt] ⚠️ (has pure Python fallback)
+│   └── py-ubjson>=0.16.1  [NATIVE:CPyExt] ⚠️
+│
+├── [OWN] txaio>=25.9.2  (pure Python)
+│
+├── [OWN] zlmdb>=25.10.2
+│   ├── cffi>=1.15.1  [NATIVE:CFFI] ✅ PyPy
+│   ├── cbor2>=5.4.6
+│   ├── PyNaCl>=1.5.0  [NATIVE:CFFI] ✅ PyPy
+│   │   └── cffi>=2.0.0
+│   ├── numpy>=1.24.1  [NATIVE:CPyExt] ⚠️
+│   └── [OWN] txaio>=23.1.1
+│
+├── [OWN] cfxdb>=25.11.1
+│   ├── [OWN] autobahn>=25.10.2
+│   ├── [OWN] zlmdb>=25.10.2
+│   ├── eth_abi>=5.1.0
+│   ├── eth-account>=0.13.0
+│   └── web3>=7.6.0  (many nested deps)
+│
+├── [OWN] xbr>=25.11.1 (wamp-xbr)
+│   ├── web3[ipfs]>=6.0.0
+│   ├── eth-abi>=4.0.0
+│   └── py-eth-sig-utils>=0.4.0
+│
+├── Twisted[tls,conch,http2]>=22.10.0  [NATIVE:CPyExt] ⚠️
+│   ├── attrs>=22.2.0
+│   ├── Automat>=24.8.0
+│   ├── constantly>=15.1
+│   ├── hyperlink>=17.1.1
+│   ├── incremental>=24.7.0
+│   └── zope.interface>=5  [NATIVE:CPyExt] ⚠️
+│
+├── treq>=22.2.0
+└── txtorcon>=22.0.0
+```
+
+### Package Classification
+
+#### Group 1: WAMP Ecosystem (Own Packages)
+
+| Package | Version | Type | PyPI Wheels | PyPy |
+|---------|---------|------|-------------|------|
+| txaio | 25.9.2 | Pure Python | ✅ py3-none-any | ✅ |
+| autobahn | 25.11.1 | Pure Python | ✅ py3-none-any | ✅ |
+| zlmdb | 25.10.2 | Pure Python | ✅ py3-none-any | ✅ |
+| cfxdb | 25.11.1 | Pure Python | ✅ py3-none-any | ✅ |
+| xbr (wamp-xbr) | 25.11.1 | Pure Python | ✅ py3-none-any | ✅ |
+
+**Note**: All WAMP ecosystem packages are pure Python for maximum portability.
+
+#### Group 2: Cryptography & Security (CFFI-based, PyPy Compatible)
+
+| Package | Version | PyPI Wheels | Notes |
+|---------|---------|-------------|-------|
+| cryptography | 46.0.3 | ✅ x86_64, ARM64 | Uses CFFI, rust-based backend |
+| PyNaCl | 1.6.1 | ✅ x86_64, ARM64 | CFFI bindings to libsodium |
+| bcrypt | 5.0.0 | ✅ x86_64, ARM64 | CFFI bindings |
+| argon2-cffi | 25.1.0 | ✅ x86_64, ARM64 | CFFI bindings |
+| cffi | 2.0.0 | ✅ x86_64, ARM64 | Foundation for all CFFI packages |
+
+These packages use CFFI (Foreign Function Interface) and work well on PyPy.
+
+#### Group 3: Serialization (Mixed Native)
+
+| Package | Version | Type | PyPI Wheels | PyPy | Notes |
+|---------|---------|------|-------------|------|-------|
+| cbor2 | 5.7.1 | Native+Fallback | ✅ x86_64, ARM64 | ✅ | Has pure Python fallback |
+| msgpack | 1.1.2 | Native | ✅ x86_64, ARM64 | ⚠️ | CPyExt, slower on PyPy |
+| ujson | 5.11.0 | Native | ✅ x86_64, ARM64 | ⚠️ | CPyExt, can use json instead |
+| py-ubjson | 0.16.1 | Native+Fallback | ✅ x86_64 | ✅ | Has pure Python fallback |
+| PyYAML | 6.0.3 | Native | ✅ x86_64, ARM64 | ⚠️ | libyaml bindings |
+
+**PyPy Note**: Use PYUBJSON_NO_EXTENSION=1 and CBOR2_FORCE_PYTHON=1 for pure Python mode.
+
+#### Group 4: Twisted Ecosystem
+
+| Package | Version | Type | PyPI Wheels | PyPy |
+|---------|---------|------|-------------|------|
+| Twisted | 25.5.0 | Pure Python | ✅ py3-none-any | ✅ |
+| attrs | 25.4.0 | Pure Python | ✅ py3-none-any | ✅ |
+| Automat | 25.4.16 | Pure Python | ✅ py3-none-any | ✅ |
+| constantly | 23.10.4 | Pure Python | ✅ py3-none-any | ✅ |
+| hyperlink | 21.0.0 | Pure Python | ✅ py3-none-any | ✅ |
+| incremental | 24.7.2 | Pure Python | ✅ py3-none-any | ✅ |
+| zope.interface | 8.1.1 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| treq | 25.5.0 | Pure Python | ✅ py3-none-any | ✅ |
+| txtorcon | 24.8.0 | Pure Python | ✅ py3-none-any | ✅ |
+
+#### Group 5: Ethereum/XBR Stack
+
+| Package | Version | Type | PyPI Wheels | PyPy |
+|---------|---------|------|-------------|------|
+| web3 | 7.14.0 | Pure Python | ✅ py3-none-any | ✅ |
+| eth-abi | 5.1.0 | Pure Python | ✅ py3-none-any | ✅ |
+| eth-account | 0.13.7 | Pure Python | ✅ py3-none-any | ✅ |
+| eth-typing | 5.2.1 | Pure Python | ✅ py3-none-any | ✅ |
+| eth-utils | 5.3.1 | Pure Python | ✅ py3-none-any | ✅ |
+| eth-hash | 0.7.1 | Pure Python | ✅ py3-none-any | ✅ |
+| eth-keyfile | 0.8.1 | Pure Python | ✅ py3-none-any | ✅ |
+| eth-keys | 0.7.0 | Pure Python | ✅ py3-none-any | ✅ |
+| eth-rlp | 2.2.0 | Pure Python | ✅ py3-none-any | ✅ |
+| rlp | 4.1.0 | Pure Python | ✅ py3-none-any | ✅ |
+| hexbytes | 1.3.1 | Pure Python | ✅ py3-none-any | ✅ |
+| py-eth-sig-utils | 0.4.0 | Pure Python | ✅ py3-none-any | ✅ |
+| py-ecc | 8.0.0 | Pure Python | ✅ py3-none-any | ✅ |
+| ckzg | 2.1.5 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| pycryptodome | 3.23.0 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| bitarray | 3.8.0 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| cytoolz | 1.1.0 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| pydantic-core | 2.41.5 | Native | ✅ x86_64, ARM64 | ⚠️ |
+
+#### Group 6: HTTP/Async Stack
+
+| Package | Version | Type | PyPI Wheels | PyPy |
+|---------|---------|------|-------------|------|
+| aiohttp | 3.13.2 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| multidict | 6.7.0 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| frozenlist | 1.8.0 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| yarl | 1.22.0 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| propcache | 0.4.1 | Native | ✅ x86_64, ARM64 | ⚠️ |
+| requests | 2.32.5 | Pure Python | ✅ py3-none-any | ✅ |
+| urllib3 | 1.26.20 | Pure Python | ✅ py3-none-any | ✅ |
+| h2 | 3.2.0 | Pure Python | ✅ py3-none-any | ✅ |
+| hpack | 3.0.0 | Pure Python | ✅ py3-none-any | ✅ |
+| hyperframe | 5.2.0 | Pure Python | ✅ py3-none-any | ✅ |
+| priority | 1.3.0 | Pure Python | ✅ py3-none-any | ✅ |
+
+#### Group 7: Core Utilities with Native Extensions (CPyExt)
+
+| Package | Version | PyPI Wheels | Notes |
+|---------|---------|-------------|-------|
+| lmdb | 1.7.5 | ✅ x86_64, ARM64 | Use LMDB_FORCE_CFFI=1 for PyPy |
+| numpy | 2.3.5 | ✅ x86_64, ARM64 | CPyExt, but has PyPy wheels |
+| psutil | 7.1.3 | ✅ x86_64, ARM64 | CPyExt |
+| regex | 2025.11.3 | ✅ x86_64, ARM64 | CPyExt |
+| setproctitle | 1.3.7 | ✅ x86_64, ARM64 | CPyExt |
+| wsaccel | 0.6.7 | ✅ x86_64 | CPyExt, accelerates WebSocket |
+| greenlet | 3.2.4 | ✅ x86_64, ARM64 | CPyExt |
+| MarkupSafe | 3.0.3 | ✅ x86_64, ARM64 | CPyExt |
+| rpds-py | 0.29.0 | ✅ x86_64, ARM64 | Rust-based |
+
+#### Group 8: Pure Python Utilities
+
+| Package | Version | Notes |
+|---------|---------|-------|
+| click | 8.3.1 | CLI framework |
+| Jinja2 | 3.1.6 | Templating |
+| Flask | 3.1.2 | Web framework |
+| Werkzeug | 3.1.3 | WSGI toolkit |
+| jsonschema | 4.25.1 | JSON validation |
+| colorama | 0.4.6 | Terminal colors |
+| tabulate | 0.9.0 | Table formatting |
+| passlib | 1.7.4 | Password hashing |
+| netaddr | 1.3.0 | Network address manipulation |
+| iso8601 | 2.1.0 | Date/time parsing |
+| humanize | 4.14.0 | Human-readable formatting |
+| watchdog | 6.0.0 | Filesystem monitoring |
+| docker | 7.1.0 | Docker API client |
+| cookiecutter | 2.6.0 | Project templating |
+| prompt_toolkit | 3.0.52 | Interactive CLI |
+| Pygments | 2.19.2 | Syntax highlighting |
+
+### Native Extension Summary
+
+#### CFFI-based (Recommended for PyPy)
+
+These packages use CFFI and run efficiently on both CPython and PyPy:
+
+```
+✅ cryptography     - Crypto primitives via Rust/CFFI
+✅ PyNaCl           - libsodium via CFFI
+✅ bcrypt           - bcrypt via CFFI
+✅ argon2-cffi      - Argon2 via CFFI
+✅ cffi             - Foundation
+```
+
+#### CPyExt-based (Limited PyPy Performance)
+
+These packages use CPython Extension API and may be slower on PyPy:
+
+```
+⚠️ numpy            - Numeric computing (has PyPy wheels though)
+⚠️ pydantic-core    - Rust-based validation
+⚠️ aiohttp          - Async HTTP (C speedups)
+⚠️ multidict        - C speedups
+⚠️ yarl             - C speedups
+⚠️ msgpack          - C speedups
+⚠️ ujson            - C speedups
+⚠️ regex            - C speedups
+⚠️ lmdb             - Use LMDB_FORCE_CFFI=1
+⚠️ psutil           - System info
+⚠️ greenlet         - Coroutines
+⚠️ cytoolz          - Functional utilities
+⚠️ zope.interface   - Interface definitions
+⚠️ setproctitle     - Process title
+⚠️ wsaccel          - WebSocket acceleration
+⚠️ MarkupSafe       - String escaping
+⚠️ rpds-py          - Rust data structures
+⚠️ ckzg             - KZG commitments
+⚠️ pycryptodome     - Crypto primitives
+⚠️ bitarray         - Bit manipulation
+```
+
+### PyPy Compatibility Environment Variables
+
+For optimal PyPy performance, set these environment variables:
+
+```bash
+export LMDB_FORCE_CFFI=1        # Force CFFI bindings for lmdb
+export SODIUM_INSTALL=bundled   # Use bundled libsodium
+export PYUBJSON_NO_EXTENSION=1  # Use pure Python UBJSON
+export CBOR2_FORCE_PYTHON=1     # Use pure Python CBOR2 (optional)
+```
+
+### Wheel Availability Matrix
+
+| Architecture | CPython 3.11 | CPython 3.12 | CPython 3.13 | PyPy 3.11 |
+|--------------|--------------|--------------|--------------|-----------|
+| x86_64 Linux | ✅ All | ✅ All | ✅ Most | ⚠️ Most |
+| ARM64 Linux | ✅ All | ✅ All | ✅ Most | ⚠️ Most |
+| x86_64 macOS | ✅ All | ✅ All | ✅ Most | ⚠️ Most |
+| ARM64 macOS | ✅ All | ✅ All | ✅ Most | ⚠️ Most |
+| x86_64 Windows | ✅ All | ✅ All | ✅ Most | ⚠️ Most |
+
+**Legend**: ✅ = Wheels available, ⚠️ = Some packages may need compilation
+
+### Full Dependency List (Alphabetical)
+
+<details>
+<summary>Click to expand full dependency list (160+ packages)</summary>
+
+```
+accessible-pygments==0.0.5
+aiohappyeyeballs==2.6.1
+aiohttp==3.13.2
+aiosignal==1.4.0
+annotated-types==0.7.0
+argon2-cffi==25.1.0
+argon2-cffi-bindings==25.1.0
+arrow==1.4.0
+attrs==25.4.0
+autobahn==25.11.1  [WAMP]
+Automat==25.4.16
+base58==2.1.1
+bcrypt==5.0.0  [NATIVE:CFFI]
+bitarray==3.8.0  [NATIVE:CPyExt]
+bitstring==4.3.1
+binaryornot==0.4.4
+blinker==1.9.0
+brotli==1.2.0  [NATIVE:CPyExt]
+cbor2==5.7.1  [NATIVE:CPyExt+Fallback]
+certifi==2025.11.12
+cffi==2.0.0  [NATIVE:CFFI]
+cfxdb==25.11.1  [WAMP]
+chardet==5.2.0
+charset-normalizer==3.4.4  [NATIVE:CPyExt]
+ckzg==2.1.5  [NATIVE:CPyExt]
+click==8.3.1
+colorama==0.4.6
+constantly==23.10.4
+cookiecutter==2.6.0
+cryptography==46.0.3  [NATIVE:CFFI]
+cytoolz==1.1.0  [NATIVE:CPyExt]
+docker==7.1.0
+ecdsa==0.19.1
+eth-abi==5.1.0
+eth-account==0.13.7
+eth-hash==0.7.1
+eth-keyfile==0.8.1
+eth-keys==0.7.0
+eth-rlp==2.2.0
+eth-typing==5.2.1
+eth-utils==5.3.1
+Flask==3.1.2
+frozenlist==1.8.0  [NATIVE:CPyExt]
+greenlet==3.2.4  [NATIVE:CPyExt]
+h2==3.2.0
+hexbytes==1.3.1
+hkdf==0.0.3
+hpack==3.0.0
+humanize==4.14.0
+hyperframe==5.2.0
+hyperlink==21.0.0
+idna==2.5
+importlib_resources==6.5.2
+incremental==24.7.2
+iso8601==2.1.0
+itsdangerous==2.2.0
+Jinja2==3.1.6
+jinja2-highlight==0.6.1
+jsonschema==4.25.1
+jsonschema-specifications==2025.9.1
+lmdb==1.7.5  [NATIVE:CPyExt+CFFI]
+MarkupSafe==3.0.3  [NATIVE:CPyExt]
+mistune==3.1.4
+mnemonic==0.21
+morphys==1.0
+msgpack==1.1.2  [NATIVE:CPyExt]
+multidict==6.7.0  [NATIVE:CPyExt]
+netaddr==1.3.0
+numpy==2.3.5  [NATIVE:CPyExt]
+packaging==25.0
+parsimonious==0.10.0
+passlib==1.7.4
+priority==1.3.0
+prompt_toolkit==3.0.52
+propcache==0.4.1  [NATIVE:CPyExt]
+psutil==7.1.3  [NATIVE:CPyExt]
+py-ecc==8.0.0
+py-eth-sig-utils==0.4.0
+py-multihash==2.0.1
+py-ubjson==0.16.1  [NATIVE:CPyExt+Fallback]
+pyasn1==0.6.1
+pyasn1_modules==0.4.2
+pycparser==2.23
+pycryptodome==3.23.0  [NATIVE:CPyExt]
+pydantic==2.12.4
+pydantic_core==2.41.5  [NATIVE:Rust]
+Pygments==2.19.2
+PyNaCl==1.6.1  [NATIVE:CFFI]
+pyOpenSSL==25.3.0
+PyQRCode==1.2.1
+PyTrie==0.4.0
+PyYAML==6.0.3  [NATIVE:CPyExt]
+referencing==0.37.0
+regex==2025.11.3  [NATIVE:CPyExt]
+requests==2.32.5
+rich==14.2.0
+rlp==4.1.0
+rpds-py==0.29.0  [NATIVE:Rust]
+sdnotify==0.3.2
+service-identity==24.2.0
+setproctitle==1.3.7  [NATIVE:CPyExt]
+setuptools==80.9.0
+six==1.17.0
+sortedcontainers==2.4.0
+spake2==0.9
+stringcase==1.2.0
+tabulate==0.9.0
+toolz==1.1.0
+treq==25.5.0
+Twisted==25.5.0
+txaio==25.9.2  [WAMP]
+txtorcon==24.8.0
+typing_extensions==4.15.0
+u-msgpack-python==2.8.0
+ujson==5.11.0  [NATIVE:CPyExt]
+urllib3==1.26.20
+validate_email==1.3
+watchdog==6.0.0
+wcwidth==0.2.14
+web3==7.14.0
+Werkzeug==3.1.3
+wsaccel==0.6.7  [NATIVE:CPyExt]
+xbr==25.11.1  [WAMP]
+yarl==1.22.0  [NATIVE:CPyExt]
+zlmdb==25.10.2  [WAMP]
+zope.interface==8.1.1  [NATIVE:CPyExt]
+```
+
+</details>
+
+### Recommendations
+
+1. **For PyPy Deployment**:
+   - Set CFFI-forcing environment variables
+   - Consider avoiding optional native serializers (msgpack, ujson)
+   - Test thoroughly with target PyPy version
+
+2. **For RHEL9/Enterprise**:
+   - All critical packages have manylinux wheels
+   - No compilation required for standard deployment
+   - Consider vendoring for air-gapped environments
+
+3. **For ARM64 (Apple Silicon, AWS Graviton)**:
+   - All major packages have ARM64 wheels
+   - Twisted, Autobahn, WAMP stack fully supported
+   - Some minor packages may need compilation
+
+4. **Security Scanning**:
+   - Use `pip-audit` or `safety` for vulnerability scanning
+   - Critical packages (cryptography, PyNaCl) are actively maintained
+   - Review transitive dependencies regularly
+
+---
+
 Last updated: 2025-11-26
 Status: Phase 1.2 complete
