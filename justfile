@@ -428,7 +428,7 @@ install-tools-all:
 # -----------------------------------------------------------------------------
 
 # Automatically fix all formatting and code style issues.
-autoformat venv="": (install-tools venv)
+fix-format venv="": (install-tools venv)
     #!/usr/bin/env bash
     set -e
     VENV_NAME="{{ venv }}"
@@ -447,6 +447,9 @@ autoformat venv="": (install-tools venv)
     # 2. Run the LINTER'S FIXER second
     "${VENV_PATH}/bin/ruff" check --fix crossbar
     echo "--> Formatting complete."
+
+# Alias for fix-format (backward compatibility)
+autoformat venv="": (fix-format venv)
 
 # Lint code using Ruff in a single environment
 check-format venv="": (install-tools venv)
@@ -559,6 +562,53 @@ test-functional venv="": (install-tools venv) (install venv)
 
 # Run all tests
 test-all venv="": (test venv) (test-functional venv)
+
+# Generate code coverage report (requires: `just install-dev`)
+check-coverage venv="": (install-dev venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Generating coverage report with ${VENV_NAME}..."
+    ${VENV_PYTHON} -m pytest --cov=crossbar --cov-report=html --cov-report=term crossbar/
+    echo "--> Coverage report generated in htmlcov/"
+
+# Alias for check-coverage (backward compatibility)
+coverage venv="": (check-coverage venv)
+
+# Upgrade dependencies in a single environment (re-installs all deps to latest)
+upgrade venv="": (create venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Upgrading all dependencies in ${VENV_NAME}..."
+    ${VENV_PYTHON} -m pip install --upgrade pip
+    ${VENV_PYTHON} -m pip install --upgrade -e .[dev]
+    echo "--> Dependencies upgraded"
+
+# Meta-recipe to run `upgrade` on all environments
+upgrade-all:
+    #!/usr/bin/env bash
+    set -e
+    for venv in {{ENVS}}; do
+        echo ""
+        echo "======================================================================"
+        echo "Upgrading ${venv}"
+        echo "======================================================================"
+        just upgrade ${venv}
+    done
 
 # -----------------------------------------------------------------------------
 # -- Documentation
@@ -1352,5 +1402,83 @@ generate-license-metadata venv="":
     ${VENV_PATH}/bin/pip-licenses -a -o name --format=rst > docs/soss_licenses_table.rst
     sed -i '1s;^;OSS Licenses\n============\n\n;' docs/soss_licenses_table.rst
     echo "  ✓ Generated docs/soss_licenses_table.rst"
-    
+
     echo "==> License metadata generation complete!"
+
+# -----------------------------------------------------------------------------
+# -- Publishing
+# -----------------------------------------------------------------------------
+
+# Download GitHub release artifacts (nightly or tagged release)
+download-github-release release_type="nightly":
+    #!/usr/bin/env bash
+    set -e
+    echo "==> Downloading GitHub release artifacts ({{release_type}})..."
+    rm -rf ./dist
+    mkdir -p ./dist
+    if [ "{{release_type}}" = "nightly" ]; then
+        gh release download nightly --repo crossbario/crossbar --dir ./dist --pattern '*.whl' --pattern '*.tar.gz' || \
+            echo "Note: No nightly release found or no artifacts available"
+    else
+        gh release download "{{release_type}}" --repo crossbario/crossbar --dir ./dist --pattern '*.whl' --pattern '*.tar.gz'
+    fi
+    echo ""
+    echo "Downloaded artifacts:"
+    ls -la ./dist/ || echo "No artifacts downloaded"
+
+# Download release artifacts from GitHub and publish to PyPI
+publish-pypi venv="" tag="": (install-build-tools venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    TAG="{{ tag }}"
+    if [ -z "${TAG}" ]; then
+        echo "Error: Please specify a tag to publish"
+        echo "Usage: just publish-pypi cpy311 v24.1.1"
+        exit 1
+    fi
+    echo "==> Publishing ${TAG} to PyPI..."
+    echo ""
+    echo "Step 1: Download release artifacts from GitHub..."
+    just download-github-release "${TAG}"
+    echo ""
+    echo "Step 2: Verify packages with twine..."
+    "${VENV_PATH}/bin/twine" check dist/*
+    echo ""
+    echo "Note: This is a pure Python package (py3-none-any wheel)."
+    echo "      auditwheel verification is not applicable (no native extensions)."
+    echo ""
+    echo "Step 3: Upload to PyPI..."
+    echo ""
+    echo "WARNING: This will upload to PyPI!"
+    echo "Press Ctrl+C to cancel, or Enter to continue..."
+    read
+    "${VENV_PATH}/bin/twine" upload dist/*
+    echo ""
+    echo "==> Successfully published ${TAG} to PyPI"
+
+# Trigger Read the Docs build for a specific tag
+publish-rtd tag="":
+    #!/usr/bin/env bash
+    set -e
+    TAG="{{ tag }}"
+    if [ -z "${TAG}" ]; then
+        echo "Error: Please specify a tag to build"
+        echo "Usage: just publish-rtd v24.1.1"
+        exit 1
+    fi
+    echo "==> Triggering Read the Docs build for ${TAG}..."
+    echo ""
+    echo "Note: Read the Docs builds are typically triggered automatically"
+    echo "      when tags are pushed to GitHub. This recipe is a placeholder"
+    echo "      for manual triggering if needed."
+    echo ""
+    echo "To manually trigger a build:"
+    echo "  1. Go to https://readthedocs.org/projects/crossbar/"
+    echo "  2. Click 'Build a version'"
+    echo "  3. Select the tag: ${TAG}"
+    echo ""
