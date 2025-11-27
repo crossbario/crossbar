@@ -257,7 +257,101 @@ All repositories successfully updated with Phase 1.1 infrastructure:
 - ✅ Audit trail for AI-assisted work
 - ✅ Reusable CI/CD infrastructure ready for Phase 1.2+
 
-### Phase 1.2: Build Tooling
+### Phase 1.2: Per-Repo Infrastructure
+
+**Objective**: Complete per-repository infrastructure modernization including build tooling, wheel building, documentation, and test coverage.
+
+**Branch**: `modernization-phase-1.2` (all sub-phases on same branch)
+
+**Repository Order** (dependencies):
+1. wamp-proto (no Python deps) - uses branch `fix_556`
+2. txaio (no deps)
+3. autobahn-python (deps: txaio)
+4. zlmdb (deps: txaio)
+5. cfxdb (deps: autobahn-python, zlmdb)
+6. wamp-xbr (deps: autobahn-python)
+7. crossbar (deps: autobahn-python, cfxdb, wamp-xbr)
+
+#### Common Justfile Recipes Specification
+
+All repositories MUST implement the following common justfile recipes with consistent behavior.
+Repository-specific recipes may be added as needed, but the common set ensures uniform developer experience.
+
+**Environment Management:**
+| Recipe | Parameters | Description |
+|--------|------------|-------------|
+| `create` | `venv=""` | Create a single Python virtual environment |
+| `create-all` | - | Meta-recipe to run `create` on all environments |
+| `list-all` | - | List all Python virtual environments |
+| `version` | `venv=""` | Get the version of a single environment's Python |
+| `version-all` | - | Get versions of all Python virtual environments |
+
+**Installation:**
+| Recipe | Parameters | Description |
+|--------|------------|-------------|
+| `install` | `venv=""` | Install this package and its run-time dependencies |
+| `install-all` | - | Meta-recipe to run `install` on all environments |
+| `install-dev` | `venv=""` | Install this package in development (editable) mode |
+| `install-dev-all` | - | Meta-recipe to run `install-dev` on all environments |
+| `install-tools` | `venv=""` | Install development tools (ruff, mypy, pytest, etc.) |
+| `install-tools-all` | - | Meta-recipe to run `install-tools` on all environments |
+| `upgrade` | `venv=""` | Upgrade dependencies in a single environment |
+| `upgrade-all` | - | Meta-recipe to run `upgrade` on all environments |
+
+**Quality Checks:**
+| Recipe | Parameters | Description |
+|--------|------------|-------------|
+| `check` | `venv=""` | Run all checks (format, typing, security) in single environment |
+| `check-format` | `venv=""` | Lint code using Ruff |
+| `check-typing` | `venv=""` | Run static type checking with mypy |
+| `check-coverage` | `venv=""` | Combined coverage report from tests |
+| `fix-format` | `venv=""` | Automatically fix all formatting and code style issues |
+
+**Build/Package:**
+| Recipe | Parameters | Description |
+|--------|------------|-------------|
+| `build` | `venv=""` | Build wheel only |
+| `build-all` | - | Meta-recipe to run `build` on all environments |
+| `build-sourcedist` | `venv=""` | Build source distribution only (no wheels) |
+| `verify-wheels` | `venv=""` | Verify wheels using twine check and auditwheel |
+| `clean-build` | - | Clean build artifacts |
+
+**Testing:**
+| Recipe | Parameters | Description |
+|--------|------------|-------------|
+| `test` | `venv=""` | Run unit tests |
+| `test-all` | - | Meta-recipe to run `test` on all environments |
+
+**Documentation:**
+| Recipe | Parameters | Description |
+|--------|------------|-------------|
+| `docs` | `venv=""` | Build the HTML documentation using Sphinx |
+| `docs-clean` | - | Clean the generated documentation |
+| `docs-view` | `venv=""` | Build documentation and open in system viewer |
+
+**Publishing:**
+| Recipe | Parameters | Description |
+|--------|------------|-------------|
+| `publish` | `venv="" tag=""` | Publish to both PyPI and Read the Docs (meta-recipe) |
+| `publish-pypi` | `venv="" tag=""` | Download release artifacts from GitHub and publish to PyPI |
+| `publish-rtd` | `tag=""` | Trigger Read the Docs build for a specific tag |
+| `download-github-release` | `release_type="nightly"` | Download GitHub release artifacts |
+
+**Cleanup/Utility:**
+| Recipe | Parameters | Description |
+|--------|------------|-------------|
+| `default` | - | Default recipe: show project header and list all recipes |
+| `distclean` | - | Remove ALL generated files (venvs, caches, build artifacts) |
+| `setup-completion` | - | Setup bash tab completion for the current user |
+
+**Notes:**
+- `venv=""` parameter accepts values like `cpy311`, `cpy314`, `pypy311`, or empty for default
+- `verify-wheels` should print "skipped because not binary" for pure Python packages
+- Repository-specific recipes (e.g., autobahn's NVX flags, wamp-xbr's Solidity builds) are allowed in addition to common set
+
+---
+
+#### Phase 1.2.1: Build Tooling
 
 **Objective**: Modernize build systems to use pyproject.toml, ruff, uv, just, pytest, mypy.
 
@@ -285,11 +379,11 @@ All repositories successfully updated with Phase 1.1 infrastructure:
 
 **Blockers**: Requires Phase 1.1 complete
 
-#### Phase 1.2 Completion Summary
+##### Phase 1.2.1 Completion Summary
 
 **Status**: ✅ **COMPLETE** (2025-11-26)
 
-All repositories have completed Phase 1.2 build tooling modernization:
+All repositories have completed Phase 1.2.1 build tooling modernization:
 
 | Repository | Branch | Issue | PR | Status |
 |------------|--------|-------|----|----|
@@ -320,7 +414,7 @@ All repositories now have:
 - wamp-xbr has dual build system (Python + Solidity/Truffle) - justfile wraps Makefile targets
 - crossbar's `install-dev-local` recipe enables cross-repo development with editable installs
 
-### Phase 1.3: Wheel Building
+#### Phase 1.2.2: Wheel Building
 
 **Objective**: Ensure native wheels for all platforms (x86-64, ARM64) and Python implementations (CPython, PyPy).
 
@@ -342,9 +436,9 @@ All repositories now have:
 - GitHub Actions for automated wheel building
 - PyPI publishing workflow ready
 
-**Blockers**: Requires Phase 1.2 complete
+**Blockers**: Requires Phase 1.2.1 complete
 
-### Phase 1.4: Documentation
+#### Phase 1.2.3: Documentation
 
 **Objective**: Modernize documentation with Sphinx + Furo theme + RTD integration.
 
@@ -366,9 +460,9 @@ All repositories now have:
 - RTD integration configured
 - Professional README.md
 
-**Blockers**: Requires Phase 1.3 complete
+**Blockers**: Requires Phase 1.2.2 complete
 
-### Phase 1.5: Unit Test Coverage
+#### Phase 1.2.4: Unit Test Coverage
 
 **Objective**: Ensure test infrastructure exists and provides foundation for comprehensive testing.
 
@@ -391,11 +485,13 @@ All repositories now have:
 - Tests passing on all supported Python versions
 - Tests work with both Twisted and asyncio (txaio, autobahn-python)
 
-**Blockers**: Requires Phase 1.4 complete
+**Blockers**: Requires Phase 1.2.3 complete
 
-### Phase 1.6: CI/CD
+### Phase 1.3: CI/CD
 
 **Objective**: Comprehensive GitHub Actions workflows for automated testing, building, publishing.
+
+**Branch**: `modernization-phase-1.3` (new branch after Phase 1.2 merge)
 
 **Tasks per repository**:
 1. [ ] Audit current GitHub Actions workflows
@@ -416,7 +512,7 @@ All repositories now have:
 - Automated wheel building and publishing
 - All CI checks passing
 
-**Blockers**: Requires Phase 1.5 complete
+**Blockers**: Requires Phase 1.2 complete (all sub-phases merged)
 
 ## Phase 2: Integration Test Coverage
 
@@ -473,11 +569,12 @@ All repositories now have:
 
 **Phase 1** (Per-Repo Modernization):
 - Phase 1.1 (Git submodules): 0.5 day per repo × 7 = 3.5 days
-- Phase 1.2 (Build tooling): 0.5-1 day per repo × 7 = 3.5-7 days
-- Phase 1.3 (Wheels): 0.5-1 day per repo × 7 = 3.5-7 days
-- Phase 1.4 (Documentation): 0.5 day per repo × 7 = 3.5 days
-- Phase 1.5 (Test coverage): 0.5-1 day per repo × 7 = 3.5-7 days
-- Phase 1.6 (CI/CD): 0.5-1 day per repo × 7 = 3.5-7 days
+- Phase 1.2: Per-Repo Infrastructure (single branch):
+  - Phase 1.2.1 (Build tooling): 0.5-1 day per repo × 7 = 3.5-7 days
+  - Phase 1.2.2 (Wheels): 0.5-1 day per repo × 7 = 3.5-7 days
+  - Phase 1.2.3 (Documentation): 0.5 day per repo × 7 = 3.5 days
+  - Phase 1.2.4 (Test coverage): 0.5-1 day per repo × 7 = 3.5-7 days
+- Phase 1.3 (CI/CD): 0.5-1 day per repo × 7 = 3.5-7 days
 - **Subtotal**: 18-35 days
 
 **Phase 2** (Integration Testing):
@@ -487,7 +584,7 @@ All repositories now have:
 
 **Total Estimated**: 24-45 days (5-9 weeks)
 
-**Note**: Estimates assume sequential execution. Some parallelization possible (e.g., different repos in same sub-phase).
+**Note**: Estimates assume sequential execution. Some parallelization possible (e.g., different repos in same sub-phase). Phases 1.2.1-1.2.4 are on the same branch to reduce merge/review overhead.
 
 ## Notes
 
