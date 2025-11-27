@@ -394,7 +394,7 @@ install-build-tools venv="": (create venv)
     ${VENV_PYTHON} -V
     ${VENV_PYTHON} -m pip -V
 
-    ${VENV_PYTHON} -m pip install build twine
+    ${VENV_PYTHON} -m pip install build twine auditwheel
 
 # Install the development tools for this Package in a single environment (usage: `just install-tools cpy312`)
 install-tools venv="": (create venv)
@@ -413,7 +413,7 @@ install-tools venv="": (create venv)
     ${VENV_PYTHON} -V
     ${VENV_PYTHON} -m pip -V
 
-    ${VENV_PYTHON} -m pip install -e .[dev,dev-latest]
+    ${VENV_PYTHON} -m pip install -e .[dev]
 
 # Meta-recipe to run `install-tools` on all environments
 install-tools-all:
@@ -835,6 +835,222 @@ build-verifydist venv="": (install-build-tools venv)
 
 # Legacy alias for build-verifydist
 verify-dist venv="": (build-verifydist venv)
+
+# Path to parent directory containing all WAMP Python repos
+WAMP_REPOS_DIR := parent_directory(justfile_directory())
+
+# List of all WAMP Python repos in dependency order
+WAMP_REPOS := 'txaio autobahn-python zlmdb cfxdb wamp-xbr crossbar'
+
+# Build all 6 WAMP Python repos (all Python versions) and collect wheels/sdists into dist-universe
+build-universe:
+    #!/usr/bin/env bash
+    set -e
+
+    echo "========================================================================"
+    echo "Building WAMP Universe (all 6 Python repos, all Python versions)"
+    echo "========================================================================"
+    echo "Repos dir: {{ WAMP_REPOS_DIR }}"
+    echo ""
+
+    # Clean and create dist-universe directory
+    rm -rf ./dist-universe
+    mkdir -p ./dist-universe
+
+    FAILURES=0
+    BUILT_REPOS=""
+
+    for repo in {{ WAMP_REPOS }}; do
+        REPO_PATH="{{ WAMP_REPOS_DIR }}/${repo}"
+        echo ""
+        echo "========================================================================"
+        echo "Building: ${repo}"
+        echo "========================================================================"
+
+        if [ ! -d "${REPO_PATH}" ]; then
+            echo "❌ ERROR: Repository not found at ${REPO_PATH}"
+            ((++FAILURES))
+            continue
+        fi
+
+        if [ ! -f "${REPO_PATH}/justfile" ]; then
+            echo "❌ ERROR: No justfile found in ${REPO_PATH}"
+            ((++FAILURES))
+            continue
+        fi
+
+        # Clean repo dist directory first
+        rm -rf "${REPO_PATH}/dist"
+
+        # Build wheels for ALL Python versions (CPython + PyPy)
+        echo "--> Building wheels for all Python versions..."
+        if (cd "${REPO_PATH}" && just build-all); then
+            echo "✓ Wheels built"
+        else
+            echo "❌ FAIL: Wheel build failed"
+            ((++FAILURES))
+            continue
+        fi
+
+        # Build source distribution (only need one, use system Python)
+        echo "--> Building source distribution..."
+        if (cd "${REPO_PATH}" && just build-sourcedist); then
+            echo "✓ Source distribution built"
+        else
+            echo "❌ FAIL: Source distribution build failed"
+            ((++FAILURES))
+            continue
+        fi
+
+        # Copy artifacts to dist-universe
+        echo "--> Copying artifacts to dist-universe..."
+        cp "${REPO_PATH}"/dist/*.whl ./dist-universe/ 2>/dev/null || true
+        cp "${REPO_PATH}"/dist/*.tar.gz ./dist-universe/ 2>/dev/null || true
+
+        BUILT_REPOS="${BUILT_REPOS} ${repo}"
+        echo "✓ ${repo} complete"
+    done
+
+    echo ""
+    echo "========================================================================"
+    echo "Build Universe Summary"
+    echo "========================================================================"
+    echo "Successfully built:${BUILT_REPOS}"
+    echo "Failures: ${FAILURES}"
+    echo ""
+    echo "Artifacts in dist-universe:"
+    ls -la ./dist-universe/
+    echo ""
+
+    if [ ${FAILURES} -gt 0 ]; then
+        echo "❌ BUILD UNIVERSE FAILED: ${FAILURES} repo(s) had errors"
+        exit 1
+    else
+        WHEEL_COUNT=$(ls ./dist-universe/*.whl 2>/dev/null | wc -l)
+        SDIST_COUNT=$(ls ./dist-universe/*.tar.gz 2>/dev/null | wc -l)
+        echo "✅ BUILD UNIVERSE COMPLETE"
+        echo "   Wheels: ${WHEEL_COUNT}"
+        echo "   Source dists: ${SDIST_COUNT}"
+    fi
+
+# Verify all wheels and source dists in dist-universe (usage: `just verify-universe`)
+verify-universe: (install-build-tools)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME=$(just --quiet _get-system-venv-name)
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+
+    echo "========================================================================"
+    echo "Verifying WAMP Universe (dist-universe)"
+    echo "========================================================================"
+    echo "Using venv: ${VENV_NAME}"
+    echo ""
+
+    # Check if dist-universe exists
+    if [ ! -d "./dist-universe" ]; then
+        echo "❌ ERROR: dist-universe/ directory not found"
+        echo "   Run 'just build-universe' first"
+        exit 1
+    fi
+
+    FAILURES=0
+
+    # Count distributions
+    WHEEL_COUNT=$(ls ./dist-universe/*.whl 2>/dev/null | wc -l)
+    SDIST_COUNT=$(ls ./dist-universe/*.tar.gz 2>/dev/null | wc -l)
+
+    echo "Found ${WHEEL_COUNT} wheel(s) and ${SDIST_COUNT} source dist(s)"
+    echo ""
+
+    if [ "${WHEEL_COUNT}" -eq 0 ] && [ "${SDIST_COUNT}" -eq 0 ]; then
+        echo "❌ ERROR: No distributions found in dist-universe/"
+        exit 1
+    fi
+
+    # Verify with twine check
+    echo "========================================================================"
+    echo "Running twine check"
+    echo "========================================================================"
+    if ${VENV_PYTHON} -m twine check ./dist-universe/*; then
+        echo "✓ Twine check passed for all packages"
+    else
+        echo "❌ FAIL: Twine check failed"
+        ((++FAILURES))
+    fi
+    echo ""
+
+    # Check wheel types
+    echo "========================================================================"
+    echo "Checking wheel types"
+    echo "========================================================================"
+    for wheel in ./dist-universe/*.whl; do
+        WHEEL_NAME=$(basename "$wheel")
+        # Extract package name (everything before the version)
+        PKG_NAME=$(echo "$WHEEL_NAME" | sed 's/-[0-9].*//')
+
+        if [[ "$WHEEL_NAME" == *"-py2.py3-none-any.whl" ]] || [[ "$WHEEL_NAME" == *"-py3-none-any.whl" ]]; then
+            echo "✓ ${PKG_NAME}: Pure Python wheel"
+        elif [[ "$WHEEL_NAME" == *"-cp3"*"-linux"* ]] || [[ "$WHEEL_NAME" == *"-cp3"*"-manylinux"* ]]; then
+            echo "✓ ${PKG_NAME}: Platform-specific wheel (CPython/CFFI)"
+            # Run auditwheel on platform-specific wheels
+            echo "  --> Running auditwheel show..."
+            if [ -x "${VENV_PATH}/bin/auditwheel" ]; then
+                "${VENV_PATH}/bin/auditwheel" show "$wheel" 2>/dev/null || echo "  ⚠ auditwheel show had warnings"
+            else
+                echo "  ⚠ auditwheel not available"
+            fi
+        elif [[ "$WHEEL_NAME" == *"-pp3"*"-linux"* ]] || [[ "$WHEEL_NAME" == *"-pp3"*"-manylinux"* ]]; then
+            echo "✓ ${PKG_NAME}: Platform-specific wheel (PyPy/CFFI)"
+        else
+            echo "⚠ ${PKG_NAME}: Unknown wheel type: ${WHEEL_NAME}"
+        fi
+    done
+    echo ""
+
+    # Summary by package
+    echo "========================================================================"
+    echo "Package Summary"
+    echo "========================================================================"
+    for repo in {{ WAMP_REPOS }}; do
+        # Convert repo name to package name (autobahn-python -> autobahn)
+        case "${repo}" in
+            autobahn-python) PKG_PATTERN="autobahn-";;
+            wamp-xbr) PKG_PATTERN="xbr-";;
+            *) PKG_PATTERN="${repo}-";;
+        esac
+
+        WHEEL_EXISTS=$(ls ./dist-universe/${PKG_PATTERN}*.whl 2>/dev/null | head -1)
+        SDIST_EXISTS=$(ls ./dist-universe/${PKG_PATTERN}*.tar.gz 2>/dev/null | head -1)
+
+        if [ -n "${WHEEL_EXISTS}" ] && [ -n "${SDIST_EXISTS}" ]; then
+            echo "✓ ${repo}: wheel + sdist"
+        elif [ -n "${WHEEL_EXISTS}" ]; then
+            echo "⚠ ${repo}: wheel only (missing sdist)"
+        elif [ -n "${SDIST_EXISTS}" ]; then
+            echo "⚠ ${repo}: sdist only (missing wheel)"
+        else
+            echo "❌ ${repo}: MISSING"
+            ((++FAILURES))
+        fi
+    done
+    echo ""
+
+    # Final summary
+    echo "========================================================================"
+    echo "Verification Summary"
+    echo "========================================================================"
+    echo "Wheels: ${WHEEL_COUNT}"
+    echo "Source dists: ${SDIST_COUNT}"
+    echo "Failures: ${FAILURES}"
+    echo ""
+
+    if [ ${FAILURES} -gt 0 ]; then
+        echo "❌ VERIFICATION FAILED"
+        exit 1
+    else
+        echo "✅ ALL DISTRIBUTIONS VERIFIED SUCCESSFULLY"
+    fi
 
 # Show dependency tree
 deps venv="": (install venv)
