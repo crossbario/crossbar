@@ -482,27 +482,734 @@ All repositories have completed Phase 1.2.2 wheel building modernization:
 - CFFI packages use vendored bindings (zlmdb vendors lmdb)
 - All packages use PyPI trusted publishing (no password secrets needed)
 
+#### Standardized Project Directory Structure
+
+**Objective**: Adopt modern Python project structure (2025 best practices) across all 6 repos.
+
+All WAMP Python projects follow the **src layout** as recommended by:
+- [Python Packaging User Guide](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/)
+- [uv project structure](https://docs.astral.sh/uv/concepts/projects/layout/)
+- [pyOpenSci Python Package Guide](https://www.pyopensci.org/python-package-guide/package-structure-code/python-package-structure.html)
+
+##### Why src Layout?
+
+1. **Test isolation**: Tests run against the installed package, not source directory
+2. **Import safety**: Package must be installed to be imported (catches packaging issues early)
+3. **Smaller wheels**: Tests excluded from distribution automatically
+4. **Modern tooling**: Default for `uv init --lib`, Hatch, PDM, and other modern tools
+5. **Clear separation**: Source, tests, and docs are clearly separated
+
+##### Standard Directory Structure (All 6 Repos)
+
+```
+package-name/
+├── .ai/                      # Git submodule: wamp-ai (AI policy, git hooks)
+├── .cicd/                    # Git submodule: wamp-cicd (GitHub Actions, templates)
+├── .github/                  # GitHub-specific (Issues, PR templates, workflows)
+│   ├── ISSUE_TEMPLATE/
+│   ├── PULL_REQUEST_TEMPLATE/
+│   └── workflows/
+│       ├── main.yml          # CI: lint, test, coverage
+│       └── release.yml       # CD: build wheels, publish PyPI
+├── .venvs/                   # Local virtual environments (gitignored)
+├── docs/                     # Sphinx documentation
+│   ├── _static/              # Static assets (CSS, images, SVGs)
+│   ├── _templates/           # Custom Sphinx templates
+│   ├── conf.py               # Sphinx configuration
+│   ├── index.md              # Documentation entry point (MyST)
+│   └── spelling_wordlist.txt # Project-specific spelling dictionary
+├── examples/                 # Example code and usage demos
+│   ├── README.md             # Examples overview
+│   └── ...                   # Example scripts/projects
+├── src/                      # Source code root (PEP 517 src layout)
+│   └── package_name/         # Actual package (importable name)
+│       ├── __init__.py
+│       ├── _version.py       # Version (single source of truth)
+│       ├── py.typed          # PEP 561 type marker (libraries only)
+│       └── ...               # Package modules
+├── tests/                    # Test suite (AT PROJECT ROOT, not in src/)
+│   ├── __init__.py
+│   ├── conftest.py           # pytest fixtures
+│   └── test_*.py             # Test modules
+├── .gitignore
+├── .readthedocs.yaml         # RTD build configuration
+├── AI_POLICY.md -> .ai/AI_POLICY.md
+├── CHANGELOG.md              # Release history
+├── CLAUDE.md -> .ai/AI_GUIDELINES.md
+├── LICENSE
+├── README.md                 # GitHub landing page
+├── justfile                  # Task runner
+├── pyproject.toml            # Package metadata and tool configuration (SINGLE SOURCE)
+└── uv.lock                   # Locked dependencies (committed to VCS)
+```
+
+**Key directory placement rules:**
+
+| Directory | Location | Rationale |
+|-----------|----------|-----------|
+| `src/` | Project root | Contains only importable package code |
+| `tests/` | Project root | **NOT inside src/** - excluded from wheel automatically |
+| `examples/` | Project root | Example code for users, excluded from wheel |
+| `docs/` | Project root | Sphinx documentation, excluded from wheel |
+
+##### Application vs Library: The Only Difference
+
+Crossbar uses the **same src layout** as the 5 libraries. The only structural difference
+is the `[project.scripts]` section in pyproject.toml, which creates an executable CLI:
+
+```toml
+# Libraries: no scripts section (or optional CLI tools)
+# Application (crossbar): CLI entry point
+[project.scripts]
+crossbar = "crossbar:run"
+```
+
+This tells Python to create an executable binary named `crossbar` when installed, which
+invokes the `run()` function from the `crossbar` package.
+
+**Note**: Applications don't need `py.typed` since they're not imported by other packages.
+
+##### Key PEP Compliance
+
+| PEP | Description | Implementation |
+|-----|-------------|----------------|
+| [PEP 517](https://peps.python.org/pep-0517/) | Build system interface | `[build-system]` in pyproject.toml |
+| [PEP 518](https://peps.python.org/pep-0518/) | Build requirements | `requires` in `[build-system]` |
+| [PEP 621](https://peps.python.org/pep-0621/) | Project metadata | `[project]` in pyproject.toml |
+| [PEP 660](https://peps.python.org/pep-0660/) | Editable installs | `pip install -e .` with modern backends |
+| [PEP 561](https://peps.python.org/pep-0561/) | Type information | `py.typed` marker + type hints |
+| [PEP 639](https://peps.python.org/pep-0639/) | License expression | `license = "MIT"` (SPDX identifier) |
+
+##### pyproject.toml Structure
+
+```toml
+[build-system]
+requires = ["setuptools>=70.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "package-name"
+version = "25.11.1"
+description = "Package description"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    {name = "typedef int GmbH", email = "contact@typedefint.eu"}
+]
+keywords = ["wamp", "websocket", "rpc", "pubsub"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+dependencies = [
+    # Runtime dependencies
+]
+
+[project.optional-dependencies]
+docs = [
+    # Documentation tools (see Phase 1.2.3)
+]
+dev = [
+    # Developer tools (lint, test, build)
+]
+
+[project.urls]
+Homepage = "https://github.com/crossbario/package-name"
+Documentation = "https://package-name.readthedocs.io"
+Repository = "https://github.com/crossbario/package-name"
+Issues = "https://github.com/crossbario/package-name/issues"
+
+# CLI entry points (crossbar only)
+[project.scripts]
+crossbar = "crossbar:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["package_name*"]
+
+[tool.setuptools.package-data]
+package_name = ["py.typed"]
+
+# Tool configurations (ruff, mypy, pytest, coverage)
+# See Phase 1.2.1 for details
+```
+
+##### Migration from Flat Layout to src Layout
+
+For each repo, the migration involves:
+
+1. **Create src directory**: `mkdir -p src`
+2. **Move package**: `git mv package_name src/package_name`
+3. **Move tests out** (if inside package): `git mv src/package_name/tests tests`
+4. **Add py.typed**: `touch src/package_name/py.typed`
+5. **Update pyproject.toml**: Change `[tool.setuptools.packages.find]` to use `where = ["src"]`
+6. **Update imports in tests**: Change from `from package_name` to same (no change needed, installed package)
+7. **Update docs/conf.py**: Adjust `sys.path` if needed for autoapi
+8. **Verify build**: `just build && just test`
+
+##### Files to Remove (Legacy - No Exceptions)
+
+For 2025, all legacy build/config files are **deleted** (not renamed, not kept as shims):
+
+| File | Action | Reason |
+|------|--------|--------|
+| `setup.py` | **DELETE** | Replaced by pyproject.toml - no shim needed with modern pip/uv |
+| `setup.cfg` | **DELETE** | Replaced by pyproject.toml |
+| `tox.ini` | **DELETE** | Replaced by justfile |
+| `Makefile` | **DELETE** | Replaced by justfile |
+| `requirements.txt` | **DELETE** | Replaced by pyproject.toml + uv.lock |
+| `requirements-dev.txt` | **DELETE** | Replaced by `[project.optional-dependencies]` |
+| `MANIFEST.in` | **DELETE** | setuptools auto-discovers with pyproject.toml |
+| `.flake8` | **DELETE** | Replaced by ruff in pyproject.toml |
+| `mypy.ini` | **DELETE** | Replaced by `[tool.mypy]` in pyproject.toml |
+| `pytest.ini` | **DELETE** | Replaced by `[tool.pytest.ini_options]` in pyproject.toml |
+| `.pylintrc` | **DELETE** | Replaced by ruff |
+| `yapf.ini` / `.style.yapf` | **DELETE** | Replaced by ruff formatter |
+
+**Note**: Modern pip (23.1+) and uv fully support PEP 517/518/621. No `setup.py` shim is needed.
+
+##### Dependency Specification Policy
+
+Different strategies for libraries vs applications:
+
+###### Libraries (txaio, autobahn-python, zlmdb, cfxdb, wamp-xbr)
+
+**Strategy**: Maximize Compatibility ("floats on top of the latest ecosystem", "can be installed alongside other packages in one venv")
+
+| Aspect | Policy |
+|--------|--------|
+| `pyproject.toml` | Define direct dependencies with lower bounds (`>=`), upper bounds only if absolutely required (`<`) |
+| `uv.lock` | **DO NOT include** - would unnecessarily constrain downstream users |
+| CI/CD | Uses open-ended (`>=`) deps - simulates exactly what end-users experience with `pip install` |
+
+**Rationale**: If a dependency releases a breaking change, CI fails immediately, alerting us to fix our code or cap the version (e.g., `<3.0`). This catches compatibility issues before users do.
+
+###### Application (crossbar)
+
+**Strategy**: Maximize Reproducibility ("recommended to install in a dedicated venv")
+
+| Aspect | Policy |
+|--------|--------|
+| `pyproject.toml` | Define direct dependencies with sensible guards (`>=`), upper bounds only if required |
+| `uv.lock` | **MUST be committed to Git** - ensures exact reproducibility |
+| CI/CD | Uses `uv sync --frozen` to install exact pinned deps (direct + transitive) |
+
+**Release workflow**:
+1. Before release: `uv sync --upgrade` to update all deps to latest stable
+2. Run full test suite (unit, functional, integration)
+3. Commit updated `uv.lock` with the release
+4. Tag release in Git
+5. Publish to PyPI (convenience channel)
+6. Build Docker images from Git tag (production channel)
+
+**Distribution channels**:
+
+| Channel | Strictness | Use Case |
+|---------|------------|----------|
+| PyPI (`pip install crossbar`) | Medium | Convenience, development |
+| Git + Docker + uv (`uv sync --frozen`) | **Maximum** | Production, security-critical |
+
+**Production Dockerfile example**:
+
+```dockerfile
+FROM python:3.12-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Clone the specific tag to get the uv.lock
+RUN git clone --branch v2025.1.0 https://github.com/crossbario/crossbar /app
+WORKDIR /app
+
+# Install EXACTLY what was tested - frozen deps, hash verification, no editable installs
+RUN uv sync --frozen --no-dev --no-editable --require-hashes
+
+ENV PATH="/app/.venv/bin:$PATH"
+ENTRYPOINT ["crossbar"]
+```
+
+This guarantees customers running Docker get the **exact bytes** tested in CI/CD and verified in integration testing.
+
+**uv flags explained**:
+- `--frozen`: Use exact versions from `uv.lock`, fail if lock file is missing or outdated
+- `--no-dev`: Exclude development dependencies
+- `--no-editable`: Install as regular packages, not editable (more robust)
+- `--require-hashes`: Verify package integrity via cryptographic hashes in `uv.lock`
+
+**References**:
+- [PEP 621](https://peps.python.org/pep-0621/) - Project metadata in pyproject.toml
+- [PEP 751](https://peps.python.org/pep-0751/) - Lock file format (standard `pylock.toml`)
+- [uv lock documentation](https://docs.astral.sh/uv/concepts/projects/layout/#the-lockfile)
+
+**Note on lock file formats**: We standardize on `uv.lock` (uv-native format) for all tooling.
+PEP 751 defines a standard `pylock.toml` format - export via `uv export -o pylock.toml` if needed
+for interoperability with other tools.
+
+##### Standard .gitignore
+
+```gitignore
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+
+# Virtual environments
+.venv/
+.venvs/
+venv/
+
+# Cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Documentation build
+docs/_build/
+docs/_autosummary/
+docs/autoapi/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# uv
+.uv-cache/
+# NOTE: uv.lock is committed for crossbar (application), NOT committed for libraries
+
+# Project-specific
+dist-universe/
+```
+
+---
+
 #### Phase 1.2.3: Documentation
 
-**Objective**: Modernize documentation with Sphinx + Furo theme + RTD integration.
+**Objective**: Modernize documentation with Sphinx + Furo theme + RTD integration across all 6 Python repos.
 
-**Tasks per repository**:
-1. [ ] Audit current documentation status
-2. [ ] Update Sphinx to latest version
-3. [ ] Migrate to Furo theme (from sphinx_rtd_theme)
-4. [ ] Update docs/conf.py configuration
-5. [ ] Verify all documentation builds: `just docs cpy314`
-6. [ ] Update API documentation (sphinx-autoapi or autodoc)
-7. [ ] Add/update README.md with badges, quick start
-8. [ ] Verify RTD integration (readthedocs.yml)
-9. [ ] Test documentation locally
+##### Goals
+
+1. **Sphinx with Furo Theme**: All repos use modern Furo theme (not sphinx_rtd_theme)
+2. **sphinx-autoapi**: Use sphinx-autoapi for API docs (NOT autodoc)
+3. **Noto Fonts**: Configure Furo with Google Noto font family for consistency
+4. **Standardized Justfile Recipes**:
+   - `docs`: Build HTML documentation
+   - `docs-check`: Run Sphinx spelling checker against `docs/spelling_wordlist.txt`
+   - `docs-clean`: Clean generated documentation
+   - `publish-rtd`: Trigger RTD build for tag/release
+5. **RTD Configuration**: Each repo has `.readthedocs.yaml` (ubuntu-24.04, Python 3.11)
+6. **Consistent pyproject.toml**: Documentation deps in `[docs]` extra, dev tools in `[dev]` extra
+
+##### Standard .readthedocs.yaml Template
+
+```yaml
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.11"
+
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
+
+sphinx:
+  configuration: docs/conf.py
+```
+
+##### Standard Documentation Dependencies (pyproject.toml)
+
+Documentation tools are in a separate `[docs]` extra (used by RTD), while `[dev]` contains
+developer tools. Developers install with `pip install -e ".[dev,docs]"`.
+
+```toml
+[project.optional-dependencies]
+# Documentation tools (used by RTD via .readthedocs.yaml)
+docs = [
+    # --- Core Sphinx + MyST ---
+    "sphinx>=7.2",
+    "myst-parser>=2.0",
+
+    # --- Theme ---
+    "furo>=2024.7.0",
+
+    # --- API docs (modern, fast, no-import parsing) ---
+    "sphinx-autoapi>=2.1.0",
+
+    # --- UX Enhancements ---
+    "sphinx-copybutton>=0.5",
+    "sphinx-design>=0.5",
+
+    # --- Images (optional but useful; works with Sphinx 7) ---
+    "sphinxcontrib-images>=0.9",
+
+    # --- Spell checking ---
+    "sphinxcontrib-spelling>=8.0",
+    "pyenchant>=3.2",
+
+    # --- Static asset optimization ---
+    "scour>=0.38",
+
+    # --- Social previews ---
+    "sphinxext-opengraph>=0.9",
+
+    # --- Optional (improves auto-linking in MyST) ---
+    "linkify-it-py>=2.0.0",
+]
+
+# Developer tools (linting, testing, building)
+dev = [
+    # Build tools
+    "build>=1.0.0",
+    "wheel>=0.42.0",
+    "twine>=5.0.0",
+
+    # Testing
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "coverage>=7.0.0",
+
+    # Code quality
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+]
+```
+
+**Installation patterns:**
+- **RTD builds**: `.readthedocs.yaml` uses `extra_requirements: [docs]`
+- **Developers**: `pip install -e ".[dev,docs]"` or `just install-dev` (which installs both)
+- **CI/CD**: Install `[dev]` for testing, `[docs]` for doc builds
+
+**Notes on key dependencies:**
+- **sphinx-autoapi**: Uses static analysis (no imports) - crucial for txaio/autobahn where importing both Twisted and asyncio modules simultaneously would fail
+- **myst-parser**: Allows writing docs in Markdown alongside RST - gradual migration possible
+- **sphinx-design**: Provides Bootstrap-like components (cards, tabs, grids, badges)
+- **sphinxext-opengraph**: Generates `<meta>` tags for better link previews on social media/Slack/Discord
+- **scour**: SVG optimization tool (preferred format for diagrams) - cleans/optimizes SVG files at build time
+
+##### MyST Markdown vs reStructuredText Strategy
+
+**MyST Markdown is the preferred format for modern Python documentation in 2025.**
+
+MyST (Markedly Structured Text) provides full Sphinx functionality with Markdown syntax:
+- Cross-referencing functions, classes, methods
+- Type linking
+- API auto-generation (via AutoAPI)
+- Sphinx domains (Python, JavaScript, etc.)
+- Math, admonitions, TOCs
+- Multi-page structuring
+- Full RTD compatibility
+
+MyST is now recommended by Sphinx core for narrative documentation, and is used by
+FastAPI, Pydantic, NumPy (migrating), Jupyter ecosystem, Furo, and Scientific Python projects.
+
+**Recommended Format by Documentation Type:**
+
+| Documentation Type | Format | Rationale |
+|--------------------|--------|-----------|
+| API Reference | AutoAPI (auto-generated) | Zero maintenance, parsed from source |
+| Tutorials / How-tos | MyST Markdown | Clean, readable, easy to write |
+| Explanations / Concepts | MyST Markdown | Best readability for narrative |
+| Changelogs | Markdown | Conventional format |
+| README | Markdown | GitHub-friendly rendering |
+| Legacy RST docs | Keep RST (migrate gradually) | No forced migration |
+
+**Migration Strategy for Existing Repos:**
+
+1. **Enable MyST alongside RST** - Both formats work in same docs/ directory
+2. **Write new docs in MyST** - All new tutorials, guides in `.md` files
+3. **Gradual RST migration** - Convert RST files to MyST as they are updated
+4. **Keep API docs auto-generated** - AutoAPI handles this automatically
+
+**MyST Configuration (docs/conf.py):**
+
+```python
+extensions = [
+    "myst_parser",
+    # ... other extensions
+]
+
+# MyST configuration
+myst_enable_extensions = [
+    "colon_fence",      # ::: directive syntax
+    "deflist",          # Definition lists
+    "fieldlist",        # Field lists
+    "html_admonition",  # HTML admonitions
+    "html_image",       # HTML images
+    "linkify",          # Auto-link URLs (requires linkify-it-py)
+    "replacements",     # Text replacements
+    "smartquotes",      # Smart quotes
+    "strikethrough",    # ~~strikethrough~~
+    "substitution",     # Substitutions
+    "tasklist",         # Task lists (- [ ] item)
+]
+
+# Allow both .rst and .md source files
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+```
+
+##### Standard docs/conf.py (Complete Template)
+
+This is the complete, standardized Sphinx configuration for all 6 WAMP Python repos:
+
+```python
+# docs/conf.py
+import os
+import sys
+from datetime import datetime
+
+# -- Path setup --------------------------------------------------------------
+# Ensures AutoAPI can import your project (src layout)
+sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../src"))
+
+# -- Project information -----------------------------------------------------
+project = "package_name"  # Change per repo
+author = "Crossbar.io Project"
+copyright = f"{datetime.now():%Y}, {author}"
+
+# Dynamically get version from the package
+try:
+    from package_name import __version__ as release
+except Exception:
+    release = "dev"
+
+version = release
+
+# -- General configuration ---------------------------------------------------
+extensions = [
+    # MyST Markdown support
+    "myst_parser",
+
+    # Core Sphinx extensions
+    "sphinx.ext.autodoc",            # Required by AutoAPI internally
+    "sphinx.ext.napoleon",           # Google/NumPy style docstrings
+    "sphinx.ext.intersphinx",        # Cross-link other projects
+    "sphinx.ext.autosectionlabel",   # {ref} headings automatically
+    "sphinx.ext.todo",
+    "sphinx.ext.viewcode",           # Link to highlighted source
+
+    # Modern UX extensions
+    "sphinx_design",                 # Cards, tabs, grids
+    "sphinx_copybutton",             # Copy button for code blocks
+    "sphinxext.opengraph",           # Social media meta tags
+    "sphinxcontrib.images",          # Enhanced image handling
+    "sphinxcontrib.spelling",        # Spell checking
+
+    # API documentation (no-import, static analysis)
+    "autoapi.extension",
+]
+
+# Source file suffixes (both RST and MyST Markdown)
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+
+# -- MyST Configuration ------------------------------------------------------
+myst_enable_extensions = [
+    "colon_fence",        # ::: directive blocks
+    "deflist",            # Definition lists
+    "tasklist",           # Task lists (- [ ] item)
+    "attrs_block",        # Block attributes
+    "attrs_inline",       # Inline attributes
+    "smartquotes",        # Smart quote substitution
+    "linkify",            # Auto-link URLs (requires linkify-it-py)
+]
+myst_heading_anchors = 3  # Generate anchors for h1-h3
+
+# -- AutoAPI Configuration ---------------------------------------------------
+autoapi_type = "python"
+autoapi_dirs = ["../src/package_name"]  # Change per repo
+autoapi_add_toctree_entry = True
+autoapi_keep_files = False              # Cleaner RTD builds
+autoapi_generate_api_docs = True
+autoapi_options = [
+    "members",
+    "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
+    "imported-members",
+]
+autoapi_ignore = [
+    "*/_version.py",
+    "*/test_*.py",
+    "*/*_test.py",
+    "*/conftest.py",
+]
+autoapi_python_use_implicit_namespaces = True
+autoapi_member_order = "alphabetical"   # Predictable ordering
+
+# -- Intersphinx Configuration -----------------------------------------------
+# Cross-reference documentation across WAMP ecosystem and dependencies
+intersphinx_mapping = {
+    # Python Standard Library
+    "python": ("https://docs.python.org/3", None),
+
+    # Critical 3rd Party Libraries
+    "twisted": ("https://docs.twisted.org/en/stable/", None),
+    "cryptography": ("https://cryptography.io/en/latest/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+
+    # Ethereum/Web3 (for wamp-xbr, cfxdb)
+    "web3": ("https://web3py.readthedocs.io/en/stable/", None),
+
+    # WAMP Ecosystem (the "mesh" - add as needed per repo)
+    "txaio": ("https://txaio.readthedocs.io/en/latest/", None),
+    "autobahn": ("https://autobahn.readthedocs.io/en/latest/", None),
+    "zlmdb": ("https://zlmdb.readthedocs.io/en/latest/", None),
+    "cfxdb": ("https://cfxdb.readthedocs.io/en/latest/", None),
+    "crossbar": ("https://crossbar.readthedocs.io/en/latest/", None),
+}
+intersphinx_cache_limit = 5  # Cache remote inventories for 5 days
+
+# -- HTML Output (Furo Theme) ------------------------------------------------
+html_theme = "furo"
+html_title = f"{project} {release}"
+
+# Furo theme options with Noto fonts
+html_theme_options = {
+    # Source repository links
+    "source_repository": "https://github.com/crossbario/package_name/",
+    "source_branch": "master",
+    "source_directory": "docs/",
+
+    # Noto fonts from Google Fonts
+    "light_css_variables": {
+        "font-stack": "'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "font-stack--monospace": "'Noto Sans Mono', SFMono-Regular, Menlo, Consolas, monospace",
+    },
+    "dark_css_variables": {
+        "font-stack": "'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "font-stack--monospace": "'Noto Sans Mono', SFMono-Regular, Menlo, Consolas, monospace",
+    },
+}
+
+# Static files
+html_static_path = ["_static"]
+html_css_files = [
+    # Load Noto fonts from Google Fonts
+    "https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Mono:wght@400;500&display=swap",
+    "custom.css",  # Project-specific overrides
+]
+
+# Logo and favicon (if available)
+# html_logo = "_static/logo.png"
+# html_favicon = "_static/favicon.ico"
+
+# -- sphinxcontrib-images Configuration --------------------------------------
+images_config = {
+    "override_image_directive": True,
+    "default_image_width": "80%",
+}
+
+# -- Spelling Configuration --------------------------------------------------
+spelling_lang = "en_US"
+spelling_word_list_filename = "spelling_wordlist.txt"
+spelling_show_suggestions = True
+
+# -- OpenGraph (Social Media Meta Tags) -------------------------------------
+ogp_site_url = "https://package_name.readthedocs.io/en/latest/"
+ogp_image = "_static/social-card.png"  # If available
+
+# -- Miscellaneous -----------------------------------------------------------
+todo_include_todos = True               # Show TODO items in docs
+add_module_names = False                # Cleaner module paths in API docs
+autosectionlabel_prefix_document = True # Avoid section label collisions
+pygments_style = "sphinx"               # Code highlighting style
+```
+
+##### Per-Repo Intersphinx Customization
+
+Each repo should include only relevant intersphinx mappings:
+
+| Repository | Include in intersphinx_mapping |
+|------------|-------------------------------|
+| txaio | python, twisted |
+| autobahn-python | python, twisted, txaio, cryptography |
+| zlmdb | python, txaio, numpy |
+| cfxdb | python, autobahn, zlmdb, web3 |
+| wamp-xbr | python, autobahn, web3 |
+| crossbar | python, twisted, autobahn, txaio, zlmdb, cfxdb, cryptography |
+
+##### Standard Justfile Documentation Recipes
+
+```just
+# Build documentation
+docs venv="":
+    #!/usr/bin/env bash
+    VENV_NAME="${venv:-cpy311}"
+    VENV_PATH="${VENVS_DIR}/${VENV_NAME}"
+    source "${VENV_PATH}/bin/activate"
+    cd docs && sphinx-build -b html . _build/html
+
+# Check documentation spelling
+docs-check venv="":
+    #!/usr/bin/env bash
+    VENV_NAME="${venv:-cpy311}"
+    VENV_PATH="${VENVS_DIR}/${VENV_NAME}"
+    source "${VENV_PATH}/bin/activate"
+    cd docs && sphinx-build -b spelling . _build/spelling
+
+# Clean generated documentation
+docs-clean:
+    rm -rf docs/_build docs/_autosummary
+
+# Trigger RTD build (for human use only - requires RTD API token)
+publish-rtd tag="":
+    #!/usr/bin/env bash
+    if [ -z "{{tag}}" ]; then
+        echo "Usage: just publish-rtd <tag>"
+        echo "Example: just publish-rtd v25.11.1"
+        exit 1
+    fi
+    echo "Triggering RTD build for tag: {{tag}}"
+    echo "Note: This requires RTD webhook or API token configuration"
+```
+
+##### Tasks per repository
+
+1. [ ] Audit current documentation status (docs/conf.py, theme, extensions)
+2. [ ] Update pyproject.toml with documentation dependencies (furo, sphinx-autoapi, etc.)
+3. [ ] Migrate docs/conf.py to Furo theme with Noto fonts
+4. [ ] Replace autodoc with sphinx-autoapi configuration
+5. [ ] Add/update docs/spelling_wordlist.txt with project-specific terms
+6. [ ] Add .readthedocs.yaml if missing
+7. [ ] Add justfile recipes: docs, docs-check, docs-clean, publish-rtd
+8. [ ] Verify documentation builds: `just docs cpy311`
+9. [ ] Verify spelling check: `just docs-check cpy311`
 10. [ ] Commit changes and push to bare repo
 
-**Deliverables per repository**:
-- Modern Sphinx documentation with Furo theme
-- Comprehensive API documentation
-- RTD integration configured
-- Professional README.md
+##### Deliverables per repository
+
+- docs/conf.py: Furo theme + sphinx-autoapi + Noto fonts
+- .readthedocs.yaml: RTD build configuration
+- docs/spelling_wordlist.txt: Project-specific spelling dictionary
+- justfile: docs, docs-check, docs-clean, publish-rtd recipes
+- pyproject.toml: Updated dev dependencies
 
 **Blockers**: Requires Phase 1.2.2 complete
 
@@ -1439,5 +2146,5 @@ zope.interface==8.1.1  [NATIVE:CPyExt]
 
 ---
 
-Last updated: 2025-11-26
-Status: Phase 1.2 complete
+Last updated: 2025-11-27
+Status: Phase 1.2.2 complete, Phase 1.2.3 in progress
