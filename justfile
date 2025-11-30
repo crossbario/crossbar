@@ -882,6 +882,16 @@ build-universe:
         # Clean repo dist directory first
         rm -rf "${REPO_PATH}/dist"
 
+        # Create all venvs if they don't exist
+        echo "--> Ensuring all Python virtual environments exist..."
+        if (cd "${REPO_PATH}" && just create-all); then
+            echo "✓ Virtual environments ready"
+        else
+            echo "❌ FAIL: Virtual environment creation failed"
+            ((++FAILURES))
+            continue
+        fi
+
         # Build wheels for ALL Python versions (CPython + PyPy)
         echo "--> Building wheels for all Python versions..."
         if (cd "${REPO_PATH}" && just build-all); then
