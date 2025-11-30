@@ -478,11 +478,11 @@ check-typing venv="": (install-tools venv) (install venv)
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     echo "==> Running static type checks with ${VENV_NAME}..."
     "${VENV_PATH}/bin/mypy" \
-        --exclude 'crossbar/worker/test/examples/' \
+        --exclude 'src/crossbar/worker/test/examples/' \
         --disable-error-code=import-untyped \
         --disable-error-code=import-not-found \
         --disable-error-code=attr-defined \
-        crossbar/
+        src/crossbar/
 
 # Run security checks with bandit
 check-bandit venv="": (install-tools venv)
@@ -496,8 +496,8 @@ check-bandit venv="": (install-tools venv)
     fi
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     echo "==> Running security checks with bandit in ${VENV_NAME}..."
-    "${VENV_PATH}/bin/bandit" -r crossbar/ \
-        --exclude crossbar/worker/test/examples/ \
+    "${VENV_PATH}/bin/bandit" -r src/crossbar/ \
+        --exclude src/crossbar/worker/test/examples/ \
         -ll -f txt
     echo "✓ Security checks passed (severity: MEDIUM or higher)"
 
@@ -576,7 +576,7 @@ check-coverage venv="": (install-dev venv)
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
     echo "==> Generating coverage report with ${VENV_NAME}..."
-    ${VENV_PYTHON} -m pytest --cov=crossbar --cov-report=html --cov-report=term crossbar/
+    ${VENV_PYTHON} -m pytest --cov=src/crossbar --cov-report=html --cov-report=term src/crossbar/
     echo "--> Coverage report generated in htmlcov/"
 
 # Alias for check-coverage (backward compatibility)
@@ -1604,8 +1604,8 @@ generate-license-metadata venv="":
     echo "==> Generating OSS license metadata..."
 
     # Generate plain text license list
-    ${VENV_PATH}/bin/pip-licenses -a -o name > crossbar/LICENSES-OSS
-    echo "  ✓ Generated crossbar/LICENSES-OSS"
+    ${VENV_PATH}/bin/pip-licenses -a -o name > src/crossbar/LICENSES-OSS
+    echo "  ✓ Generated src/crossbar/LICENSES-OSS"
 
     # Generate RST formatted license table for docs
     ${VENV_PATH}/bin/pip-licenses -a -o name --format=rst > docs/oss_licenses_table.rst

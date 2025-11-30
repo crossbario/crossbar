@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crossbar"
-version = "25.11.1"
+version = "25.12.1"
 description = "Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."
 readme = "README.rst"
 requires-python = ">=3.11"
@@ -49,8 +49,8 @@ dependencies = [
     # NOTE: For development/testing with unreleased versions, use: pip install -e .[dev,dev-latest]
     "autobahn[twisted,encryption,compress,serialization,scram]>=25.10.2",
     "txaio>=25.9.2",  # Will be bumped to >=25.10.2 when published
-    "zlmdb>=25.10.2",
-    "cfxdb>=23.12.1",  # Will be bumped to >=25.11.1 when published
+    "zlmdb>=25.12.1",
+    "cfxdb>=25.12.1",
 
     # NOTE: wamp-xbr is not on PyPI yet - use [dev-latest] for testing
 
@@ -222,7 +222,7 @@ zip-safe = false
 include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["crossbar*"]
 exclude = ["tests*", "docs*", "docs-cfx*", "docs-old*", "legal*"]
 
@@ -231,7 +231,7 @@ exclude = ["tests*", "docs*", "docs-cfx*", "docs-old*", "legal*"]
 line-length = 119
 target-version = "py311"
 extend-exclude = [
-    "crossbar/worker/test/examples/syntaxerror.py",  # Intentionally malformed test file
+    "src/crossbar/worker/test/examples/syntaxerror.py",  # Intentionally malformed test file
 ]
 
 [tool.ruff.lint]
@@ -250,9 +250,9 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"crossbar/shell/reflection/*" = ["ALL"]
-"crossbar/master/database/*" = ["ALL"]
-"crossbar/worker/test/examples/syntaxerror.py" = ["ALL"]
+"src/crossbar/shell/reflection/*" = ["ALL"]
+"src/crossbar/master/database/*" = ["ALL"]
+"src/crossbar/worker/test/examples/syntaxerror.py" = ["ALL"]
 
 # MyPy configuration
 [tool.mypy]
@@ -262,7 +262,7 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
 exclude = [
-    "^crossbar/worker/test/examples/",
+    "^src/crossbar/worker/test/examples/",
 ]
 # Disable errors that are not actionable until dependencies add type stubs
 disable_error_code = [
@@ -273,7 +273,7 @@ disable_error_code = [
 
 # Pytest configuration
 [tool.pytest.ini_options]
-testpaths = ["crossbar"]
+testpaths = ["src/crossbar"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -281,7 +281,7 @@ addopts = "-v --tb=short"
 
 # Coverage configuration
 [tool.coverage.run]
-source = ["crossbar"]
+source = ["src/crossbar"]
 omit = ["*/tests/*", "*/test_*.py", "*/test/*"]
 
 [tool.coverage.report]
@@ -297,5 +297,5 @@ exclude_lines = [
 # Towncrier configuration (preserve existing)
 [tool.towncrier]
 package = "crossbar"
-package_dir = "."
+package_dir = "src"
 filename = "NEWS.rst"

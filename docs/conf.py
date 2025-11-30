@@ -4,6 +4,9 @@ import sys
 import os
 import time
 
+# Add the src directory to sys.path for imports
+sys.path.insert(0, os.path.abspath('../src'))
+
 try:
     import sphinx_rtd_theme
 except ImportError:
