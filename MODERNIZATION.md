@@ -12,6 +12,136 @@ Modernize the entire WAMP Python ecosystem to achieve:
 - **Enterprise-grade stability and maintainability**
 - **Consistent infrastructure** (centralized git hooks, CI/CD actions via submodules)
 
+## The Group of Projects and WAMP
+
+This project is member of a _group of projects_ all related to
+[WAMP](https://wamp-proto.org/), and it is _crucial_ to understand the
+interrelation and dependencies between the projects in the group.
+
+This is because those projects "all fit together" not by accident, but because
+they were _designed_ for this from the very beginning. That's the whole reason
+they exist. WAMP.
+
+It all starts from:
+
+- [WAMP](https://github.com/wamp-proto/wamp-proto/): The Web Application
+  Messaging Protocol (the protocol specification and website)
+
+The WAMP protocol is the umbrella project, and compliance to its specification
+is a _top-priority_ for the _WAMP Client Library implementation projects_ in
+the _group of projects_:
+
+- [Autobahn|Python](https://github.com/crossbario/autobahn-python/): WebSocket
+  & WAMP for Python on Twisted and asyncio.
+- [Autobahn|JS](https://github.com/crossbario/autobahn-js): WAMP for Browsers
+  and NodeJS.
+- [Autobahn|Java](https://github.com/crossbario/autobahn-java): WebSocket &
+  WAMP in Java for Android and Java 8
+- [Autobahn|C++](https://github.com/crossbario/autobahn-cpp): WAMP for C++ in
+  Boost/Asio
+
+The only _WAMP Router implementation project_ (currently) in the _group of
+projects_ is:
+
+- [Crossbar.io](https://github.com/crossbario/crossbar): Crossbar.io is an open
+  source networking platform for distributed and microservice applications. It
+  implements the open Web Application Messaging Protocol (WAMP)
+
+Again, compliance to the WAMP protocol implementation is a _top-priority_ for
+Crossbar.io, as is compatibility with all _WAMP Client Library implementation
+projects_ in the _group of projects_.
+
+Further, it is crucial to understand that **Crossbar.io** is a Python project
+which builds on **Autobahn|Python**, and more so, it builds on
+[Twisted](https://twisted.org/).
+
+While **Crossbar.io** only runs on **Twisted**, **Autobahn|Python** itself
+crucially supports _both_ **Twisted** _and_ **asyncio** (in the Python standard
+library) - by design.
+
+This flexibility to allow users of **Autobahn|Python** to switch the underlying
+networking framework between **Twisted** and **asyncio** seamlessly, and with
+almost zero code changes on the user side, is also crucial, and this capability
+is provided by:
+
+- [txaio](https://github.com/crossbario/txaio/): txaio is a helper library for
+  writing code that runs **unmodified** on **both** Twisted and asyncio /
+  Trollius.
+
+**Autobahn|Python** further provides both
+[WebSocket](https://www.rfc-editor.org/rfc/rfc6455.html) _Client_ and _Server_
+implementations, another crucial capability used in Crossbar.io, the group's
+_WAMP Router implementation project_, and in Autobahn|Python, the group's _WAMP
+Client Library implementation project_ for Python application code.
+
+Stemming from the participation of the original developer (Tobias Oberstein) of
+the _group of projects_ in the IETF HyBi working group during the RFC6455
+specification, **Autobahn|Python** is also the basis for:
+
+- [Autobahn|Testsuite](https://github.com/crossbario/autobahn-testsuite): The
+  Autobahn|Testsuite provides a fully automated test suite to verify client and
+  server implementations of The WebSocket Protocol (and WAMP) for specification
+  conformance and implementation robustness.
+
+**Autobahn|Python** fully conforms to RFC6455 and passes all of the hundreds of
+WebSocket implementation tests in **Autobahn|Testsuite**.
+
+Finally, **Crossbar.io** has a number of advanced features requiring
+**persistence**, for example _WAMP Event History_ (see _WAMP Advanced Profile_)
+and others, and these capabilities build on:
+
+- [zLMDB](https://github.com/crossbario/zlmdb): Object-relational transactional
+  in-memory database layer based on LMDB
+
+which in turn is then used for the **Crossbar.io** specific embedded database
+features:
+
+- [cfxdb](https://github.com/crossbario/cfxdb): cfxdb is a Crossbar.io Python
+  support package with core database access classes written in native Python.
+
+### Python Runtime Requirements
+
+All Python projects within the _group of projects_, that is:
+
+- Autobahn|Python
+- Crossbar.io
+- txaio
+- zLMDB
+- cfxdb
+
+must aim to:
+
+- Maintain compatibility across Python versions
+- Ensure consistent behavior between Twisted and asyncio backends (when applicable)
+
+Further, all Python projects must support both:
+
+- [CPython](https://www.python.org/), and
+- [PyPy](https://pypy.org/)
+
+as the Python (the language itself) run-time environment (the language
+implementation).
+
+This support is a MUST and a top-priority. Compatibility with other Python
+run-time environments is currently not a priority.
+
+Running on PyPy allows "almost C-like" performance, since PyPy is a _tracing
+JIT compiler_ for Python with a _generational garbage collector_. Both of these
+features are crucial for high-performance, throughput/bandwidth and consistent
+low-latency in networking or WAMP in particular.
+
+For reasons too long to lay out here, it is of the essence to only depend on
+Python-level dependencies in all of the Python projects within the _group of
+projects_ which:
+
+- **DO** use [CFFI](https://cffi.readthedocs.io/en/latest/) to link native code
+- **NOT** use CPyExt, the historically grown CPython extension API that is
+  implementation defined only
+
+This is a deep rabbit hole, but here is [one
+link](https://pypy.org/posts/2018/09/inside-cpyext-why-emulating-cpython-c-8083064623681286567.html)
+to dig into for some background.
+
 ## Repository Overview
 
 ### Infrastructure Repositories
