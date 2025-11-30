@@ -1062,6 +1062,159 @@ verify-universe: (install-build-tools)
         echo "✅ ALL DISTRIBUTIONS VERIFIED SUCCESSFULLY"
     fi
 
+# Test crossbar from dist-universe wheels (full packaging test)
+# This builds all packages, verifies them, installs from wheels into a fresh venv,
+# and runs crossbar version to verify everything works as users would install it.
+test-universe-crossbar-version venv="cpy312":
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+
+    echo "========================================================================"
+    echo "Testing Crossbar.io from dist-universe wheels"
+    echo "========================================================================"
+    echo "Target venv: ${UNIVERSE_VENV_NAME}"
+    echo ""
+
+    # Step 1: Build universe (all 6 repos)
+    echo "========================================================================"
+    echo "Step 1: Building WAMP Universe"
+    echo "========================================================================"
+    just build-universe
+
+    # Step 2: Verify universe
+    echo ""
+    echo "========================================================================"
+    echo "Step 2: Verifying WAMP Universe"
+    echo "========================================================================"
+    just verify-universe
+
+    # Step 3: Create fresh venv for testing
+    echo ""
+    echo "========================================================================"
+    echo "Step 3: Creating fresh test venv: ${UNIVERSE_VENV_NAME}"
+    echo "========================================================================"
+
+    # Remove existing universe venv if present
+    if [ -d "${UNIVERSE_VENV_PATH}" ]; then
+        echo "--> Removing existing ${UNIVERSE_VENV_NAME} venv..."
+        rm -rf "${UNIVERSE_VENV_PATH}"
+    fi
+
+    # Get the Python spec for the venv type
+    PYTHON_SPEC=$(just --quiet _get-spec "${VENV_NAME}")
+    if [ -z "${PYTHON_SPEC}" ]; then
+        echo "❌ ERROR: Could not find Python spec for venv type: ${VENV_NAME}"
+        exit 1
+    fi
+
+    echo "--> Creating venv with: uv venv --python ${PYTHON_SPEC}"
+    uv venv --seed --python "${PYTHON_SPEC}" "${UNIVERSE_VENV_PATH}"
+    echo "✓ Virtual environment created"
+
+    # Upgrade pip
+    echo "--> Upgrading pip..."
+    "${UNIVERSE_VENV_PATH}/bin/python" -m pip install --upgrade pip wheel
+
+    # Step 4: Install WAMP packages from dist-universe wheels
+    echo ""
+    echo "========================================================================"
+    echo "Step 4: Installing WAMP packages from dist-universe wheels"
+    echo "========================================================================"
+
+    # Find the correct wheel for each package based on Python version
+    # For pure Python packages, use any wheel; for native wheels, match the Python version
+    PYTHON_VERSION=$("${UNIVERSE_VENV_PATH}/bin/python" -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')")
+    echo "--> Python version tag: ${PYTHON_VERSION}"
+
+    # Install packages in dependency order
+    # txaio -> autobahn -> zlmdb -> cfxdb -> xbr -> crossbar
+
+    for pkg_pattern in "txaio" "autobahn" "zlmdb" "cfxdb" "xbr" "crossbar"; do
+        echo ""
+        echo "--> Installing ${pkg_pattern}..."
+
+        # First try to find a version-specific wheel (for native extensions)
+        WHEEL=$(ls ./dist-universe/${pkg_pattern}-*-${PYTHON_VERSION}-*.whl 2>/dev/null | head -1)
+
+        # If not found, try pure Python wheel (py3-none-any or py2.py3-none-any)
+        if [ -z "${WHEEL}" ]; then
+            WHEEL=$(ls ./dist-universe/${pkg_pattern}-*-py3-none-any.whl 2>/dev/null | head -1)
+        fi
+        if [ -z "${WHEEL}" ]; then
+            WHEEL=$(ls ./dist-universe/${pkg_pattern}-*-py2.py3-none-any.whl 2>/dev/null | head -1)
+        fi
+
+        if [ -z "${WHEEL}" ]; then
+            echo "❌ ERROR: No wheel found for ${pkg_pattern}"
+            echo "   Available wheels:"
+            ls ./dist-universe/${pkg_pattern}-*.whl 2>/dev/null || echo "   (none)"
+            exit 1
+        fi
+
+        echo "   Wheel: $(basename ${WHEEL})"
+        # Install the WAMP wheel directly from the local file.
+        # Use --find-links to prefer local wheels for WAMP sibling packages.
+        # Dependencies not in dist-universe will be fetched from PyPI.
+        "${UNIVERSE_VENV_PATH}/bin/pip" install --find-links=./dist-universe/ "${WHEEL}"
+        echo "   ✓ Installed"
+    done
+
+    # Step 5: Show installed packages
+    echo ""
+    echo "========================================================================"
+    echo "Step 5: Installed packages in ${UNIVERSE_VENV_NAME}"
+    echo "========================================================================"
+    "${UNIVERSE_VENV_PATH}/bin/pip" list | grep -E "^(txaio|autobahn|zlmdb|cfxdb|xbr|crossbar) "
+
+    # Step 6: Run crossbar version
+    echo ""
+    echo "========================================================================"
+    echo "Step 6: Running crossbar version"
+    echo "========================================================================"
+    "${UNIVERSE_VENV_PATH}/bin/crossbar" version
+
+    # Step 7: Verify all WAMP packages are at the expected version
+    echo ""
+    echo "========================================================================"
+    echo "Step 7: Verifying WAMP package versions"
+    echo "========================================================================"
+
+    EXPECTED_VERSION="25.12.1"
+    FAILURES=0
+
+    for pkg in txaio autobahn zlmdb cfxdb xbr crossbar; do
+        INSTALLED_VERSION=$("${UNIVERSE_VENV_PATH}/bin/pip" show "${pkg}" 2>/dev/null | grep "^Version:" | awk '{print $2}')
+        if [ "${INSTALLED_VERSION}" = "${EXPECTED_VERSION}" ]; then
+            echo "✓ ${pkg}: ${INSTALLED_VERSION}"
+        else
+            echo "❌ ${pkg}: ${INSTALLED_VERSION} (expected ${EXPECTED_VERSION})"
+            ((++FAILURES))
+        fi
+    done
+
+    echo ""
+    echo "========================================================================"
+    echo "Test Summary"
+    echo "========================================================================"
+
+    if [ ${FAILURES} -gt 0 ]; then
+        echo "❌ TEST FAILED: ${FAILURES} package(s) have incorrect versions"
+        exit 1
+    else
+        echo "✅ ALL TESTS PASSED"
+        echo "   - All 6 WAMP packages built successfully"
+        echo "   - All packages verified with twine"
+        echo "   - All packages installed from wheels"
+        echo "   - crossbar version runs correctly"
+        echo "   - All packages at version ${EXPECTED_VERSION}"
+        echo ""
+        echo "The dist-universe/ wheels are ready for release!"
+    fi
+
 # Show dependency tree
 deps venv="": (install venv)
     #!/usr/bin/env bash

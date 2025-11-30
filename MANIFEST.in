@@ -6,13 +6,14 @@ include requirements-min.txt
 include requirements-latest.txt
 include requirements-pinned.txt
 include requirements-dev.txt
-recursive-include crossbar/common/keys *
-recursive-include crossbar/node/templates *
-recursive-include crossbar/webservice/templates *
-recursive-include crossbar/adapter/mqtt/test/certs *
-recursive-include crossbar/edge/webservice/templates *
-recursive-include crossbar/edge/node/config *
-recursive-include crossbar/master/webservice/templates *
-recursive-include crossbar/master/node *.json
-recursive-include crossbar/network/node *.json
-recursive-include crossbar/test *
+# Note: src layout - paths relative to src/ for package data
+recursive-include src/crossbar/common/keys *
+recursive-include src/crossbar/node/templates *
+recursive-include src/crossbar/webservice/templates *
+recursive-include src/crossbar/adapter/mqtt/test/certs *
+recursive-include src/crossbar/edge/webservice/templates *
+recursive-include src/crossbar/edge/node/config *
+recursive-include src/crossbar/master/webservice/templates *
+recursive-include src/crossbar/master/node *.json
+recursive-include src/crossbar/network/node *.json
+recursive-include src/crossbar/test *

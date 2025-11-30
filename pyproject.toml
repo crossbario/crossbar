@@ -226,6 +226,18 @@ where = ["src"]
 include = ["crossbar*"]
 exclude = ["tests*", "docs*", "docs-cfx*", "docs-old*", "legal*"]
 
+[tool.setuptools.package-data]
+# Include release keys and templates (non-Python package data)
+"crossbar.common.keys" = ["*.pub"]
+"crossbar.node" = ["templates/**/*"]
+"crossbar.webservice" = ["templates/**/*"]
+"crossbar.adapter.mqtt.test" = ["certs/**/*"]
+"crossbar.edge.webservice" = ["templates/**/*"]
+"crossbar.edge.node" = ["config/**/*"]
+"crossbar.master.webservice" = ["templates/**/*"]
+"crossbar.master.node" = ["*.json"]
+"crossbar.network.node" = ["*.json"]
+
 # Ruff configuration (replaces yapf + flake8)
 [tool.ruff]
 line-length = 119
