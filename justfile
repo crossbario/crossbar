@@ -1062,10 +1062,10 @@ verify-universe: (install-build-tools)
         echo "✅ ALL DISTRIBUTIONS VERIFIED SUCCESSFULLY"
     fi
 
-# Test crossbar from dist-universe wheels (full packaging test)
-# This builds all packages, verifies them, installs from wheels into a fresh venv,
-# and runs crossbar version to verify everything works as users would install it.
-test-universe-crossbar-version venv="cpy312":
+# Install WAMP Universe into a fresh test venv
+# This builds all packages, verifies them, and installs from wheels into a fresh venv.
+# Use test-universe-crossbar-* recipes to run crossbar commands in the universe venv.
+install-universe venv="cpy312":
     #!/usr/bin/env bash
     set -e
 
@@ -1074,7 +1074,7 @@ test-universe-crossbar-version venv="cpy312":
     UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
 
     echo "========================================================================"
-    echo "Testing Crossbar.io from dist-universe wheels"
+    echo "Installing WAMP Universe into fresh venv"
     echo "========================================================================"
     echo "Target venv: ${UNIVERSE_VENV_NAME}"
     echo ""
@@ -1170,17 +1170,10 @@ test-universe-crossbar-version venv="cpy312":
     echo "========================================================================"
     "${UNIVERSE_VENV_PATH}/bin/pip" list | grep -E "^(txaio|autobahn|zlmdb|cfxdb|xbr|crossbar) "
 
-    # Step 6: Run crossbar version
+    # Step 6: Verify all WAMP packages are at the expected version
     echo ""
     echo "========================================================================"
-    echo "Step 6: Running crossbar version"
-    echo "========================================================================"
-    "${UNIVERSE_VENV_PATH}/bin/crossbar" version
-
-    # Step 7: Verify all WAMP packages are at the expected version
-    echo ""
-    echo "========================================================================"
-    echo "Step 7: Verifying WAMP package versions"
+    echo "Step 6: Verifying WAMP package versions"
     echo "========================================================================"
 
     EXPECTED_VERSION="25.12.1"
@@ -1197,23 +1190,116 @@ test-universe-crossbar-version venv="cpy312":
     done
 
     echo ""
-    echo "========================================================================"
-    echo "Test Summary"
-    echo "========================================================================"
-
     if [ ${FAILURES} -gt 0 ]; then
-        echo "❌ TEST FAILED: ${FAILURES} package(s) have incorrect versions"
+        echo "❌ INSTALL FAILED: ${FAILURES} package(s) have incorrect versions"
         exit 1
     else
-        echo "✅ ALL TESTS PASSED"
-        echo "   - All 6 WAMP packages built successfully"
-        echo "   - All packages verified with twine"
+        echo "✅ WAMP Universe installed successfully"
+        echo "   - All 6 WAMP packages built and verified"
         echo "   - All packages installed from wheels"
-        echo "   - crossbar version runs correctly"
         echo "   - All packages at version ${EXPECTED_VERSION}"
         echo ""
-        echo "The dist-universe/ wheels are ready for release!"
+        echo "Run 'just test-universe-crossbar-version ${VENV_NAME}' to test crossbar"
     fi
+
+# Test crossbar version in the universe venv
+test-universe-crossbar-version venv="cpy312": (install-universe venv)
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+
+    echo ""
+    echo "========================================================================"
+    echo "Testing: crossbar version"
+    echo "========================================================================"
+    "${UNIVERSE_VENV_PATH}/bin/crossbar" version
+
+    echo ""
+    echo "✅ crossbar version completed successfully"
+
+# Test crossbar legal in the universe venv
+test-universe-crossbar-legal venv="cpy312": (install-universe venv)
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+
+    echo ""
+    echo "========================================================================"
+    echo "Testing: crossbar legal"
+    echo "========================================================================"
+    "${UNIVERSE_VENV_PATH}/bin/crossbar" legal
+
+    echo ""
+    echo "✅ crossbar legal completed successfully"
+
+# Test crossbar init in the universe venv
+test-universe-crossbar-init venv="cpy312": (install-universe venv)
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+    INIT_DIR="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}-init-test"
+
+    echo ""
+    echo "========================================================================"
+    echo "Testing: crossbar init"
+    echo "========================================================================"
+
+    # Remove existing init test directory if present
+    if [ -d "${INIT_DIR}" ]; then
+        echo "--> Removing existing init test directory..."
+        rm -rf "${INIT_DIR}"
+    fi
+    mkdir -p "${INIT_DIR}"
+
+    echo "--> Running crossbar init in ${INIT_DIR}..."
+    "${UNIVERSE_VENV_PATH}/bin/crossbar" init --appdir "${INIT_DIR}"
+
+    echo ""
+    echo "--> Generated files:"
+    ls -la "${INIT_DIR}/.crossbar/"
+
+    echo ""
+    echo "✅ crossbar init completed successfully"
+
+# Test crossbar start in the universe venv (using autobahn-python example router)
+test-universe-crossbar-start venv="cpy312" timeout="10": (install-universe venv)
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+    REPOS_DIR="{{ justfile_directory() }}/.."
+    CBDIR="${REPOS_DIR}/autobahn-python/examples/router/.crossbar"
+
+    echo ""
+    echo "========================================================================"
+    echo "Testing: crossbar start (with {{ timeout }}s auto-shutdown)"
+    echo "========================================================================"
+
+    if [ ! -d "${CBDIR}" ]; then
+        echo "❌ ERROR: Crossbar node directory not found: ${CBDIR}"
+        echo "   Make sure autobahn-python is checked out at: ${REPOS_DIR}/autobahn-python"
+        exit 1
+    fi
+
+    echo "--> Using node directory: ${CBDIR}"
+    echo "--> Starting crossbar with --shutdownafter {{ timeout }}..."
+    echo ""
+
+    "${UNIVERSE_VENV_PATH}/bin/crossbar" start --cbdir "${CBDIR}" --shutdownafter {{ timeout }}
+
+    echo ""
+    echo "✅ crossbar start completed successfully"
 
 # Show dependency tree
 deps venv="": (install venv)
