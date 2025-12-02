@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crossbar"
-version = "25.11.1"
+version = "25.12.1"
 description = "Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."
 readme = "README.rst"
 requires-python = ">=3.11"
-license = {text = "European Union Public Licence 1.2 (EUPL 1.2)"}
+license = "EUPL-1.2"
 authors = [
     {name = "typedef int GmbH"}
 ]
@@ -17,7 +17,6 @@ keywords = [
     "rfc6455", "wamp", "rpc", "pubsub", "oracle", "postgres", "postgresql"
 ]
 classifiers = [
-    "License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)",
     "Development Status :: 5 - Production/Stable",
     "Environment :: No Input/Output (Daemon)",
     "Environment :: Console",
@@ -50,8 +49,8 @@ dependencies = [
     # NOTE: For development/testing with unreleased versions, use: pip install -e .[dev,dev-latest]
     "autobahn[twisted,encryption,compress,serialization,scram]>=25.10.2",
     "txaio>=25.9.2",  # Will be bumped to >=25.10.2 when published
-    "zlmdb>=25.10.2",
-    "cfxdb>=23.12.1",  # Will be bumped to >=25.11.1 when published
+    "zlmdb>=25.12.1",
+    "cfxdb>=25.12.1",
 
     # NOTE: wamp-xbr is not on PyPI yet - use [dev-latest] for testing
 
@@ -102,7 +101,8 @@ dependencies = [
     "jinja2>=3.1.2",
     "jinja2-highlight>=0.6.1",
     "jsonschema>=4.0.0",
-    "lmdb>=1.4.0",
+    # NOTE: LMDB access is through zlmdb which vendors its own CFFI bindings
+    # Do NOT add "lmdb" or "py-lmdb" here - crossbar imports zlmdb, never lmdb directly
     "MarkupSafe>=2.1.2",
     "mistune>=2.0.4",
     "morphys>=1.0",
@@ -222,16 +222,28 @@ zip-safe = false
 include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["crossbar*"]
 exclude = ["tests*", "docs*", "docs-cfx*", "docs-old*", "legal*"]
+
+[tool.setuptools.package-data]
+# Include release keys and templates (non-Python package data)
+"crossbar.common.keys" = ["*.pub"]
+"crossbar.node" = ["templates/**/*"]
+"crossbar.webservice" = ["templates/**/*"]
+"crossbar.adapter.mqtt.test" = ["certs/**/*"]
+"crossbar.edge.webservice" = ["templates/**/*"]
+"crossbar.edge.node" = ["config/**/*"]
+"crossbar.master.webservice" = ["templates/**/*"]
+"crossbar.master.node" = ["*.json"]
+"crossbar.network.node" = ["*.json"]
 
 # Ruff configuration (replaces yapf + flake8)
 [tool.ruff]
 line-length = 119
 target-version = "py311"
 extend-exclude = [
-    "crossbar/worker/test/examples/syntaxerror.py",  # Intentionally malformed test file
+    "src/crossbar/worker/test/examples/syntaxerror.py",  # Intentionally malformed test file
 ]
 
 [tool.ruff.lint]
@@ -250,9 +262,9 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"crossbar/shell/reflection/*" = ["ALL"]
-"crossbar/master/database/*" = ["ALL"]
-"crossbar/worker/test/examples/syntaxerror.py" = ["ALL"]
+"src/crossbar/shell/reflection/*" = ["ALL"]
+"src/crossbar/master/database/*" = ["ALL"]
+"src/crossbar/worker/test/examples/syntaxerror.py" = ["ALL"]
 
 # MyPy configuration
 [tool.mypy]
@@ -262,7 +274,7 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
 exclude = [
-    "^crossbar/worker/test/examples/",
+    "^src/crossbar/worker/test/examples/",
 ]
 # Disable errors that are not actionable until dependencies add type stubs
 disable_error_code = [
@@ -273,7 +285,7 @@ disable_error_code = [
 
 # Pytest configuration
 [tool.pytest.ini_options]
-testpaths = ["crossbar"]
+testpaths = ["src/crossbar"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -281,7 +293,7 @@ addopts = "-v --tb=short"
 
 # Coverage configuration
 [tool.coverage.run]
-source = ["crossbar"]
+source = ["src/crossbar"]
 omit = ["*/tests/*", "*/test_*.py", "*/test/*"]
 
 [tool.coverage.report]
@@ -297,5 +309,5 @@ exclude_lines = [
 # Towncrier configuration (preserve existing)
 [tool.towncrier]
 package = "crossbar"
-package_dir = "."
+package_dir = "src"
 filename = "NEWS.rst"

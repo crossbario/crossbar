@@ -11,11 +11,34 @@ set positional-arguments := true
 # project base directory = directory of this justfile
 PROJECT_DIR := justfile_directory()
 
-# Default recipe: list all recipes
+# Default recipe: show project info and list all recipes
 default:
-    @echo ""
-    @just --list
-    @echo ""
+    #!/usr/bin/env bash
+    set -e
+    VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+    GIT_REV=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    echo ""
+    echo "==============================================================================="
+    echo "                              Crossbar.io                                      "
+    echo ""
+    echo "    Multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router       "
+    echo "    for microservices and distributed applications                            "
+    echo ""
+    echo "   Python Package:         crossbar                                           "
+    echo "   Python Package Version: ${VERSION}                                         "
+    echo "   Git Version:            ${GIT_REV}                                         "
+    echo "   Protocol Specification: https://wamp-proto.org/                            "
+    echo "   Documentation:          https://crossbar.io/docs/                          "
+    echo "   Package Releases:       https://pypi.org/project/crossbar/                 "
+    echo "   Source Code:            https://github.com/crossbario/crossbar             "
+    echo "   Copyright:              typedef int GmbH (Germany/EU)                      "
+    echo "   License:                EUPL-1.2                                           "
+    echo ""
+    echo "       >>>   Created by The WAMP/Autobahn/Crossbar.io OSS Project   <<<       "
+    echo "==============================================================================="
+    echo ""
+    just --list
+    echo ""
 
 # Tell uv to use project-local cache directory.
 export UV_CACHE_DIR := './.uv-cache'
@@ -371,7 +394,7 @@ install-build-tools venv="": (create venv)
     ${VENV_PYTHON} -V
     ${VENV_PYTHON} -m pip -V
 
-    ${VENV_PYTHON} -m pip install build twine
+    ${VENV_PYTHON} -m pip install build twine auditwheel
 
 # Install the development tools for this Package in a single environment (usage: `just install-tools cpy312`)
 install-tools venv="": (create venv)
@@ -390,7 +413,7 @@ install-tools venv="": (create venv)
     ${VENV_PYTHON} -V
     ${VENV_PYTHON} -m pip -V
 
-    ${VENV_PYTHON} -m pip install -e .[dev,dev-latest]
+    ${VENV_PYTHON} -m pip install -e .[dev]
 
 # Meta-recipe to run `install-tools` on all environments
 install-tools-all:
@@ -405,7 +428,7 @@ install-tools-all:
 # -----------------------------------------------------------------------------
 
 # Automatically fix all formatting and code style issues.
-autoformat venv="": (install-tools venv)
+fix-format venv="": (install-tools venv)
     #!/usr/bin/env bash
     set -e
     VENV_NAME="{{ venv }}"
@@ -424,6 +447,9 @@ autoformat venv="": (install-tools venv)
     # 2. Run the LINTER'S FIXER second
     "${VENV_PATH}/bin/ruff" check --fix crossbar
     echo "--> Formatting complete."
+
+# Alias for fix-format (backward compatibility)
+autoformat venv="": (fix-format venv)
 
 # Lint code using Ruff in a single environment
 check-format venv="": (install-tools venv)
@@ -452,11 +478,11 @@ check-typing venv="": (install-tools venv) (install venv)
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     echo "==> Running static type checks with ${VENV_NAME}..."
     "${VENV_PATH}/bin/mypy" \
-        --exclude 'crossbar/worker/test/examples/' \
+        --exclude 'src/crossbar/worker/test/examples/' \
         --disable-error-code=import-untyped \
         --disable-error-code=import-not-found \
         --disable-error-code=attr-defined \
-        crossbar/
+        src/crossbar/
 
 # Run security checks with bandit
 check-bandit venv="": (install-tools venv)
@@ -470,8 +496,8 @@ check-bandit venv="": (install-tools venv)
     fi
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     echo "==> Running security checks with bandit in ${VENV_NAME}..."
-    "${VENV_PATH}/bin/bandit" -r crossbar/ \
-        --exclude crossbar/worker/test/examples/ \
+    "${VENV_PATH}/bin/bandit" -r src/crossbar/ \
+        --exclude src/crossbar/worker/test/examples/ \
         -ll -f txt
     echo "✓ Security checks passed (severity: MEDIUM or higher)"
 
@@ -536,6 +562,53 @@ test-functional venv="": (install-tools venv) (install venv)
 
 # Run all tests
 test-all venv="": (test venv) (test-functional venv)
+
+# Generate code coverage report (requires: `just install-dev`)
+check-coverage venv="": (install-dev venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Generating coverage report with ${VENV_NAME}..."
+    ${VENV_PYTHON} -m pytest --cov=src/crossbar --cov-report=html --cov-report=term src/crossbar/
+    echo "--> Coverage report generated in htmlcov/"
+
+# Alias for check-coverage (backward compatibility)
+coverage venv="": (check-coverage venv)
+
+# Upgrade dependencies in a single environment (re-installs all deps to latest)
+upgrade venv="": (create venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Upgrading all dependencies in ${VENV_NAME}..."
+    ${VENV_PYTHON} -m pip install --upgrade pip
+    ${VENV_PYTHON} -m pip install --upgrade -e .[dev]
+    echo "--> Dependencies upgraded"
+
+# Meta-recipe to run `upgrade` on all environments
+upgrade-all:
+    #!/usr/bin/env bash
+    set -e
+    for venv in {{ENVS}}; do
+        echo ""
+        echo "======================================================================"
+        echo "Upgrading ${venv}"
+        echo "======================================================================"
+        just upgrade ${venv}
+    done
 
 # -----------------------------------------------------------------------------
 # -- Documentation
@@ -762,6 +835,471 @@ build-verifydist venv="": (install-build-tools venv)
 
 # Legacy alias for build-verifydist
 verify-dist venv="": (build-verifydist venv)
+
+# Path to parent directory containing all WAMP Python repos
+WAMP_REPOS_DIR := parent_directory(justfile_directory())
+
+# List of all WAMP Python repos in dependency order
+WAMP_REPOS := 'txaio autobahn-python zlmdb cfxdb wamp-xbr crossbar'
+
+# Build all 6 WAMP Python repos (all Python versions) and collect wheels/sdists into dist-universe
+build-universe:
+    #!/usr/bin/env bash
+    set -e
+
+    echo "========================================================================"
+    echo "Building WAMP Universe (all 6 Python repos, all Python versions)"
+    echo "========================================================================"
+    echo "Repos dir: {{ WAMP_REPOS_DIR }}"
+    echo ""
+
+    # Clean and create dist-universe directory
+    rm -rf ./dist-universe
+    mkdir -p ./dist-universe
+
+    FAILURES=0
+    BUILT_REPOS=""
+
+    for repo in {{ WAMP_REPOS }}; do
+        REPO_PATH="{{ WAMP_REPOS_DIR }}/${repo}"
+        echo ""
+        echo "========================================================================"
+        echo "Building: ${repo}"
+        echo "========================================================================"
+
+        if [ ! -d "${REPO_PATH}" ]; then
+            echo "❌ ERROR: Repository not found at ${REPO_PATH}"
+            ((++FAILURES))
+            continue
+        fi
+
+        if [ ! -f "${REPO_PATH}/justfile" ]; then
+            echo "❌ ERROR: No justfile found in ${REPO_PATH}"
+            ((++FAILURES))
+            continue
+        fi
+
+        # Clean repo dist directory first
+        rm -rf "${REPO_PATH}/dist"
+
+        # Create all venvs if they don't exist
+        echo "--> Ensuring all Python virtual environments exist..."
+        if (cd "${REPO_PATH}" && just create-all); then
+            echo "✓ Virtual environments ready"
+        else
+            echo "❌ FAIL: Virtual environment creation failed"
+            ((++FAILURES))
+            continue
+        fi
+
+        # Build wheels for ALL Python versions (CPython + PyPy)
+        echo "--> Building wheels for all Python versions..."
+        if (cd "${REPO_PATH}" && just build-all); then
+            echo "✓ Wheels built"
+        else
+            echo "❌ FAIL: Wheel build failed"
+            ((++FAILURES))
+            continue
+        fi
+
+        # Build source distribution (only need one, use system Python)
+        echo "--> Building source distribution..."
+        if (cd "${REPO_PATH}" && just build-sourcedist); then
+            echo "✓ Source distribution built"
+        else
+            echo "❌ FAIL: Source distribution build failed"
+            ((++FAILURES))
+            continue
+        fi
+
+        # Copy artifacts to dist-universe
+        echo "--> Copying artifacts to dist-universe..."
+        cp "${REPO_PATH}"/dist/*.whl ./dist-universe/ 2>/dev/null || true
+        cp "${REPO_PATH}"/dist/*.tar.gz ./dist-universe/ 2>/dev/null || true
+
+        BUILT_REPOS="${BUILT_REPOS} ${repo}"
+        echo "✓ ${repo} complete"
+    done
+
+    echo ""
+    echo "========================================================================"
+    echo "Build Universe Summary"
+    echo "========================================================================"
+    echo "Successfully built:${BUILT_REPOS}"
+    echo "Failures: ${FAILURES}"
+    echo ""
+    echo "Artifacts in dist-universe:"
+    ls -la ./dist-universe/
+    echo ""
+
+    if [ ${FAILURES} -gt 0 ]; then
+        echo "❌ BUILD UNIVERSE FAILED: ${FAILURES} repo(s) had errors"
+        exit 1
+    else
+        WHEEL_COUNT=$(ls ./dist-universe/*.whl 2>/dev/null | wc -l)
+        SDIST_COUNT=$(ls ./dist-universe/*.tar.gz 2>/dev/null | wc -l)
+        echo "✅ BUILD UNIVERSE COMPLETE"
+        echo "   Wheels: ${WHEEL_COUNT}"
+        echo "   Source dists: ${SDIST_COUNT}"
+    fi
+
+# Verify all wheels and source dists in dist-universe (usage: `just verify-universe`)
+verify-universe: (install-build-tools)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME=$(just --quiet _get-system-venv-name)
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+
+    echo "========================================================================"
+    echo "Verifying WAMP Universe (dist-universe)"
+    echo "========================================================================"
+    echo "Using venv: ${VENV_NAME}"
+    echo ""
+
+    # Check if dist-universe exists
+    if [ ! -d "./dist-universe" ]; then
+        echo "❌ ERROR: dist-universe/ directory not found"
+        echo "   Run 'just build-universe' first"
+        exit 1
+    fi
+
+    FAILURES=0
+
+    # Count distributions
+    WHEEL_COUNT=$(ls ./dist-universe/*.whl 2>/dev/null | wc -l)
+    SDIST_COUNT=$(ls ./dist-universe/*.tar.gz 2>/dev/null | wc -l)
+
+    echo "Found ${WHEEL_COUNT} wheel(s) and ${SDIST_COUNT} source dist(s)"
+    echo ""
+
+    if [ "${WHEEL_COUNT}" -eq 0 ] && [ "${SDIST_COUNT}" -eq 0 ]; then
+        echo "❌ ERROR: No distributions found in dist-universe/"
+        exit 1
+    fi
+
+    # Verify with twine check
+    echo "========================================================================"
+    echo "Running twine check"
+    echo "========================================================================"
+    if ${VENV_PYTHON} -m twine check ./dist-universe/*; then
+        echo "✓ Twine check passed for all packages"
+    else
+        echo "❌ FAIL: Twine check failed"
+        ((++FAILURES))
+    fi
+    echo ""
+
+    # Check wheel types
+    echo "========================================================================"
+    echo "Checking wheel types"
+    echo "========================================================================"
+    for wheel in ./dist-universe/*.whl; do
+        WHEEL_NAME=$(basename "$wheel")
+        # Extract package name (everything before the version)
+        PKG_NAME=$(echo "$WHEEL_NAME" | sed 's/-[0-9].*//')
+
+        if [[ "$WHEEL_NAME" == *"-py2.py3-none-any.whl" ]] || [[ "$WHEEL_NAME" == *"-py3-none-any.whl" ]]; then
+            echo "✓ ${PKG_NAME}: Pure Python wheel"
+        elif [[ "$WHEEL_NAME" == *"-cp3"*"-linux"* ]] || [[ "$WHEEL_NAME" == *"-cp3"*"-manylinux"* ]]; then
+            echo "✓ ${PKG_NAME}: Platform-specific wheel (CPython/CFFI)"
+            # Run auditwheel on platform-specific wheels
+            echo "  --> Running auditwheel show..."
+            if [ -x "${VENV_PATH}/bin/auditwheel" ]; then
+                "${VENV_PATH}/bin/auditwheel" show "$wheel" 2>/dev/null || echo "  ⚠ auditwheel show had warnings"
+            else
+                echo "  ⚠ auditwheel not available"
+            fi
+        elif [[ "$WHEEL_NAME" == *"-pp3"*"-linux"* ]] || [[ "$WHEEL_NAME" == *"-pp3"*"-manylinux"* ]]; then
+            echo "✓ ${PKG_NAME}: Platform-specific wheel (PyPy/CFFI)"
+        else
+            echo "⚠ ${PKG_NAME}: Unknown wheel type: ${WHEEL_NAME}"
+        fi
+    done
+    echo ""
+
+    # Summary by package
+    echo "========================================================================"
+    echo "Package Summary"
+    echo "========================================================================"
+    for repo in {{ WAMP_REPOS }}; do
+        # Convert repo name to package name (autobahn-python -> autobahn)
+        case "${repo}" in
+            autobahn-python) PKG_PATTERN="autobahn-";;
+            wamp-xbr) PKG_PATTERN="xbr-";;
+            *) PKG_PATTERN="${repo}-";;
+        esac
+
+        WHEEL_EXISTS=$(ls ./dist-universe/${PKG_PATTERN}*.whl 2>/dev/null | head -1)
+        SDIST_EXISTS=$(ls ./dist-universe/${PKG_PATTERN}*.tar.gz 2>/dev/null | head -1)
+
+        if [ -n "${WHEEL_EXISTS}" ] && [ -n "${SDIST_EXISTS}" ]; then
+            echo "✓ ${repo}: wheel + sdist"
+        elif [ -n "${WHEEL_EXISTS}" ]; then
+            echo "⚠ ${repo}: wheel only (missing sdist)"
+        elif [ -n "${SDIST_EXISTS}" ]; then
+            echo "⚠ ${repo}: sdist only (missing wheel)"
+        else
+            echo "❌ ${repo}: MISSING"
+            ((++FAILURES))
+        fi
+    done
+    echo ""
+
+    # Final summary
+    echo "========================================================================"
+    echo "Verification Summary"
+    echo "========================================================================"
+    echo "Wheels: ${WHEEL_COUNT}"
+    echo "Source dists: ${SDIST_COUNT}"
+    echo "Failures: ${FAILURES}"
+    echo ""
+
+    if [ ${FAILURES} -gt 0 ]; then
+        echo "❌ VERIFICATION FAILED"
+        exit 1
+    else
+        echo "✅ ALL DISTRIBUTIONS VERIFIED SUCCESSFULLY"
+    fi
+
+# Install WAMP Universe into a fresh test venv
+# This builds all packages, verifies them, and installs from wheels into a fresh venv.
+# Use test-universe-crossbar-* recipes to run crossbar commands in the universe venv.
+install-universe venv="cpy312":
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+
+    echo "========================================================================"
+    echo "Installing WAMP Universe into fresh venv"
+    echo "========================================================================"
+    echo "Target venv: ${UNIVERSE_VENV_NAME}"
+    echo ""
+
+    # Step 1: Build universe (all 6 repos)
+    echo "========================================================================"
+    echo "Step 1: Building WAMP Universe"
+    echo "========================================================================"
+    just build-universe
+
+    # Step 2: Verify universe
+    echo ""
+    echo "========================================================================"
+    echo "Step 2: Verifying WAMP Universe"
+    echo "========================================================================"
+    just verify-universe
+
+    # Step 3: Create fresh venv for testing
+    echo ""
+    echo "========================================================================"
+    echo "Step 3: Creating fresh test venv: ${UNIVERSE_VENV_NAME}"
+    echo "========================================================================"
+
+    # Remove existing universe venv if present
+    if [ -d "${UNIVERSE_VENV_PATH}" ]; then
+        echo "--> Removing existing ${UNIVERSE_VENV_NAME} venv..."
+        rm -rf "${UNIVERSE_VENV_PATH}"
+    fi
+
+    # Get the Python spec for the venv type
+    PYTHON_SPEC=$(just --quiet _get-spec "${VENV_NAME}")
+    if [ -z "${PYTHON_SPEC}" ]; then
+        echo "❌ ERROR: Could not find Python spec for venv type: ${VENV_NAME}"
+        exit 1
+    fi
+
+    echo "--> Creating venv with: uv venv --python ${PYTHON_SPEC}"
+    uv venv --seed --python "${PYTHON_SPEC}" "${UNIVERSE_VENV_PATH}"
+    echo "✓ Virtual environment created"
+
+    # Upgrade pip
+    echo "--> Upgrading pip..."
+    "${UNIVERSE_VENV_PATH}/bin/python" -m pip install --upgrade pip wheel
+
+    # Step 4: Install WAMP packages from dist-universe wheels
+    echo ""
+    echo "========================================================================"
+    echo "Step 4: Installing WAMP packages from dist-universe wheels"
+    echo "========================================================================"
+
+    # Find the correct wheel for each package based on Python version
+    # For pure Python packages, use any wheel; for native wheels, match the Python version
+    PYTHON_VERSION=$("${UNIVERSE_VENV_PATH}/bin/python" -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')")
+    echo "--> Python version tag: ${PYTHON_VERSION}"
+
+    # Install packages in dependency order
+    # txaio -> autobahn -> zlmdb -> cfxdb -> xbr -> crossbar
+
+    for pkg_pattern in "txaio" "autobahn" "zlmdb" "cfxdb" "xbr" "crossbar"; do
+        echo ""
+        echo "--> Installing ${pkg_pattern}..."
+
+        # First try to find a version-specific wheel (for native extensions)
+        WHEEL=$(ls ./dist-universe/${pkg_pattern}-*-${PYTHON_VERSION}-*.whl 2>/dev/null | head -1)
+
+        # If not found, try pure Python wheel (py3-none-any or py2.py3-none-any)
+        if [ -z "${WHEEL}" ]; then
+            WHEEL=$(ls ./dist-universe/${pkg_pattern}-*-py3-none-any.whl 2>/dev/null | head -1)
+        fi
+        if [ -z "${WHEEL}" ]; then
+            WHEEL=$(ls ./dist-universe/${pkg_pattern}-*-py2.py3-none-any.whl 2>/dev/null | head -1)
+        fi
+
+        if [ -z "${WHEEL}" ]; then
+            echo "❌ ERROR: No wheel found for ${pkg_pattern}"
+            echo "   Available wheels:"
+            ls ./dist-universe/${pkg_pattern}-*.whl 2>/dev/null || echo "   (none)"
+            exit 1
+        fi
+
+        echo "   Wheel: $(basename ${WHEEL})"
+        # Install the WAMP wheel directly from the local file.
+        # Use --find-links to prefer local wheels for WAMP sibling packages.
+        # Dependencies not in dist-universe will be fetched from PyPI.
+        "${UNIVERSE_VENV_PATH}/bin/pip" install --find-links=./dist-universe/ "${WHEEL}"
+        echo "   ✓ Installed"
+    done
+
+    # Step 5: Show installed packages
+    echo ""
+    echo "========================================================================"
+    echo "Step 5: Installed packages in ${UNIVERSE_VENV_NAME}"
+    echo "========================================================================"
+    "${UNIVERSE_VENV_PATH}/bin/pip" list | grep -E "^(txaio|autobahn|zlmdb|cfxdb|xbr|crossbar) "
+
+    # Step 6: Verify all WAMP packages are at the expected version
+    echo ""
+    echo "========================================================================"
+    echo "Step 6: Verifying WAMP package versions"
+    echo "========================================================================"
+
+    EXPECTED_VERSION="25.12.1"
+    FAILURES=0
+
+    for pkg in txaio autobahn zlmdb cfxdb xbr crossbar; do
+        INSTALLED_VERSION=$("${UNIVERSE_VENV_PATH}/bin/pip" show "${pkg}" 2>/dev/null | grep "^Version:" | awk '{print $2}')
+        if [ "${INSTALLED_VERSION}" = "${EXPECTED_VERSION}" ]; then
+            echo "✓ ${pkg}: ${INSTALLED_VERSION}"
+        else
+            echo "❌ ${pkg}: ${INSTALLED_VERSION} (expected ${EXPECTED_VERSION})"
+            ((++FAILURES))
+        fi
+    done
+
+    echo ""
+    if [ ${FAILURES} -gt 0 ]; then
+        echo "❌ INSTALL FAILED: ${FAILURES} package(s) have incorrect versions"
+        exit 1
+    else
+        echo "✅ WAMP Universe installed successfully"
+        echo "   - All 6 WAMP packages built and verified"
+        echo "   - All packages installed from wheels"
+        echo "   - All packages at version ${EXPECTED_VERSION}"
+        echo ""
+        echo "Run 'just test-universe-crossbar-version ${VENV_NAME}' to test crossbar"
+    fi
+
+# Test crossbar version in the universe venv
+test-universe-crossbar-version venv="cpy312": (install-universe venv)
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+
+    echo ""
+    echo "========================================================================"
+    echo "Testing: crossbar version"
+    echo "========================================================================"
+    "${UNIVERSE_VENV_PATH}/bin/crossbar" version
+
+    echo ""
+    echo "✅ crossbar version completed successfully"
+
+# Test crossbar legal in the universe venv
+test-universe-crossbar-legal venv="cpy312": (install-universe venv)
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+
+    echo ""
+    echo "========================================================================"
+    echo "Testing: crossbar legal"
+    echo "========================================================================"
+    "${UNIVERSE_VENV_PATH}/bin/crossbar" legal
+
+    echo ""
+    echo "✅ crossbar legal completed successfully"
+
+# Test crossbar init in the universe venv
+test-universe-crossbar-init venv="cpy312": (install-universe venv)
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+    INIT_DIR="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}-init-test"
+
+    echo ""
+    echo "========================================================================"
+    echo "Testing: crossbar init"
+    echo "========================================================================"
+
+    # Remove existing init test directory if present
+    if [ -d "${INIT_DIR}" ]; then
+        echo "--> Removing existing init test directory..."
+        rm -rf "${INIT_DIR}"
+    fi
+    mkdir -p "${INIT_DIR}"
+
+    echo "--> Running crossbar init in ${INIT_DIR}..."
+    "${UNIVERSE_VENV_PATH}/bin/crossbar" init --appdir "${INIT_DIR}"
+
+    echo ""
+    echo "--> Generated files:"
+    ls -la "${INIT_DIR}/.crossbar/"
+
+    echo ""
+    echo "✅ crossbar init completed successfully"
+
+# Test crossbar start in the universe venv (using autobahn-python example router)
+test-universe-crossbar-start venv="cpy312" timeout="10": (install-universe venv)
+    #!/usr/bin/env bash
+    set -e
+
+    VENV_NAME="{{ venv }}"
+    UNIVERSE_VENV_NAME="${VENV_NAME}-universe"
+    UNIVERSE_VENV_PATH="{{ VENV_DIR }}/${UNIVERSE_VENV_NAME}"
+    REPOS_DIR="{{ justfile_directory() }}/.."
+    CBDIR="${REPOS_DIR}/autobahn-python/examples/router/.crossbar"
+
+    echo ""
+    echo "========================================================================"
+    echo "Testing: crossbar start (with {{ timeout }}s auto-shutdown)"
+    echo "========================================================================"
+
+    if [ ! -d "${CBDIR}" ]; then
+        echo "❌ ERROR: Crossbar node directory not found: ${CBDIR}"
+        echo "   Make sure autobahn-python is checked out at: ${REPOS_DIR}/autobahn-python"
+        exit 1
+    fi
+
+    echo "--> Using node directory: ${CBDIR}"
+    echo "--> Starting crossbar with --shutdownafter {{ timeout }}..."
+    echo ""
+
+    "${UNIVERSE_VENV_PATH}/bin/crossbar" start --cbdir "${CBDIR}" --shutdownafter {{ timeout }}
+
+    echo ""
+    echo "✅ crossbar start completed successfully"
 
 # Show dependency tree
 deps venv="": (install venv)
@@ -1315,8 +1853,8 @@ generate-license-metadata venv="":
     echo "==> Generating OSS license metadata..."
 
     # Generate plain text license list
-    ${VENV_PATH}/bin/pip-licenses -a -o name > crossbar/LICENSES-OSS
-    echo "  ✓ Generated crossbar/LICENSES-OSS"
+    ${VENV_PATH}/bin/pip-licenses -a -o name > src/crossbar/LICENSES-OSS
+    echo "  ✓ Generated src/crossbar/LICENSES-OSS"
 
     # Generate RST formatted license table for docs
     ${VENV_PATH}/bin/pip-licenses -a -o name --format=rst > docs/oss_licenses_table.rst
@@ -1329,5 +1867,83 @@ generate-license-metadata venv="":
     ${VENV_PATH}/bin/pip-licenses -a -o name --format=rst > docs/soss_licenses_table.rst
     sed -i '1s;^;OSS Licenses\n============\n\n;' docs/soss_licenses_table.rst
     echo "  ✓ Generated docs/soss_licenses_table.rst"
-    
+
     echo "==> License metadata generation complete!"
+
+# -----------------------------------------------------------------------------
+# -- Publishing
+# -----------------------------------------------------------------------------
+
+# Download GitHub release artifacts (nightly or tagged release)
+download-github-release release_type="nightly":
+    #!/usr/bin/env bash
+    set -e
+    echo "==> Downloading GitHub release artifacts ({{release_type}})..."
+    rm -rf ./dist
+    mkdir -p ./dist
+    if [ "{{release_type}}" = "nightly" ]; then
+        gh release download nightly --repo crossbario/crossbar --dir ./dist --pattern '*.whl' --pattern '*.tar.gz' || \
+            echo "Note: No nightly release found or no artifacts available"
+    else
+        gh release download "{{release_type}}" --repo crossbario/crossbar --dir ./dist --pattern '*.whl' --pattern '*.tar.gz'
+    fi
+    echo ""
+    echo "Downloaded artifacts:"
+    ls -la ./dist/ || echo "No artifacts downloaded"
+
+# Download release artifacts from GitHub and publish to PyPI
+publish-pypi venv="" tag="": (install-build-tools venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    TAG="{{ tag }}"
+    if [ -z "${TAG}" ]; then
+        echo "Error: Please specify a tag to publish"
+        echo "Usage: just publish-pypi cpy311 v24.1.1"
+        exit 1
+    fi
+    echo "==> Publishing ${TAG} to PyPI..."
+    echo ""
+    echo "Step 1: Download release artifacts from GitHub..."
+    just download-github-release "${TAG}"
+    echo ""
+    echo "Step 2: Verify packages with twine..."
+    "${VENV_PATH}/bin/twine" check dist/*
+    echo ""
+    echo "Note: This is a pure Python package (py3-none-any wheel)."
+    echo "      auditwheel verification is not applicable (no native extensions)."
+    echo ""
+    echo "Step 3: Upload to PyPI..."
+    echo ""
+    echo "WARNING: This will upload to PyPI!"
+    echo "Press Ctrl+C to cancel, or Enter to continue..."
+    read
+    "${VENV_PATH}/bin/twine" upload dist/*
+    echo ""
+    echo "==> Successfully published ${TAG} to PyPI"
+
+# Trigger Read the Docs build for a specific tag
+publish-rtd tag="":
+    #!/usr/bin/env bash
+    set -e
+    TAG="{{ tag }}"
+    if [ -z "${TAG}" ]; then
+        echo "Error: Please specify a tag to build"
+        echo "Usage: just publish-rtd v24.1.1"
+        exit 1
+    fi
+    echo "==> Triggering Read the Docs build for ${TAG}..."
+    echo ""
+    echo "Note: Read the Docs builds are typically triggered automatically"
+    echo "      when tags are pushed to GitHub. This recipe is a placeholder"
+    echo "      for manual triggering if needed."
+    echo ""
+    echo "To manually trigger a build:"
+    echo "  1. Go to https://readthedocs.org/projects/crossbar/"
+    echo "  2. Click 'Build a version'"
+    echo "  3. Select the tag: ${TAG}"
+    echo ""

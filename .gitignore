@@ -56,3 +56,8 @@ get-pip.py
 .db-mrealm-*
 .xbrnetwork
 test/test_automated/.test/
+
+# justfile build artifacts
+dist-universe/
+.venvs/
+.uv-cache/
