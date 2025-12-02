@@ -1374,6 +1374,17 @@ publish-rtd tag="":
 
 **Branch**: `modernization-phase-1.3` (new branch after Phase 1.2 merge)
 
+#### Phase 1.3 Tracking
+
+| Repository | Branch | Issue | PR | Status |
+|------------|--------|-------|----|----|
+| txaio | modernization-phase-1.3 | [#204](https://github.com/crossbario/txaio/issues/204) | [#205](https://github.com/crossbario/txaio/pull/205) | ⏳ In progress |
+| autobahn-python | modernization-phase-1.3 | [#1790](https://github.com/crossbario/autobahn-python/issues/1790) | [#1791](https://github.com/crossbario/autobahn-python/pull/1791) | ⏳ Pending |
+| zlmdb | modernization-phase-1.3 | [#81](https://github.com/crossbario/zlmdb/issues/81) | [#82](https://github.com/crossbario/zlmdb/pull/82) | ⏳ Pending |
+| cfxdb | modernization-phase-1.3 | [#107](https://github.com/crossbario/cfxdb/issues/107) | [#108](https://github.com/crossbario/cfxdb/pull/108) | ⏳ Pending |
+| wamp-xbr | modernization-phase-1.3 | [#157](https://github.com/wamp-proto/wamp-xbr/issues/157) | [#158](https://github.com/wamp-proto/wamp-xbr/pull/158) | ⏳ Pending |
+| crossbar | modernization-phase-1.3 | [#2142](https://github.com/crossbario/crossbar/issues/2142) | [#2143](https://github.com/crossbario/crossbar/pull/2143) | ⏳ Pending |
+
 **Tasks per repository**:
 1. [ ] Audit current GitHub Actions workflows
 2. [ ] Add/update main.yml (quality checks, tests, coverage)
