@@ -463,7 +463,7 @@ check-format venv="": (install-tools venv)
     fi
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     echo "==> Linting code with ${VENV_NAME}..."
-    "${VENV_PATH}/bin/ruff" check crossbar
+    "${VENV_PATH}/bin/ruff" check src/crossbar/
 
 # Run static type checking with ty (Astral's Rust-based type checker)
 # FIXME: Many type errors need to be fixed. For now, we ignore most rules
@@ -560,7 +560,7 @@ test-pytest venv="": (install-tools venv) (install venv)
 
     echo "==> Running test suite using pytest in ${VENV_NAME}..."
 
-    ${VENV_PYTHON} -m pytest -sv crossbar
+    ${VENV_PYTHON} -m pytest -sv src/crossbar/
 
 # Run all tests (trial + pytest + functional)
 test venv="": (test-trial venv) (test-pytest venv) (test-functional venv)
