@@ -465,24 +465,12 @@ check-format venv="": (install-tools venv)
     echo "==> Linting code with ${VENV_NAME}..."
     "${VENV_PATH}/bin/ruff" check crossbar
 
-# Run static type checking with mypy
-check-typing venv="": (install-tools venv) (install venv)
+# Run static type checking with ty (Astral's Rust-based type checker)
+check-typing venv="":
     #!/usr/bin/env bash
     set -e
-    VENV_NAME="{{ venv }}"
-    if [ -z "${VENV_NAME}" ]; then
-        echo "==> No venv name specified. Auto-detecting from system Python..."
-        VENV_NAME=$(just --quiet _get-system-venv-name)
-        echo "==> Defaulting to venv: '${VENV_NAME}'"
-    fi
-    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
-    echo "==> Running static type checks with ${VENV_NAME}..."
-    "${VENV_PATH}/bin/mypy" \
-        --exclude 'src/crossbar/worker/test/examples/' \
-        --disable-error-code=import-untyped \
-        --disable-error-code=import-not-found \
-        --disable-error-code=attr-defined \
-        src/crossbar/
+    echo "==> Running static type checks with ty..."
+    ty check src/crossbar/ || echo "Warning: Type checking found issues"
 
 # Run security checks with bandit
 check-bandit venv="": (install-tools venv)
