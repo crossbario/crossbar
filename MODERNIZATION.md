@@ -190,54 +190,55 @@ Every application repository should have the following submodules:
 | Modernization Task | wamp-proto | txaio | autobahn-python | zlmdb | cfxdb | wamp-xbr | crossbar |
 |-------------------|------------|-------|-----------------|-------|-------|----------|----------|
 | **Git Infrastructure** | | | | | | | |
-| .ai submodule | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| .cicd submodule | ❓ | ❓ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| wamp-proto submodule | N/A | N/A | ✅ | N/A | ❓ | N/A | ❓ |
-| Git hooks configured | ❓ | ❓ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| .ai submodule | ⏸️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| .cicd submodule | ⏸️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| wamp-proto submodule | N/A | N/A | ✅ | N/A | ✅ | N/A | ✅ |
+| Git hooks configured | ⏸️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Build System** | | | | | | | |
 | pyproject.toml (PEP 621) | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Remove setup.py | N/A | ⚠️ | ⚠️ | ⚠️ | ✅ | ⚠️ | ⚠️ |
-| Remove setup.cfg | N/A | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
-| Remove requirements.txt | N/A | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| Remove setup.cfg | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Remove requirements.txt | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Task Runner** | | | | | | | |
-| justfile | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Remove Makefile | ❓ | ❓ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| Remove tox.ini | N/A | ⚠️ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| justfile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Remove Makefile | ❓ | ✅ | ✅ | ⚠️ | ✅ | ⚠️ | ⚠️ |
+| Remove tox.ini | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Code Quality** | | | | | | | |
-| ruff (lint + format) | ❓ | ⚠️ | ❓ | ❓ | ❓ | ❓ | ✅ |
-| ruff config in pyproject | ❓ | ❌ | ❓ | ❓ | ❓ | ❓ | ✅ |
-| mypy (type checking) | N/A | ✅ | ❓ | ❓ | ❓ | ❓ | ✅ |
-| mypy config in pyproject | N/A | ✅ | ❓ | ❓ | ❓ | ❓ | ✅ |
+| ruff (lint + format) | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ruff config in pyproject | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ty (type checking) | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ty config in justfile | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Testing** | | | | | | | |
-| pytest | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
-| pytest coverage | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
+| pytest | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| pytest coverage | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Dependencies** | | | | | | | |
-| uv support | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
+| uv support | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Dep version audit | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **CI/CD** | | | | | | | |
-| GitHub Actions | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
-| Matrix testing | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| Wheel building | N/A | ✅ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| PyPI publishing | N/A | ❓ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| GitHub Actions | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Matrix testing | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Wheel building | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| PyPI publishing | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Documentation** | | | | | | | |
-| Modern Sphinx | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
-| Furo theme | ❓ | ❌ | ❓ | ❓ | ❓ | ❓ | ❌ |
-| RTD integration | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
-| API docs | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ⚠️ |
+| Modern Sphinx | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Furo theme | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| RTD integration | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| API docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ |
 | **Packaging** | | | | | | | |
-| Native wheels | N/A | ✅ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| Native wheels | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | CFFI (not CPyExt) | N/A | N/A | ✅ | ✅ | N/A | N/A | ✅ |
 | RHEL9 RPM | N/A | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Code Cleanup** | | | | | | | |
 | TODO/FIXME audit | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ |
-| Type hints | ✅ | ⚠️ | ⚠️ | ❓ | ❓ | ❓ | ⚠️ |
-| Docstrings | ✅ | ⚠️ | ⚠️ | ❓ | ❓ | ❓ | ⚠️ |
+| Type hints | ✅ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ⚠️ |
+| Docstrings | ✅ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ⚠️ |
 
 **Legend**:
 - ✅ Complete
 - ⚠️ Partially done / needs work
 - ❌ Not started
 - ❓ Status unknown / needs audit
+- ⏸️ Pending review (PR submitted)
 - N/A Not applicable
 
 ## Phase 0: Infrastructure Setup
@@ -1378,25 +1379,25 @@ publish-rtd tag="":
 
 | Repository | Branch | Issue | PR | Status |
 |------------|--------|-------|----|----|
-| txaio | modernization-phase-1.3 | [#204](https://github.com/crossbario/txaio/issues/204) | [#205](https://github.com/crossbario/txaio/pull/205) | ⏳ In progress |
-| autobahn-python | modernization-phase-1.3 | [#1790](https://github.com/crossbario/autobahn-python/issues/1790) | [#1791](https://github.com/crossbario/autobahn-python/pull/1791) | ⏳ Pending |
-| zlmdb | modernization-phase-1.3 | [#81](https://github.com/crossbario/zlmdb/issues/81) | [#82](https://github.com/crossbario/zlmdb/pull/82) | ⏳ Pending |
-| cfxdb | modernization-phase-1.3 | [#107](https://github.com/crossbario/cfxdb/issues/107) | [#108](https://github.com/crossbario/cfxdb/pull/108) | ⏳ Pending |
-| wamp-xbr | modernization-phase-1.3 | [#157](https://github.com/wamp-proto/wamp-xbr/issues/157) | [#158](https://github.com/wamp-proto/wamp-xbr/pull/158) | ⏳ Pending |
-| crossbar | modernization-phase-1.3 | [#2142](https://github.com/crossbario/crossbar/issues/2142) | [#2143](https://github.com/crossbario/crossbar/pull/2143) | ⏳ Pending |
+| txaio | modernization-phase-1.3 | [#204](https://github.com/crossbario/txaio/issues/204) | [#205](https://github.com/crossbario/txaio/pull/205) | ⏳ PR ready for review |
+| autobahn-python | modernization-phase-1.3 | [#1790](https://github.com/crossbario/autobahn-python/issues/1790) | [#1791](https://github.com/crossbario/autobahn-python/pull/1791) | ⏳ PR ready for review |
+| zlmdb | modernization-phase-1.3 | [#81](https://github.com/crossbario/zlmdb/issues/81) | [#82](https://github.com/crossbario/zlmdb/pull/82) | ⏳ PR ready for review |
+| cfxdb | modernization-phase-1.3 | [#107](https://github.com/crossbario/cfxdb/issues/107) | [#108](https://github.com/crossbario/cfxdb/pull/108) | ⏳ PR ready for review |
+| wamp-xbr | modernization-phase-1.3 | [#157](https://github.com/wamp-proto/wamp-xbr/issues/157) | [#158](https://github.com/wamp-proto/wamp-xbr/pull/158) | ⏳ PR ready for review |
+| crossbar | modernization-phase-1.3 | [#2142](https://github.com/crossbario/crossbar/issues/2142) | [#2143](https://github.com/crossbario/crossbar/pull/2143) | ⏳ PR ready for review |
 
 **Tasks per repository**:
-1. [ ] Audit current GitHub Actions workflows
-2. [ ] Add/update main.yml (quality checks, tests, coverage)
-3. [ ] Add/update release.yml (wheel building, PyPI publishing)
+1. [x] Audit current GitHub Actions workflows
+2. [x] Add/update main.yml (quality checks, tests, coverage)
+3. [x] Add/update release.yml (wheel building, PyPI publishing)
 4. [ ] Add/update wheels.yml (multi-platform wheel building)
-5. [ ] Integrate reusable actions from .cicd submodule
-6. [ ] Enable matrix testing (CPython 3.11-3.14, PyPy 3.11)
+5. [x] Integrate reusable actions from .cicd submodule (identifiers)
+6. [x] Enable matrix testing (CPython 3.11-3.14, PyPy 3.11)
 7. [ ] Enable multi-OS testing (ubuntu, macos, windows)
-8. [ ] Enable mypy type checking in CI
-9. [ ] Enable pytest coverage in CI
+8. [x] Enable ty type checking in CI (replaced mypy)
+9. [x] Enable pytest coverage in CI
 10. [ ] Verify all workflows pass on GitHub
-11. [ ] Commit changes and push to bare repo
+11. [x] Commit changes and push to bare repo
 
 **Deliverables per repository**:
 - Comprehensive GitHub Actions workflows

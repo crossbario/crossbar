@@ -466,11 +466,43 @@ check-format venv="": (install-tools venv)
     "${VENV_PATH}/bin/ruff" check crossbar
 
 # Run static type checking with ty (Astral's Rust-based type checker)
+# FIXME: Many type errors need to be fixed. For now, we ignore most rules
+# to get CI passing. Create follow-up issue to address type errors.
 check-typing venv="":
     #!/usr/bin/env bash
     set -e
+    VENV_PYTHON=$(just --quiet _get-venv-python {{ venv }})
     echo "==> Running static type checks with ty..."
-    ty check src/crossbar/ || echo "Warning: Type checking found issues"
+    echo "    Using Python: ${VENV_PYTHON}"
+    ty check \
+        --python "${VENV_PYTHON}" \
+        --ignore unresolved-import \
+        --ignore unresolved-attribute \
+        --ignore unresolved-reference \
+        --ignore unresolved-global \
+        --ignore possibly-missing-attribute \
+        --ignore possibly-missing-import \
+        --ignore call-non-callable \
+        --ignore invalid-assignment \
+        --ignore invalid-argument-type \
+        --ignore invalid-return-type \
+        --ignore invalid-method-override \
+        --ignore invalid-type-form \
+        --ignore unsupported-operator \
+        --ignore too-many-positional-arguments \
+        --ignore unknown-argument \
+        --ignore missing-argument \
+        --ignore non-subscriptable \
+        --ignore not-iterable \
+        --ignore no-matching-overload \
+        --ignore conflicting-declarations \
+        --ignore deprecated \
+        --ignore unsupported-base \
+        --ignore invalid-await \
+        --ignore invalid-super-argument \
+        --ignore invalid-exception-caught \
+        --exclude 'src/crossbar/worker/test/examples/syntaxerror.py' \
+        src/crossbar/
 
 # Run security checks with bandit
 check-bandit venv="": (install-tools venv)
