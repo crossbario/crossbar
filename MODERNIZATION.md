@@ -1407,6 +1407,82 @@ publish-rtd tag="":
 
 **Blockers**: Requires Phase 1.2 complete (all sub-phases merged)
 
+#### Phase 1.3 Justfile Standardization
+
+As part of Phase 1.3, we audited and standardized justfiles across all 6 WAMP Python repos to ensure consistent developer experience.
+
+##### Standard Variables (All 6 repos ✅)
+
+| Variable | Description |
+|----------|-------------|
+| `PROJECT_DIR` | Project base directory (justfile_directory()) |
+| `UV_CACHE_DIR` | uv cache directory (./.uv-cache) |
+| `VENV_DIR` | Virtual environments directory (./.venvs) |
+| `ENVS` | Supported Python environments (cpy314 cpy313 cpy312 cpy311 pypy311) |
+
+##### Standard Helpers (All 6 repos ✅)
+
+| Helper | Description |
+|--------|-------------|
+| `_get-spec` | Map Python version short name to full uv version spec |
+| `_get-system-venv-name` | Get system-matching venv name (e.g., cpy311) |
+| `_get-venv-python` | Get Python executable path for a venv |
+
+##### Common Recipes Status
+
+| Recipe | txaio | autobahn | zlmdb | cfxdb | wamp-xbr | crossbar |
+|--------|-------|----------|-------|-------|----------|----------|
+| `default` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `setup-completion` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `distclean` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `list-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `create` / `create-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `install` / `install-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `install-dev` / `install-dev-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `install-dev-local` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `install-tools` / `install-tools-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `fix-format` / `check-format` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `check-typing` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `test` / `test-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `docs` / `docs-clean` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `docs-view` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `build` / `build-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `build-sourcedist` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `clean-build` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `verify-wheels` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `publish` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `publish-pypi` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `publish-rtd` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+##### Manylinux Wheel Support
+
+For repos with native extensions (zlmdb, autobahn-python), the `build` recipe now includes auditwheel repair to produce manylinux-compatible wheels matching GitHub CI output:
+
+```bash
+# Convert linux wheels to manylinux format using auditwheel
+if [ -x "${VENV_PATH}/bin/auditwheel" ]; then
+    for wheel in dist/*-linux_*.whl; do
+        if [ -f "$wheel" ]; then
+            "${VENV_PATH}/bin/auditwheel" repair "$wheel" -w dist/
+            rm "$wheel"  # Remove original linux wheel
+        fi
+    done
+fi
+```
+
+##### Universe Build Recipe
+
+The crossbar repo has a `build-universe` recipe that builds all 6 WAMP repos in dependency order:
+
+1. txaio
+2. autobahn-python
+3. zlmdb
+4. cfxdb
+5. wamp-xbr
+6. crossbar
+
+This produces wheels and source distributions in `dist-universe/` matching GitHub CI artifacts.
+
 ## Phase 2: Integration Test Coverage
 
 **Objective**: End-to-end integration testing across the entire WAMP stack.
