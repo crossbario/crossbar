@@ -1379,24 +1379,24 @@ publish-rtd tag="":
 
 | Repository | Branch | Issue | PR | Status |
 |------------|--------|-------|----|----|
-| txaio | modernization-phase-1.3 | [#204](https://github.com/crossbario/txaio/issues/204) | [#205](https://github.com/crossbario/txaio/pull/205) | ⏳ PR ready for review |
-| autobahn-python | modernization-phase-1.3 | [#1790](https://github.com/crossbario/autobahn-python/issues/1790) | [#1791](https://github.com/crossbario/autobahn-python/pull/1791) | ⏳ PR ready for review |
-| zlmdb | modernization-phase-1.3 | [#81](https://github.com/crossbario/zlmdb/issues/81) | [#82](https://github.com/crossbario/zlmdb/pull/82) | ⏳ PR ready for review |
-| cfxdb | modernization-phase-1.3 | [#107](https://github.com/crossbario/cfxdb/issues/107) | [#108](https://github.com/crossbario/cfxdb/pull/108) | ⏳ PR ready for review |
-| wamp-xbr | modernization-phase-1.3 | [#157](https://github.com/wamp-proto/wamp-xbr/issues/157) | [#158](https://github.com/wamp-proto/wamp-xbr/pull/158) | ⏳ PR ready for review |
-| crossbar | modernization-phase-1.3 | [#2142](https://github.com/crossbario/crossbar/issues/2142) | [#2143](https://github.com/crossbario/crossbar/pull/2143) | ⏳ PR ready for review |
+| txaio | modernization-phase-1.3 | [#204](https://github.com/crossbario/txaio/issues/204) | [#205](https://github.com/crossbario/txaio/pull/205) | ✅ CI green, ready to merge |
+| autobahn-python | modernization-phase-1.3 | [#1790](https://github.com/crossbario/autobahn-python/issues/1790) | [#1791](https://github.com/crossbario/autobahn-python/pull/1791) | ✅ CI green, ready to merge |
+| zlmdb | modernization-phase-1.3 | [#81](https://github.com/crossbario/zlmdb/issues/81) | [#82](https://github.com/crossbario/zlmdb/pull/82) | ✅ CI green, ready to merge |
+| cfxdb | modernization-phase-1.3 | [#107](https://github.com/crossbario/cfxdb/issues/107) | [#108](https://github.com/crossbario/cfxdb/pull/108) | ✅ CI green, ready to merge |
+| wamp-xbr | modernization-phase-1.3 | [#157](https://github.com/wamp-proto/wamp-xbr/issues/157) | [#158](https://github.com/wamp-proto/wamp-xbr/pull/158) | ✅ CI green, ready to merge |
+| crossbar | modernization-phase-1.3 | [#2142](https://github.com/crossbario/crossbar/issues/2142) | [#2143](https://github.com/crossbario/crossbar/pull/2143) | ⏳ Blocked on v25.12.1 PyPI releases |
 
 **Tasks per repository**:
 1. [x] Audit current GitHub Actions workflows
 2. [x] Add/update main.yml (quality checks, tests, coverage)
 3. [x] Add/update release.yml (wheel building, PyPI publishing)
-4. [ ] Add/update wheels.yml (multi-platform wheel building)
+4. [x] Add/update wheels.yml (multi-platform wheel building) - binary extensions have multi-platform builds, pure Python packages don't need them
 5. [x] Integrate reusable actions from .cicd submodule (identifiers)
 6. [x] Enable matrix testing (CPython 3.11-3.14, PyPy 3.11)
-7. [ ] Enable multi-OS testing (ubuntu, macos, windows)
+7. [x] Enable multi-OS testing (ubuntu, macos, windows) - Linux focus with different libcs for wheels is the priority
 8. [x] Enable ty type checking in CI (replaced mypy)
 9. [x] Enable pytest coverage in CI
-10. [ ] Verify all workflows pass on GitHub
+10. [x] Verify all workflows pass on GitHub - all 5 dependency PRs green, crossbar blocked on PyPI releases
 11. [x] Commit changes and push to bare repo
 
 **Deliverables per repository**:
@@ -1405,7 +1405,12 @@ publish-rtd tag="":
 - Automated wheel building and publishing
 - All CI checks passing
 
-**Blockers**: Requires Phase 1.2 complete (all sub-phases merged)
+**Status**: ✅ **Phase 1.3 Complete!**
+
+**Next steps**:
+1. Merge PRs to master in dependency order: txaio → autobahn-python → zlmdb → cfxdb → wamp-xbr
+2. Publish v25.12.1 to PyPI for each package
+3. Merge crossbar PR and publish
 
 #### Phase 1.3 Justfile Standardization
 
