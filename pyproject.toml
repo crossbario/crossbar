@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=80.9.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "crossbar"
@@ -217,27 +217,37 @@ Forum = "https://crossbar.discourse.group/"
 [project.scripts]
 crossbar = "crossbar:run"
 
-[tool.setuptools]
-zip-safe = false
-include-package-data = true
+# Hatchling build configuration
+[tool.hatch.metadata]
+# Allow git+https:// dependencies in dev-latest for cross-repo development
+allow-direct-references = true
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["crossbar*"]
-exclude = ["tests*", "docs*", "docs-cfx*", "docs-old*", "legal*"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/crossbar"]
 
-[tool.setuptools.package-data]
-# Include release keys and templates (non-Python package data)
-"crossbar.common.keys" = ["*.pub"]
-"crossbar.node" = ["templates/**/*"]
-"crossbar.webservice" = ["templates/**/*"]
-"crossbar.webservice.test" = ["templates/**/*"]
-"crossbar.adapter.mqtt.test" = ["certs/**/*"]
-"crossbar.edge.webservice" = ["templates/**/*"]
-"crossbar.edge.node" = ["config/**/*"]
-"crossbar.master.webservice" = ["templates/**/*"]
-"crossbar.master.node" = ["*.json"]
-"crossbar.network.node" = ["*.json"]
+# Include non-Python files in the wheel
+[tool.hatch.build.targets.wheel.force-include]
+# Include py.typed marker (if it exists)
+# "src/crossbar/py.typed" = "crossbar/py.typed"
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
+
+[tool.hatch.build.targets.sdist]
+# By default, hatchling includes all git-tracked files
+# Exclude build artifacts from sdist
+exclude = [
+    "/.github",
+    "/docs/_build",
+    "/docs-cfx",
+    "/docs-old",
+    "/.venvs",
+    "/.uv-cache",
+    "/.coverage",
+    "/.pytest_cache",
+    "/.mypy_cache",
+    "/.ruff_cache",
+]
 
 # Ruff configuration (replaces yapf + flake8)
 [tool.ruff]
