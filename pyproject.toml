@@ -47,8 +47,8 @@ classifiers = [
 dependencies = [
     # WAMP ecosystem packages (using currently available PyPI versions)
     # NOTE: For development/testing with unreleased versions, use: pip install -e .[dev,dev-latest]
-    "autobahn[twisted,encryption,compress,serialization,scram]>=25.10.2",
-    "txaio>=25.9.2",  # Will be bumped to >=25.10.2 when published
+    "autobahn[twisted,encryption,compress,serialization,scram]>=25.12.1",
+    "txaio>=25.12.2",
     "zlmdb>=25.12.1",
     "cfxdb>=25.12.1",
 
