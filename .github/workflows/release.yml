@@ -16,12 +16,8 @@ permissions:
   pull-requests: read  # Required for identifiers workflow
 
 jobs:
-  identifiers:
-    uses: wamp-proto/wamp-cicd/.github/workflows/identifiers.yml@main
-
   check-main-workflow:
     name: Check if main workflow completed successfully
-    needs: [identifiers]
     runs-on: ubuntu-latest
     outputs:
       main_run_id: ${{ steps.check.outputs.main_run_id }}
@@ -74,15 +70,29 @@ jobs:
             core.setOutput('should_proceed', mainComplete ? 'true' : 'false');
             core.setOutput('main_run_id', mainRun?.id || '');
 
+  identifiers:
+    name: Identifiers
+    needs: check-main-workflow
+    if: needs.check-main-workflow.outputs.should_proceed == 'true'
+    # GitHub needs to know where .cicd/workflows/identifiers.yml lives at parse time,
+    # and submodules aren't included in that context! thus the following does NOT work:
+    # uses: ./.cicd/workflows/identifiers.yml
+    # we MUST reference the remote repo directly:
+    uses: wamp-proto/wamp-cicd/.github/workflows/identifiers.yml@main
+    # IMPORTANT: we still need .cicd as a Git submodule in the using repo though!
+    # because e.g. identifiers.yml wants to access scripts/sanitize.sh !
+
   # Development/Nightly GitHub releases (for untagged master builds)
   release-development:
     name: Development/Nightly GitHub Release
-    needs: [identifiers, check-main-workflow]
+    needs: [check-main-workflow, identifiers]
     runs-on: ubuntu-24.04
 
     # Only create releases for development/nightly builds (not stable tags)
     if: |
       needs.check-main-workflow.outputs.should_proceed == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')) &&
       (needs.identifiers.outputs.release_type == 'development' || needs.identifiers.outputs.release_type == 'nightly')
 
     env:
@@ -96,13 +106,13 @@ jobs:
           submodules: recursive
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
 
       - name: Set up Python 3.11
         run: uv python install 3.11
 
       - name: Install just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v3
 
       - name: Create venv and install build tools
         run: |
@@ -214,12 +224,14 @@ jobs:
   # Production releases (for tagged stable builds) - GitHub + PyPI
   release-production:
     name: Production Release (GitHub + PyPI)
-    needs: [identifiers, check-main-workflow]
+    needs: [check-main-workflow, identifiers]
     runs-on: ubuntu-24.04
 
     # Only publish to PyPI for stable releases (explicit tag check)
     if: |
       needs.check-main-workflow.outputs.should_proceed == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')) &&
       needs.identifiers.outputs.release_type == 'stable'
 
     env:
@@ -239,13 +251,13 @@ jobs:
           submodules: recursive
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
 
       - name: Set up Python 3.11
         run: uv python install 3.11
 
       - name: Install just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v3
 
       - name: Create venv and install build tools
         run: |

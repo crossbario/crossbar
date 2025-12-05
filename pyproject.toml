@@ -169,7 +169,7 @@ dev = [
 
     # Code quality (using ruff instead of yapf+flake8)
     "ruff>=0.1.0",
-    "mypy>=1.0.0; platform_python_implementation != 'PyPy'",
+    # Note: ty (type checker) installed via 'uv tool install ty'
     "bandit",
 
     # Build tools
@@ -231,6 +231,7 @@ exclude = ["tests*", "docs*", "docs-cfx*", "docs-old*", "legal*"]
 "crossbar.common.keys" = ["*.pub"]
 "crossbar.node" = ["templates/**/*"]
 "crossbar.webservice" = ["templates/**/*"]
+"crossbar.webservice.test" = ["templates/**/*"]
 "crossbar.adapter.mqtt.test" = ["certs/**/*"]
 "crossbar.edge.webservice" = ["templates/**/*"]
 "crossbar.edge.node" = ["config/**/*"]
@@ -266,22 +267,8 @@ ignore = [
 "src/crossbar/master/database/*" = ["ALL"]
 "src/crossbar/worker/test/examples/syntaxerror.py" = ["ALL"]
 
-# MyPy configuration
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-ignore_missing_imports = true
-exclude = [
-    "^src/crossbar/worker/test/examples/",
-]
-# Disable errors that are not actionable until dependencies add type stubs
-disable_error_code = [
-    "import-untyped",  # Third-party libraries without type stubs (autobahn, txaio, etc.)
-    "import-not-found",  # Modules not found (xbr, etc.) - TODO: fix when xbr has type stubs
-    "attr-defined",  # Often caused by untyped imports - TODO: revisit after adding type stubs
-]
+# Note: mypy configuration removed - using ty (Astral type checker) instead
+# ty is installed via 'uv tool install ty' and doesn't require pyproject.toml config
 
 # Pytest configuration
 [tool.pytest.ini_options]

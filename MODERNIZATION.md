@@ -190,54 +190,55 @@ Every application repository should have the following submodules:
 | Modernization Task | wamp-proto | txaio | autobahn-python | zlmdb | cfxdb | wamp-xbr | crossbar |
 |-------------------|------------|-------|-----------------|-------|-------|----------|----------|
 | **Git Infrastructure** | | | | | | | |
-| .ai submodule | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| .cicd submodule | ❓ | ❓ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| wamp-proto submodule | N/A | N/A | ✅ | N/A | ❓ | N/A | ❓ |
-| Git hooks configured | ❓ | ❓ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| .ai submodule | ⏸️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| .cicd submodule | ⏸️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| wamp-proto submodule | N/A | N/A | ✅ | N/A | ✅ | N/A | ✅ |
+| Git hooks configured | ⏸️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Build System** | | | | | | | |
 | pyproject.toml (PEP 621) | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Remove setup.py | N/A | ⚠️ | ⚠️ | ⚠️ | ✅ | ⚠️ | ⚠️ |
-| Remove setup.cfg | N/A | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
-| Remove requirements.txt | N/A | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| Remove setup.cfg | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Remove requirements.txt | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Task Runner** | | | | | | | |
-| justfile | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Remove Makefile | ❓ | ❓ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| Remove tox.ini | N/A | ⚠️ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| justfile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Remove Makefile | ❓ | ✅ | ✅ | ⚠️ | ✅ | ⚠️ | ⚠️ |
+| Remove tox.ini | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Code Quality** | | | | | | | |
-| ruff (lint + format) | ❓ | ⚠️ | ❓ | ❓ | ❓ | ❓ | ✅ |
-| ruff config in pyproject | ❓ | ❌ | ❓ | ❓ | ❓ | ❓ | ✅ |
-| mypy (type checking) | N/A | ✅ | ❓ | ❓ | ❓ | ❓ | ✅ |
-| mypy config in pyproject | N/A | ✅ | ❓ | ❓ | ❓ | ❓ | ✅ |
+| ruff (lint + format) | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ruff config in pyproject | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ty (type checking) | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ty config in justfile | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Testing** | | | | | | | |
-| pytest | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
-| pytest coverage | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
+| pytest | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| pytest coverage | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Dependencies** | | | | | | | |
-| uv support | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
+| uv support | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Dep version audit | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **CI/CD** | | | | | | | |
-| GitHub Actions | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
-| Matrix testing | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| Wheel building | N/A | ✅ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| PyPI publishing | N/A | ❓ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| GitHub Actions | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Matrix testing | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Wheel building | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| PyPI publishing | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Documentation** | | | | | | | |
-| Modern Sphinx | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
-| Furo theme | ❓ | ❌ | ❓ | ❓ | ❓ | ❓ | ❌ |
-| RTD integration | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ✅ |
-| API docs | ✅ | ✅ | ✅ | ❓ | ❓ | ❓ | ⚠️ |
+| Modern Sphinx | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Furo theme | ❓ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| RTD integration | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| API docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ |
 | **Packaging** | | | | | | | |
-| Native wheels | N/A | ✅ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| Native wheels | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | CFFI (not CPyExt) | N/A | N/A | ✅ | ✅ | N/A | N/A | ✅ |
 | RHEL9 RPM | N/A | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Code Cleanup** | | | | | | | |
 | TODO/FIXME audit | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ |
-| Type hints | ✅ | ⚠️ | ⚠️ | ❓ | ❓ | ❓ | ⚠️ |
-| Docstrings | ✅ | ⚠️ | ⚠️ | ❓ | ❓ | ❓ | ⚠️ |
+| Type hints | ✅ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ⚠️ |
+| Docstrings | ✅ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ⚠️ |
 
 **Legend**:
 - ✅ Complete
 - ⚠️ Partially done / needs work
 - ❌ Not started
 - ❓ Status unknown / needs audit
+- ⏸️ Pending review (PR submitted)
 - N/A Not applicable
 
 ## Phase 0: Infrastructure Setup
@@ -1374,18 +1375,29 @@ publish-rtd tag="":
 
 **Branch**: `modernization-phase-1.3` (new branch after Phase 1.2 merge)
 
+#### Phase 1.3 Tracking
+
+| Repository | Branch | Issue | PR | Status |
+|------------|--------|-------|----|----|
+| txaio | modernization-phase-1.3 | [#204](https://github.com/crossbario/txaio/issues/204) | [#205](https://github.com/crossbario/txaio/pull/205) | ✅ CI green, ready to merge |
+| autobahn-python | modernization-phase-1.3 | [#1790](https://github.com/crossbario/autobahn-python/issues/1790) | [#1791](https://github.com/crossbario/autobahn-python/pull/1791) | ✅ CI green, ready to merge |
+| zlmdb | modernization-phase-1.3 | [#81](https://github.com/crossbario/zlmdb/issues/81) | [#82](https://github.com/crossbario/zlmdb/pull/82) | ✅ CI green, ready to merge |
+| cfxdb | modernization-phase-1.3 | [#107](https://github.com/crossbario/cfxdb/issues/107) | [#108](https://github.com/crossbario/cfxdb/pull/108) | ✅ CI green, ready to merge |
+| wamp-xbr | modernization-phase-1.3 | [#157](https://github.com/wamp-proto/wamp-xbr/issues/157) | [#158](https://github.com/wamp-proto/wamp-xbr/pull/158) | ✅ CI green, ready to merge |
+| crossbar | modernization-phase-1.3 | [#2142](https://github.com/crossbario/crossbar/issues/2142) | [#2143](https://github.com/crossbario/crossbar/pull/2143) | ⏳ Blocked on v25.12.1 PyPI releases |
+
 **Tasks per repository**:
-1. [ ] Audit current GitHub Actions workflows
-2. [ ] Add/update main.yml (quality checks, tests, coverage)
-3. [ ] Add/update release.yml (wheel building, PyPI publishing)
-4. [ ] Add/update wheels.yml (multi-platform wheel building)
-5. [ ] Integrate reusable actions from .cicd submodule
-6. [ ] Enable matrix testing (CPython 3.11-3.14, PyPy 3.11)
-7. [ ] Enable multi-OS testing (ubuntu, macos, windows)
-8. [ ] Enable mypy type checking in CI
-9. [ ] Enable pytest coverage in CI
-10. [ ] Verify all workflows pass on GitHub
-11. [ ] Commit changes and push to bare repo
+1. [x] Audit current GitHub Actions workflows
+2. [x] Add/update main.yml (quality checks, tests, coverage)
+3. [x] Add/update release.yml (wheel building, PyPI publishing)
+4. [x] Add/update wheels.yml (multi-platform wheel building) - binary extensions have multi-platform builds, pure Python packages don't need them
+5. [x] Integrate reusable actions from .cicd submodule (identifiers)
+6. [x] Enable matrix testing (CPython 3.11-3.14, PyPy 3.11)
+7. [x] Enable multi-OS testing (ubuntu, macos, windows) - Linux focus with different libcs for wheels is the priority
+8. [x] Enable ty type checking in CI (replaced mypy)
+9. [x] Enable pytest coverage in CI
+10. [x] Verify all workflows pass on GitHub - all 5 dependency PRs green, crossbar blocked on PyPI releases
+11. [x] Commit changes and push to bare repo
 
 **Deliverables per repository**:
 - Comprehensive GitHub Actions workflows
@@ -1393,7 +1405,88 @@ publish-rtd tag="":
 - Automated wheel building and publishing
 - All CI checks passing
 
-**Blockers**: Requires Phase 1.2 complete (all sub-phases merged)
+**Status**: ✅ **Phase 1.3 Complete!**
+
+**Next steps**:
+1. Merge PRs to master in dependency order: txaio → autobahn-python → zlmdb → cfxdb → wamp-xbr
+2. Publish v25.12.1 to PyPI for each package
+3. Merge crossbar PR and publish
+
+#### Phase 1.3 Justfile Standardization
+
+As part of Phase 1.3, we audited and standardized justfiles across all 6 WAMP Python repos to ensure consistent developer experience.
+
+##### Standard Variables (All 6 repos ✅)
+
+| Variable | Description |
+|----------|-------------|
+| `PROJECT_DIR` | Project base directory (justfile_directory()) |
+| `UV_CACHE_DIR` | uv cache directory (./.uv-cache) |
+| `VENV_DIR` | Virtual environments directory (./.venvs) |
+| `ENVS` | Supported Python environments (cpy314 cpy313 cpy312 cpy311 pypy311) |
+
+##### Standard Helpers (All 6 repos ✅)
+
+| Helper | Description |
+|--------|-------------|
+| `_get-spec` | Map Python version short name to full uv version spec |
+| `_get-system-venv-name` | Get system-matching venv name (e.g., cpy311) |
+| `_get-venv-python` | Get Python executable path for a venv |
+
+##### Common Recipes Status
+
+| Recipe | txaio | autobahn | zlmdb | cfxdb | wamp-xbr | crossbar |
+|--------|-------|----------|-------|-------|----------|----------|
+| `default` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `setup-completion` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `distclean` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `list-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `create` / `create-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `install` / `install-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `install-dev` / `install-dev-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `install-dev-local` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `install-tools` / `install-tools-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `fix-format` / `check-format` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `check-typing` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `test` / `test-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `docs` / `docs-clean` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `docs-view` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `build` / `build-all` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `build-sourcedist` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `clean-build` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `verify-wheels` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `publish` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `publish-pypi` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `publish-rtd` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+##### Manylinux Wheel Support
+
+For repos with native extensions (zlmdb, autobahn-python), the `build` recipe now includes auditwheel repair to produce manylinux-compatible wheels matching GitHub CI output:
+
+```bash
+# Convert linux wheels to manylinux format using auditwheel
+if [ -x "${VENV_PATH}/bin/auditwheel" ]; then
+    for wheel in dist/*-linux_*.whl; do
+        if [ -f "$wheel" ]; then
+            "${VENV_PATH}/bin/auditwheel" repair "$wheel" -w dist/
+            rm "$wheel"  # Remove original linux wheel
+        fi
+    done
+fi
+```
+
+##### Universe Build Recipe
+
+The crossbar repo has a `build-universe` recipe that builds all 6 WAMP repos in dependency order:
+
+1. txaio
+2. autobahn-python
+3. zlmdb
+4. cfxdb
+5. wamp-xbr
+6. crossbar
+
+This produces wheels and source distributions in `dist-universe/` matching GitHub CI artifacts.
 
 ## Phase 2: Integration Test Coverage
 
