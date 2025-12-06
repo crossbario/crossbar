@@ -111,6 +111,7 @@ html_css_files = [
     'https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Noto+Sans+Mono:wght@100..900&family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap',
 ]
 
+# Logo (optimized SVG generated from docs/_graphics/ by `just _build-images`)
 # Note: Keep old logo for backwards compatibility, but Furo will use light_logo/dark_logo
 html_logo = '_static/img/crossbar.svg'
 

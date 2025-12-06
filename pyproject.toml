@@ -145,6 +145,7 @@ dependencies = [
 # Development dependencies
 dev = [
     # Documentation
+    "scour>=0.38",  # SVG optimizer for documentation logos
     "sphinx>=6.1.3",
     "furo>=2024.1.29",
     "sphinxcontrib-images>=0.9.4",
