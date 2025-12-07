@@ -36,6 +36,7 @@ If you are new to Crossbar.io development in general you should start here at :r
     Contributing-FAQ
     FAQ
     changelog
+    OVERVIEW.md
     ai/index
 
 .. toctree::
