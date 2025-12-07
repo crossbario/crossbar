@@ -77,11 +77,28 @@ myst_enable_extensions = [
 myst_heading_anchors = 3
 
 # -- AutoAPI Configuration ---------------------------------------------------
-autoclass_content = "both"
-autodoc_member_order = "bysource"
-autoapi_options = ["members", "show-inheritance"]
+autoapi_type = "python"
 autoapi_dirs = ["../src/crossbar"]
-autoapi_ignore = ["**/test/**", "**/tests/**"]
+autoapi_add_toctree_entry = True
+autoapi_keep_files = False              # Cleaner RTD builds
+autoapi_generate_api_docs = True
+autoapi_options = [
+    "members",
+    "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
+    "imported-members",
+]
+autoapi_ignore = [
+    "*/_version.py",
+    "*/test_*.py",
+    "*/*_test.py",
+    "*/conftest.py",
+    "**/test/**",
+    "**/tests/**",
+]
+autoapi_python_use_implicit_namespaces = True
+autoapi_member_order = "alphabetical"   # Predictable ordering
 
 # -- Intersphinx Configuration -----------------------------------------------
 intersphinx_mapping = {
