@@ -109,10 +109,10 @@ html_theme_options = {
     "light_logo": "img/typedefint-vectorized.svg",
     "dark_logo": "img/typedefint-vectorized-white.svg",
 
-    # Noto fonts from Google Fonts
+    # Noto fonts and Crossbar.io Bright Yellow (#ffff00) accent color
     "light_css_variables": {
-        "color-brand-primary": "#0077FF",
-        "color-brand-content": "#0077FF",
+        "color-brand-primary": "#d4aa00",
+        "color-brand-content": "#d4aa00",
         "color-background-primary": "#fafafa",
         "color-foreground-primary": "#1a1a1a",
         "font-stack": "'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -126,15 +126,15 @@ html_theme_options = {
         "color-link--hover": "#FFBC1D",
         "color-link--visited": "#B98406",
         "color-link--visited--hover": "#EAB128",
-        "color-brand-primary": "#F0C359",
-        "color-brand-content": "#F0C359",
+        "color-brand-primary": "#ffff00",
+        "color-brand-content": "#ffff00",
         "font-stack": "'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         "font-stack--headings": "'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         "font-stack--monospace": "'Noto Sans Mono', SFMono-Regular, Menlo, Consolas, monospace",
     },
 }
 
-# Logo (optimized SVG generated from docs/_graphics/ by `just _build-images`)
+# Logo and favicon (optimized/generated from docs/_graphics/ by `just optimize-images`)
 # Uses the Crossbar.io icon for Crossbar.io ecosystem projects
 html_logo = "_static/img/crossbar_icon.svg"
 html_favicon = "_static/favicon.ico"
