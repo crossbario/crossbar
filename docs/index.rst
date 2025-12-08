@@ -23,3 +23,8 @@ Contents
    FAQ
    OVERVIEW.md
    ai/index
+
+--------------
+
+*Copyright (c) typedef int GmbH. Licensed under the* `EUPL-1.2 <https://github.com/crossbario/crossbar/blob/master/LICENSE>`__.
+*WAMP, Autobahn, Crossbar.io and XBR are trademarks of typedef int GmbH (Germany).*
