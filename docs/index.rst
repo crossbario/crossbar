@@ -39,11 +39,6 @@ If you are new to Crossbar.io development in general you should start here at :r
     OVERVIEW.md
     ai/index
 
-.. toctree::
-    :caption: IMPRESSUM:
-
-    Crossbar.io/impressum<https://crossbar.io/impressum>
-
 
 Please see :ref:`site_contents` for a full site-map.
 
