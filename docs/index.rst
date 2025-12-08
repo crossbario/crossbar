@@ -14,13 +14,11 @@ Contents
    overview
    Installation
    Getting-Started
-   Basic-Concepts
    programming-guide/index
    administration-guide/index
    releases
    changelog
    contributing
-   FAQ
    OVERVIEW.md
    ai/index
 

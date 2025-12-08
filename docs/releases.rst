@@ -1,5 +1,5 @@
-Releases
-========
+Release Notes
+=============
 
 This page lists all releases of **Crossbar.io**.
 

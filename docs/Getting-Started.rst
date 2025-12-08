@@ -9,8 +9,8 @@
 
 .. _getting-started:
 
-Getting started with Crossbar.io
-################################
+Getting Started
+===============
 
 **Crossbar.io** is an open source networking platform for distributed and microservice applications. It is a feature rich, scalable, robust and secure
 implementation of  the open `Web Application Messaging Protocol (WAMP) <https://wamp-proto.org/>`_.

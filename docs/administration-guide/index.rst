@@ -5,6 +5,12 @@ This guide covers the configuration and administration of **Crossbar.io**.
 
 .. toctree::
    :maxdepth: 2
+   :caption: Concepts
+
+   ../Basic-Concepts
+
+.. toctree::
+   :maxdepth: 2
    :caption: Node Configuration
 
    ../Node-Configuration
