@@ -3,49 +3,23 @@ WAMP Router for Distributed & Decentralized Microservices
 
 `Crossbar.io <https://crossbar.io>`__ is an open source networking platform for distributed and microservice applications. It implements the open Web Application Messaging Protocol (WAMP), is feature rich, scalable, robust and secure. Let Crossbar.io take care of the hard parts of messaging so you can focus on your app's features.
 
-If you are new to Crossbar.io development in general you should start here at :ref:`getting-started`.
+If you are new to Crossbar.io development in general you should start here at :doc:`Getting-Started`.
 
+Contents
+--------
 
 .. toctree::
-    :caption: Home:
+   :maxdepth: 2
 
-    Crossbar.io<https://crossbar.io>
-    Crossbario.com<https://github.com/typedefint>
-    WAMP<https://wamp-proto.org/>
-    Crossbario Docs <self>
-   
-.. toctree::
-    :maxdepth: 2
-    :caption: Contents:
-
-    Getting-Started
-
-    Basic-Concepts
-    Installation
-    Administration
-    personalities
-    testing-autobahn-examples
-
-    Programming-Guide
-    integration-guide
-    tutorials-recipe
-
-    Compatibility-Policy
-    Crossbar-License
-    Documentation-License
-    Contributing-FAQ
-    FAQ
-    changelog
-    OVERVIEW.md
-    ai/index
-
-
-Please see :ref:`site_contents` for a full site-map.
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   overview
+   Installation
+   Getting-Started
+   Basic-Concepts
+   programming-guide/index
+   administration-guide/index
+   releases
+   changelog
+   contributing
+   FAQ
+   OVERVIEW.md
+   ai/index
