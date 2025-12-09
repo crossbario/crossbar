@@ -1,5 +1,14 @@
 # Crossbar.io
 
+[![PyPI](https://img.shields.io/pypi/v/crossbar.svg)](https://pypi.python.org/pypi/crossbar)
+[![Python](https://img.shields.io/pypi/pyversions/crossbar.svg)](https://pypi.python.org/pypi/crossbar)
+[![CI](https://github.com/crossbario/crossbar/workflows/main/badge.svg)](https://github.com/crossbario/crossbar/actions?query=workflow%3Amain)
+[![Docs](https://readthedocs.org/projects/crossbar/badge/?version=latest)](https://crossbar.readthedocs.io/en/latest/)
+[![License](https://img.shields.io/pypi/l/crossbar.svg)](https://github.com/crossbario/crossbar/blob/master/LICENSE)
+[![Downloads](https://img.shields.io/pypi/dm/crossbar.svg)](https://pypi.python.org/pypi/crossbar)
+
+---
+
 *Decentralized Middleware*
 
 [Crossbar.io](https://crossbar.io) is an open source networking platform
@@ -7,14 +16,6 @@ for distributed and microservice applications. It implements the open
 Web Application Messaging Protocol (WAMP), is feature rich, scalable,
 robust and secure. Let Crossbar.io take care of the hard parts of
 messaging so you can focus on your app\'s features.
-
-| [![Version](https://img.shields.io/pypi/v/crossbar.svg)](https://pypi.python.org/pypi/crossbar)
-  [![Test](https://github.com/crossbario/crossbar/workflows/main/badge.svg)](https://github.com/crossbario/crossbar/actions?query=workflow%3Amain)
-  [![Deploy
-  (wheels)](https://github.com/crossbario/crossbar/workflows/deploy-wheels/badge.svg)](https://github.com/crossbario/crossbar/actions?query=workflow%3Adeploy-wheels)
-  [![Deploy
-  (docs)](https://github.com/crossbario/crossbar/workflows/deploy-docs/badge.svg)](https://github.com/crossbario/crossbar/actions?query=workflow%3Adeploy-docs)
-  [![Docs](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://crossbar.io/docs/)
 
 ## Resources
 
