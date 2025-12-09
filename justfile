@@ -669,8 +669,73 @@ upgrade-all:
 # -- Documentation
 # -----------------------------------------------------------------------------
 
+# Install documentation dependencies
+install-docs venv="": (create venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Installing documentation tools in ${VENV_NAME}..."
+    ${VENV_PYTHON} -m pip install -e .[docs]
+
+# Build optimized SVGs from docs/_graphics/*.svg using scour and generate favicon
+optimize-images venv="": (install-docs venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+
+    SOURCEDIR="{{ PROJECT_DIR }}/docs/_graphics"
+    TARGETDIR="{{ PROJECT_DIR }}/docs/_static/img"
+    FAVICONDIR="{{ PROJECT_DIR }}/docs/_static"
+
+    echo "==> Building optimized SVG images..."
+    mkdir -p "${TARGETDIR}"
+
+    if [ -d "${SOURCEDIR}" ]; then
+        find "${SOURCEDIR}" -name "*.svg" -type f | while read -r source_file; do
+            filename=$(basename "${source_file}")
+            target_file="${TARGETDIR}/${filename}"
+            echo "  Processing: ${filename}"
+            "${VENV_PATH}/bin/scour" \
+                --remove-descriptive-elements \
+                --enable-comment-stripping \
+                --enable-viewboxing \
+                --indent=none \
+                --no-line-breaks \
+                --shorten-ids \
+                "${source_file}" "${target_file}"
+        done
+    fi
+
+    # Generate favicon from logo SVG using ImageMagick
+    LOGO_SVG="${TARGETDIR}/crossbar_icon.svg"
+    FAVICON="${FAVICONDIR}/favicon.ico"
+    if [ -f "${LOGO_SVG}" ]; then
+        echo "==> Generating favicon from logo..."
+        if command -v convert &> /dev/null; then
+            convert -background none -density 256 "${LOGO_SVG}" \
+                -resize 48x48 -gravity center -extent 48x48 \
+                -define icon:auto-resize=48,32,16 \
+                "${FAVICON}"
+            echo "  Created: favicon.ico"
+        else
+            echo "  Warning: ImageMagick 'convert' not found, skipping favicon generation"
+        fi
+    fi
+
+    echo "==> Done building images."
+
 # Build the HTML documentation using Sphinx
-docs venv="":
+docs venv="": (optimize-images venv)
     #!/usr/bin/env bash
     set -e
     VENV_NAME="{{ venv }}"
@@ -719,6 +784,22 @@ docs-view venv="": (docs venv)
 docs-clean:
     echo "==> Cleaning documentation build artifacts..."
     rm -rf docs/_build
+
+# Run spelling check on documentation
+docs-spelling venv="": (install-docs venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    TMPBUILDDIR="./.build"
+    mkdir -p "${TMPBUILDDIR}"
+    echo "==> Running spell check on documentation..."
+    "${VENV_PATH}/bin/sphinx-build" -b spelling -d "${TMPBUILDDIR}/docs/doctrees" docs "${TMPBUILDDIR}/docs/spelling"
 
 # -----------------------------------------------------------------------------
 # -- Building and Publishing
@@ -2030,3 +2111,143 @@ publish-rtd tag="":
 
 # Publish package to PyPI and trigger RTD build (meta-recipe)
 publish venv="" tag="": (publish-pypi venv tag) (publish-rtd tag)
+
+
+# -----------------------------------------------------------------------------
+# -- Release workflow recipes
+# -----------------------------------------------------------------------------
+
+# Generate changelog entry from git history for a given version
+prepare-changelog version:
+    #!/usr/bin/env bash
+    set -e
+    VERSION="{{ version }}"
+
+    echo ""
+    echo "=========================================="
+    echo " Generating changelog for version ${VERSION}"
+    echo "=========================================="
+    echo ""
+
+    # Find the previous tag
+    PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    if [ -z "${PREV_TAG}" ]; then
+        echo "No previous tag found. Showing all commits..."
+        git log --oneline --no-decorate | head -50
+    else
+        echo "Commits since ${PREV_TAG}:"
+        echo ""
+        git log --oneline --no-decorate "${PREV_TAG}..HEAD" | head -50
+    fi
+
+    echo ""
+    echo "=========================================="
+    echo " Suggested changelog format:"
+    echo "=========================================="
+    echo ""
+    echo "${VERSION}"
+    echo "------"
+    echo ""
+    echo "**New**"
+    echo ""
+    echo "* new: <feature description>"
+    echo ""
+    echo "**Fix**"
+    echo ""
+    echo "* fix: <fix description>"
+    echo ""
+    echo "**Other**"
+    echo ""
+    echo "* other: <other changes>"
+    echo ""
+
+# Validate release is ready: checks changelog, releases, version
+draft-release version:
+    #!/usr/bin/env bash
+    set -e
+    VERSION="{{ version }}"
+
+    echo ""
+    echo "=========================================="
+    echo " Validating release ${VERSION}"
+    echo "=========================================="
+    echo ""
+
+    ERRORS=0
+
+    # Check pyproject.toml version
+    PYPROJECT_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+    if [ "${PYPROJECT_VERSION}" = "${VERSION}" ]; then
+        echo "✅ pyproject.toml version matches: ${VERSION}"
+    else
+        echo "❌ pyproject.toml version mismatch: ${PYPROJECT_VERSION} != ${VERSION}"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # Check changelog entry
+    if grep -q "^${VERSION}$" docs/changelog.rst; then
+        echo "✅ Changelog entry exists for ${VERSION}"
+    else
+        echo "❌ Changelog entry missing for ${VERSION}"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # Check releases entry
+    if grep -q "^${VERSION}$" docs/releases.rst; then
+        echo "✅ Releases entry exists for ${VERSION}"
+    else
+        echo "❌ Releases entry missing for ${VERSION}"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    echo ""
+    if [ ${ERRORS} -gt 0 ]; then
+        echo "=========================================="
+        echo " ❌ Validation failed with ${ERRORS} error(s)"
+        echo "=========================================="
+        exit 1
+    else
+        echo "=========================================="
+        echo " ✅ All checks passed for ${VERSION}"
+        echo "=========================================="
+    fi
+
+# Full release preparation: validate + test + build docs
+prepare-release version venv="":
+    #!/usr/bin/env bash
+    set -e
+    VERSION="{{ version }}"
+    VENV="{{ venv }}"
+
+    echo ""
+    echo "=========================================="
+    echo " Preparing release ${VERSION}"
+    echo "=========================================="
+    echo ""
+
+    # Run draft-release validation first
+    just draft-release "${VERSION}"
+
+    echo ""
+    echo "==> Running tests..."
+    if [ -n "${VENV}" ]; then
+        just test "${VENV}"
+    else
+        just test
+    fi
+
+    echo ""
+    echo "==> Building documentation..."
+    just docs
+
+    echo ""
+    echo "=========================================="
+    echo " ✅ Release ${VERSION} is ready"
+    echo "=========================================="
+    echo ""
+    echo "Next steps:"
+    echo "  1. git add docs/changelog.rst docs/releases.rst pyproject.toml"
+    echo "  2. git commit -m \"Release ${VERSION}\""
+    echo "  3. git tag v${VERSION}"
+    echo "  4. git push && git push --tags"
+    echo ""

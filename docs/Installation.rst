@@ -3,8 +3,8 @@
 .. _installation:
 
 
-Installing Crossbar.io
-======================
+Installation
+============
 
 Below are different ways of installing Crossbar.io. We recommend our
 `Docker images`_ 

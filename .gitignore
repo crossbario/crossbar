@@ -1,5 +1,5 @@
 .qemu
-.build
+.build/
 crossbar.spec
 key.pub
 key.priv
@@ -37,7 +37,8 @@ node_modules
 .tox
 *.swp
 *.ropeproject
-docs/_build
+docs/_build/
+docs/autoapi/
 .coverage.*
 vers/
 .DS_Store
