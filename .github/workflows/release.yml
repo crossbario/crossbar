@@ -340,9 +340,25 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
+      # IMPORTANT: tag_name MUST be explicitly specified here!
+      #
+      # When this workflow runs via workflow_run trigger (after the main workflow
+      # completes), github.ref is "refs/heads/master" (a branch), NOT the tag.
+      # This is because workflow_run context inherits from the triggering workflow's
+      # context, and even though the main workflow was triggered by a tag push,
+      # the github.ref in the workflow_run context points to the default branch.
+      #
+      # The softprops/action-gh-release action defaults to using github.ref for
+      # the tag name when tag_name is not specified. Since github.ref is a branch
+      # (not a tag), the action fails with: "GitHub Releases requires a tag"
+      #
+      # Solution: Explicitly pass tag_name using the version extracted from
+      # the identifiers workflow, which correctly detected the tag via
+      # `git describe --tags --exact-match` on the head_sha.
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.get_version.outputs.version }}
           name: v${{ steps.get_version.outputs.version }}
           body: |
             ## Crossbar.io v${{ steps.get_version.outputs.version }}
