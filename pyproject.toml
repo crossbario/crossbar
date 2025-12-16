@@ -47,12 +47,11 @@ classifiers = [
 dependencies = [
     # WAMP ecosystem packages (using currently available PyPI versions)
     # NOTE: For development/testing with unreleased versions, use: pip install -e .[dev,dev-latest]
-    "autobahn[twisted,encryption,compress,serialization,scram]>=25.12.1",
+    "autobahn[twisted,encryption,compress,serialization,scram]>=25.12.2",
     "txaio>=25.12.2",
-    "zlmdb>=25.12.1",
-    "cfxdb>=25.12.1",
-
-    # NOTE: wamp-xbr is not on PyPI yet - use [dev-latest] for testing
+    "zlmdb>=25.12.2",
+    "cfxdb>=25.12.2",
+    "xbr>=25.12.1",
 
     # Twisted ecosystem
     "twisted[tls,conch,http2]>=22.10.0; sys_platform != 'darwin' and sys_platform != 'win32'",
@@ -190,13 +189,12 @@ dev = [
 # For testing with unreleased WAMP packages from GitHub master branches
 # Usage: pip install -e .[dev,dev-latest]
 # This installs the latest development versions from GitHub instead of PyPI
-# NOTE: wamp-xbr excluded for now (setup.py bug fix not yet on GitHub, use dev-local instead)
 dev-latest = [
     "txaio @ git+https://github.com/crossbario/txaio.git@master",
     "autobahn[twisted,encryption,compress,serialization,scram] @ git+https://github.com/crossbario/autobahn-python.git@master",
     "zlmdb @ git+https://github.com/crossbario/zlmdb.git@master",
     "cfxdb @ git+https://github.com/crossbario/cfxdb.git@master",
-    # "wamp-xbr @ git+https://github.com/wamp-proto/wamp-xbr.git@master",  # Excluded - setup.py needs fix on GitHub
+    "xbr @ git+https://github.com/wamp-proto/wamp-xbr.git@master",
 ]
 
 # For testing with locally editable WAMP packages (cross-repo development)
