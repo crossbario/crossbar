@@ -147,18 +147,18 @@ Example output:
    Installation modes (using uv sync):
    ─────────────────────────────────────────────────────────────────────────────
 
-     uv sync                    Runtime deps only
-     uv sync --extra dev        Runtime + dev tools (pytest, ruff, etc.)
-     uv sync --extra docs       Runtime + docs tools (sphinx, etc.)
-     uv sync --extra dev-latest Runtime + latest from GitHub master
-     uv sync --all-extras       All packages (263 total)
+     uv sync                      Runtime deps only (153 packages)
+     uv sync --extra dev          Runtime + dev tools (247 packages)
+     uv sync --extra docs         Runtime + docs tools (186 packages)
+     uv sync --extra dev-latest   Runtime + latest from GitHub (153 packages)
+     uv sync --all-extras         All packages (257 packages)
 
-   Extra markers found in uv.lock:
+   Extra markers in uv.lock (dependency graph entries):
    ─────────────────────────────────────────────────────────────────────────────
 
-     extra == 'dev':        29 dependency entries
-     extra == 'docs':       12 dependency entries
-     extra == 'dev-latest': 5 dependency entries
+     extra == 'dev':        29 entries
+     extra == 'docs':       12 entries
+     extra == 'dev-latest': 5 entries
 
    Note: Packages with extra markers are only installed when that extra is
          requested. The markers ensure selective installation.

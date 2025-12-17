@@ -832,7 +832,7 @@ analyze-uvlock:
     #!/usr/bin/env bash
     set -e
     if [ ! -f "uv.lock" ]; then
-        echo "❌ ERROR: uv.lock not found. Run 'just update-uvlock' first."
+        echo "ERROR: uv.lock not found. Run 'just update-uvlock' first."
         exit 1
     fi
 
@@ -846,34 +846,35 @@ analyze-uvlock:
     echo "Total packages in uv.lock: ${TOTAL}"
     echo ""
 
-    # Count packages by extra marker
-    # Runtime-only: packages without any extra marker
-    RUNTIME_ONLY=$(grep -B5 '^name = ' uv.lock | grep -A5 'name = ' | grep -v "extra ==" | grep -c '^name = ' 2>/dev/null || echo "0")
-
-    # Dev packages: packages with extra == 'dev' marker
-    DEV_PKGS=$(grep -c "extra == 'dev'" uv.lock 2>/dev/null || echo "0")
-
-    # Docs packages: packages with extra == 'docs' marker
-    DOCS_PKGS=$(grep -c "extra == 'docs'" uv.lock 2>/dev/null || echo "0")
-
-    # Dev-latest packages: packages with extra == 'dev-latest' marker
-    DEV_LATEST_PKGS=$(grep -c "extra == 'dev-latest'" uv.lock 2>/dev/null || echo "0")
+    # Use uv export to count packages for each installation mode
+    # This gives accurate counts of what would actually be installed
+    RUNTIME_COUNT=$(uv export --frozen --no-dev --no-hashes 2>/dev/null | grep -c '==' || echo "0")
+    DEV_COUNT=$(uv export --frozen --extra dev --no-hashes 2>/dev/null | grep -c '==' || echo "0")
+    DOCS_COUNT=$(uv export --frozen --extra docs --no-hashes 2>/dev/null | grep -c '==' || echo "0")
+    DEV_LATEST_COUNT=$(uv export --frozen --extra dev-latest --no-hashes 2>/dev/null | grep -c '==' || echo "0")
+    ALL_COUNT=$(uv export --frozen --all-extras --no-hashes 2>/dev/null | grep -c '==' || echo "0")
 
     echo "Installation modes (using uv sync):"
     echo "─────────────────────────────────────────────────────────────────────────────"
     echo ""
-    echo "  uv sync                    Runtime deps only"
-    echo "  uv sync --extra dev        Runtime + dev tools (pytest, ruff, etc.)"
-    echo "  uv sync --extra docs       Runtime + docs tools (sphinx, etc.)"
-    echo "  uv sync --extra dev-latest Runtime + latest from GitHub master"
-    echo "  uv sync --all-extras       All packages (${TOTAL} total)"
+    printf "  %-28s %s\n" "uv sync" "Runtime deps only (${RUNTIME_COUNT} packages)"
+    printf "  %-28s %s\n" "uv sync --extra dev" "Runtime + dev tools (${DEV_COUNT} packages)"
+    printf "  %-28s %s\n" "uv sync --extra docs" "Runtime + docs tools (${DOCS_COUNT} packages)"
+    printf "  %-28s %s\n" "uv sync --extra dev-latest" "Runtime + latest from GitHub (${DEV_LATEST_COUNT} packages)"
+    printf "  %-28s %s\n" "uv sync --all-extras" "All packages (${ALL_COUNT} packages)"
     echo ""
-    echo "Extra markers found in uv.lock:"
+
+    # Count extra marker entries in lock file
+    DEV_ENTRIES=$(grep -c "extra == 'dev'" uv.lock 2>/dev/null || echo "0")
+    DOCS_ENTRIES=$(grep -c "extra == 'docs'" uv.lock 2>/dev/null || echo "0")
+    DEV_LATEST_ENTRIES=$(grep -c "extra == 'dev-latest'" uv.lock 2>/dev/null || echo "0")
+
+    echo "Extra markers in uv.lock (dependency graph entries):"
     echo "─────────────────────────────────────────────────────────────────────────────"
     echo ""
-    echo "  extra == 'dev':        ${DEV_PKGS} dependency entries"
-    echo "  extra == 'docs':       ${DOCS_PKGS} dependency entries"
-    echo "  extra == 'dev-latest': ${DEV_LATEST_PKGS} dependency entries"
+    echo "  extra == 'dev':        ${DEV_ENTRIES} entries"
+    echo "  extra == 'docs':       ${DOCS_ENTRIES} entries"
+    echo "  extra == 'dev-latest': ${DEV_LATEST_ENTRIES} entries"
     echo ""
     echo "Note: Packages with extra markers are only installed when that extra is"
     echo "      requested. The markers ensure selective installation."
