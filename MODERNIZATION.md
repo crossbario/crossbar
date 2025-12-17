@@ -196,11 +196,11 @@ Every application repository should have the following submodules:
 | Git hooks configured | ⏸️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Build System** | | | | | | | |
 | pyproject.toml (PEP 621) | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Hatchling build backend | N/A | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Remove setup.py | N/A | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| Hatchling build backend | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Remove setup.py | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Remove setup.cfg | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Remove requirements.txt | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Remove MANIFEST.in | N/A | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Remove MANIFEST.in | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Task Runner** | | | | | | | |
 | justfile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Remove Makefile | ❓ | ✅ | ✅ | ⚠️ | ✅ | ⚠️ | ⚠️ |
@@ -1570,14 +1570,19 @@ build-backend = "hatchling.build"
 
 #### Phase 1.4 Tracking
 
-| Repository | Branch | Issue | PR | Status |
-|------------|--------|-------|----|----|
-| txaio | modernization-phase-1.4 | [#209](https://github.com/crossbario/txaio/issues/209) | TBD | ⏳ In progress |
-| autobahn-python | modernization-phase-1.4 | [#1795](https://github.com/crossbario/autobahn-python/issues/1795) | TBD | ⏳ Pending |
-| zlmdb | modernization-phase-1.4 | [#83](https://github.com/crossbario/zlmdb/issues/83) | TBD | ⏳ Pending |
-| cfxdb | modernization-phase-1.4 | [#109](https://github.com/crossbario/cfxdb/issues/109) | TBD | ⏳ Pending |
-| wamp-xbr | modernization-phase-1.4 | [#159](https://github.com/wamp-proto/wamp-xbr/issues/159) | TBD | ⏳ Pending |
-| crossbar | modernization-phase-1.4 | [#159](https://github.com/crossbario/crossbar/issues/159) | TBD | ⏳ Pending |
+| Repository | Branch | Issue | PR | PyPI Release | Status |
+|------------|--------|-------|----|----|--------|
+| txaio | modernization-phase-1.4 | [#209](https://github.com/crossbario/txaio/issues/209) | [#210](https://github.com/crossbario/txaio/pull/210) | v25.12.2 | ✅ Complete |
+| autobahn-python | modernization-phase-1.4 | [#1795](https://github.com/crossbario/autobahn-python/issues/1795) | [#1796](https://github.com/crossbario/autobahn-python/pull/1796) | v25.12.2 | ✅ Complete |
+| zlmdb | modernization-phase-1.4 | [#83](https://github.com/crossbario/zlmdb/issues/83) | [#84](https://github.com/crossbario/zlmdb/pull/84) | v25.12.3 | ✅ Complete |
+| cfxdb | modernization-phase-1.4 | [#109](https://github.com/crossbario/cfxdb/issues/109) | [#110](https://github.com/crossbario/cfxdb/pull/110) | v25.12.2 | ✅ Complete |
+| wamp-xbr | modernization-phase-1.4 | [#159](https://github.com/wamp-proto/wamp-xbr/issues/159) | [#160](https://github.com/wamp-proto/wamp-xbr/pull/160) | v25.12.2 | ✅ Complete |
+| crossbar | modernization-phase-1.4 | [#2144](https://github.com/crossbario/crossbar/issues/2144) | [#2145](https://github.com/crossbario/crossbar/pull/2145) | Pending | ⏳ Testing |
+
+**Phase 1.4 Summary** (2025-12-17):
+- All 5 dependency packages (txaio, autobahn-python, zlmdb, cfxdb, wamp-xbr) migrated to hatchling and released
+- crossbar pyproject.toml updated, CI passing, ready for release
+- Remaining: Create `uv.lock` for crossbar (reproducible builds)
 
 #### Phase 1.4.1: Pure Python Packages
 
