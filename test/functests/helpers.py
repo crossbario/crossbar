@@ -327,9 +327,12 @@ def start_crossbar(reactor, virtualenv, cbdir, crossbar_config, log_level=False,
         reactor, finished, launched,
         stdout=stdout, stderr=stderr,
     )
-    # Use the crossbar from the virtualenv to avoid picking up system installations
-    # (e.g., /snap/bin/crossbar on Ubuntu)
-    exe = path.join(virtualenv, 'bin', 'crossbar')
+    # Use the crossbar from the same directory as the running Python to avoid
+    # picking up system installations (e.g., /snap/bin/crossbar on Ubuntu).
+    # Note: The virtualenv fixture parameter is for component test isolation, not
+    # for finding the crossbar executable. The crossbar CLI is in the venv running pytest.
+    venv_bin = path.dirname(sys.executable)
+    exe = path.join(venv_bin, 'crossbar')
     args = [exe, 'start', '--cbdir', cbdir]
     if log_level:
         levels = ("critical", "error", "warn", "info", "debug", "failure", "trace")
