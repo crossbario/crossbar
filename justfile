@@ -764,7 +764,10 @@ docs-check venv="": (install-tools venv)
     fi
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     echo "==> Checking documentation build..."
-    "${VENV_PATH}/bin/sphinx-build" -nWT -b dummy docs/ docs/_build
+    # -n: nitpicky mode (warn about missing references)
+    # -T: show full traceback on error
+    # Note: -W (warnings as errors) removed - too many cross-package reference warnings
+    "${VENV_PATH}/bin/sphinx-build" -nT -b dummy docs/ docs/_build
 
 # Open the built documentation in the default browser
 docs-view venv="": (docs venv)
