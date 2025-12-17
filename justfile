@@ -854,6 +854,23 @@ build-sourcedist venv="": (install-build-tools venv)
     ${VENV_PYTHON} -m build --sdist
     ls -la dist/
 
+# Build both source distribution and wheel (usage: `just dist cpy312`)
+dist venv="": (install-build-tools venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Building distribution packages (wheel + sdist)..."
+    ${VENV_PYTHON} -m build
+    echo ""
+    echo "Built packages:"
+    ls -lh dist/
+
 # Meta-recipe to run `build` on all environments
 build-all:
     #!/usr/bin/env bash

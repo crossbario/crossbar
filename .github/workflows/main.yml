@@ -67,8 +67,19 @@ jobs:
       PR_BRANCH: ${{ needs.identifiers.outputs.pr_branch }}
 
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12']
+        include:
+          - python-version: '3.11'
+            venv-name: cpy311
+          - python-version: '3.12'
+            venv-name: cpy312
+          - python-version: '3.13'
+            venv-name: cpy313
+          - python-version: '3.14'
+            venv-name: cpy314
+          - python-version: 'pypy3.11'
+            venv-name: pypy311
 
     steps:
       - name: Checkout code
@@ -87,24 +98,17 @@ jobs:
 
       - name: Create venv and install dependencies
         run: |
-          VENV_NAME=cpy$(echo "${{ matrix.python-version }}" | tr -d '.')
-          just create ${VENV_NAME}
-          just install-dev ${VENV_NAME}
+          just create ${{ matrix.venv-name }}
+          just install-dev ${{ matrix.venv-name }}
 
       - name: Run unit tests (trial)
-        run: |
-          VENV_NAME=cpy$(echo "${{ matrix.python-version }}" | tr -d '.')
-          just test-trial ${VENV_NAME}
+        run: just test-trial ${{ matrix.venv-name }}
 
       - name: Run unit tests (pytest)
-        run: |
-          VENV_NAME=cpy$(echo "${{ matrix.python-version }}" | tr -d '.')
-          just test-pytest ${VENV_NAME}
+        run: just test-pytest ${{ matrix.venv-name }}
 
       - name: Smoke test (crossbar version)
-        run: |
-          VENV_NAME=cpy$(echo "${{ matrix.python-version }}" | tr -d '.')
-          just test-smoke ${VENV_NAME}
+        run: just test-smoke ${{ matrix.venv-name }}
 
   test-functional:
     name: Functional Tests
@@ -245,9 +249,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
