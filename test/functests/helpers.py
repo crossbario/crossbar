@@ -327,10 +327,9 @@ def start_crossbar(reactor, virtualenv, cbdir, crossbar_config, log_level=False,
         reactor, finished, launched,
         stdout=stdout, stderr=stderr,
     )
-    # exe = path.join(virtualenv, 'bin', 'crossbar')
-    # exe = os.path.abspath('./crossbar-linux-amd64-20190129-085ba04')
-    exe = 'crossbar'
-    #exe = '/usr/local/bin/crossbar-linux-amd64-20190130-684dd82'
+    # Use the crossbar from the virtualenv to avoid picking up system installations
+    # (e.g., /snap/bin/crossbar on Ubuntu)
+    exe = path.join(virtualenv, 'bin', 'crossbar')
     args = [exe, 'start', '--cbdir', cbdir]
     if log_level:
         levels = ("critical", "error", "warn", "info", "debug", "failure", "trace")
@@ -370,9 +369,10 @@ def start_cfx(reactor, personality, cbdir, config=None, log_level=False, stdout=
         reactor, finished, launched,
         stdout=stdout, stderr=stderr,
     )
-    # exe = os.path.abspath('./crossbar-linux-amd64-20190129-085ba04')
-    #exe = '/usr/local/bin/crossbar-linux-amd64-20190130-684dd82'
-    exe = 'crossbar'
+    # Use the crossbar from the same virtualenv as the running Python
+    # to avoid picking up system installations (e.g., /snap/bin/crossbar on Ubuntu)
+    venv_bin = path.dirname(sys.executable)
+    exe = path.join(venv_bin, 'crossbar')
     args = [exe, personality, 'start', '--cbdir', str(cbdir)]
     if log_level:
         levels = ("critical", "error", "warn", "info", "debug", "failure", "trace")
