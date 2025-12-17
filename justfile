@@ -816,6 +816,77 @@ clean-build:
     find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
     echo "==> Build artifacts cleaned."
 
+# Update uv.lock with latest resolved dependencies (Python 3.11 for widest compatibility)
+update-uvlock:
+    #!/usr/bin/env bash
+    set -e
+    echo "==> Updating uv.lock for Python 3.11+ (lowest supported version)..."
+    uv lock --python 3.11
+    echo ""
+    echo "==> uv.lock updated successfully!"
+    echo ""
+    just analyze-uvlock
+
+# Analyze uv.lock and print dependency statistics
+analyze-uvlock:
+    #!/usr/bin/env bash
+    set -e
+    if [ ! -f "uv.lock" ]; then
+        echo "❌ ERROR: uv.lock not found. Run 'just update-uvlock' first."
+        exit 1
+    fi
+
+    echo "==============================================================================="
+    echo "                         uv.lock Dependency Analysis                           "
+    echo "==============================================================================="
+    echo ""
+
+    # Count total packages in lock file
+    TOTAL=$(grep -c '^name = ' uv.lock 2>/dev/null || echo "0")
+    echo "Total packages in uv.lock: ${TOTAL}"
+    echo ""
+
+    # Count packages by extra marker
+    # Runtime-only: packages without any extra marker
+    RUNTIME_ONLY=$(grep -B5 '^name = ' uv.lock | grep -A5 'name = ' | grep -v "extra ==" | grep -c '^name = ' 2>/dev/null || echo "0")
+
+    # Dev packages: packages with extra == 'dev' marker
+    DEV_PKGS=$(grep -c "extra == 'dev'" uv.lock 2>/dev/null || echo "0")
+
+    # Docs packages: packages with extra == 'docs' marker
+    DOCS_PKGS=$(grep -c "extra == 'docs'" uv.lock 2>/dev/null || echo "0")
+
+    # Dev-latest packages: packages with extra == 'dev-latest' marker
+    DEV_LATEST_PKGS=$(grep -c "extra == 'dev-latest'" uv.lock 2>/dev/null || echo "0")
+
+    echo "Installation modes (using uv sync):"
+    echo "─────────────────────────────────────────────────────────────────────────────"
+    echo ""
+    echo "  uv sync                    Runtime deps only"
+    echo "  uv sync --extra dev        Runtime + dev tools (pytest, ruff, etc.)"
+    echo "  uv sync --extra docs       Runtime + docs tools (sphinx, etc.)"
+    echo "  uv sync --extra dev-latest Runtime + latest from GitHub master"
+    echo "  uv sync --all-extras       All packages (${TOTAL} total)"
+    echo ""
+    echo "Extra markers found in uv.lock:"
+    echo "─────────────────────────────────────────────────────────────────────────────"
+    echo ""
+    echo "  extra == 'dev':        ${DEV_PKGS} dependency entries"
+    echo "  extra == 'docs':       ${DOCS_PKGS} dependency entries"
+    echo "  extra == 'dev-latest': ${DEV_LATEST_PKGS} dependency entries"
+    echo ""
+    echo "Note: Packages with extra markers are only installed when that extra is"
+    echo "      requested. The markers ensure selective installation."
+    echo ""
+    echo "Lock file info:"
+    echo "─────────────────────────────────────────────────────────────────────────────"
+    echo ""
+    echo "  File: uv.lock"
+    echo "  Size: $(wc -c < uv.lock | xargs) bytes ($(wc -l < uv.lock | xargs) lines)"
+    echo "  Modified: $(stat -c '%Y' uv.lock 2>/dev/null | xargs -I{} date -d @{} '+%Y-%m-%d %H:%M:%S' 2>/dev/null || stat -f '%Sm' uv.lock 2>/dev/null || echo 'unknown')"
+    echo ""
+    echo "==============================================================================="
+
 # Build wheel only (usage: `just build cpy312`)
 build venv="": (install-build-tools venv)
     #!/usr/bin/env bash

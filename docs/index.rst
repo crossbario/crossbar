@@ -30,6 +30,7 @@ Contents
 
    overview
    Installation
+   uvlock
    Getting-Started
    programming-guide/index
    administration-guide/index
