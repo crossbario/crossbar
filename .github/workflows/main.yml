@@ -104,7 +104,7 @@ jobs:
       - name: Smoke test (crossbar version)
         run: |
           VENV_NAME=cpy$(echo "${{ matrix.python-version }}" | tr -d '.')
-          just smoke ${VENV_NAME}
+          just test-smoke ${VENV_NAME}
 
   test-functional:
     name: Functional Tests

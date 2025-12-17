@@ -109,6 +109,7 @@ autoapi_python_use_implicit_namespaces = True
 autoapi_member_order = "alphabetical"   # Predictable ordering
 
 # -- Intersphinx Configuration -----------------------------------------------
+# WAMP ecosystem dependency chain: txaio → autobahn → zlmdb → cfxdb → xbr → crossbar
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "twisted": ("https://docs.twisted.org/en/stable/", None),
@@ -116,6 +117,8 @@ intersphinx_mapping = {
     "autobahn": ("https://autobahn.readthedocs.io/en/latest/", None),
     "zlmdb": ("https://zlmdb.readthedocs.io/en/latest/", None),
     "cfxdb": ("https://cfxdb.readthedocs.io/en/latest/", None),
+    "xbr": ("https://xbr.readthedocs.io/en/latest/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
 }
 intersphinx_cache_limit = 5
 
