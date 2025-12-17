@@ -110,6 +110,15 @@ jobs:
       - name: Smoke test (crossbar version)
         run: just test-smoke ${{ matrix.venv-name }}
 
+      - name: Smoke test (crossbar CLI)
+        run: just test-smoke-cli ${{ matrix.venv-name }}
+
+      - name: Smoke test (crossbar init)
+        run: just test-smoke-init ${{ matrix.venv-name }}
+
+      - name: Smoke test (crossbar lifecycle)
+        run: just test-smoke-lifecycle ${{ matrix.venv-name }}
+
   test-functional:
     name: Functional Tests
     needs: [identifiers]
@@ -144,6 +153,62 @@ jobs:
 
       - name: Run functional tests
         run: just test-functional cpy311
+
+  test-integration:
+    name: Integration Tests (Python ${{ matrix.python-version }})
+    needs: [identifiers]
+    runs-on: ubuntu-24.04
+
+    env:
+      BASE_REPO: ${{ needs.identifiers.outputs.base_repo }}
+      BASE_BRANCH: ${{ needs.identifiers.outputs.base_branch }}
+      PR_NUMBER: ${{ needs.identifiers.outputs.pr_number }}
+      PR_REPO: ${{ needs.identifiers.outputs.pr_repo }}
+      PR_BRANCH: ${{ needs.identifiers.outputs.pr_branch }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: '3.11'
+            venv-name: cpy311
+          - python-version: '3.12'
+            venv-name: cpy312
+          - python-version: '3.13'
+            venv-name: cpy313
+          - python-version: '3.14'
+            venv-name: cpy314
+          - python-version: 'pypy3.11'
+            venv-name: pypy311
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Checkout autobahn-python (for examples)
+        uses: actions/checkout@v4
+        with:
+          repository: crossbario/autobahn-python
+          path: ../autobahn-python
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install just
+        uses: extractions/setup-just@v3
+
+      - name: Create venv and install dependencies
+        run: |
+          just create ${{ matrix.venv-name }}
+          just install-dev ${{ matrix.venv-name }}
+
+      - name: Run Autobahn integration tests
+        run: just test-integration-ab-examples ${{ matrix.venv-name }}
 
   docs:
     name: Documentation Build

@@ -2576,5 +2576,104 @@ zope.interface==8.1.1  [NATIVE:CPyExt]
 
 ---
 
-Last updated: 2025-11-27
-Status: Phase 1.2.2 complete, Phase 1.2.3 in progress
+## Appendix: CI/CD Test Recipe Alignment Analysis (2025-12-17)
+
+This appendix documents an analysis of test recipe usage across all 6 WAMP Python projects,
+comparing justfile recipes vs. GitHub workflow usage, with recommendations for improved coverage.
+
+### Test Recipe Summary
+
+| Project | Justfile test-* Recipes | Used in Workflow |
+|---------|------------------------|------------------|
+| **txaio** | test, test-all, test-asyncio, test-twisted | test (single recipe) |
+| **autobahn-python** | test, test-all, test-asyncio, test-twisted, test-bundled-flatc, test-import, test-sdist-install, test-serdes, test-smoke, test-wheel-install | test-twisted, test-asyncio (backend-specific) |
+| **zlmdb** | test, test-all, test-bundled-flatc, test-lmdb, test-orm, test-reflection, test-indexes, test-pmaps, test-quick, test-select, test-single, test-smoke, test-wheel-install, test-sdist-install, test-examples-lmdb-* (6), test-zdb-* (5) | test-lmdb, test-orm, test-reflection, test-examples-lmdb |
+| **cfxdb** | test, test-all, test-smoke, test-wheel-install, test-sdist-install | test, test-wheel-install, test-sdist-install |
+| **wamp-xbr** | test, test-all, test-smoke, test-wheel-install, test-sdist-install | test, test-wheel-install, test-sdist-install |
+| **crossbar** | test, test-all, test-trial, test-pytest, test-functional, test-smoke, test-smoke-* (3), test-crossbar-* (3), test-integration-ab-examples, test-universe-* (4) | test-trial, test-pytest, test-smoke, test-functional |
+
+### Crossbar Unused Test Recipes Analysis
+
+The crossbar workflow only uses 4 of 17 test recipes. Here's the full breakdown:
+
+**Currently Used:**
+- `test-trial` - Twisted-based unit tests
+- `test-pytest` - pytest-based unit tests
+- `test-smoke` - Basic smoke test (crossbar version)
+- `test-functional` - Functional tests
+
+**Unused but potentially valuable:**
+
+| Recipe | Purpose | Recommendation |
+|--------|---------|----------------|
+| `test-smoke-cli` | Test CLI commands | **Add to workflow** - quick validation |
+| `test-smoke-init` | Test `crossbar init` | **Add to workflow** - verifies project initialization |
+| `test-smoke-lifecycle` | Test start/stop cycle | **Add to workflow** - critical for release validation |
+| `test-crossbar-version` | Detailed version check | Consider for release workflow |
+| `test-crossbar-keys` | Key management test | Consider for release workflow |
+| `test-crossbar-legal` | Legal file check | Consider for release workflow |
+| `test-integration-ab-examples` | Autobahn examples | **Add to workflow** - highest-level integration coverage |
+
+**Not recommended for CI (universe/manual testing):**
+- `test-universe-*` - Requires full stack build
+- `test-all` - Umbrella, already covered by individual recipes
+
+### Workflow Alignment Status
+
+| Aspect | Current State | Status |
+|--------|--------------|--------|
+| **Reusable Actions** | crossbar uses upload-artifact-verified, check-release-fileset | ✅ Aligned |
+| **identifiers.yml** | All 6 projects use it | ✅ Aligned |
+| **Test Matrix** | crossbar: cpy311-314, pypy311 | ✅ Aligned |
+| **CodeQL** | crossbar updated to v4 | ✅ Aligned |
+| **txaio workflow** | Still uses simple `just test` | Future: Add test-asyncio, test-twisted separately (issue #212) |
+
+### Standard Recipe Naming Convention
+
+For maximum consistency across all 6 projects:
+
+| Purpose | Standard Name | Projects Using |
+|---------|--------------|----------------|
+| Quick unit tests | `test` | All 6 |
+| Full test suite | `test-all` | All 6 |
+| Backend-specific | `test-twisted`, `test-asyncio` | txaio, autobahn |
+| Smoke tests | `test-smoke` | All except txaio |
+| Package install tests | `test-wheel-install`, `test-sdist-install` | autobahn, zlmdb, cfxdb, wamp-xbr |
+| Functional tests | `test-functional` | crossbar |
+
+### Recommendations Implemented
+
+1. **Expanded Smoke Tests in main.yml** - Added:
+   - `test-smoke-cli` - Test CLI commands
+   - `test-smoke-init` - Test project initialization
+   - `test-smoke-lifecycle` - Test start/stop cycle
+
+2. **New Integration Tests Job in main.yml** - Added:
+   - `test-integration-ab-examples` - Run Autobahn examples with crossbar
+   - Matrix testing across CPython 3.11-3.14 and PyPy 3.11
+
+3. **uv.lock for Reproducible Builds**:
+   - Should be generated on dev PC with `uv lock`
+   - Committed to Git for reproducibility
+   - CI uses `uv sync --frozen` to install exact versions
+
+### Priority Actions
+
+1. **Immediate (Phase 1.4):**
+   - ✅ Wait for CI results (all green!)
+   - ✅ Add expanded smoke tests to workflow
+   - ✅ Add integration tests job to workflow
+   - [ ] Create `uv.lock` for crossbar
+   - [ ] Tag and release v25.12.2
+
+2. **Near-term (txaio issue #212):**
+   - Align txaio workflow to test both backends separately
+
+3. **Future (Phase 2):**
+   - Add cross-language integration tests
+   - Performance benchmarks in CI
+
+---
+
+Last updated: 2025-12-17
+Status: Phase 1.4 complete for 5/6 packages, crossbar CI green, expanding test coverage
