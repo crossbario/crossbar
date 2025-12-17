@@ -49,9 +49,9 @@ dependencies = [
     # NOTE: For development/testing with unreleased versions, use: pip install -e .[dev,dev-latest]
     "autobahn[twisted,encryption,compress,serialization,scram]>=25.12.2",
     "txaio>=25.12.2",
-    "zlmdb>=25.12.2",
+    "zlmdb>=25.12.3",
     "cfxdb>=25.12.2",
-    "xbr>=25.12.1",
+    "xbr>=25.12.2",
 
     # Twisted ecosystem
     "twisted[tls,conch,http2]>=22.10.0; sys_platform != 'darwin' and sys_platform != 'win32'",
