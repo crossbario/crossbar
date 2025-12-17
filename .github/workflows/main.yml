@@ -220,12 +220,12 @@ jobs:
           echo "Built packages:"
           ls -lh dist/
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload distribution artifacts (verified)
+        uses: wamp-proto/wamp-cicd/actions/upload-artifact-verified@main
         with:
           name: dist-packages
           path: dist/
-          if-no-files-found: error
+          retention-days: 14
 
   analyze:
     name: CodeQL Security Analysis
