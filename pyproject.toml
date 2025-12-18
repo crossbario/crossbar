@@ -1,12 +1,12 @@
 [build-system]
-requires = ["setuptools>=80.9.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "crossbar"
 version = "25.12.1"
 description = "Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.11"
 license = "EUPL-1.2"
 authors = [
@@ -47,12 +47,11 @@ classifiers = [
 dependencies = [
     # WAMP ecosystem packages (using currently available PyPI versions)
     # NOTE: For development/testing with unreleased versions, use: pip install -e .[dev,dev-latest]
-    "autobahn[twisted,encryption,compress,serialization,scram]>=25.10.2",
-    "txaio>=25.9.2",  # Will be bumped to >=25.10.2 when published
-    "zlmdb>=25.12.1",
-    "cfxdb>=25.12.1",
-
-    # NOTE: wamp-xbr is not on PyPI yet - use [dev-latest] for testing
+    "autobahn[twisted,encryption,compress,serialization,scram]>=25.12.2",
+    "txaio>=25.12.2",
+    "zlmdb>=25.12.3",
+    "cfxdb>=25.12.2",
+    "xbr>=25.12.2",
 
     # Twisted ecosystem
     "twisted[tls,conch,http2]>=22.10.0; sys_platform != 'darwin' and sys_platform != 'win32'",
@@ -145,6 +144,7 @@ dependencies = [
 # Development dependencies
 dev = [
     # Documentation
+    "scour>=0.38",  # SVG optimizer for documentation logos
     "sphinx>=6.1.3",
     "furo>=2024.1.29",
     "sphinxcontrib-images>=0.9.4",
@@ -189,13 +189,12 @@ dev = [
 # For testing with unreleased WAMP packages from GitHub master branches
 # Usage: pip install -e .[dev,dev-latest]
 # This installs the latest development versions from GitHub instead of PyPI
-# NOTE: wamp-xbr excluded for now (setup.py bug fix not yet on GitHub, use dev-local instead)
 dev-latest = [
     "txaio @ git+https://github.com/crossbario/txaio.git@master",
     "autobahn[twisted,encryption,compress,serialization,scram] @ git+https://github.com/crossbario/autobahn-python.git@master",
     "zlmdb @ git+https://github.com/crossbario/zlmdb.git@master",
     "cfxdb @ git+https://github.com/crossbario/cfxdb.git@master",
-    # "wamp-xbr @ git+https://github.com/wamp-proto/wamp-xbr.git@master",  # Excluded - setup.py needs fix on GitHub
+    "xbr @ git+https://github.com/wamp-proto/wamp-xbr.git@master",
 ]
 
 # For testing with locally editable WAMP packages (cross-repo development)
@@ -205,6 +204,37 @@ dev-latest = [
 # Use the justfile recipe: just install-dev-local
 dev-local = [
     # Empty - local editable installs are handled by justfile recipe
+]
+
+# Documentation tools (used by RTD via .readthedocs.yaml)
+docs = [
+    # Core Sphinx + MyST
+    "sphinx>=8.2.3",
+    "myst-parser>=2.0",
+
+    # Theme
+    "furo>=2024.7.0",
+
+    # API docs (no-import parsing)
+    "sphinx-autoapi>=2.1.0",
+
+    # UX Enhancements
+    "sphinx-copybutton>=0.5",
+    "sphinx-design>=0.5",
+    "sphinxcontrib-images>=0.9",
+
+    # Spell checking
+    "sphinxcontrib-spelling>=8.0",
+    "pyenchant>=3.2",
+
+    # Static asset optimization
+    "scour>=0.38",
+
+    # Social previews
+    "sphinxext-opengraph>=0.9",
+
+    # MyST auto-linking
+    "linkify-it-py>=2.0.0",
 ]
 
 [project.urls]
@@ -217,27 +247,37 @@ Forum = "https://crossbar.discourse.group/"
 [project.scripts]
 crossbar = "crossbar:run"
 
-[tool.setuptools]
-zip-safe = false
-include-package-data = true
+# Hatchling build configuration
+[tool.hatch.metadata]
+# Allow git+https:// dependencies in dev-latest for cross-repo development
+allow-direct-references = true
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["crossbar*"]
-exclude = ["tests*", "docs*", "docs-cfx*", "docs-old*", "legal*"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/crossbar"]
 
-[tool.setuptools.package-data]
-# Include release keys and templates (non-Python package data)
-"crossbar.common.keys" = ["*.pub"]
-"crossbar.node" = ["templates/**/*"]
-"crossbar.webservice" = ["templates/**/*"]
-"crossbar.webservice.test" = ["templates/**/*"]
-"crossbar.adapter.mqtt.test" = ["certs/**/*"]
-"crossbar.edge.webservice" = ["templates/**/*"]
-"crossbar.edge.node" = ["config/**/*"]
-"crossbar.master.webservice" = ["templates/**/*"]
-"crossbar.master.node" = ["*.json"]
-"crossbar.network.node" = ["*.json"]
+# Include non-Python files in the wheel
+[tool.hatch.build.targets.wheel.force-include]
+# Include py.typed marker (if it exists)
+# "src/crossbar/py.typed" = "crossbar/py.typed"
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
+
+[tool.hatch.build.targets.sdist]
+# By default, hatchling includes all git-tracked files
+# Exclude build artifacts from sdist
+exclude = [
+    "/.github",
+    "/docs/_build",
+    "/docs-cfx",
+    "/docs-old",
+    "/.venvs",
+    "/.uv-cache",
+    "/.coverage",
+    "/.pytest_cache",
+    "/.mypy_cache",
+    "/.ruff_cache",
+]
 
 # Ruff configuration (replaces yapf + flake8)
 [tool.ruff]

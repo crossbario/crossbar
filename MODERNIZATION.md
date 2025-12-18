@@ -196,9 +196,11 @@ Every application repository should have the following submodules:
 | Git hooks configured | ⏸️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Build System** | | | | | | | |
 | pyproject.toml (PEP 621) | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Remove setup.py | N/A | ⚠️ | ⚠️ | ⚠️ | ✅ | ⚠️ | ⚠️ |
+| Hatchling build backend | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Remove setup.py | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Remove setup.cfg | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Remove requirements.txt | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Remove MANIFEST.in | N/A | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Task Runner** | | | | | | | |
 | justfile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Remove Makefile | ❓ | ✅ | ✅ | ⚠️ | ✅ | ⚠️ | ⚠️ |
@@ -249,16 +251,16 @@ Every application repository should have the following submodules:
 
 ### Phase 0.1: wamp-ai
 
-**Status**: 3 open issues (all blockers)
+**Status**: ✅ **COMPLETE** (2025-11-25)
 
 **Tasks**:
-1. [ ] Fix #1: Print note to disable pre-push hook for human tagging
+1. [x] Fix #1: Print note to disable pre-push hook for human tagging
    - Location: `.ai/.githooks/pre-push`
    - Issue: https://github.com/wamp-proto/wamp-ai/issues/1
-2. [ ] Fix #2: Prevent AI commits to master/main branch
+2. [x] Fix #2: Prevent AI commits to master/main branch
    - Location: `.ai/.githooks/commit-msg` or new hook
    - Issue: https://github.com/wamp-proto/wamp-ai/issues/2
-3. [ ] Fix #4: Add audit file template
+3. [x] Fix #4: Add audit file template
    - Location: `.ai/templates/AUDIT.md`
    - Issue: https://github.com/wamp-proto/wamp-ai/issues/4
 
@@ -269,13 +271,13 @@ Every application repository should have the following submodules:
 
 ### Phase 0.2: wamp-cicd
 
-**Status**: 2 open issues (all blockers)
+**Status**: ✅ **COMPLETE** (2025-11-25)
 
 **Tasks**:
-1. [ ] Fix #1: Add reusable GitHub Issue and PR templates
+1. [x] Fix #1: Add reusable GitHub Issue and PR templates
    - Location: `.cicd/templates/`
    - Issue: https://github.com/wamp-proto/wamp-cicd/issues/1
-2. [ ] Fix #2: Add validate-audit-file reusable action
+2. [x] Fix #2: Add validate-audit-file reusable action
    - Location: `.cicd/actions/validate-audit-file/`
    - Issue: https://github.com/wamp-proto/wamp-cicd/issues/2
 
@@ -339,15 +341,15 @@ Infrastructure repositories successfully updated with all Phase 0 improvements:
 **Objective**: Ensure all repos have proper git infrastructure (submodules, hooks, symlinks).
 
 **Tasks per repository**:
-1. [ ] Add/update `.ai` submodule to latest wamp-ai
-2. [ ] Add/update `.cicd` submodule to latest wamp-cicd
-3. [ ] Add `wamp-proto` submodule if applicable (autobahn-python, cfxdb, crossbar)
-4. [ ] Run `just setup-repo` from `.ai/` directory
-5. [ ] Verify git hooks are active: `git config core.hooksPath`
-6. [ ] Commit symlinks (CLAUDE.md, AI_POLICY.md, .gemini/GEMINI.md)
-7. [ ] Commit git config changes
-8. [ ] Test git hooks work (try committing with "Co-Authored-By: AI")
-9. [ ] Push to bare repo
+1. [x] Add/update `.ai` submodule to latest wamp-ai
+2. [x] Add/update `.cicd` submodule to latest wamp-cicd
+3. [x] Add `wamp-proto` submodule if applicable (autobahn-python, cfxdb, crossbar)
+4. [x] Run `just setup-repo` from `.ai/` directory
+5. [x] Verify git hooks are active: `git config core.hooksPath`
+6. [x] Commit symlinks (CLAUDE.md, AI_POLICY.md, .gemini/GEMINI.md)
+7. [x] Commit git config changes
+8. [x] Test git hooks work (try committing with "Co-Authored-By: AI")
+9. [x] Push to bare repo
 
 **Deliverables per repository**:
 - `.ai/` submodule at latest version
@@ -713,14 +715,17 @@ invokes the `run()` function from the `crossbar` package.
 
 ##### pyproject.toml Structure
 
+**Note**: As of Phase 1.4, we use **hatchling** as the build backend (replacing setuptools).
+See Phase 1.4 for migration details.
+
 ```toml
 [build-system]
-requires = ["setuptools>=70.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "package-name"
-version = "25.11.1"
+version = "25.12.1"
 description = "Package description"
 readme = "README.md"
 license = "MIT"
@@ -761,12 +766,17 @@ Issues = "https://github.com/crossbario/package-name/issues"
 [project.scripts]
 crossbar = "crossbar:run"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["package_name*"]
+# Hatchling build configuration
+[tool.hatch.build.targets.wheel]
+packages = ["src/package_name"]
 
-[tool.setuptools.package-data]
-package_name = ["py.typed"]
+[tool.hatch.build.targets.sdist]
+# By default, hatchling includes all git-tracked files
+# Exclude build artifacts and CI configuration from sdist
+exclude = [
+    "/.github",
+    "/docs/_build",
+]
 
 # Tool configurations (ruff, mypy, pytest, coverage)
 # See Phase 1.2.1 for details
@@ -780,7 +790,7 @@ For each repo, the migration involves:
 2. **Move package**: `git mv package_name src/package_name`
 3. **Move tests out** (if inside package): `git mv src/package_name/tests tests`
 4. **Add py.typed**: `touch src/package_name/py.typed`
-5. **Update pyproject.toml**: Change `[tool.setuptools.packages.find]` to use `where = ["src"]`
+5. **Update pyproject.toml**: Add `[tool.hatch.build.targets.wheel]` with `packages = ["src/package_name"]`
 6. **Update imports in tests**: Change from `from package_name` to same (no change needed, installed package)
 7. **Update docs/conf.py**: Adjust `sys.path` if needed for autoapi
 8. **Verify build**: `just build && just test`
@@ -797,14 +807,14 @@ For 2025, all legacy build/config files are **deleted** (not renamed, not kept a
 | `Makefile` | **DELETE** | Replaced by justfile |
 | `requirements.txt` | **DELETE** | Replaced by pyproject.toml + uv.lock |
 | `requirements-dev.txt` | **DELETE** | Replaced by `[project.optional-dependencies]` |
-| `MANIFEST.in` | **DELETE** | setuptools auto-discovers with pyproject.toml |
+| `MANIFEST.in` | **DELETE** | Hatchling includes all git-tracked files by default |
 | `.flake8` | **DELETE** | Replaced by ruff in pyproject.toml |
 | `mypy.ini` | **DELETE** | Replaced by `[tool.mypy]` in pyproject.toml |
 | `pytest.ini` | **DELETE** | Replaced by `[tool.pytest.ini_options]` in pyproject.toml |
 | `.pylintrc` | **DELETE** | Replaced by ruff |
 | `yapf.ini` / `.style.yapf` | **DELETE** | Replaced by ruff formatter |
 
-**Note**: Modern pip (23.1+) and uv fully support PEP 517/518/621. No `setup.py` shim is needed.
+**Note**: Modern pip (23.1+), uv, and hatchling fully support PEP 517/518/621. No `setup.py` shim is needed.
 
 ##### Dependency Specification Policy
 
@@ -1323,16 +1333,16 @@ publish-rtd tag="":
 
 ##### Tasks per repository
 
-1. [ ] Audit current documentation status (docs/conf.py, theme, extensions)
-2. [ ] Update pyproject.toml with documentation dependencies (furo, sphinx-autoapi, etc.)
-3. [ ] Migrate docs/conf.py to Furo theme with Noto fonts
-4. [ ] Replace autodoc with sphinx-autoapi configuration
-5. [ ] Add/update docs/spelling_wordlist.txt with project-specific terms
-6. [ ] Add .readthedocs.yaml if missing
-7. [ ] Add justfile recipes: docs, docs-check, docs-clean, publish-rtd
-8. [ ] Verify documentation builds: `just docs cpy311`
-9. [ ] Verify spelling check: `just docs-check cpy311`
-10. [ ] Commit changes and push to bare repo
+1. [x] Audit current documentation status (docs/conf.py, theme, extensions)
+2. [x] Update pyproject.toml with documentation dependencies (furo, sphinx-autoapi, etc.)
+3. [x] Migrate docs/conf.py to Furo theme with Noto fonts
+4. [x] Replace autodoc with sphinx-autoapi configuration
+5. [x] Add/update docs/spelling_wordlist.txt with project-specific terms
+6. [x] Add .readthedocs.yaml if missing
+7. [x] Add justfile recipes: docs, docs-check, docs-clean, publish-rtd
+8. [x] Verify documentation builds: `just docs cpy311`
+9. [x] Verify spelling check: `just docs-check cpy311`
+10. [x] Commit changes and push to bare repo
 
 ##### Deliverables per repository
 
@@ -1344,6 +1354,12 @@ publish-rtd tag="":
 
 **Blockers**: Requires Phase 1.2.2 complete
 
+##### Phase 1.2.3 Completion Summary
+
+**Status**: ✅ **COMPLETE** (2025-12-02)
+
+All repositories have completed Phase 1.2.3 documentation modernization with Furo theme, sphinx-autoapi, and RTD integration.
+
 #### Phase 1.2.4: Unit Test Coverage
 
 **Objective**: Ensure test infrastructure exists and provides foundation for comprehensive testing.
@@ -1351,15 +1367,21 @@ publish-rtd tag="":
 **Note**: This phase focuses on infrastructure and baseline coverage, not 100% coverage (that's future work).
 
 **Tasks per repository**:
-1. [ ] Audit current test coverage
-2. [ ] Verify pytest is properly configured
-3. [ ] Run tests: `just test cpy314`
-4. [ ] Run coverage report: `just check-coverage cpy314`
-5. [ ] Identify critical untested code paths
-6. [ ] Add baseline tests for critical paths
-7. [ ] Verify tests pass on all Python versions (cpy311-314, pypy311)
-8. [ ] Verify tests work with both Twisted and asyncio (if applicable)
-9. [ ] Commit changes and push to bare repo
+1. [x] Audit current test coverage
+2. [x] Verify pytest is properly configured
+3. [x] Run tests: `just test cpy314`
+4. [x] Run coverage report: `just check-coverage cpy314`
+5. [x] Identify critical untested code paths
+6. [x] Add baseline tests for critical paths
+7. [x] Verify tests pass on all Python versions (cpy311-314, pypy311)
+8. [x] Verify tests work with both Twisted and asyncio (if applicable)
+9. [x] Commit changes and push to bare repo
+
+##### Phase 1.2.4 Completion Summary
+
+**Status**: ✅ **COMPLETE** (2025-12-02)
+
+All repositories have verified test infrastructure and baseline coverage.
 
 **Deliverables per repository**:
 - Test infrastructure verified and working
@@ -1487,6 +1509,191 @@ The crossbar repo has a `build-universe` recipe that builds all 6 WAMP repos in 
 6. crossbar
 
 This produces wheels and source distributions in `dist-universe/` matching GitHub CI artifacts.
+
+#### Phase 1.3 Completion Summary
+
+**Status**: ✅ **COMPLETE** (2025-12-05)
+
+All repositories have completed Phase 1.3 CI/CD modernization:
+
+| Repository | Branch | Issue | PR | Status |
+|------------|--------|-------|----|----|
+| txaio | modernization-phase-1.3 | [#204](https://github.com/crossbario/txaio/issues/204) | [#205](https://github.com/crossbario/txaio/pull/205) | ✅ Merged |
+| autobahn-python | modernization-phase-1.3 | [#1790](https://github.com/crossbario/autobahn-python/issues/1790) | [#1791](https://github.com/crossbario/autobahn-python/pull/1791) | ✅ Merged |
+| zlmdb | modernization-phase-1.3 | [#81](https://github.com/crossbario/zlmdb/issues/81) | [#82](https://github.com/crossbario/zlmdb/pull/82) | ✅ Merged |
+| cfxdb | modernization-phase-1.3 | [#107](https://github.com/crossbario/cfxdb/issues/107) | [#108](https://github.com/crossbario/cfxdb/pull/108) | ✅ Merged |
+| wamp-xbr | modernization-phase-1.3 | [#157](https://github.com/wamp-proto/wamp-xbr/issues/157) | [#158](https://github.com/wamp-proto/wamp-xbr/pull/158) | ✅ Merged |
+| crossbar | modernization-phase-1.3 | [#2142](https://github.com/crossbario/crossbar/issues/2142) | [#2143](https://github.com/crossbario/crossbar/pull/2143) | ✅ Merged |
+
+**Completed Work**:
+- Comprehensive GitHub Actions workflows (main.yml, release.yml)
+- Matrix testing across CPython 3.11-3.14 and PyPy 3.11
+- Multi-platform wheel building (Linux x86_64/ARM64, macOS, Windows)
+- PyPI trusted publishing (OIDC) configured
+- Standardized justfile recipes across all repos
+- `build-universe` recipe in crossbar for full stack builds
+
+### Phase 1.4: Build Backend Migration (setuptools → hatchling)
+
+**Objective**: Migrate all 6 Python repos from setuptools to hatchling build backend.
+
+**Branch**: `modernization-phase-1.4` (new branch after Phase 1.3 merge)
+
+**Rationale**:
+
+The setuptools build backend has fundamental issues with source distribution (sdist) generation:
+- Unpredictable file inclusion rules (requires MANIFEST.in for non-standard files)
+- `tests/conftest.py` and helper files not automatically included in sdist
+- Downstream packagers (Gentoo, Fedora, etc.) cannot run tests from sdist
+- Legacy design from pre-PEP 517 era with accumulated technical debt
+
+**Hatchling** is the modern replacement, chosen because:
+- **Maintained by PyPA** - the official Python Packaging Authority uses it for pip itself
+- **Git-aware by default** - includes all git-tracked files in sdist (no MANIFEST.in needed)
+- **Simple configuration** - minimal pyproject.toml changes required
+- **PEP 517/518/621 native** - designed for modern Python packaging from the start
+- **Wide adoption** - used by pip, black, ruff, and major Python projects
+
+**Migration is minimal** - primarily changing the `[build-system]` section:
+
+```toml
+# Before (setuptools)
+[build-system]
+requires = ["setuptools>=70.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# After (hatchling)
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+```
+
+#### Phase 1.4 Tracking
+
+| Repository | Branch | Issue | PR | PyPI Release | Status |
+|------------|--------|-------|----|----|--------|
+| txaio | modernization-phase-1.4 | [#209](https://github.com/crossbario/txaio/issues/209) | [#210](https://github.com/crossbario/txaio/pull/210) | v25.12.2 | ✅ Complete |
+| autobahn-python | modernization-phase-1.4 | [#1795](https://github.com/crossbario/autobahn-python/issues/1795) | [#1796](https://github.com/crossbario/autobahn-python/pull/1796) | v25.12.2 | ✅ Complete |
+| zlmdb | modernization-phase-1.4 | [#83](https://github.com/crossbario/zlmdb/issues/83) | [#84](https://github.com/crossbario/zlmdb/pull/84) | v25.12.3 | ✅ Complete |
+| cfxdb | modernization-phase-1.4 | [#109](https://github.com/crossbario/cfxdb/issues/109) | [#110](https://github.com/crossbario/cfxdb/pull/110) | v25.12.2 | ✅ Complete |
+| wamp-xbr | modernization-phase-1.4 | [#159](https://github.com/wamp-proto/wamp-xbr/issues/159) | [#160](https://github.com/wamp-proto/wamp-xbr/pull/160) | v25.12.2 | ✅ Complete |
+| crossbar | modernization-phase-1.4 | [#2144](https://github.com/crossbario/crossbar/issues/2144) | [#2145](https://github.com/crossbario/crossbar/pull/2145) | Pending | ⏳ Testing |
+
+**Phase 1.4 Summary** (2025-12-17):
+- All 5 dependency packages (txaio, autobahn-python, zlmdb, cfxdb, wamp-xbr) migrated to hatchling and released
+- crossbar pyproject.toml updated, CI passing, ready for release
+- Remaining: Create `uv.lock` for crossbar (reproducible builds)
+
+#### Phase 1.4.1: Pure Python Packages
+
+**Objective**: Migrate pure Python packages (no native extensions) to hatchling.
+
+**Packages**: txaio, cfxdb, wamp-xbr, crossbar
+
+**Tasks per repository**:
+1. [ ] Update `[build-system]` to use hatchling
+2. [ ] Remove setuptools-specific configuration (`[tool.setuptools.*]` sections)
+3. [ ] Add hatchling configuration if needed (`[tool.hatch.*]` sections)
+4. [ ] Remove MANIFEST.in if present (hatchling uses git)
+5. [ ] Remove setup.py if present (no longer needed)
+6. [ ] Build sdist: `just build-sourcedist`
+7. [ ] Verify sdist contents include all necessary files (tests/, docs/, etc.)
+8. [ ] Build wheel: `just build`
+9. [ ] Run tests: `just test`
+10. [ ] Verify CI passes
+11. [ ] Commit changes and push to bare repo
+
+**Deliverables per repository**:
+- pyproject.toml with hatchling build backend
+- No MANIFEST.in (git-based inclusion)
+- No setup.py
+- Verified sdist with complete file set
+- All tests passing
+
+#### Phase 1.4.2: CFFI Extension Packages
+
+**Objective**: Migrate packages with CFFI native extensions to hatchling.
+
+**Packages**: autobahn-python (NaCl/libsodium), zlmdb (LMDB)
+
+**Note**: Hatchling supports CFFI extensions via the `hatch-cffi` plugin or by keeping CFFI
+build requirements in `[build-system].requires`.
+
+**Tasks per repository**:
+1. [ ] Update `[build-system]` to use hatchling with CFFI support
+2. [ ] Configure `[tool.hatch.build]` for CFFI extension building
+3. [ ] Remove setuptools-specific configuration
+4. [ ] Remove MANIFEST.in if present
+5. [ ] Remove setup.py if present
+6. [ ] Build sdist: `just build-sourcedist`
+7. [ ] Verify sdist contents include all necessary files
+8. [ ] Build wheel: `just build`
+9. [ ] Verify wheel is platform-specific (not `py3-none-any`)
+10. [ ] Run auditwheel check: `just verify-wheels`
+11. [ ] Run tests: `just test`
+12. [ ] Verify CI passes (multi-platform wheel builds)
+13. [ ] Commit changes and push to bare repo
+
+**Deliverables per repository**:
+- pyproject.toml with hatchling build backend and CFFI configuration
+- Platform-specific wheels with CFFI extensions
+- Manylinux-compatible wheels (auditwheel verified)
+- All tests passing
+
+#### Hatchling Configuration Reference
+
+##### Pure Python Package (txaio, cfxdb, wamp-xbr, crossbar)
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+# Include everything tracked by git (default behavior)
+# Exclude patterns if needed:
+exclude = [
+    "/.github",
+    "/docs/_build",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/package_name"]
+```
+
+##### CFFI Extension Package (autobahn-python, zlmdb)
+
+```toml
+[build-system]
+requires = ["hatchling", "cffi>=1.0.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.github",
+    "/docs/_build",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/package_name"]
+
+# CFFI modules are built via the package's __init__.py or dedicated build script
+# The CFFI source files must be in the wheel
+```
+
+**Note**: For complex CFFI builds (like zlmdb with vendored LMDB), additional configuration
+may be needed. The existing CFFI build logic in the packages will be preserved.
+
+#### Files to Remove After Migration
+
+| File | Reason |
+|------|--------|
+| `setup.py` | Hatchling doesn't need it (PEP 517 native) |
+| `setup.cfg` | Already removed in Phase 1.2 |
+| `MANIFEST.in` | Hatchling uses git tracking |
+| `[tool.setuptools.*]` | Replaced by `[tool.hatch.*]` |
+
+**Blockers**: Requires Phase 1.3 complete
 
 ## Phase 2: Integration Test Coverage
 
@@ -2369,5 +2576,104 @@ zope.interface==8.1.1  [NATIVE:CPyExt]
 
 ---
 
-Last updated: 2025-11-27
-Status: Phase 1.2.2 complete, Phase 1.2.3 in progress
+## Appendix: CI/CD Test Recipe Alignment Analysis (2025-12-17)
+
+This appendix documents an analysis of test recipe usage across all 6 WAMP Python projects,
+comparing justfile recipes vs. GitHub workflow usage, with recommendations for improved coverage.
+
+### Test Recipe Summary
+
+| Project | Justfile test-* Recipes | Used in Workflow |
+|---------|------------------------|------------------|
+| **txaio** | test, test-all, test-asyncio, test-twisted | test (single recipe) |
+| **autobahn-python** | test, test-all, test-asyncio, test-twisted, test-bundled-flatc, test-import, test-sdist-install, test-serdes, test-smoke, test-wheel-install | test-twisted, test-asyncio (backend-specific) |
+| **zlmdb** | test, test-all, test-bundled-flatc, test-lmdb, test-orm, test-reflection, test-indexes, test-pmaps, test-quick, test-select, test-single, test-smoke, test-wheel-install, test-sdist-install, test-examples-lmdb-* (6), test-zdb-* (5) | test-lmdb, test-orm, test-reflection, test-examples-lmdb |
+| **cfxdb** | test, test-all, test-smoke, test-wheel-install, test-sdist-install | test, test-wheel-install, test-sdist-install |
+| **wamp-xbr** | test, test-all, test-smoke, test-wheel-install, test-sdist-install | test, test-wheel-install, test-sdist-install |
+| **crossbar** | test, test-all, test-trial, test-pytest, test-functional, test-smoke, test-smoke-* (3), test-crossbar-* (3), test-integration-ab-examples, test-universe-* (4) | test-trial, test-pytest, test-smoke, test-functional |
+
+### Crossbar Unused Test Recipes Analysis
+
+The crossbar workflow only uses 4 of 17 test recipes. Here's the full breakdown:
+
+**Currently Used:**
+- `test-trial` - Twisted-based unit tests
+- `test-pytest` - pytest-based unit tests
+- `test-smoke` - Basic smoke test (crossbar version)
+- `test-functional` - Functional tests
+
+**Unused but potentially valuable:**
+
+| Recipe | Purpose | Recommendation |
+|--------|---------|----------------|
+| `test-smoke-cli` | Test CLI commands | **Add to workflow** - quick validation |
+| `test-smoke-init` | Test `crossbar init` | **Add to workflow** - verifies project initialization |
+| `test-smoke-lifecycle` | Test start/stop cycle | **Add to workflow** - critical for release validation |
+| `test-crossbar-version` | Detailed version check | Consider for release workflow |
+| `test-crossbar-keys` | Key management test | Consider for release workflow |
+| `test-crossbar-legal` | Legal file check | Consider for release workflow |
+| `test-integration-ab-examples` | Autobahn examples | **Add to workflow** - highest-level integration coverage |
+
+**Not recommended for CI (universe/manual testing):**
+- `test-universe-*` - Requires full stack build
+- `test-all` - Umbrella, already covered by individual recipes
+
+### Workflow Alignment Status
+
+| Aspect | Current State | Status |
+|--------|--------------|--------|
+| **Reusable Actions** | crossbar uses upload-artifact-verified, check-release-fileset | ✅ Aligned |
+| **identifiers.yml** | All 6 projects use it | ✅ Aligned |
+| **Test Matrix** | crossbar: cpy311-314, pypy311 | ✅ Aligned |
+| **CodeQL** | crossbar updated to v4 | ✅ Aligned |
+| **txaio workflow** | Still uses simple `just test` | Future: Add test-asyncio, test-twisted separately (issue #212) |
+
+### Standard Recipe Naming Convention
+
+For maximum consistency across all 6 projects:
+
+| Purpose | Standard Name | Projects Using |
+|---------|--------------|----------------|
+| Quick unit tests | `test` | All 6 |
+| Full test suite | `test-all` | All 6 |
+| Backend-specific | `test-twisted`, `test-asyncio` | txaio, autobahn |
+| Smoke tests | `test-smoke` | All except txaio |
+| Package install tests | `test-wheel-install`, `test-sdist-install` | autobahn, zlmdb, cfxdb, wamp-xbr |
+| Functional tests | `test-functional` | crossbar |
+
+### Recommendations Implemented
+
+1. **Expanded Smoke Tests in main.yml** - Added:
+   - `test-smoke-cli` - Test CLI commands
+   - `test-smoke-init` - Test project initialization
+   - `test-smoke-lifecycle` - Test start/stop cycle
+
+2. **New Integration Tests Job in main.yml** - Added:
+   - `test-integration-ab-examples` - Run Autobahn examples with crossbar
+   - Matrix testing across CPython 3.11-3.14 and PyPy 3.11
+
+3. **uv.lock for Reproducible Builds**:
+   - Should be generated on dev PC with `uv lock`
+   - Committed to Git for reproducibility
+   - CI uses `uv sync --frozen` to install exact versions
+
+### Priority Actions
+
+1. **Immediate (Phase 1.4):**
+   - ✅ Wait for CI results (all green!)
+   - ✅ Add expanded smoke tests to workflow
+   - ✅ Add integration tests job to workflow
+   - [ ] Create `uv.lock` for crossbar
+   - [ ] Tag and release v25.12.2
+
+2. **Near-term (txaio issue #212):**
+   - Align txaio workflow to test both backends separately
+
+3. **Future (Phase 2):**
+   - Add cross-language integration tests
+   - Performance benchmarks in CI
+
+---
+
+Last updated: 2025-12-17
+Status: Phase 1.4 complete for 5/6 packages, crossbar CI green, expanding test coverage

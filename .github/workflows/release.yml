@@ -130,63 +130,15 @@ jobs:
           echo "Built packages:"
           ls -lh dist/
 
-      - name: Generate checksums
-        run: |
-          cd dist
-          sha256sum * > CHECKSUMS-ALL.sha256
-          cat CHECKSUMS-ALL.sha256
-
-      - name: Validate release fileset for GitHub
-        run: |
-          echo "======================================================================"
-          echo "==> Validating Release Fileset for GitHub Release"
-          echo "======================================================================"
-          echo ""
-
-          # Count wheels and source distributions
-          WHEEL_COUNT=$(find dist -name "*.whl" -type f | wc -l)
-          SDIST_COUNT=$(find dist -name "*.tar.gz" -type f ! -name "CHECKSUMS*.sha256" | wc -l)
-
-          echo "Found:"
-          echo "  - Wheels: $WHEEL_COUNT"
-          echo "  - Source distributions: $SDIST_COUNT"
-          echo ""
-
-          # Validate counts
-          HAS_ERRORS=0
-
-          if [ "$WHEEL_COUNT" -ne 1 ]; then
-            echo "❌ ERROR: Expected exactly 1 wheel, found $WHEEL_COUNT"
-            HAS_ERRORS=1
-          else
-            WHEEL_FILE=$(find dist -name "*.whl" -type f)
-            echo "✅ Wheel: $(basename $WHEEL_FILE)"
-
-            # Verify it's a universal wheel
-            if [[ "$WHEEL_FILE" != *"-py2.py3-none-any.whl" ]] && [[ "$WHEEL_FILE" != *"-py3-none-any.whl" ]]; then
-              echo "⚠️  WARNING: Wheel is not universal (py2.py3-none-any or py3-none-any)"
-            fi
-          fi
-
-          if [ "$SDIST_COUNT" -ne 1 ]; then
-            echo "❌ ERROR: Expected exactly 1 source distribution, found $SDIST_COUNT"
-            HAS_ERRORS=1
-          else
-            SDIST_FILE=$(find dist -name "*.tar.gz" -type f ! -name "CHECKSUMS*.sha256")
-            echo "✅ Source: $(basename $SDIST_FILE)"
-          fi
-
-          echo ""
-          if [ $HAS_ERRORS -eq 1 ]; then
-            echo "======================================================================"
-            echo "❌ VALIDATION FAILED"
-            echo "======================================================================"
-            exit 1
-          else
-            echo "======================================================================"
-            echo "✅ VALIDATION PASSED - Keeping all files (including CHECKSUMS)"
-            echo "======================================================================"
-          fi
+      - name: Validate and prepare release fileset for GitHub
+        uses: wamp-proto/wamp-cicd/actions/check-release-fileset@main
+        with:
+          distdir: dist
+          mode: strict
+          keep-metadata: true  # Keep CHECKSUMS for user verification
+          targets: |
+            py3-none-any
+            source
 
       - name: Create development GitHub release
         uses: softprops/action-gh-release@v2
@@ -275,63 +227,15 @@ jobs:
           echo "Built packages:"
           ls -lh dist/
 
-      - name: Generate checksums (for GitHub release)
-        run: |
-          cd dist
-          sha256sum * > CHECKSUMS-ALL.sha256
-          cat CHECKSUMS-ALL.sha256
-
-      - name: Validate release fileset
-        run: |
-          echo "======================================================================"
-          echo "==> Validating Release Fileset"
-          echo "======================================================================"
-          echo ""
-
-          # Count wheels and source distributions
-          WHEEL_COUNT=$(find dist -name "*.whl" -type f | wc -l)
-          SDIST_COUNT=$(find dist -name "*.tar.gz" -type f ! -name "CHECKSUMS*.sha256" | wc -l)
-
-          echo "Found:"
-          echo "  - Wheels: $WHEEL_COUNT"
-          echo "  - Source distributions: $SDIST_COUNT"
-          echo ""
-
-          # Validate counts
-          HAS_ERRORS=0
-
-          if [ "$WHEEL_COUNT" -ne 1 ]; then
-            echo "❌ ERROR: Expected exactly 1 wheel, found $WHEEL_COUNT"
-            HAS_ERRORS=1
-          else
-            WHEEL_FILE=$(find dist -name "*.whl" -type f)
-            echo "✅ Wheel: $(basename $WHEEL_FILE)"
-
-            # Verify it's a universal wheel
-            if [[ "$WHEEL_FILE" != *"-py2.py3-none-any.whl" ]] && [[ "$WHEEL_FILE" != *"-py3-none-any.whl" ]]; then
-              echo "⚠️  WARNING: Wheel is not universal (py2.py3-none-any or py3-none-any)"
-            fi
-          fi
-
-          if [ "$SDIST_COUNT" -ne 1 ]; then
-            echo "❌ ERROR: Expected exactly 1 source distribution, found $SDIST_COUNT"
-            HAS_ERRORS=1
-          else
-            SDIST_FILE=$(find dist -name "*.tar.gz" -type f ! -name "CHECKSUMS*.sha256")
-            echo "✅ Source: $(basename $SDIST_FILE)"
-          fi
-
-          echo ""
-          if [ $HAS_ERRORS -eq 1 ]; then
-            echo "======================================================================"
-            echo "❌ VALIDATION FAILED"
-            echo "======================================================================"
-            exit 1
-          else
-            echo "======================================================================"
-            echo "✅ VALIDATION PASSED"
-            echo "======================================================================"
-          fi
+      - name: Validate and prepare release fileset for GitHub
+        uses: wamp-proto/wamp-cicd/actions/check-release-fileset@main
+        with:
+          distdir: dist
+          mode: strict
+          keep-metadata: true  # Keep CHECKSUMS for user verification
+          targets: |
+            py3-none-any
+            source
 
       - name: Get version
         id: get_version
@@ -340,9 +244,25 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
+      # IMPORTANT: tag_name MUST be explicitly specified here!
+      #
+      # When this workflow runs via workflow_run trigger (after the main workflow
+      # completes), github.ref is "refs/heads/master" (a branch), NOT the tag.
+      # This is because workflow_run context inherits from the triggering workflow's
+      # context, and even though the main workflow was triggered by a tag push,
+      # the github.ref in the workflow_run context points to the default branch.
+      #
+      # The softprops/action-gh-release action defaults to using github.ref for
+      # the tag name when tag_name is not specified. Since github.ref is a branch
+      # (not a tag), the action fails with: "GitHub Releases requires a tag"
+      #
+      # Solution: Explicitly pass tag_name using the version extracted from
+      # the identifiers workflow, which correctly detected the tag via
+      # `git describe --tags --exact-match` on the head_sha.
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.get_version.outputs.version }}
           name: v${{ steps.get_version.outputs.version }}
           body: |
             ## Crossbar.io v${{ steps.get_version.outputs.version }}
@@ -369,16 +289,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Remove non-PyPI files before upload
-        run: |
-          echo "======================================================================"
-          echo "Removing files that PyPI doesn't accept"
-          echo "======================================================================"
-          rm -f dist/CHECKSUMS*.sha256
-          echo ""
-          echo "Files to upload to PyPI:"
-          ls -lh dist/
-          echo "======================================================================"
+      - name: Validate and clean release fileset for PyPI
+        uses: wamp-proto/wamp-cicd/actions/check-release-fileset@main
+        with:
+          distdir: dist
+          mode: strict
+          # keep-metadata: false (default - removes CHECKSUMS, build-info.txt etc for PyPI)
+          targets: |
+            py3-none-any
+            source
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
