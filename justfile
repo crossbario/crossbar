@@ -346,22 +346,6 @@ install-dev-all:
         just install-dev ${venv}
     done
 
-# Install with latest unreleased WAMP packages from GitHub (usage: `just install-dev-latest cpy312` or `just install-dev-latest`)
-install-dev-latest venv="": (create venv)
-    #!/usr/bin/env bash
-    set -e
-    VENV_NAME="{{ venv }}"
-    if [ -z "${VENV_NAME}" ]; then
-        echo "==> No venv name specified. Auto-detecting from system Python..."
-        VENV_NAME=$(just --quiet _get-system-venv-name)
-        echo "==> Defaulting to venv: '${VENV_NAME}'"
-    fi
-    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
-    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
-    echo "==> Installing package in editable mode with [dev,dev-latest] extras in ${VENV_NAME}..."
-    echo "==> This will install WAMP packages from GitHub master (unreleased versions)..."
-    ${VENV_PYTHON} -m pip install -e .[dev,dev-latest]
-
 # Install with locally editable WAMP packages for cross-repo development (usage: `just install-dev-local cpy312` or `just install-dev-local`)
 install-dev-local venv="": (create venv)
     #!/usr/bin/env bash
@@ -851,7 +835,6 @@ analyze-uvlock:
     RUNTIME_COUNT=$(uv export --frozen --no-dev --no-hashes 2>/dev/null | grep -c '==' || echo "0")
     DEV_COUNT=$(uv export --frozen --extra dev --no-hashes 2>/dev/null | grep -c '==' || echo "0")
     DOCS_COUNT=$(uv export --frozen --extra docs --no-hashes 2>/dev/null | grep -c '==' || echo "0")
-    DEV_LATEST_COUNT=$(uv export --frozen --extra dev-latest --no-hashes 2>/dev/null | grep -c '==' || echo "0")
     ALL_COUNT=$(uv export --frozen --all-extras --no-hashes 2>/dev/null | grep -c '==' || echo "0")
 
     echo "Installation modes (using uv sync):"
@@ -860,21 +843,18 @@ analyze-uvlock:
     printf "  %-28s %s\n" "uv sync" "Runtime deps only (${RUNTIME_COUNT} packages)"
     printf "  %-28s %s\n" "uv sync --extra dev" "Runtime + dev tools (${DEV_COUNT} packages)"
     printf "  %-28s %s\n" "uv sync --extra docs" "Runtime + docs tools (${DOCS_COUNT} packages)"
-    printf "  %-28s %s\n" "uv sync --extra dev-latest" "Runtime + latest from GitHub (${DEV_LATEST_COUNT} packages)"
     printf "  %-28s %s\n" "uv sync --all-extras" "All packages (${ALL_COUNT} packages)"
     echo ""
 
     # Count extra marker entries in lock file
     DEV_ENTRIES=$(grep -c "extra == 'dev'" uv.lock 2>/dev/null || echo "0")
     DOCS_ENTRIES=$(grep -c "extra == 'docs'" uv.lock 2>/dev/null || echo "0")
-    DEV_LATEST_ENTRIES=$(grep -c "extra == 'dev-latest'" uv.lock 2>/dev/null || echo "0")
 
     echo "Extra markers in uv.lock (dependency graph entries):"
     echo "─────────────────────────────────────────────────────────────────────────────"
     echo ""
     echo "  extra == 'dev':        ${DEV_ENTRIES} entries"
     echo "  extra == 'docs':       ${DOCS_ENTRIES} entries"
-    echo "  extra == 'dev-latest': ${DEV_LATEST_ENTRIES} entries"
     echo ""
     echo "Note: Packages with extra markers are only installed when that extra is"
     echo "      requested. The markers ensure selective installation."

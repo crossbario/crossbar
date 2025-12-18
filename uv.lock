@@ -312,7 +312,7 @@ wheels = [
 [[package]]
 name = "autobahn"
 version = "25.12.2"
-source = { git = "https://github.com/crossbario/autobahn-python.git?rev=master#5e4f7e086a074892231377f465099946e8f66ac4" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cbor2" },
     { name = "cffi" },
@@ -323,6 +323,25 @@ dependencies = [
     { name = "txaio" },
     { name = "u-msgpack-python", marker = "platform_python_implementation != 'CPython'" },
     { name = "ujson" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/54/d5/9adf0f5b9eb244e58e898e9f3db4b00c09835ef4b6c37d491886e0376b4f/autobahn-25.12.2.tar.gz", hash = "sha256:754c06a54753aeb7e8d10c5cbf03249ad9e2a1a32bca8be02865c6f00628a98c", size = 13893652, upload-time = "2025-12-15T11:13:19.086Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/23/923e4f11dc9d12b9f5a014f36d591c479d623d54dda3bdcbd688cd12f052/autobahn-25.12.2-cp311-cp311-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:16df879672c60f1f3fe452138c80f0fd221b3cb2ee5a14390c80f33b994104c1", size = 2053413, upload-time = "2025-12-15T11:12:58.167Z" },
+    { url = "https://files.pythonhosted.org/packages/b3/0d/3d39637a1e32f555ce5fabec4a723a035556ef918b14140faea05e7de902/autobahn-25.12.2-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:6ffe28048ef96eb0f925f24c2569bd72332e120f4cb31cd6c40dd66718a5f85e", size = 2224850, upload-time = "2025-12-15T11:13:00.089Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/9c/f591e9ec30e3708a3129e151b1fc3bdff8f4dbc84d705f5c42719b859a1a/autobahn-25.12.2-cp311-cp311-win_amd64.whl", hash = "sha256:3ec6a3719a00fd57b044e4694f3d6e9335892f4ef21f045f090495da7385d240", size = 2159161, upload-time = "2025-12-15T11:13:01.504Z" },
+    { url = "https://files.pythonhosted.org/packages/64/8d/36452c06cbcad6d04587aeb87dfa987ef94be4a427b9f2155783d166bd97/autobahn-25.12.2-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:220748f21e91bd4a538d2d3de640cc17ee30b79f1c04a6c3dcdef321d531ee1c", size = 2225453, upload-time = "2025-12-15T11:13:02.865Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/cb/47647ff140f2b8ef80aa689451f3f1076404c115d79310f49477143410dc/autobahn-25.12.2-cp312-cp312-win_amd64.whl", hash = "sha256:ba1867aafdbe585d3d4a5abd35238a78ab54ab3de5bd12a21bca20379c9f512b", size = 2157007, upload-time = "2025-12-15T11:13:03.95Z" },
+    { url = "https://files.pythonhosted.org/packages/83/30/ef9c47038e4e9257319d6e1b87668b3df360a0c488d66ccff9d11aaff6ba/autobahn-25.12.2-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:bc17f6cab9438156d2701c293c76fd02a144f9be0a992c065dfee1935ce4845b", size = 1960447, upload-time = "2025-12-15T11:13:05.007Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/e4/f3d5cb70bc0b9b5523d940734b2e0a251510d051a50d2e723f321e890859/autobahn-25.12.2-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b5297a782fc7d0a26842438ef1342549ceee29496cda52672ac44635c79eeb94", size = 2053955, upload-time = "2025-12-15T11:13:06.052Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/49/4e592a19ae58fd9c796821a882b22598fac295ede50f899cc9d14a0282b6/autobahn-25.12.2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c0c3f1d5dafda52f8dc962ab583b6f3473b7b7186cab082d05372ed43a8261a5", size = 2225441, upload-time = "2025-12-15T11:13:07.527Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/f7/430074a5ea3f6187335a4ddc26f16dd75d5125e346a84cf132ddbd41a3e8/autobahn-25.12.2-cp313-cp313-win_amd64.whl", hash = "sha256:e9e2a962f2de0bc4c53b452916458417a15f5137c956245ac6d0a783a83fa1f7", size = 2151873, upload-time = "2025-12-15T11:13:08.89Z" },
+    { url = "https://files.pythonhosted.org/packages/54/b7/0a0e3ecb2af7e452f5f359d19bdc647cbc8658f3f498bfa3bf8545cf4768/autobahn-25.12.2-cp314-cp314-macosx_15_0_arm64.whl", hash = "sha256:c840ee136bfaf6560467160129b0b25a0e33c9a51e2b251e98c5474f27583915", size = 1960463, upload-time = "2025-12-15T11:13:10.183Z" },
+    { url = "https://files.pythonhosted.org/packages/19/8b/4215ac49d6b793b592fb08698f3a0e21a59eb3520be7f7ed288fcb52d919/autobahn-25.12.2-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9abda5cf817c0f8a19a55a67a031adf2fc70ed351719b5bd9e6fa0f5f4bc8f89", size = 2225590, upload-time = "2025-12-15T11:13:11.367Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/58/e498821606db57305c8f3c26d9b28fd73e4e0583a1f48330df500721c418/autobahn-25.12.2-cp314-cp314-win_amd64.whl", hash = "sha256:18b12e8af7fc115487715afa10b3f5b5a4b5989bebbe05b71722cf9fce7b1bfb", size = 2184111, upload-time = "2025-12-15T11:13:12.461Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/99/b4a3da42471d3ec36e2dca0c1a5368a079fed9f73b159ce3f049c4a4983b/autobahn-25.12.2-pp311-pypy311_pp73-macosx_15_0_arm64.whl", hash = "sha256:0c226329ddec154c6f3b491ea3e4713035f0326c96ebfd6b305bf90f27a2fba1", size = 1955357, upload-time = "2025-12-15T11:13:13.581Z" },
+    { url = "https://files.pythonhosted.org/packages/89/81/67f19dd7395a9f1123a1f071314f8d1c4879c1869adeb8d99a236e756ac0/autobahn-25.12.2-pp311-pypy311_pp73-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:5f079393a7626eb448c8accf21151f5f206d02f8e9cee4313d62a5ca30a3aaed", size = 623173, upload-time = "2025-12-15T11:13:14.945Z" },
+    { url = "https://files.pythonhosted.org/packages/71/eb/857eab3d25e3b9cc9e7e741d6193808ad91de0befb38cf10658bd339c205/autobahn-25.12.2-pp311-pypy311_pp73-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9b3a6c7d54a9f0434a435d88b86555510e5d0a84aa87042e292f29f707cab237", size = 2178008, upload-time = "2025-12-15T11:13:15.881Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/28/ebd4764fa162455cd9211ac8e1d3733baf87fad5e0e7fc60e8474d172b8f/autobahn-25.12.2-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:0ad4c10c897ad67d31be2ef8547ed2922875d90ddb95553787cc46c271f822de", size = 2157704, upload-time = "2025-12-15T11:13:17.422Z" },
 ]
 
 [package.optional-dependencies]
@@ -919,7 +938,7 @@ wheels = [
 [[package]]
 name = "cfxdb"
 version = "25.12.2"
-source = { git = "https://github.com/crossbario/cfxdb.git?rev=master#46a595b113981384b1ca5a27130aca05ee46cf5b" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "argon2-cffi" },
     { name = "autobahn", extra = ["all"] },
@@ -928,6 +947,10 @@ dependencies = [
     { name = "parsimonious" },
     { name = "web3" },
     { name = "zlmdb" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/32/c1/90977813f4153bc31539f94da0f9e4de0d383c89b48342abb9f180f55fd9/cfxdb-25.12.2.tar.gz", hash = "sha256:e35ef6ec00eab86060bdd0fe061fad48f1819fb2e7d3b781d88d36e888d58113", size = 297402, upload-time = "2025-12-15T23:55:06.762Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fc/c1/d23f3ec41266b494089315c1728dc61b32bd9510e2a6cf1e2d32fb43b10e/cfxdb-25.12.2-py3-none-any.whl", hash = "sha256:a6bb96b6643687bc1dfd3973cfc612ea6b1b029f4bcdd49a02d4beb75d744175", size = 350582, upload-time = "2025-12-15T23:55:05.142Z" },
 ]
 
 [[package]]
@@ -1334,13 +1357,6 @@ dev = [
     { name = "twine" },
     { name = "wheel" },
 ]
-dev-latest = [
-    { name = "autobahn", extra = ["compress", "encryption", "scram", "twisted"] },
-    { name = "cfxdb" },
-    { name = "txaio" },
-    { name = "xbr" },
-    { name = "zlmdb" },
-]
 docs = [
     { name = "furo" },
     { name = "linkify-it-py" },
@@ -1360,7 +1376,6 @@ docs = [
 requires-dist = [
     { name = "attrs", specifier = ">=22.2.0" },
     { name = "autobahn", extras = ["twisted", "encryption", "compress", "serialization", "scram"], specifier = ">=25.12.2" },
-    { name = "autobahn", extras = ["twisted", "encryption", "compress", "serialization", "scram"], marker = "extra == 'dev-latest'", git = "https://github.com/crossbario/autobahn-python.git?rev=master" },
     { name = "bandit", marker = "extra == 'dev'" },
     { name = "base58", specifier = ">=2.1.1" },
     { name = "bcrypt", specifier = ">=4.0.1" },
@@ -1368,7 +1383,6 @@ requires-dist = [
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "cbor2", specifier = ">=5.4.6" },
     { name = "cfxdb", specifier = ">=25.12.2" },
-    { name = "cfxdb", marker = "extra == 'dev-latest'", git = "https://github.com/crossbario/cfxdb.git?rev=master" },
     { name = "click", specifier = ">=8.1.3" },
     { name = "colorama", specifier = ">=0.4.6" },
     { name = "constantly", specifier = ">=15.1.0" },
@@ -1463,7 +1477,6 @@ requires-dist = [
     { name = "twisted", extras = ["tls", "conch", "http2", "osx-platform"], marker = "sys_platform == 'darwin'", specifier = ">=22.10.0" },
     { name = "twisted", extras = ["tls", "conch", "http2", "windows-platform"], marker = "sys_platform == 'win32'", specifier = ">=22.10.0" },
     { name = "txaio", specifier = ">=25.12.2" },
-    { name = "txaio", marker = "extra == 'dev-latest'", git = "https://github.com/crossbario/txaio.git?rev=master" },
     { name = "txtorcon", specifier = ">=22.0.0" },
     { name = "u-msgpack-python", specifier = ">=2.7.2" },
     { name = "ujson", specifier = ">=5.7.0" },
@@ -1474,12 +1487,10 @@ requires-dist = [
     { name = "wheel", marker = "extra == 'dev'" },
     { name = "wsaccel", marker = "platform_python_implementation == 'CPython'", specifier = ">=0.6.4" },
     { name = "xbr", specifier = ">=25.12.2" },
-    { name = "xbr", marker = "extra == 'dev-latest'", git = "https://github.com/wamp-proto/wamp-xbr.git?rev=master" },
     { name = "zlmdb", specifier = ">=25.12.3" },
-    { name = "zlmdb", marker = "extra == 'dev-latest'", git = "https://github.com/crossbario/zlmdb.git?rev=master" },
     { name = "zope-interface", specifier = ">=5.5.2" },
 ]
-provides-extras = ["dev", "dev-latest", "dev-local", "docs"]
+provides-extras = ["dev", "dev-local", "docs"]
 
 [[package]]
 name = "cryptography"
@@ -5055,7 +5066,11 @@ wheels = [
 [[package]]
 name = "txaio"
 version = "25.12.2"
-source = { git = "https://github.com/crossbario/txaio.git?rev=master#6205af2b069a8ec2c570eaaa9cd4ee42bac7c6c4" }
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7f/67/ea9c9ddbaa3e0b4d53c91f8778a33e42045be352dc7200ed2b9aaa7dc229/txaio-25.12.2.tar.gz", hash = "sha256:9f232c21e12aa1ff52690e365b5a0ecfd42cc27a6ec86e1b92ece88f763f4b78", size = 117393, upload-time = "2025-12-09T15:03:26.527Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/05/bdb6318120cac9bf97779674f49035e0595d894b42d4c43b60637bafdb1f/txaio-25.12.2-py3-none-any.whl", hash = "sha256:5f6cd6c6b397fc3305790d15efd46a2d5b91cdbefa96543b4f8666aeb56ba026", size = 31208, upload-time = "2025-12-09T04:30:27.811Z" },
+]
 
 [[package]]
 name = "txtorcon"
@@ -5431,7 +5446,7 @@ wheels = [
 [[package]]
 name = "xbr"
 version = "25.12.2"
-source = { git = "https://github.com/wamp-proto/wamp-xbr.git?rev=master#26887be96b012f692a2bba82357edb00d7736a49" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "argon2-cffi" },
     { name = "autobahn" },
@@ -5457,6 +5472,10 @@ dependencies = [
     { name = "web3" },
     { name = "yapf" },
     { name = "zlmdb" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/66/9a/d97568920f4f9b315e1adb72d38eeb7df9937bf1b49939765c5529e936c1/xbr-25.12.2.tar.gz", hash = "sha256:9e2d0d5b53ee23ad084f1b4288215e54fc3e10c9df03e2c4ac64e2ebe564d387", size = 9241849, upload-time = "2025-12-17T07:29:09.525Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/9c/d3a78dac9d5bdd293cd0d90aebf52be4f97135670584a6370853f8a714d4/xbr-25.12.2-py3-none-any.whl", hash = "sha256:5569def3ac976605880ac1fc5262c315eb43be936ac02c8040d8582a7aa6cce9", size = 1329767, upload-time = "2025-12-17T07:29:07.334Z" },
 ]
 
 [[package]]
@@ -5590,7 +5609,7 @@ wheels = [
 [[package]]
 name = "zlmdb"
 version = "25.12.3"
-source = { git = "https://github.com/crossbario/zlmdb.git?rev=master#bb0b7dbd9cf183c4b882ace67f0efb3023e946dc" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cbor2" },
     { name = "cffi" },
@@ -5600,6 +5619,28 @@ dependencies = [
     { name = "pyyaml" },
     { name = "setuptools" },
     { name = "txaio" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/40/69/d403e26bc059a70578d0406b29cb239a9aa018e28d79f92b8106a1a7d8e5/zlmdb-25.12.3.tar.gz", hash = "sha256:c576bcc38f3c926d96999be5f9c5fcd180cdca5d2b581c023a467fd59feaaa64", size = 1839860, upload-time = "2025-12-17T03:49:02.479Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/4e/d84f5d62dbd936b8f5719d846b9b1c4017bb7378237d2099ab37b09988b6/zlmdb-25.12.3-cp311-cp311-macosx_15_0_arm64.whl", hash = "sha256:1794b457fac5f9bb2cd8313395cbe07dece534c59fb14ec6a5ec55445f49940b", size = 1653468, upload-time = "2025-12-17T03:48:36.548Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/ec/260762e66bbcfab7c2afdf9bb56b5cc5c6d6e69ca2926c7613a03b62e8cd/zlmdb-25.12.3-cp311-cp311-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2ab002933a96201abd0947006443095af2341f65f2c25e736cb45994fd4322ea", size = 1828444, upload-time = "2025-12-17T03:48:38.698Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/63/8c3c1663f7a0a1d9bcf965e2418ca126b9958ed25666149e833612740429/zlmdb-25.12.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:31ee3fd2b9c83b3e197fffdb56e0b5f094144f3755eb36d9964e2aa0430d4bd7", size = 1976797, upload-time = "2025-12-17T03:48:40.054Z" },
+    { url = "https://files.pythonhosted.org/packages/59/f6/bf6aecb0b353463bbf490c3f4b777f8f0aeeadb902a94ac8cbee07fed41e/zlmdb-25.12.3-cp311-cp311-win_amd64.whl", hash = "sha256:46bbd146762b8e7e9e8630fb31643bf698cc6bff05cb922c3d1ac8aba73b4e18", size = 1653657, upload-time = "2025-12-17T03:48:41.898Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/cc/187892175c684aef506dafaf69c9e73e23e5a902fef337187f210c9e4d73/zlmdb-25.12.3-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:6e09ec5353dd56f31a35325f3990c63be0db6f434d7713c9c8b4a5859e35b2d2", size = 1653490, upload-time = "2025-12-17T03:48:43.02Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/7b/c565aa09791eacc86591be5c40409e027a28cc26819a4c05b7cc1e3425a4/zlmdb-25.12.3-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7f97656ab0a9e4f403edfec88730e051822d6cd5746a008bd17ea3b9d4e31564", size = 1828997, upload-time = "2025-12-17T03:48:44.132Z" },
+    { url = "https://files.pythonhosted.org/packages/56/f2/cf6211dde7d2d7806075ce207e5d65e03b163fa350a0f15bd16d73e8d42f/zlmdb-25.12.3-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8764db60534aa3f1999439116518cb823268a943d932d83c6075519f6b5f38c0", size = 1977405, upload-time = "2025-12-17T03:48:45.157Z" },
+    { url = "https://files.pythonhosted.org/packages/de/d7/8d4a77786fdffb1b8aac5b210a450aa24929d17b7c8837e5a1e484431e60/zlmdb-25.12.3-cp312-cp312-win_amd64.whl", hash = "sha256:29117b119a2771571aed22a9cfb172599c43a10b36910a915eb797a4ee244eb0", size = 1653646, upload-time = "2025-12-17T03:48:46.648Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/12/be878479dd542e530864b4b206f649a0cbee611eab136e2cadab8ce51acc/zlmdb-25.12.3-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:e68e935a92f9cada724761d98f8e7e419c5c589d6f32fee4b9a75f0e2716b108", size = 1575052, upload-time = "2025-12-17T03:48:48.102Z" },
+    { url = "https://files.pythonhosted.org/packages/78/bc/eda132ace57e3482beb57289a82cf4fbaaf0fbaad42c9d3a13ff3163535a/zlmdb-25.12.3-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f7cb7edb98dbdb13f12089d2561e1edb07c6b50cb8c73a3333891f0b19ee511c", size = 439164, upload-time = "2025-12-17T03:48:49.82Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/be/288db04d1b546931f18cdf26e91ee51ef2059ccbe98054ce8cf804a99001/zlmdb-25.12.3-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:68b500e12036ad1125c5a195cab0c24842ad7853eeaf69ddae65147ea12be120", size = 1977419, upload-time = "2025-12-17T03:48:51.252Z" },
+    { url = "https://files.pythonhosted.org/packages/da/ba/b565f9f08f87275b8f5a1a9df23ea70d6a3be393f88adefbb280bcf93bc9/zlmdb-25.12.3-cp313-cp313-win_amd64.whl", hash = "sha256:6f66151617c286e01af2a18c5a740e051701b35e3a1e0008ca7ee35daaf415ec", size = 1653647, upload-time = "2025-12-17T03:48:52.535Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/11/dffe0133d341fbb63db202133348ab8419fd038b61af2e0c529977666bb7/zlmdb-25.12.3-cp314-cp314-macosx_15_0_arm64.whl", hash = "sha256:98cae845fa11ef5ff1694d2c5427e269ee205828c07be48cc67ea119915f05fe", size = 1575054, upload-time = "2025-12-17T03:48:53.605Z" },
+    { url = "https://files.pythonhosted.org/packages/03/ad/9e4f58da2606e53a30d41fcab292e664cf8b9cb39630673631755196ef28/zlmdb-25.12.3-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9c572dace5fc40806436d65a06da9bcc802897b07b1585253c0753df812c1bf4", size = 1977376, upload-time = "2025-12-17T03:48:54.801Z" },
+    { url = "https://files.pythonhosted.org/packages/48/09/c0ed67fe3153f52adba9133005e1f701c05fe67d195367cf45fbcbeebc84/zlmdb-25.12.3-cp314-cp314-win_amd64.whl", hash = "sha256:c909b5dec936f9859072c80a179ff6cd8aeb709f18c2aac1c4f5478f43ccbe66", size = 1687793, upload-time = "2025-12-17T03:48:56.076Z" },
+    { url = "https://files.pythonhosted.org/packages/90/03/c8d8a20e8d8ebd8e897c97d6233c129321f0b1243fafe46c187cf0209d88/zlmdb-25.12.3-cp314-cp314t-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b4fd9d76717719948fc7428ac189d8bf09fe429517f9086cd01f21092a9562cd", size = 1835792, upload-time = "2025-12-17T03:48:57.153Z" },
+    { url = "https://files.pythonhosted.org/packages/91/fe/fe92d43316e8cb4e187b97ea363a23d925b567891c7f1fb8158a2507ddba/zlmdb-25.12.3-pp311-pypy311_pp73-macosx_15_0_arm64.whl", hash = "sha256:0b9d39e56b44ac2d7c6f4dfb328744e3b958740df29f0841209ed0056a62e81a", size = 1550162, upload-time = "2025-12-17T03:48:58.357Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/aa/d0dc86a703b15936fbcb9f65d9125318e7b51476b119992d17d13bde66a5/zlmdb-25.12.3-pp311-pypy311_pp73-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ae203d0679f291fb3ccf40b4ff456aa44fc01f94e973cf5470018efca1cf2963", size = 1769468, upload-time = "2025-12-17T03:48:59.804Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/6e/46a6022750897ca2119b757c327d4e128642842b102e60e478baf2ec62a9/zlmdb-25.12.3-pp311-pypy311_pp73-manylinux_2_34_aarch64.whl", hash = "sha256:6a32445dea95c0c80942efc7adddab2e8490d327184f18ae0c4d1598e34907b0", size = 233525, upload-time = "2025-12-17T03:49:01.196Z" },
 ]
 
 [[package]]

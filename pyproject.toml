@@ -46,7 +46,6 @@ classifiers = [
 
 dependencies = [
     # WAMP ecosystem packages (using currently available PyPI versions)
-    # NOTE: For development/testing with unreleased versions, use: pip install -e .[dev,dev-latest]
     "autobahn[twisted,encryption,compress,serialization,scram]>=25.12.2",
     "txaio>=25.12.2",
     "zlmdb>=25.12.3",
@@ -186,17 +185,6 @@ dev = [
     "pyinstaller>=4.2",
 ]
 
-# For testing with unreleased WAMP packages from GitHub master branches
-# Usage: pip install -e .[dev,dev-latest]
-# This installs the latest development versions from GitHub instead of PyPI
-dev-latest = [
-    "txaio @ git+https://github.com/crossbario/txaio.git@master",
-    "autobahn[twisted,encryption,compress,serialization,scram] @ git+https://github.com/crossbario/autobahn-python.git@master",
-    "zlmdb @ git+https://github.com/crossbario/zlmdb.git@master",
-    "cfxdb @ git+https://github.com/crossbario/cfxdb.git@master",
-    "xbr @ git+https://github.com/wamp-proto/wamp-xbr.git@master",
-]
-
 # For testing with locally editable WAMP packages (cross-repo development)
 # Usage: First install WAMP packages in editable mode from local checkouts,
 #        then: pip install -e .[dev,dev-local]
@@ -248,10 +236,6 @@ Forum = "https://crossbar.discourse.group/"
 crossbar = "crossbar:run"
 
 # Hatchling build configuration
-[tool.hatch.metadata]
-# Allow git+https:// dependencies in dev-latest for cross-repo development
-allow-direct-references = true
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/crossbar"]
 
