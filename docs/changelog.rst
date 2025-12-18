@@ -5,6 +5,24 @@
 Changelog
 =========
 
+25.12.1
+-------
+
+**Build Infrastructure Modernization (Phase 1.4)**
+
+* new: Migrated to ``pyproject.toml`` with Hatchling build backend (removed ``setup.py``, ``setup.cfg``, ``MANIFEST.in``)
+* new: Added ``uv.lock`` for reproducible dependency installations
+* new: Added ``justfile`` with comprehensive task recipes (~80 recipes)
+* new: Added ``.readthedocs.yaml`` for RTD v2 configuration
+* new: Modernized GitHub Actions workflows (``main.yml``, ``release.yml``)
+* new: Added integration tests running Autobahn examples against Crossbar.io
+* new: Added smoke tests for CLI, init, and lifecycle commands
+* new: Added ``docs/uvlock.rst`` documentation for uv.lock usage
+* new: Expanded Python version matrix: CPython 3.11-3.14, PyPy 3.11
+* new: Added ``py.typed`` marker for PEP 561 type checking support
+* fix: Removed outdated workflow files (``deploy-docs.yml``, ``test-management.yml``)
+* fix: Documentation restructured with Furo theme and sphinx-autoapi
+
 21.11.1
 -------
 

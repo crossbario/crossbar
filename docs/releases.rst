@@ -5,6 +5,18 @@ This page provides links to release artifacts for each version of Crossbar.io.
 
 For detailed changelog entries, see :doc:`changelog`.
 
+25.12.1
+-------
+
+* `GitHub Release <https://github.com/crossbario/crossbar/releases/tag/master-202512180025>`__
+* Universal wheel (py3-none-any)
+* Source distribution (.tar.gz)
+
+.. note::
+
+   This is a development/nightly build from the modernization work.
+   For production use, install the latest stable release from PyPI.
+
 23.1.2
 ------
 
