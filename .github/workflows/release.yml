@@ -193,8 +193,6 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/p/crossbar
-    permissions:
-      id-token: write  # For trusted publishing
 
     steps:
       - name: Checkout code
