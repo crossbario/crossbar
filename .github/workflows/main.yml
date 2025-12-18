@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - master
+    tags:
+      - 'v*'  # Trigger on version tags for release workflow chain
   pull_request:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   contents: read
