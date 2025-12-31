@@ -196,24 +196,8 @@ class Dealer(object):
                 if invoke.callee is invoke.caller:  # if the calling itself - no need to notify
                     continue
                 callee = invoke.callee
-                if (
-                    "callee" not in callee._session_roles
-                    or not callee._session_roles["callee"]
-                    or not callee._session_roles["callee"].call_canceling
-                ):
-                    self.log.debug(
-                        "INTERRUPT not supported on in-flight INVOKE with id={request} on"
-                        " session {session} (caller went away)",
-                        request=invoke.id,
-                        session=session._session_id,
-                    )
-                    continue
-                self.log.debug(
-                    "INTERRUPTing in-flight INVOKE with id={request} on session {session} (caller went away)",
-                    request=invoke.id,
-                    session=session._session_id,
-                )
 
+                # Always clean up the invocation tracking regardless of call_canceling support
                 if invoke.timeout_call:
                     invoke.timeout_call.cancel()
                     invoke.timeout_call = None
@@ -226,13 +210,32 @@ class Dealer(object):
                 del self._invocations[invoke.id]
                 del self._invocations_by_call[(invoke.caller_session_id, invoke.call.request)]
 
-                self._router.send(
-                    invoke.callee,
-                    message.Interrupt(
+                # Only send INTERRUPT if the callee supports call canceling
+                if (
+                    "callee" in callee._session_roles
+                    and callee._session_roles["callee"]
+                    and callee._session_roles["callee"].call_canceling
+                ):
+                    self.log.debug(
+                        "INTERRUPTing in-flight INVOKE with id={request} on"
+                        " session {session} (caller went away)",
                         request=invoke.id,
-                        mode=message.Cancel.KILLNOWAIT,
-                    ),
-                )
+                        session=session._session_id,
+                    )
+                    self._router.send(
+                        invoke.callee,
+                        message.Interrupt(
+                            request=invoke.id,
+                            mode=message.Cancel.KILLNOWAIT,
+                        ),
+                    )
+                else:
+                    self.log.debug(
+                        "INTERRUPT not supported on in-flight INVOKE with id={request} on"
+                        " session {session} (caller went away) - invocation cleaned up but not interrupted",
+                        request=invoke.id,
+                        session=session._session_id,
+                    )
 
             del self._caller_to_invocations[session]
 
