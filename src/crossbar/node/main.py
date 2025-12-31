@@ -701,18 +701,13 @@ def _start_logging(options, reactor):
         # We want to log to stdout/stderr.
 
         if color == "auto":
-            # Check environment variables to force colors (e.g., in Docker)
             if os.environ.get('NO_COLOR'):
-                # NO_COLOR disables colors
                 color = False
             elif os.environ.get('FORCE_COLOR') or os.environ.get('CLICOLOR_FORCE'):
-                # Explicitly force colors
                 color = True
-            elif sys.__stdout__.isatty():
-                # Auto-detect TTY
+            elif sys.__stdout__ is not None and sys.__stdout__.isatty():
                 color = True
             else:
-                # Default to enabling colors to match chalk behavior in Docker logs
                 color = True
         elif color == "true":
             color = True
