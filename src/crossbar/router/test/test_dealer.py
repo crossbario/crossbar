@@ -645,6 +645,87 @@ class TestDealer(unittest.TestCase):
         # should NOT receive an INTERRUPT from the dealer now because we don't support cancellation
         self.assertIsNone(last_message["1"])
 
+    def test_caller_detach_cleans_up_invocation_tracking_without_cancel_support(self):
+        """
+        When a caller disconnects during an in-flight RPC, the invocation tracking
+        must be cleaned up even if the callee doesn't support call_canceling.
+        
+        This test verifies the fix for GitHub issue #2133:
+        Without the fix, stale invocation data would remain, causing errors when
+        the callee later tries to return a result (since caller._transport is None).
+        
+        The test:
+        1. Callee registers a procedure (without call_canceling support)
+        2. Caller calls the procedure
+        3. Caller disconnects while call is in-flight
+        4. Verify invocation tracking is cleaned up (the fix)
+        5. Callee returns a result - this should NOT cause an error
+        """
+        callee_messages = []
+        
+        def callee_send(msg):
+            callee_messages.append(msg)
+
+        # Callee session WITHOUT call_canceling support
+        callee_session = mock.Mock()
+        callee_session._transport.send = callee_send
+        callee_session._session_roles = {"callee": role.RoleCalleeFeatures(call_canceling=False)}
+
+        # Caller session
+        caller_session = mock.Mock()
+        caller_session._session_id = 12345
+
+        dealer = self.router._dealer
+        dealer.attach(callee_session)
+        dealer.attach(caller_session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({"allow": True, "disclose": False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        # 1. Callee registers a procedure
+        dealer.processRegister(
+            callee_session, message.Register(1, "com.example.my.proc", "exact", message.Register.INVOKE_SINGLE, 1)
+        )
+        registered_msg = callee_messages[-1]
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        # 2. Caller calls the procedure
+        dealer.processCall(caller_session, message.Call(2, "com.example.my.proc", []))
+        
+        invocation_msg = callee_messages[-1]
+        self.assertIsInstance(invocation_msg, message.Invocation)
+        invocation_id = invocation_msg.request
+
+        # Verify invocation is tracked before caller disconnects
+        self.assertIn(invocation_id, dealer._invocations)
+        self.assertIn(callee_session, dealer._callee_to_invocations)
+        
+        # 3. Caller disconnects while call is in-flight
+        dealer.detach(caller_session)
+
+        # 4. CRITICAL: Verify invocation tracking is cleaned up
+        # This is the core assertion that tests the fix for issue #2133
+        self.assertNotIn(invocation_id, dealer._invocations,
+            "Invocation should be removed from _invocations after caller detach")
+        
+        # The callee_to_invocations entry should either be removed or empty
+        callee_invocations = dealer._callee_to_invocations.get(callee_session, [])
+        self.assertEqual(len(callee_invocations), 0,
+            "Invocation should be removed from _callee_to_invocations after caller detach")
+        
+        # 5. Callee returns a result - this should be handled gracefully
+        # Before the fix, stale tracking data would cause the code to try to send
+        # to caller._transport which is None after disconnect, causing a crash.
+        # With the fix, the invocation is already cleaned up, so processYield
+        # simply ignores the unknown invocation (returns None).
+        yield_msg = message.Yield(invocation_id, args=["result"])
+        
+        # This should NOT raise any exception - just silently ignore the unknown invocation
+        result = dealer.processYield(callee_session, yield_msg)
+        self.assertIsNone(result, "processYield should return None for unknown invocation")
+
     def test_concurrency_with_error(self):
         """
         register a concurrency=2 method, called with errors
