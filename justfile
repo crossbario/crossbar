@@ -318,11 +318,17 @@ prep-release:
     uv lock
     @just version
     @echo 'Now:'
+    @echo ''
     @echo '   1. Git commit:               git add . && git commit -m "version bump for stable release"'
     @echo '   2. Git push commit:          git push upstream'
     @echo '   3. Git tag:                  git tag -a v<VERSION> -m "tagged stable release"'
     @echo '   4. Git push tag:             git push upstream v<VERSION>'
     @echo '   5. Bump to new dev version:  just bump-next <NEXT-VERSION>.dev1'
+    @echo '   6. Create a new rel key:     signify-openbsd -G -c "Crossbar.io 26.1" -p src/crossbar/common/keys/crossbar-26-1.pub -s crossbar-26-1.sec'
+    @echo '   7. Test rel key:             crossbar version'
+    @echo ''
+    @echo 'For rel key: this must be done (incl. *.sec key handling) by maintainer!'
+    @echo ''
 
 # Post-Tag Bump: Set a specific next version (e.g. `just bump-next 26.1.2.dev1`)
 bump-next next_version:
