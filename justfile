@@ -11,6 +11,10 @@ set positional-arguments := true
 # project base directory = directory of this justfile
 PROJECT_DIR := justfile_directory()
 
+# package version is managed in these files
+PY_VERSION_FILE := "src/crossbar/_version.py"
+TOML_VERSION_FILE := "pyproject.toml"
+
 # Default recipe: show project info and list all recipes
 default:
     #!/usr/bin/env bash
@@ -296,6 +300,56 @@ version-all:
     for venv in {{ENVS}}; do
         just version-venv ${venv}
     done
+
+# -----------------------------------------------------------------------------
+# -- Package version management
+# -----------------------------------------------------------------------------
+
+# Display current version from both files
+file-version:
+    @echo "Python file: $(grep '__version__' {{PY_VERSION_FILE}} | cut -d ' ' -f 3)"
+    @echo "TOML file:   $(grep '^version =' {{TOML_VERSION_FILE}} | cut -d ' ' -f 3)"
+
+# Prepare for release: Remove the .devN suffix from package version files
+prep-release:
+    @echo "Cleaning version for stable release..."
+    sed -i 's/\.dev[0-9]*//' {{PY_VERSION_FILE}}
+    sed -i 's/\.dev[0-9]*//' {{TOML_VERSION_FILE}}
+    uv lock
+    @just version
+    @echo 'Now:'
+    @echo '   1. Git commit:               git add . && git commit -m "version bump for stable release"'
+    @echo '   2. Git push commit:          git push upstream'
+    @echo '   3. Git tag:                  git tag -a v<VERSION> -m "tagged stable release"'
+    @echo '   4. Git push tag:             git push upstream v<VERSION>'
+    @echo '   5. Bump to new dev version:  just bump-next <NEXT-VERSION>.dev1'
+
+# Post-Tag Bump: Set a specific next version (e.g. `just bump-next 26.1.2.dev1`)
+bump-next next_version:
+    @echo "Bumping metadata to {{next_version}}..."
+    # Update Python source
+    sed -i 's/__version__ = .*/__version__ = "{{next_version}}"/' {{PY_VERSION_FILE}}
+    # Update pyproject.toml (matches line starting with version =)
+    sed -i 's/^version = .*/version = "{{next_version}}"/' {{TOML_VERSION_FILE}}
+    # Sync the lockfile to the new version
+    uv lock
+    # Commit the changes
+    git add {{PY_VERSION_FILE}} {{TOML_VERSION_FILE}} uv.lock
+    git commit -m "chore: bump version to {{next_version}}"
+    @echo "Branch is now at {{next_version}} and ready for development."
+
+# Full workflow helper
+release:
+    @just prep-release
+    @echo ""
+    @echo "VERSION PREPARED. Run the following to finalize:"
+    @echo "----------------------------------------------"
+    @V=$(bash grep -oE "[0-9.]+" {{PY_VERSION_FILE}} | head -1); \
+    echo "git commit -am \"v$$V\""; \
+    echo "git tag -a v$$V -m \"v$$V\""; \
+    echo "git push && git push --tags"
+    @echo "----------------------------------------------"
+    @echo "Then run: just bump-next <NEXT_VERSION_DEV>"
 
 # -----------------------------------------------------------------------------
 # -- Installation
