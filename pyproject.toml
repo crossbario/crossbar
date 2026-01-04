@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "crossbar"
-version = "25.12.1"
+version = "26.1.1.dev1"
 description = "Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."
 readme = "README.md"
 requires-python = ">=3.11"
