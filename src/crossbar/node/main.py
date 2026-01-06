@@ -701,10 +701,14 @@ def _start_logging(options, reactor):
         # We want to log to stdout/stderr.
 
         if color == "auto":
-            if sys.__stdout__.isatty():
+            if os.environ.get('NO_COLOR'):
+                color = False
+            elif os.environ.get('FORCE_COLOR') or os.environ.get('CLICOLOR_FORCE'):
+                color = True
+            elif sys.__stdout__ is not None and sys.__stdout__.isatty():
                 color = True
             else:
-                color = False
+                color = True
         elif color == "true":
             color = True
         else:
