@@ -1406,7 +1406,7 @@ requires-dist = [
     { name = "humanize", specifier = ">=4.4.0" },
     { name = "humanize", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "hyperframe", specifier = ">=5.2.0,<6.0.0" },
-    { name = "idna", specifier = ">=2.5,<2.6" },
+    { name = "idna", specifier = ">=2.5,<3.19" },
     { name = "importlib-resources", specifier = ">=5.10.2" },
     { name = "incremental", specifier = ">=22.10.0" },
     { name = "iso8601", specifier = ">=1.1.0" },
@@ -2239,11 +2239,11 @@ wheels = [
 
 [[package]]
 name = "idna"
-version = "2.5"
+version = "3.18"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d8/82/28a51052215014efc07feac7330ed758702fc0581347098a81699b5281cb/idna-2.5.tar.gz", hash = "sha256:3cb5ce08046c4e3a560fc02f138d0ac63e00f8ce5901a56b32ec8b7994082aab", size = 130211, upload-time = "2017-03-07T03:27:25.04Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/63/9496c57188a2ee585e0f1db071d75089a11e98aa86eb99d9d7618fc1edce/idna-3.18.tar.gz", hash = "sha256:ffb385a7e039654cef1ab9ef32c6fafe283c0c0467bba1d9029738ce4a14a848", size = 196711, upload-time = "2026-06-02T14:34:07.794Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/11/7d/9bbbd7bb35f34b0169542487d2a8859e44306bb2e6a4455d491800a5621f/idna-2.5-py2.py3-none-any.whl", hash = "sha256:cc19709fd6d0cbfed39ea875d29ba6d4e22c0cebc510a76d6302a28385e8bb70", size = 55106, upload-time = "2017-03-07T03:27:27.825Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/5e/d4e9f1a599fb8e573b7b87160658329fbf28d19eac2718f51fc3def3aa5a/idna-3.18-py3-none-any.whl", hash = "sha256:7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2", size = 65455, upload-time = "2026-06-02T14:34:06.319Z" },
 ]
 
 [[package]]
