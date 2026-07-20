@@ -4980,20 +4980,19 @@ wheels = [
 
 [[package]]
 name = "treq"
-version = "25.5.0"
+version = "26.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
     { name = "hyperlink" },
     { name = "incremental" },
     { name = "multipart" },
-    { name = "requests" },
     { name = "twisted", extra = ["tls"] },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ed/7b/b9dba8d947584481aad7e29b01f2ea6bbe794a0352e0cdb68e99ab135c31/treq-25.5.0.tar.gz", hash = "sha256:25dde3a55ae85ec2f2c56332c99aef255ab14f997d0d00552ebff13538a9804a", size = 83588, upload-time = "2025-06-03T03:42:32.594Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/92/13/96aceb81d076eea518bf174048db701ac8b139c7aed1082913318a55a7d2/treq-26.7.0.tar.gz", hash = "sha256:43e728e12aca2d897c626cf07dc7b4392749b73de050a7d66e086cb3a6e15da9", size = 81748, upload-time = "2026-07-02T00:07:54.334Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/b8/60b5817abccc4f8aaf55919407addaf5f91bd49628464778c7884948126a/treq-25.5.0-py3-none-any.whl", hash = "sha256:e99d4e66cacaa1f0da82bb60b317d104c29dbd8ac0a75d7f657b348178d830f4", size = 77937, upload-time = "2025-06-03T03:42:30.975Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/6f/6396d90267494553b7db6dc6aaaf8a773255eae209d4381428672f52f716/treq-26.7.0-py3-none-any.whl", hash = "sha256:0a56ac4d970f7b1e27a4df4057d225efd84524b1847e123a725c531039702f98", size = 75461, upload-time = "2026-07-02T00:07:52.958Z" },
 ]
 
 [[package]]
