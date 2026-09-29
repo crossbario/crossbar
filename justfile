@@ -77,7 +77,7 @@ _get-spec short_name:
         cpy312)  echo "cpython-3.12";;
         cpy311)  echo "cpython-3.11";;
         cpy310)  echo "cpython-3.10";;
-        pypy311) echo "pypy-3.11";;
+        pypy311) echo "pypy-3.11.15";;  # PyPy 7.3.23 = last pp73 ABI; pinned on purpose (PyPy 8.0 = new pp80 ABI)
         pypy310) echo "pypy-3.10";;
         *)       echo "Unknown environment: {{short_name}}" >&2; exit 1;;
     esac
@@ -584,7 +584,7 @@ check-typing venv="":
 
     # TEMPORARY (WAMP fleet rollout wave1-2026-09): newer ty reports redundant-condition.
     # These are REAL bugs (e.g. `assert (x for x in y)` is always true, so the check never
-    # runs) - tracked in follow-up issues and to be fixed before 26.9.1; then drop these ignores.
+    # runs) - tracked in #2290, to be fixed before 26.9.1; then drop these ignores.
     ty check \
         --python "${VENV_PYTHON}" \
         --ignore unresolved-import \

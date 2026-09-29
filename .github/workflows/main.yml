@@ -86,7 +86,7 @@ jobs:
             venv-name: cpy313
           - python-version: '3.14'
             venv-name: cpy314
-          - python-version: 'pypy3.11'
+          - python-version: 'pypy3.11.15'  # pinned: see justfile (pp73 ABI)
             venv-name: pypy311
 
     steps:
@@ -186,7 +186,7 @@ jobs:
             venv-name: cpy313
           - python-version: '3.14'
             venv-name: cpy314
-          - python-version: 'pypy3.11'
+          - python-version: 'pypy3.11.15'  # pinned: see justfile (pp73 ABI)
             venv-name: pypy311
 
     steps:
