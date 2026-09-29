@@ -37,6 +37,11 @@ jobs:
         with:
           submodules: recursive
 
+      # Shared community files (CONTRIBUTING.md, PR template, .audit/README.md) must be
+      # byte-identical to .cicd/templates/ at the pinned wamp-cicd commit (wamp-cicd#16).
+      - name: Community files in sync with .cicd/templates/
+        run: bash .cicd/scripts/community-files.sh check .
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 

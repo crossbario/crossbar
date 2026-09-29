@@ -1,139 +1,42 @@
+<!--
+Thank you for contributing! Please read CONTRIBUTING.md first - in particular:
+GitHub issue first, red -> green tests, and the AI-assistance disclosure file.
+-->
+
 ## Description
 
-**Summary**: [Brief one-line description of changes]
+<!-- What does this pull request change, and why? -->
 
-**Motivation**: [Why is this change needed? What problem does it solve?]
+## Related issue
 
-**Related Issue(s)**: Fixes #XXX
+Closes #
 
-## Type of Change
-
-- [ ] Bug fix (non-breaking change fixing an issue)
-- [ ] New feature (non-breaking change adding functionality)
-- [ ] Breaking change (fix or feature causing existing functionality to not work as expected)
-- [ ] Documentation update
-- [ ] Refactoring (no functional changes)
-- [ ] Performance improvement
-- [ ] Test coverage improvement
-
-## Changes Made
-
-### Core Changes
-- [Change 1]
-- [Change 2]
-- [...]
-
-### API Changes
-- [ ] No API changes
-- [ ] New API added (backward compatible)
-- [ ] API modified (breaking change)
-- [ ] API deprecated
-
-### Documentation Changes
-- [Doc change 1]
-- [Doc change 2]
-
-## Testing
-
-### Test Coverage
-- [ ] Unit tests added/updated
-- [ ] Integration tests added/updated
-- [ ] Test coverage maintained or improved
-- [ ] All tests pass locally
-
-### Testing Checklist
-- [ ] Tested on CPython 3.11
-- [ ] Tested on CPython 3.12
-- [ ] Tested on CPython 3.13
-- [ ] Tested on PyPy 3.11
-- [ ] Tested with Twisted (if applicable)
-- [ ] Tested with asyncio (if applicable)
-- [ ] Tested on Linux
-- [ ] Tested on macOS
-- [ ] Tested on Windows
-
-### Test Results
-```
-# Paste test output here
-# Example: pytest output, coverage report, etc.
-```
-
-## Code Quality
-
-- [ ] Code follows project style guidelines (ruff, black)
-- [ ] Type hints added/updated (mypy passes)
-- [ ] Docstrings added/updated
-- [ ] Comments added for complex logic
-- [ ] No new linter warnings
-- [ ] No security vulnerabilities introduced
-
-## Performance Impact
-
-- [ ] No performance impact
-- [ ] Performance improved
-- [ ] Performance regression (justified in description)
-
-**Benchmarks** (if applicable):
-```
-# Paste benchmark results
-```
-
-## Breaking Changes
-
-- [ ] No breaking changes
-- [ ] Breaking changes documented below
-
-**Breaking Changes Description**:
-[Describe what breaks and migration path]
-
-**Migration Guide**:
-```python
-# Before
-old_api()
-
-# After
-new_api()
-```
-
-## Deployment Notes
-
-- [ ] No special deployment steps required
-- [ ] Database migration needed
-- [ ] Configuration changes needed
-- [ ] Dependencies updated
-
-**Deployment Steps** (if applicable):
-1. [Step 1]
-2. [Step 2]
-
-## Screenshots/Recordings
-
-[If applicable, add screenshots or recordings demonstrating the changes]
+<!-- Every change starts with a GitHub issue where the approach was agreed (see CONTRIBUTING.md). -->
 
 ## Checklist
 
-- [ ] My code follows the project's style guidelines
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published
+- [ ] The issue above exists, and the approach was agreed there
+- [ ] Red, then green: a failing test first, then the change that makes it pass, with links to both
+      CI runs in pull request comments (purely editorial changes skip this)
+- [ ] Tests pass locally on every runtime this project supports (see DEVELOPMENT.md)
+- [ ] Changelog entry referencing the issue, for any user-visible change
+- [ ] AI-assistance disclosure file added at `.audit/<github-username>_<branch>.md`
 
-## AI Assistance Disclosure
+## AI-assistance disclosure
 
-- [ ] This PR was created entirely by a human
-- [ ] This PR was created with AI assistance
+**Required.** Add `.audit/<github-username>_<branch>.md` with exactly this content, ticking the box
+that applies:
 
-**If AI-assisted, please provide details**:
-- **AI Tool**: [e.g., Claude Code, GitHub Copilot]
-- **Scope of AI Assistance**: [e.g., "Code refactoring suggestions", "Test generation", "Documentation writing"]
-- **Human Review**: [Describe how you reviewed and validated the AI-generated content]
+```markdown
+- [ ] I did **not** use any AI-assistance tools to help create this pull request.
+- [x] I **did** use AI-assistance tools to *help* create this pull request.
+- [x] I have read, understood and followed the project's AI_POLICY.md when creating code, documentation etc. for this pull request.
 
-**Note**: Per AI_POLICY.md, you (the human) are the sole author of this contribution.
-AI assistance is acknowledged but does not constitute co-authorship.
+Submitted by: @<github-username>
+Date: <YYYY-MM-DD>
+Related issue(s): #<issue-number>
+Branch: <github-username>:<branch>
+```
 
-## Additional Notes
-
-[Any additional context, concerns, or discussion points]
+Exactly one of the first two boxes must be ticked, and always the third. In the **filename**, use an
+underscore, never `:` or `/` (those break `git checkout` on Windows). Details are in CONTRIBUTING.md.

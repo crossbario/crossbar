@@ -8,6 +8,16 @@
 set unstable := true
 set positional-arguments := true
 
+# -----------------------------------------------------------------------------
+# -- Way-A shared workflow recipes (wamp-cicd / .cicd/workflow.just)
+# -----------------------------------------------------------------------------
+# This repo's default branch is `master` (not `main`). Override WORKFLOW_MAIN
+# BEFORE the import so the main-justfile definition wins over workflow.just's
+# default of 'main'. Do NOT also `set allow-duplicate-variables` here —
+# workflow.just owns that setting (setting it twice is a hard `just` error).
+WORKFLOW_MAIN := 'master'
+import '.cicd/workflow.just'
+
 # project base directory = directory of this justfile
 PROJECT_DIR := justfile_directory()
 
@@ -2263,7 +2273,9 @@ publish-rtd tag="":
     echo ""
 
 # Publish package to PyPI and trigger RTD build (meta-recipe)
-publish venv="" tag="": (publish-pypi venv tag) (publish-rtd tag)
+# NOTE: named `publish-release` (not `publish`) so it does not collide with the
+# Way-A `publish` recipe imported from .cicd/workflow.just (push branch -> exchange).
+publish-release venv="" tag="": (publish-pypi venv tag) (publish-rtd tag)
 
 
 # -----------------------------------------------------------------------------
