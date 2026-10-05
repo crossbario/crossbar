@@ -1,3 +1,9 @@
+###############################################################################
+#
+#  Copyright (C) typedef int GmbH
+#  SPDX-License-Identifier: EUPL-1.2
+#
+###############################################################################
 from autobahn.twisted.util import sleep
 
 
