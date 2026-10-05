@@ -60,7 +60,7 @@ dependencies = [
     "txtorcon>=22.0.0",
 
     # Ethereum/XBR stack
-    "eth-abi>=5.1.0,<5.2.0",
+    "eth-abi>=5.1.0,<6.1.0",
     "eth-account>=0.13.0",
     "eth-typing>=5.0.1",
     "py-eth-sig-utils>=0.4.0",
