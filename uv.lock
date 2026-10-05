@@ -3,19 +3,19 @@ revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform != 'darwin' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and sys_platform != 'darwin' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'win32'",
-    "python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'win32'",
     "python_full_version >= '3.14' and sys_platform == 'darwin'",
-    "python_full_version == '3.13.*' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and sys_platform == 'darwin'",
-    "python_full_version < '3.12' and sys_platform == 'darwin'",
     "python_full_version >= '3.14' and platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and platform_python_implementation != 'PyPy' and sys_platform == 'win32'",
+    "python_full_version == '3.13.*' and sys_platform != 'darwin' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*' and sys_platform == 'darwin'",
     "python_full_version == '3.13.*' and platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and platform_python_implementation != 'PyPy' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'win32'",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and platform_python_implementation != 'PyPy' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'darwin'",
     "python_full_version < '3.12' and platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
     "python_full_version < '3.12' and platform_python_implementation != 'PyPy' and sys_platform == 'win32'",
 ]
@@ -188,8 +188,8 @@ name = "anyio"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "async-generator", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "sniffio", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "async-generator" },
+    { name = "sniffio" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/44/eb/c5f29a8c854cf454cb995dc791152c641eb8948b2d71cb30e233eb262c53/anyio-1.3.1.tar.gz", hash = "sha256:a46bb2b7743455434afd9adea848a3c4e0b7321aee3e9d08844b11d348d3b5a0", size = 56763, upload-time = "2020-05-31T11:50:54.61Z" }
 wheels = [
@@ -282,15 +282,15 @@ version = "4.0.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform != 'darwin' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and sys_platform != 'darwin' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'win32'",
     "python_full_version >= '3.14' and sys_platform == 'darwin'",
-    "python_full_version == '3.13.*' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and sys_platform == 'darwin'",
     "python_full_version >= '3.14' and platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and platform_python_implementation != 'PyPy' and sys_platform == 'win32'",
+    "python_full_version == '3.13.*' and sys_platform != 'darwin' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*' and sys_platform == 'darwin'",
     "python_full_version == '3.13.*' and platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and platform_python_implementation != 'PyPy' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'win32'",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and platform_python_implementation != 'PyPy' and sys_platform == 'win32'",
 ]
@@ -643,7 +643,7 @@ name = "bjdata"
 version = "0.6.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", marker = "platform_python_implementation != 'PyPy' or sys_platform != 'win32'" },
+    { name = "numpy" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9b/38/966b30416c03f9da1b2b2708c4ba7ec86313ca01b26c07f1d3d23e9657dc/bjdata-0.6.6.tar.gz", hash = "sha256:82def364868c36ab5851feb13cbfac9a15cbbe7b5e515cc16af24f9b979a936c", size = 97008, upload-time = "2026-01-21T05:24:41.946Z" }
 
@@ -1438,7 +1438,7 @@ requires-dist = [
     { name = "humanize", specifier = ">=4.4.0" },
     { name = "humanize", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "hyperframe", specifier = ">=5.2.0,<6.0.0" },
-    { name = "idna", specifier = ">=2.5,<2.6" },
+    { name = "idna", specifier = ">=2.5,<3.21" },
     { name = "importlib-resources", specifier = ">=5.10.2" },
     { name = "incremental", specifier = ">=22.10.0" },
     { name = "iso8601", specifier = ">=1.1.0" },
@@ -2187,8 +2187,8 @@ name = "httpcore"
 version = "1.0.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "certifi", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "h11", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "certifi" },
+    { name = "h11" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/06/94/82699a10bca87a5556c9c59b5963f2d039dbd239f25bc2a63907a05a14cb/httpcore-1.0.9.tar.gz", hash = "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8", size = 85484, upload-time = "2025-04-24T22:06:22.219Z" }
 wheels = [
@@ -2200,10 +2200,10 @@ name = "httpx"
 version = "0.28.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "anyio", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "certifi", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "httpcore", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "idna", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "anyio" },
+    { name = "certifi" },
+    { name = "httpcore" },
+    { name = "idna" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
 wheels = [
@@ -2212,7 +2212,7 @@ wheels = [
 
 [package.optional-dependencies]
 http2 = [
-    { name = "h2", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "h2" },
 ]
 
 [[package]]
@@ -2250,7 +2250,7 @@ name = "hypothesis"
 version = "6.148.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "sortedcontainers", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "sortedcontainers" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/09/5e/6a506e81d4dfefed2e838b6beaaae87b2e411dda3da0a3abf94099f194ae/hypothesis-6.148.7.tar.gz", hash = "sha256:b96e817e715c5b1a278411e3b9baf6d599d5b12207ba25e41a8f066929f6c2a6", size = 471199, upload-time = "2025-12-05T02:12:38.068Z" }
 wheels = [
@@ -2271,11 +2271,11 @@ wheels = [
 
 [[package]]
 name = "idna"
-version = "2.5"
+version = "3.20"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d8/82/28a51052215014efc07feac7330ed758702fc0581347098a81699b5281cb/idna-2.5.tar.gz", hash = "sha256:3cb5ce08046c4e3a560fc02f138d0ac63e00f8ce5901a56b32ec8b7994082aab", size = 130211, upload-time = "2017-03-07T03:27:25.04Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f5/08/8eea9d4b8302028f3abb2c0813953f7aec26d33b7a8960ed760e65ff29fa/idna-3.20.tar.gz", hash = "sha256:a7db850025b95ded1eae8a46181a1a6c56c92c96f0e2b005d9ff8dc0210cab44", size = 216463, upload-time = "2026-09-17T14:11:04.752Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/11/7d/9bbbd7bb35f34b0169542487d2a8859e44306bb2e6a4455d491800a5621f/idna-2.5-py2.py3-none-any.whl", hash = "sha256:cc19709fd6d0cbfed39ea875d29ba6d4e22c0cebc510a76d6302a28385e8bb70", size = 55106, upload-time = "2017-03-07T03:27:27.825Z" },
+    { url = "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl", hash = "sha256:ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c", size = 69583, upload-time = "2026-09-17T14:11:03.168Z" },
 ]
 
 [[package]]
@@ -2292,7 +2292,7 @@ name = "importlib-metadata"
 version = "8.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", marker = "python_full_version < '3.12'" },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/76/66/650a33bd90f786193e4de4b3ad86ea60b53c89b669a5c7be931fac31cdb0/importlib_metadata-8.7.0.tar.gz", hash = "sha256:d13b81ad223b890aa16c5471f2ac3056cf76c5f10f82d6f9292f0b415f389000", size = 56641, upload-time = "2025-04-27T15:29:01.736Z" }
 wheels = [
@@ -2514,7 +2514,7 @@ name = "macholib"
 version = "1.16.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "altgraph", marker = "sys_platform == 'darwin'" },
+    { name = "altgraph" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/10/2f/97589876ea967487978071c9042518d28b958d87b17dceb7cdc1d881f963/macholib-1.16.4.tar.gz", hash = "sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362", size = 59427, upload-time = "2025-11-22T08:28:38.373Z" }
 wheels = [
@@ -3784,8 +3784,8 @@ name = "pyobjc-framework-cfnetwork"
 version = "12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyobjc-core", marker = "sys_platform == 'darwin'" },
-    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'" },
+    { name = "pyobjc-core" },
+    { name = "pyobjc-framework-cocoa" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d2/6a/f5f0f191956e187db85312cbffcc41bf863670d121b9190b4a35f0d36403/pyobjc_framework_cfnetwork-12.1.tar.gz", hash = "sha256:2d16e820f2d43522c793f55833fda89888139d7a84ca5758548ba1f3a325a88d", size = 44383, upload-time = "2025-11-14T10:10:08.428Z" }
 wheels = [
@@ -3802,7 +3802,7 @@ name = "pyobjc-framework-cocoa"
 version = "12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyobjc-core", marker = "sys_platform == 'darwin'" },
+    { name = "pyobjc-core" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/02/a3/16ca9a15e77c061a9250afbae2eae26f2e1579eb8ca9462ae2d2c71e1169/pyobjc_framework_cocoa-12.1.tar.gz", hash = "sha256:5556c87db95711b985d5efdaaf01c917ddd41d148b1e52a0c66b1a2e2c5c1640", size = 2772191, upload-time = "2025-11-14T10:13:02.069Z" }
 wheels = [
@@ -4474,8 +4474,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "sys_platform != 'darwin' and sys_platform != 'win32'" },
-    { name = "jeepney", marker = "sys_platform != 'darwin' and sys_platform != 'win32'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
@@ -5045,23 +5045,23 @@ http2 = [
     { name = "priority" },
 ]
 osx-platform = [
-    { name = "appdirs", marker = "sys_platform == 'darwin'" },
-    { name = "bcrypt", marker = "sys_platform == 'darwin'" },
-    { name = "cryptography", marker = "sys_platform == 'darwin'" },
-    { name = "cython-test-exception-raiser", marker = "sys_platform == 'darwin'" },
-    { name = "h2", marker = "sys_platform == 'darwin'" },
-    { name = "httpx", extra = ["http2"], marker = "sys_platform == 'darwin'" },
-    { name = "hypothesis", marker = "sys_platform == 'darwin'" },
-    { name = "idna", marker = "sys_platform == 'darwin'" },
-    { name = "priority", marker = "sys_platform == 'darwin'" },
-    { name = "pyhamcrest", marker = "sys_platform == 'darwin'" },
-    { name = "pyobjc-core", marker = "sys_platform == 'darwin'" },
-    { name = "pyobjc-framework-cfnetwork", marker = "sys_platform == 'darwin'" },
-    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'" },
-    { name = "pyopenssl", marker = "sys_platform == 'darwin'" },
-    { name = "pyserial", marker = "sys_platform == 'darwin'" },
-    { name = "service-identity", marker = "sys_platform == 'darwin'" },
-    { name = "wsproto", marker = "sys_platform == 'darwin'" },
+    { name = "appdirs" },
+    { name = "bcrypt" },
+    { name = "cryptography" },
+    { name = "cython-test-exception-raiser" },
+    { name = "h2" },
+    { name = "httpx", extra = ["http2"] },
+    { name = "hypothesis" },
+    { name = "idna" },
+    { name = "priority" },
+    { name = "pyhamcrest" },
+    { name = "pyobjc-core" },
+    { name = "pyobjc-framework-cfnetwork" },
+    { name = "pyobjc-framework-cocoa" },
+    { name = "pyopenssl" },
+    { name = "pyserial" },
+    { name = "service-identity" },
+    { name = "wsproto" },
 ]
 tls = [
     { name = "idna" },
@@ -5069,22 +5069,22 @@ tls = [
     { name = "service-identity" },
 ]
 windows-platform = [
-    { name = "appdirs", marker = "sys_platform == 'win32'" },
-    { name = "bcrypt", marker = "sys_platform == 'win32'" },
-    { name = "cryptography", marker = "sys_platform == 'win32'" },
-    { name = "cython-test-exception-raiser", marker = "sys_platform == 'win32'" },
-    { name = "h2", marker = "sys_platform == 'win32'" },
-    { name = "httpx", extra = ["http2"], marker = "sys_platform == 'win32'" },
-    { name = "hypothesis", marker = "sys_platform == 'win32'" },
-    { name = "idna", marker = "sys_platform == 'win32'" },
-    { name = "priority", marker = "sys_platform == 'win32'" },
-    { name = "pyhamcrest", marker = "sys_platform == 'win32'" },
-    { name = "pyopenssl", marker = "sys_platform == 'win32'" },
-    { name = "pyserial", marker = "sys_platform == 'win32'" },
-    { name = "pywin32", marker = "sys_platform == 'win32'" },
-    { name = "service-identity", marker = "sys_platform == 'win32'" },
-    { name = "twisted-iocpsupport", marker = "sys_platform == 'win32'" },
-    { name = "wsproto", marker = "sys_platform == 'win32'" },
+    { name = "appdirs" },
+    { name = "bcrypt" },
+    { name = "cryptography" },
+    { name = "cython-test-exception-raiser" },
+    { name = "h2" },
+    { name = "httpx", extra = ["http2"] },
+    { name = "hypothesis" },
+    { name = "idna" },
+    { name = "priority" },
+    { name = "pyhamcrest" },
+    { name = "pyopenssl" },
+    { name = "pyserial" },
+    { name = "pywin32" },
+    { name = "service-identity" },
+    { name = "twisted-iocpsupport" },
+    { name = "wsproto" },
 ]
 
 [[package]]
@@ -5473,7 +5473,7 @@ name = "wsproto"
 version = "1.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "h11", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "h11" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c7/79/12135bdf8b9c9367b8701c2c19a14c913c120b882d50b014ca0d38083c2c/wsproto-1.3.2.tar.gz", hash = "sha256:b86885dcf294e15204919950f666e06ffc6c7c114ca900b060d6e16293528294", size = 50116, upload-time = "2025-11-20T18:18:01.871Z" }
 wheels = [
