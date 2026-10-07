@@ -4,3 +4,6 @@
 [submodule ".cicd"]
 	path = .cicd
 	url = https://github.com/wamp-proto/wamp-cicd.git
+[submodule ".autobahn-crossbar-ai"]
+	path = .autobahn-crossbar-ai
+	url = https://github.com/crossbario/autobahn-crossbar-ai.git
