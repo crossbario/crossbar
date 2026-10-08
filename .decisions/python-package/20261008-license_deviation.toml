@@ -1,0 +1,13 @@
+schema = 1
+aspect = "python-package"
+provider = ".autobahn-crossbar-ai"
+provider_rev = "ac8a102ff241fee426b7b81961dfa17f3ec2eb7d"
+type = "license_deviation"
+question = "House standard: OSS = MIT, closed = LicenseRef-Proprietary. This package declares EUPL-1.2. Keep it?"
+options = ["keep", "relicense:MIT"]
+answer = "keep"
+decided_by = "human"
+
+[precondition]
+paths = ["LICENSE", "pyproject.toml#project.license"]
+sha256 = "3578e7272eb1cfe8ed6a13fc5a1ba1474b163fc8ba614dad963137e82265d3c8"
