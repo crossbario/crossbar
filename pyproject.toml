@@ -269,6 +269,9 @@ line-length = 119
 target-version = "py311"
 extend-exclude = [
     "src/crossbar/worker/test/examples/syntaxerror.py",  # Intentionally malformed test file
+    ".ai",
+    ".autobahn-crossbar-ai",
+    ".cicd",
 ]
 
 [tool.ruff.lint]
