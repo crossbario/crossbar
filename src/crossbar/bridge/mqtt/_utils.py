@@ -6,7 +6,6 @@
 #####################################################################################
 
 from autobahn.websocket.utf8validator import Utf8Validator
-from bitstring import pack
 
 _validator = Utf8Validator()
 
@@ -19,12 +18,45 @@ class SerialisationFailure(Exception):
     pass
 
 
+class ReadError(Exception):
+    """
+    Raised when reading past the end of the data in a :class:`ByteReader`.
+    """
+
+
+class ByteReader(object):
+    """
+    Read position over the bytes of one MQTT packet (replaces ``bitstring.BitStream``, #2321).
+    """
+
+    def __init__(self, data):
+        self._data = bytes(data)
+        self.pos = 0
+
+    def __len__(self):
+        return len(self._data)
+
+    def read_bytes(self, count):
+        end = self.pos + count
+        if end > len(self._data):
+            raise ReadError("Cannot read {} bytes, only {} available.".format(count, len(self._data) - self.pos))
+        result = self._data[self.pos : end]
+        self.pos = end
+        return result
+
+    def read_uint8(self):
+        return self.read_bytes(1)[0]
+
+    def read_uint16(self):
+        return int.from_bytes(self.read_bytes(2), "big")
+
+
 def read_prefixed_data(data):
     """
     Reads the next 16-bit-uint prefixed data block from `data`.
     """
-    data_length = data.read("uint:16")
-    return data.read(data_length * 8).bytes
+    data_length = data.read_uint16()
+    return data.read_bytes(data_length)
 
 
 def read_string(data):
@@ -45,11 +77,11 @@ def read_string(data):
 
 def build_string(string):
     string = string.encode("utf8")
-    return pack("uint:16", len(string)).bytes + string
+    return len(string).to_bytes(2, "big") + string
 
 
 def build_header(packet_id, flags, payload_length):
-    header = pack("uint:4, bool, bool, bool, bool", packet_id, *flags)
+    header = bytes([(packet_id << 4) | (flags[0] << 3) | (flags[1] << 2) | (flags[2] << 1) | flags[3]])
 
     if payload_length > 0:
         length_bytes = []
@@ -63,7 +95,7 @@ def build_header(packet_id, flags, payload_length):
     else:
         length_bytes = [0]
 
-    return header.bytes + pack(",".join(["uint:8"] * len(length_bytes)), *length_bytes).bytes
+    return header + bytes(length_bytes)
 
 
 def iterbytes(b):
