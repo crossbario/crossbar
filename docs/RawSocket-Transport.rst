@@ -61,6 +61,9 @@ for RawSocket listening transports are:
 +--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 | endpoint           | A network connection for data transmission - see :doc:`Transport Endpoints<Transport-Endpoints>` (required)                                            |
 +--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| max_connections    | Maximum number of open connections on the listening port of this transport. Further connections are closed right after they are accepted, before any   |
+|                    | TLS or WAMP handshake. Must be an integer > 0 (default: 50000) - see :doc:`Connection Limit<Router-Transports>`                                        |
++--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 | serializers        | List of serializers to use from "json" or "msgpack" (default: all available)                                                                           |
 +--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
 | max_message_size   | Maximum size in bytes of incoming (uncompressed) RawSocket messages accepted. Must be between 512 bytes and 16 MB (default: 16777216 = 16 MB)          |

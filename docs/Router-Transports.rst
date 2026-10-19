@@ -27,6 +27,44 @@ fully working transport.
     for  :doc:`TCP Benchmarks <Stream-Testee>` and  :doc:`WebSocket
     Testing <WebSocket-Compliance-Testing>`.
 
+Connection Limit
+----------------
+
+Every listening transport caps the number of connections open at the
+same time on its listening port with ``max_connections``. When the cap is
+reached, a new connection is closed right after it is accepted, before
+any TLS, WebSocket or RawSocket handshake. The router logs refused
+connections (at most once every 10 seconds, with the number refused).
+Closing an open connection frees its slot again.
+
+``max_connections`` is set on the transport itself, next to
+``endpoint``:
+
+.. code:: json
+
+    {
+       "type": "websocket",
+       "endpoint": {
+          "type": "tcp",
+          "port": 8080
+       },
+       "max_connections": 100000
+    }
+
+It must be an integer greater than 0, and defaults to **50000**. For a
+Universal transport, set it on the Universal transport, not on its
+``rawsocket``, ``websocket``, ``mqtt`` or ``web`` parts: the cap belongs to
+the listening port, which they share.
+
+As a sizing rule, run one router worker per CPU core: one router worker
+handles about 50000 concurrent WAMP-over-WebSocket-over-TLS connections.
+For example, a single socket server with 8 cores serves about 400000
+connections, and one with 64 cores about 3.2 million.
+
+The operating system limits the number of open file descriptors per
+process as well (``ulimit -n``). For a cap of 50000, that limit must be
+higher than 50000.
+
 Background
 ----------
 
