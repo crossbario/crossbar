@@ -308,3 +308,61 @@ class MaxConnectionsLayeringTests(_TransportTestCase):
 
     def test_web_websocket_upgrade_counted_tls(self):
         return self._check_web_websocket(self._tls(self._web_config()))
+
+
+class MaxConnectionsLogPrefixTests(unittest.TestCase):
+    """
+    The connection cap does not change the log lines of the listening port (#2324): e.g. the
+    functional tests wait for "WampRawSocketServerFactory starting on <port>".
+    """
+
+    def test_factory_log_prefix(self):
+        from twisted.internet.protocol import Factory
+
+        from crossbar.common.twisted.endpoint import MaxConnectionsFactory
+
+        class WampRawSocketServerFactory(Factory):
+            pass
+
+        factory = MaxConnectionsFactory(WampRawSocketServerFactory(), 2, "transport001", reactor, mock.Mock())
+        self.assertEqual(factory.logPrefix(), "WampRawSocketServerFactory")
+
+    @inlineCallbacks
+    def _starting_message(self, tls):
+        from twisted.python import log as legacy_log
+
+        cbdir = self.mktemp()
+        os.makedirs(cbdir)
+        worker = mock.Mock()
+        worker.personality = Personality
+        worker.config.extra.cbdir = cbdir
+        worker._reactor = reactor
+        config = _rawsocket_transport_config(max_connections=2)
+        if tls:
+            _write_self_signed(cbdir, ec.generate_private_key(ec.SECP256R1()))
+            config["endpoint"]["tls"] = {"key": "server.key", "certificate": "server.crt"}
+
+        messages = []
+
+        def observer(event):
+            messages.extend(str(m) for m in event.get("message", ()))
+
+        legacy_log.addObserver(observer)
+        try:
+            transport = RouterTransport(worker, "transport001", config)
+            yield transport.start()
+        finally:
+            legacy_log.removeObserver(observer)
+        self.addCleanup(transport.stop)
+        port = config["endpoint"]["port"]
+        return [m for m in messages if m.endswith("starting on {}".format(port))], port
+
+    @inlineCallbacks
+    def test_port_starting_message(self):
+        messages, port = yield self._starting_message(tls=False)
+        self.assertEqual(messages, ["WampRawSocketServerFactory starting on {}".format(port)])
+
+    @inlineCallbacks
+    def test_port_starting_message_tls(self):
+        messages, port = yield self._starting_message(tls=True)
+        self.assertEqual(messages, ["WampRawSocketServerFactory (TLS) starting on {}".format(port)])
