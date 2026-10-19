@@ -8,6 +8,9 @@ Changelog
 Unreleased
 ----------
 
+* new: coordinated WAMP **26.10.1 release train** — raise the dependency floor to ``autobahn>=26.10.1`` (fix for advisory ``GHSA-pjh6-c8mg-3x7m``), ``zlmdb>=26.10.1`` and ``xbr>=26.10.1``, and relock ``uv.lock``; ``txaio`` and ``cfxdb`` remain at 26.6.1 (`#2326 <https://github.com/crossbario/crossbar/issues/2326>`_)
+* new: Crossbar.io 26.10 release key (``crossbar-26-10.pub``); the unreleased 26.9 key is removed (`#2326 <https://github.com/crossbario/crossbar/issues/2326>`_)
+* new: release codename for the **26.10 series — "Poke The Bear"**, moved from the never-released 26.9 series (`#2326 <https://github.com/crossbario/crossbar/issues/2326>`_)
 * new: Adopt the contribution workflow shared by all WAMP projects: ``CONTRIBUTING.md``, the pull request template and ``.audit/README.md`` are deployed byte-identically from wamp-cicd (GitHub issue first, red → green tests, AI-assistance disclosure) and kept in sync by a CI drift check; project-specific notes moved to a new ``DEVELOPMENT.md``. ``.cicd`` and ``.ai`` are pinned to the same commits across the WAMP fleet, and the shared workflow recipes (``just where``, ``new-branch``, ``publish``, ``land``) are imported; the release meta-recipe ``publish`` is renamed ``publish-release`` (#2288)
 
 26.7.1

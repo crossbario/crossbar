@@ -28,7 +28,7 @@ from typing import Dict, Optional, Tuple
 _CODENAMES: Dict[Tuple[int, int], str] = {
     (26, 6): "Resistance Is Futile",
     (26, 7): "Shields Up",
-    (26, 9): "Poke The Bear",
+    (26, 10): "Poke The Bear",
 }
 
 
