@@ -24,10 +24,8 @@ from twisted.internet.endpoints import (
 )
 from twisted.internet.interfaces import IStreamServerEndpoint
 from twisted.internet.ssl import (
-    AcceptableCiphers,
     Certificate,
     CertificateOptions,
-    DiffieHellmanParameters,
     KeyPair,
     PrivateCertificate,
     optionsForClientTLS,
@@ -99,54 +97,12 @@ def _create_tls_server_context(config, cbdir, log):
                 ca_certs.append(Certificate.loadPEM(f.read()).original)
             log.info("Loading server TLS CA certificate from {ca_cert_filepath}", ca_cert_filepath=ca_cert_filepath)
 
-    # ciphers we accept
-    #
-    # We prefer to make every single cipher (6 in total) _explicit_ (to reduce chances either we or the pattern-matching
-    # language inside OpenSSL messes up) and drop support for Windows XP (we do WebSocket anyway).
-    #
-    # We don't use AES256 and SHA384, to reduce number of ciphers and since the additional
-    # security gain seems not worth the additional performance drain.
-    #
-    # We also don't use ECDSA, since EC certificates a rare in the wild.
-    #
-    # The effective list of ciphers determined from an OpenSSL cipher string:
-    #
-    #   openssl ciphers -v 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:'
-    #
-    # References:
-    #
-    #  * https://www.ssllabs.com/ssltest/analyze.html?d=myserver.com
-    #  * http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-    #  * http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT
-    #  * https://wiki.mozilla.org/Talk:Security/Server_Side_TLS
-    #
-    if "ciphers" in config:
-        log.info("Using explicit TLS ciphers from config")
-        crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(config["ciphers"])
-    else:
-        log.info("Using secure default TLS ciphers")
-        crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(
-            # AEAD modes (GCM)
-            # 'ECDHE-ECDSA-AES128-GCM-SHA256:'
-            "ECDHE-RSA-AES128-GCM-SHA256:"
-            # 'ECDHE-ECDSA-AES256-GCM-SHA384:'
-            # 'ECDHE-RSA-AES256-GCM-SHA384:'
-            "DHE-RSA-AES128-GCM-SHA256:"
-            # 'DHE-RSA-AES256-GCM-SHA384:'
-            # CBC modes
-            "ECDHE-RSA-AES128-SHA256:"
-            "DHE-RSA-AES128-SHA256:"
-            "ECDHE-RSA-AES128-SHA:"
-            "DHE-RSA-AES128-SHA:"
-        )
-
-    # DH modes require a parameter file
-    if "dhparam" in config:
-        dhpath = FilePath(abspath(join(cbdir, config["dhparam"])))
-        dh_params = DiffieHellmanParameters.fromFile(dhpath)
-    else:
-        dh_params = None
-        log.warn("No OpenSSL DH parameter file set - DH cipher modes will be deactive!")
+    # TLS 1.3 only (#2325): TLS 1.3 has only AEAD cipher suites with forward secrecy and no
+    # DH parameters, so the TLS 1.2 settings "ciphers" and "dhparam" have no effect. They are
+    # still accepted in the configuration, so existing node configurations keep working.
+    for unused in ("ciphers", "dhparam"):
+        if unused in config:
+            log.info("TLS 1.3 only listener: ignoring TLS 1.2 setting '{unused}'", unused=unused)
 
     ctx = CertificateOptions(
         privateKey=key,
@@ -154,18 +110,16 @@ def _create_tls_server_context(config, cbdir, log):
         extraCertChain=extra_certs,
         verify=(ca_certs is not None),
         caCerts=ca_certs,
-        dhParameters=dh_params,
-        acceptableCiphers=crossbar_ciphers,
-        # Disable SSLv3 and TLSv1 -- only allow TLSv1.1 or higher
+        # Only allow TLS 1.3 (#2325)
         #
         # We are using Twisted private stuff (from twisted.internet._sslverify import TLSVersion),
-        # as OpenSSL.SSL.TLSv1_1_METHOD wont work:
+        # as the OpenSSL.SSL method constants wont work:
         #
         # [ERROR] File "../twisted/internet/_sslverify.py", line 1530, in __init__
         #    if raiseMinimumTo > self._defaultMinimumTLSVersion:
         #       builtins.TypeError: '>' not supported between instances of 'int' and 'NamedConstant'
         #
-        raiseMinimumTo=TLSVersion.TLSv1_1,
+        raiseMinimumTo=TLSVersion.TLSv1_3,
         # TLS hardening
         enableSingleUseKeys=True,
         enableSessions=False,

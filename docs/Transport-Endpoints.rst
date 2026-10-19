@@ -118,10 +118,16 @@ instead of "host"):
 +-----------------------+---------------+
 | **``certificate``**   |               |
 +-----------------------+---------------+
-| **``dhparam``**       |               |
+| **``dhparam``**       | Ignored, see  |
+|                       | below         |
 +-----------------------+---------------+
-| **``ciphers``**       |               |
+| **``ciphers``**       | Ignored, see  |
+|                       | below         |
 +-----------------------+---------------+
+
+TLS listening endpoints accept TLS 1.3 only. ``dhparam`` and ``ciphers``
+are TLS 1.2 settings: they are still accepted, but have no effect. See
+:doc:`Secure WebSocket and HTTPS <Secure-WebSocket-and-HTTPS>`.
 
 --------------
 

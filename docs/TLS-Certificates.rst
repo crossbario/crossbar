@@ -331,24 +331,6 @@ The files in that folder are:
 Essentially, Let's Encrypt has generated a mini-database contained in
 those files with all the info needed to refresh your certs as well!
 
-Generate a new Diffie-Hellman group
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**optional**
-
-We want to run modern ciphers, and one of those involves `Diffie-Hellman
-key
-exchange <https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange>`__.
-To use that **safely**, you have to generate another things (a so called
-group):
-
-.. code:: console
-
-    openssl dhparam -2 4096 -out /etc/letsencrypt/live/box1.example.com/dhparam.pem
-
-    Again, make sure that file is readable by the user Crossbar.io is
-    run under.
-
 Configure Crossbar.io
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -365,17 +347,12 @@ and ``chain_certificates``:
         "tls": {
             "key": "/etc/letsencrypt/live/box1.example.com/privkey.pem",
             "certificate": "/etc/letsencrypt/live/box1.example.com/cert.pem",
-            "chain_certificates": ["/etc/letsencrypt/live/box1.example.com/chain.pem"],
-            "dhparam": "/etc/letsencrypt/live/box1.example.com/dhparam.pem",
-            "ciphers": "ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:"
+            "chain_certificates": ["/etc/letsencrypt/live/box1.example.com/chain.pem"]
         }
     }
 
-In above, we are also pointing ``dhparam`` to the Diffie-Hellman group
-generated, and we provide an explicit ``ciphers`` list. Essentially, we
-disallow all but 4 ciphers altogether. Those ciphers are supported by
-modern gear, but won't work with deprecated stuff like Windows XP. You
-shouldn't care much about that, instead press users to upgrade.
+The listener accepts TLS 1.3 only, so no Diffie-Hellman group and no
+cipher list are needed.
 
 --------------
 
