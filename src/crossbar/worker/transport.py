@@ -28,6 +28,10 @@ from crossbar.worker.testee import StreamTesteeServerFactory, WebSocketTesteeSer
 # monkey patch the Twisted Web server identification
 twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
 
+# default cap on the number of open connections per listening transport (#2324): one router
+# worker per CPU core serves about 50k concurrent WAMP-WebSocket-TLS connections
+DEFAULT_MAX_CONNECTIONS = 50000
+
 
 class RouterTransport(object):
     """
@@ -208,6 +212,8 @@ class RouterTransport(object):
             self._transport_factory,
             self._worker._reactor,
             self.log,
+            max_connections=self._config.get("max_connections", DEFAULT_MAX_CONNECTIONS),
+            name=self._transport_id,
         )
 
         # when listening:

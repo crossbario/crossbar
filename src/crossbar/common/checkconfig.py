@@ -1031,6 +1031,34 @@ def check_transport_max_message_size(max_message_size):
         )
 
 
+def check_transport_max_connections(transport, with_endpoint, transport_name):
+    """
+    Check the ``max_connections`` parameter of a listening transport (int, > 0), see #2324.
+
+    The cap belongs to the transport that owns the listening port, so it is illegal on the
+    sub-transports of a Universal transport.
+
+    :param transport: The transport configuration to check.
+    :type transport: dict
+    """
+    if "max_connections" not in transport:
+        return
+    if not with_endpoint:
+        raise InvalidConfigException(
+            "illegal attribute 'max_connections' in Universal transport {} transport subitem "
+            "(set it on the Universal transport)".format(transport_name)
+        )
+    max_connections = transport["max_connections"]
+    if not isinstance(max_connections, int) or isinstance(max_connections, bool):
+        raise InvalidConfigException(
+            "'max_connections' attribute in transport must be int ({} encountered)".format(type(max_connections))
+        )
+    if max_connections < 1:
+        raise InvalidConfigException(
+            "invalid value {} for 'max_connections' attribute in transport (must be > 0)".format(max_connections)
+        )
+
+
 def check_transport_max_frame_size(max_frame_size):
     """
     Check the ``max_frame_size`` parameter for a WebSocket transport.
@@ -2358,11 +2386,13 @@ def check_listening_transport_web(personality, transport, with_endpoint=True, ig
     :type transport: dict
     """
     for k in transport:
-        if k not in ["id", "type", "endpoint", "paths", "options"]:
+        if k not in ["id", "type", "endpoint", "paths", "options", "max_connections"]:
             raise InvalidConfigException("encountered unknown attribute '{}' in Web transport configuration".format(k))
 
     if "id" in transport:
         check_id(transport["id"])
+
+    check_transport_max_connections(transport, with_endpoint, "Web")
 
     if with_endpoint:
         if "endpoint" not in transport:
@@ -2475,13 +2505,15 @@ def check_listening_transport_mqtt(personality, transport, with_endpoint=True):
     :type transport: dict
     """
     for k in transport:
-        if k not in ["id", "type", "endpoint", "options"]:
+        if k not in ["id", "type", "endpoint", "options", "max_connections"]:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in MQTT transport configuration".format(k)
             )
 
     if "id" in transport:
         check_id(transport["id"])
+
+    check_transport_max_connections(transport, with_endpoint, "MQTT")
 
     if with_endpoint:
         if "endpoint" not in transport:
@@ -2569,6 +2601,7 @@ def check_listening_transport_universal(personality, transport):
             "websocket",
             "mqtt",
             "web",
+            "max_connections",
         ]:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in Universal transport configuration".format(k)
@@ -2576,6 +2609,8 @@ def check_listening_transport_universal(personality, transport):
 
     if "id" in transport:
         check_id(transport["id"])
+
+    check_transport_max_connections(transport, True, "Universal")
 
     if "endpoint" not in transport:
         raise InvalidConfigException(
@@ -2622,13 +2657,26 @@ def check_listening_transport_websocket(personality, transport, with_endpoint=Tr
     :type transport: dict
     """
     for k in transport:
-        if k not in ["id", "type", "endpoint", "url", "serializers", "debug", "options", "auth", "cookie"]:
+        if k not in [
+            "id",
+            "type",
+            "endpoint",
+            "url",
+            "serializers",
+            "debug",
+            "options",
+            "auth",
+            "cookie",
+            "max_connections",
+        ]:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in WebSocket transport configuration".format(k)
             )
 
     if "id" in transport:
         check_id(transport["id"])
+
+    check_transport_max_connections(transport, with_endpoint, "WebSocket")
 
     if with_endpoint:
         if "endpoint" not in transport:
@@ -2842,6 +2890,7 @@ def check_listening_transport_rawsocket(personality, transport, with_endpoint=Tr
             "debug",
             "options",
             "auth",
+            "max_connections",
         ]:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in RawSocket transport configuration".format(k)
@@ -2849,6 +2898,8 @@ def check_listening_transport_rawsocket(personality, transport, with_endpoint=Tr
 
     if "id" in transport:
         check_id(transport["id"])
+
+    check_transport_max_connections(transport, with_endpoint, "RawSocket")
 
     if with_endpoint:
         if "endpoint" not in transport:

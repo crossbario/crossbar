@@ -23,6 +23,7 @@ from twisted.internet.endpoints import (
     serverFromString,
 )
 from twisted.internet.interfaces import IStreamServerEndpoint
+from twisted.internet.protocol import Protocol
 from twisted.internet.ssl import (
     Certificate,
     CertificateOptions,
@@ -30,6 +31,7 @@ from twisted.internet.ssl import (
     PrivateCertificate,
     optionsForClientTLS,
 )
+from twisted.protocols.policies import ProtocolWrapper, WrappingFactory
 from twisted.python.filepath import FilePath
 from zope.interface import implementer
 
@@ -44,6 +46,7 @@ try:
     from twisted.internet._sslverify import TLSVersion
     from twisted.internet.endpoints import SSL4ClientEndpoint, SSL4ServerEndpoint
     from twisted.internet.interfaces import ISSLTransport  # noqa
+    from twisted.protocols.tls import TLSMemoryBIOFactory
 
     _HAS_TLS = True
     _LACKS_TLS_MSG = None
@@ -57,6 +60,72 @@ __all__ = (
     "create_connecting_endpoint_from_config",
     "create_connecting_port_from_config",
 )
+
+
+class _CountedConnection(ProtocolWrapper):
+    """
+    Counts a connection on a :class:`MaxConnectionsFactory`.
+
+    It hands the real transport to the wrapped protocol, so that protocol sees the same transport
+    as without a connection cap (e.g. the TLS transport for TLS channel binding). Protocols that
+    take over a connection (WebSocket upgrade on a Web transport) replace ``wrappedProtocol``,
+    so the connection stays counted until it is closed.
+    """
+
+    def makeConnection(self, transport):
+        Protocol.makeConnection(self, transport)
+        self.factory.registerProtocol(self)
+        self.wrappedProtocol.makeConnection(transport)
+
+
+class _RefusedConnection(Protocol):
+    """
+    Closes a connection refused because the listening port is at its connection cap.
+    """
+
+    def connectionMade(self):
+        self.transport.abortConnection()
+
+
+class MaxConnectionsFactory(WrappingFactory):
+    """
+    The outermost factory of a listening port: refuses new connections while ``max_connections``
+    connections are open (#2324). A refused connection is closed right after accept, before any
+    TLS, WebSocket or RawSocket handshake.
+    """
+
+    protocol = _CountedConnection
+
+    # log refusals at most every LOG_INTERVAL seconds
+    LOG_INTERVAL = 10.0
+
+    def __init__(self, wrappedFactory, max_connections, name, reactor, log):
+        WrappingFactory.__init__(self, wrappedFactory)
+        self.max_connections = max_connections
+        self._name = name
+        self._reactor = reactor
+        self._log = log
+        self._refused = 0
+        self._last_logged = None
+
+    def buildProtocol(self, addr):
+        if len(self.protocols) < self.max_connections:
+            return WrappingFactory.buildProtocol(self, addr)
+
+        self._refused += 1
+        now = self._reactor.seconds()
+        if self._last_logged is None or now - self._last_logged >= self.LOG_INTERVAL:
+            self._log.warn(
+                "Listening port {name} refused {refused} connection(s): max_connections={max_connections} reached",
+                name=self._name,
+                refused=self._refused,
+                max_connections=self.max_connections,
+            )
+            self._refused = 0
+            self._last_logged = now
+        protocol = _RefusedConnection()
+        protocol.factory = self
+        return protocol
 
 
 def _create_tls_server_context(config, cbdir, log):
@@ -378,7 +447,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
     return endpoint
 
 
-def create_listening_port_from_config(config, cbdir, factory, reactor, log):
+def create_listening_port_from_config(config, cbdir, factory, reactor, log, max_connections=None, name=None):
     """
     Create a Twisted listening port from a Crossbar.io transport configuration.
 
@@ -392,6 +461,10 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
     :type cbdir: str
     :param reactor: The reactor to use for endpoint creation.
     :type reactor: obj
+    :param max_connections: When set, the port refuses connections while this many are open.
+    :type max_connections: int or None
+    :param name: The name of the listening port in log messages.
+    :type name: str or None
 
     :returns obj -- A Deferred that results in an IListeningPort or an CannotListenError
     """
@@ -403,6 +476,17 @@ def create_listening_port_from_config(config, cbdir, factory, reactor, log):
         if "port" not in config or config["port"] is None:
             # random free port
             config["port"] = get_free_tcp_port(host=config.get("interface", ""))
+
+    # the connection cap is the outermost layer of the listening port (#2324), so TLS is
+    # layered inside it here (the same as Twisted's listenSSL), and the port is a plain TCP port
+    if max_connections is not None:
+        if "tls" in config:
+            if not _HAS_TLS:
+                raise Exception("TLS transport requested, but TLS packages not available:\n{}".format(_LACKS_TLS_MSG))
+            context = _create_tls_server_context(config["tls"], cbdir, log)
+            factory = TLSMemoryBIOFactory(context, False, factory)
+            config = {k: v for k, v in config.items() if k != "tls"}
+        factory = MaxConnectionsFactory(factory, max_connections, name, reactor, log)
 
     # the TCP socket sharing option
     #
