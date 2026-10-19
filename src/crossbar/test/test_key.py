@@ -128,6 +128,9 @@ class LegacyNodeKeyTests(unittest.TestCase):
 
         # the node's security module loads the migrated key file
         secmod = SecurityModuleMemory.from_keyfile(self.privkey_path)
+        # in-memory security module: open() returns an already completed future
+        secmod.open()
+        self.assertTrue(secmod.is_open)
         self.assertEqual(secmod[0].address(binary=False), priv_tags["public-adr-eth"])
         return priv_tags
 
