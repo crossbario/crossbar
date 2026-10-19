@@ -22,7 +22,7 @@ from twisted.internet.endpoints import (
     clientFromString,
     serverFromString,
 )
-from twisted.internet.interfaces import IStreamServerEndpoint
+from twisted.internet.interfaces import ILoggingContext, IStreamServerEndpoint
 from twisted.internet.protocol import Protocol
 from twisted.internet.ssl import (
     Certificate,
@@ -62,6 +62,15 @@ __all__ = (
 )
 
 
+def _unwrapped_log_prefix(obj):
+    """
+    The log prefix of ``obj``, the same as Twisted computes it for a port or connection.
+    """
+    if ILoggingContext.providedBy(obj):
+        return obj.logPrefix()
+    return obj.__class__.__name__
+
+
 class _CountedConnection(ProtocolWrapper):
     """
     Counts a connection on a :class:`MaxConnectionsFactory`.
@@ -76,6 +85,9 @@ class _CountedConnection(ProtocolWrapper):
         Protocol.makeConnection(self, transport)
         self.factory.registerProtocol(self)
         self.wrappedProtocol.makeConnection(transport)
+
+    def logPrefix(self):
+        return _unwrapped_log_prefix(self.wrappedProtocol)
 
 
 class _RefusedConnection(Protocol):
@@ -107,6 +119,11 @@ class MaxConnectionsFactory(WrappingFactory):
         self._log = log
         self._refused = 0
         self._last_logged = None
+
+    def logPrefix(self):
+        # log as the wrapped factory, so that log lines such as "<factory> starting on <port>"
+        # are the same as without the connection cap
+        return _unwrapped_log_prefix(self.wrappedFactory)
 
     def buildProtocol(self, addr):
         if len(self.protocols) < self.max_connections:
