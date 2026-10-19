@@ -35,8 +35,6 @@ here are the contents of a typical Crossbar.io node directory:
 -  ``./.crossbar/log/node.log.2014_4_26`` - Archived log file
 -  ``./.crossbar/cookies.db`` - Crossbar.io authentication cookie
    database
--  ``./.crossbar/dhparam.pem`` - TLS Diffie-Hellman server parameter
-   file
 -  ``./.crossbar/myserver_key.pem`` - TLS key of server
 -  ``./.crossbar/myserver_cert.pem`` - TLS certificate of server
 

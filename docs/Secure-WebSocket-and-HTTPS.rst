@@ -111,9 +111,7 @@ The TLS configuration has a couple of options:
              "ca_certificates": [
                 "ca.cert.pem",
                 "intermediate.cert.pem"
-            ],
-             "dhparam": "dhparam.pem",
-             "ciphers": "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS"
+            ]
           }
        },
        "url": "wss://example.com"
@@ -124,85 +122,23 @@ where \* ``key`` is the filesystem path to the server private key file
 filesystem path to the server certificate file (PEM format)
 (**mandatory**) \* ``ca_certificates`` when set requires that a
 connecting client's certificate be issued by one of the listed CAs,
-otherwise the connection establishment will be denied (**optional**) \*
-``dhparam`` is the filesystem path to a Diffie-Hellman parameter file -
-see explanation below (**optional**) \* ``ciphers`` is a list of ciphers
-the server is willing to use with a client - see explanation below
-(**optional**)
+otherwise the connection establishment will be denied (**optional**)
 
-Diffie-Hellman
-~~~~~~~~~~~~~~
+TLS Version
+~~~~~~~~~~~
 
-To use
-`Diffie-Hellman <https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange>`__
-based key exchange, you need to generate a parameter file:
+Crossbar.io TLS listening endpoints accept **TLS 1.3 only**. Clients that
+only speak TLS 1.2 or older cannot connect. There is no option to allow
+older TLS versions.
 
-::
+TLS 1.3 uses only AEAD cipher suites with forward secrecy, and needs
+neither a cipher list nor a Diffie-Hellman parameter file. Certificates
+with RSA keys and with EC (ECDSA) keys both work.
 
-    openssl dhparam -2 4096 -out .crossbar/dhparam.pem
-
-The use of Diffie-Hellman key exchange is desirable, since this provides
-`Perfect Forward Secrecy
-(PFS) <https://en.wikipedia.org/wiki/Forward_secrecy>`__. Without a DH
-parameter file, no Diffie-Hellman based ciphers will be used, even if
-configured to do so.
-
-Elliptic Curve Ciphers
-~~~~~~~~~~~~~~~~~~~~~~
-
-Using elliptic curve based ciphers ("ECDH/ECDHE") is generally
-considered desirable, since shorter keys than RSA support strong
-encryption already consuming less CPU cycles.
-
-Prerequisites for EC Support
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-EC crypto is fully supported by Crossbar.io, if the underlying OpenSSL
-library supports EC **and** you have pyOpenSSL >= 0.15 running.
-
-You can check like this:
-
-::
-
-    openssl ecparam -list_curves
-
-Crossbar.io uses the ``prime256v1`` curve by default.
-
-``prime256v1``\ (X9.62/SECG) is an elliptic curve over a 256 bit prime
-field. This is elliptic curve "NIST P-256" from
-`here <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf>`__.
-
-This seems to be the most `widely used
-curve <https://crypto.stackexchange.com/questions/11310/with-openssl-and-ecdhe-how-to-show-the-actual-curve-being-used>`__
-and researchers
-`think <https://twitter.com/hyperelliptic/status/394258454342148096>`__
-it is "ok" (other than wrt timing attacks etc that might lurk inside
-OpenSSL itself).
-
-Ciphers
-~~~~~~~
-
-Crossbar.io will by default run a very strong and conservative set of
-ciphers:
-
-.. code:: text
-
-    ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA
-
-Above configuration activates exactly 6 ciphers to be used, all of which
-provide **Forward Secrecy**.
-
-**Note that the default configuration does not support Windows XP!**. If
-you must support XP, you will need to modify the ciphers configuration.
-
-In general, you should only change the ``ciphers`` if you know what you
-are doing.
-
-The ``ciphers`` parameter must be in the format as used by OpenSSL, and
-the OpenSSL library version installed on the system must support the
-ciphers configured to make same actually available. If your OpenSSL
-version installed does not support a configured cipher (e.g. ECDH
-elliptic curve based), the ciphers not available will simply be skipped.
+``dhparam`` and ``ciphers`` were settings for TLS 1.2 and older. They are
+still accepted in the configuration, so existing node configurations keep
+working, but they have no effect: the node logs that it ignores them, and
+does not read the ``dhparam`` file.
 
 TLS Certificates
 ----------------
@@ -226,8 +162,7 @@ Examples
 Resources
 ---------
 
--  `OpenSSL man page <https://linux.die.net/man/1/dhparam>`__
--  `OpenSSL API
-   documentation <https://linux.die.net/man/3/ssl_ctx_set_tmp_dh>`__
+-  `RFC 8446: The Transport Layer Security (TLS) Protocol Version 1.3
+   <https://www.rfc-editor.org/rfc/rfc8446>`__
 -  `The Most Common OpenSSL
    Commands <https://www.sslshopper.com/article-most-common-openssl-commands.html>`__
