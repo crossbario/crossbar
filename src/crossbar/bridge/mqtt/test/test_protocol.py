@@ -4,7 +4,6 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-import unittest
 from binascii import unhexlify
 
 import attr
@@ -28,7 +27,6 @@ class MQTTEventTestBase(object):
         self.assertEqual(attr.asdict(event), contents)
 
 
-@unittest.skip("FIXME: MQTT tests are failing")
 class ProtocolTests(TestCase, MQTTEventTestBase):
     maxDiff = None
 
@@ -83,7 +81,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 1)
         self.assertEqual(
             attr.asdict(events[0]),
-            {"reason": ("Corrupt data, fell off the end: Cannot read 72 bits, only 56 available.")},
+            {"reason": ("Corrupt data, fell off the end: Cannot read 9 bytes, only 7 available.")},
         )
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
 
@@ -126,7 +124,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(warnings), 1)
         self.assertEqual(
             warnings[0]["message"],
-            ("Quirky client CONNECT -- packet length was 152 bytes but only had 168 bytes of useful data"),
+            ("Quirky client CONNECT -- packet length was 21 bytes but only had 19 bytes of useful data"),
         )
 
     def test_connect_ping(self):
@@ -245,7 +243,6 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 0)
 
 
-@unittest.skip("FIXME: MQTT tests are failing")
 class MQTTConformanceTests(TestCase, MQTTEventTestBase):
     """
     Tests for MQTT conformance.

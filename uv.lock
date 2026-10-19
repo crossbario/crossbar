@@ -687,18 +687,6 @@ wheels = [
 ]
 
 [[package]]
-name = "bitstring"
-version = "4.3.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "bitarray" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/15/a8/a80c890db75d5bdd5314b5de02c4144c7de94fd0cefcae51acaeb14c6a3f/bitstring-4.3.1.tar.gz", hash = "sha256:a08bc09d3857216d4c0f412a1611056f1cc2b64fd254fb1e8a0afba7cfa1a95a", size = 251426, upload-time = "2025-03-22T09:39:06.978Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/2d/174566b533755ddf8efb32a5503af61c756a983de379f8ad3aed6a982d38/bitstring-4.3.1-py3-none-any.whl", hash = "sha256:69d1587f0ac18dc7d93fc7e80d5f447161a33e57027e726dc18a0a8bacf1711a", size = 71930, upload-time = "2025-03-22T09:39:05.163Z" },
-]
-
-[[package]]
 name = "bjdata"
 version = "0.6.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1438,7 +1426,6 @@ dependencies = [
     { name = "autobahn", extra = ["compress", "encryption", "scram", "serialization", "twisted"] },
     { name = "base58" },
     { name = "bcrypt" },
-    { name = "bitstring" },
     { name = "cbor2", version = "5.9.0", source = { registry = "https://pypi.org/simple" }, marker = "platform_python_implementation == 'PyPy'" },
     { name = "cbor2", version = "6.1.5", source = { registry = "https://pypi.org/simple" }, marker = "platform_python_implementation != 'PyPy'" },
     { name = "cfxdb" },
@@ -1565,7 +1552,6 @@ requires-dist = [
     { name = "bandit", marker = "extra == 'dev'" },
     { name = "base58", specifier = ">=2.1.1" },
     { name = "bcrypt", specifier = ">=4.0.1" },
-    { name = "bitstring", specifier = ">=4.0.1" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "cbor2", specifier = ">=5.4.6" },
     { name = "cfxdb", specifier = ">=26.6.1" },

@@ -5,9 +5,9 @@
 #
 #####################################################################################
 
-from bitstring import BitStream
 from twisted.trial.unittest import TestCase
 
+from crossbar.bridge.mqtt._utils import ByteReader
 from crossbar.bridge.mqtt.protocol import (
     ConnACK,
     Connect,
@@ -35,7 +35,7 @@ class ConnectTests(TestCase):
         # CONNECT without header, valid, client ID is "test123", clean session
         good = b"\x00\x04MQTT\x04\x02\x00\x00\x00\x07test123"
 
-        event = Connect.deserialise((False, False, False, False), BitStream(bytes=good))
+        event = Connect.deserialise((False, False, False, False), ByteReader(good))
         self.assertEqual(event.serialise(), header + good)
 
 
@@ -51,7 +51,7 @@ class ConnectAckTests(TestCase):
         """
         header = b"\x20\x02"
         good = b"\x00\x00"
-        event = ConnACK.deserialise((False, False, False, False), BitStream(bytes=good))
+        event = ConnACK.deserialise((False, False, False, False), ByteReader(good))
         self.assertEqual(event.serialise(), header + good)
 
 
@@ -67,7 +67,7 @@ class SubscribeTests(TestCase):
         """
         header = b"\x82\x10"
         good = b"\x00\x01\x00\x0b\x66\x6f\x6f\x2f\x62\x61\x72\x2f\x62\x61\x7a\x00"
-        event = Subscribe.deserialise((False, False, True, False), BitStream(bytes=good))
+        event = Subscribe.deserialise((False, False, True, False), ByteReader(good))
         self.assertEqual(event.serialise(), header + good)
 
 
@@ -83,7 +83,7 @@ class SubACKTests(TestCase):
         """
         header = b"\x90\x03"
         good = b"\x00\x01\x00"
-        event = SubACK.deserialise((False, False, False, False), BitStream(bytes=good))
+        event = SubACK.deserialise((False, False, False, False), ByteReader(good))
         self.assertEqual(event.serialise(), header + good)
 
 
@@ -103,7 +103,7 @@ class PublishTests(TestCase):
             b"\x00\x0b\x66\x6f\x6f\x2f\x62\x61\x72\x2f\x62\x61\x7a\x68\x65\x6c\x6c\x6f\x20\x66\x72\x69\x65\x6e\x64\x73"
         )
 
-        event = Publish.deserialise((False, False, False, False), BitStream(bytes=good))
+        event = Publish.deserialise((False, False, False, False), ByteReader(good))
         self.assertEqual(event.serialise(), header + good)
 
     def test_round_trip_qos1(self):
@@ -118,7 +118,7 @@ class PublishTests(TestCase):
             b"\x68\x65\x6c\x6c\x6f\x20\x66\x72\x69\x65\x6e\x64\x73"
         )
 
-        event = Publish.deserialise((False, False, True, False), BitStream(bytes=good))
+        event = Publish.deserialise((False, False, True, False), ByteReader(good))
         self.assertEqual(event.serialise(), header + good)
 
 
@@ -135,7 +135,7 @@ class PubACKTests(TestCase):
         header = b"\x40\x02"
         good = b"\x00\x02"
 
-        event = PubACK.deserialise((False, False, False, False), BitStream(bytes=good))
+        event = PubACK.deserialise((False, False, False, False), ByteReader(good))
         self.assertEqual(event.serialise(), header + good)
 
 
@@ -152,7 +152,7 @@ class UnsubscribeTests(TestCase):
         header = b"\xa2\x19"
         good = b"\x00\x03\x00\x15\x63\x6f\x6d\x2e\x65\x78\x61\x6d\x70\x6c\x65\x2e\x6f\x6e\x63\x6f\x75\x6e\x74\x65\x72"
 
-        event = Unsubscribe.deserialise((False, False, True, False), BitStream(bytes=good))
+        event = Unsubscribe.deserialise((False, False, True, False), ByteReader(good))
         self.assertEqual(event.serialise(), header + good)
 
 
@@ -169,5 +169,5 @@ class UnsubACKTests(TestCase):
         header = b"\xb0\x02"
         good = b"\x00\x03"
 
-        event = UnsubACK.deserialise((False, False, False, False), BitStream(bytes=good))
+        event = UnsubACK.deserialise((False, False, False, False), ByteReader(good))
         self.assertEqual(event.serialise(), header + good)

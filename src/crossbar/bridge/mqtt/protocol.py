@@ -5,8 +5,6 @@
 #
 #####################################################################################
 
-import bitstring
-
 from ._events import (
     ConnACK,
     Connect,
@@ -25,6 +23,7 @@ from ._events import (
     UnsubACK,
     Unsubscribe,
 )
+from ._utils import ByteReader, ReadError
 
 __all__ = [
     "MQTTParser",
@@ -85,8 +84,9 @@ client_packet_handlers = {
 
 def _parse_header(data):
     # New packet
-    packet_type = data.read("uint:4")
-    flags = (data.read("bool"), data.read("bool"), data.read("bool"), data.read("bool"))
+    first_byte = data.read_uint8()
+    packet_type = first_byte >> 4
+    flags = (bool(first_byte & 0x08), bool(first_byte & 0x04), bool(first_byte & 0x02), bool(first_byte & 0x01))
 
     multiplier = 1
     value = 0
@@ -94,8 +94,8 @@ def _parse_header(data):
 
     while (encodedByte & 128) != 0:
         try:
-            encodedByte = data.read("uint:8")
-        except bitstring.ReadError:
+            encodedByte = data.read_uint8()
+        except ReadError:
             # Not enough data yet, raise that up...
             raise _NeedMoreData()
         value += (encodedByte & 127) * multiplier
@@ -112,7 +112,7 @@ class MQTTParser(object):
     _first_pkt = P_CONNECT
 
     def __init__(self):
-        self._data = bitstring.BitStream()
+        self._data = b""
         self._bytes_expected = 0
         self._state = WAITING_FOR_NEW_PACKET
         self._packet_header = None
@@ -127,17 +127,15 @@ class MQTTParser(object):
 
         events = []
 
-        self._data.append(bitstring.BitArray(bytes=data))
-        self._data = self._data[self._data.bitpos :]
+        self._data += data
 
         while True:
-            if self._state == WAITING_FOR_NEW_PACKET and len(self._data) > 8:
+            if self._state == WAITING_FOR_NEW_PACKET and len(self._data) > 1:
+                header = ByteReader(self._data)
                 try:
-                    self._packet_header = _parse_header(self._data)
+                    self._packet_header = _parse_header(header)
                 except _NeedMoreData:
-                    # Reset the data stream
-                    self._data.bitpos = 0
-                    # Return the events we have
+                    # Keep the data and return the events we have
                     return events
                 except ParseFailure as e:
                     events.append(Failure(e.args[0]))
@@ -145,20 +143,17 @@ class MQTTParser(object):
                     return events
 
                 self._bytes_expected = self._packet_header[2]
-                self._data = self._data[self._data.bitpos :]
+                self._data = self._data[header.pos :]
                 self._state = COLLECTING_REST_OF_PACKET
 
             elif self._state == COLLECTING_REST_OF_PACKET:
-                self._data = self._data[self._data.bitpos :]
-
-                if len(self._data) < self._bytes_expected * 8:
+                if len(self._data) < self._bytes_expected:
                     return events
 
             else:
-                self._data = self._data[self._data.bitpos :]
                 return events
 
-            if self._bytes_expected * 8 <= len(self._data):
+            if self._bytes_expected <= len(self._data):
                 self._state = WAITING_FOR_NEW_PACKET
 
                 packet_type, flags, value = self._packet_header
@@ -173,7 +168,7 @@ class MQTTParser(object):
                     return events
 
                 try:
-                    dataToGive = self._data.read(value * 8)
+                    dataToGive = ByteReader(self._data[:value])
 
                     if packet_type not in self._packet_handlers:
                         self._state = PROTOCOL_VIOLATION
@@ -190,14 +185,14 @@ class MQTTParser(object):
                         events.append(Failure(e.args[1] + " in " + e.args[0].__name__))
                     self._state = PROTOCOL_VIOLATION
                     return events
-                except bitstring.ReadError as e:
+                except ReadError as e:
                     # whoops the parsing fell off the amount of data
                     events.append(Failure("Corrupt data, fell off the end: {}".format(e)))
                     self._state = PROTOCOL_VIOLATION
                     return events
 
                 self._packet_header = None
-                self._data = self._data[self._data.bitpos :]
+                self._data = self._data[value:]
                 self._packet_count += 1
             else:
                 return events

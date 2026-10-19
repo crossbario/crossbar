@@ -4,7 +4,6 @@
 #  SPDX-License-Identifier: EUPL-1.2
 #
 #####################################################################################
-import unittest
 from binascii import unhexlify
 
 import attr
@@ -77,7 +76,6 @@ def make_test_items(handler):
     return r, t, p, cp
 
 
-@unittest.skip("FIXME: MQTT tests are failing")
 class TwistedProtocolLoggingTests(TestCase):
     """
     Tests for the logging functionality of the Twisted MQTT protocol.
@@ -135,7 +133,6 @@ class TwistedProtocolLoggingTests(TestCase):
 
 
 class TwistedProtocolTests(TestCase):
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_keepalive(self):
         """
         If a client connects with a timeout, and sends no data in keep_alive *
@@ -166,7 +163,6 @@ class TwistedProtocolTests(TestCase):
         r.advance(0.1)
         self.assertTrue(t.disconnecting)
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_keepalive_canceled_on_lost_connection(self):
         """
         If a client connects with a timeout, and disconnects themselves, we
@@ -194,7 +190,6 @@ class TwistedProtocolTests(TestCase):
         self.assertTrue(timeout.cancelled)
         self.assertFalse(timeout.called)
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_keepalive_requires_full_packet(self):
         """
         If a client connects with a keepalive, and sends no FULL packets in
@@ -239,7 +234,6 @@ class TwistedProtocolTests(TestCase):
         r.advance(0.1)
         self.assertTrue(t.disconnecting)
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_keepalive_full_packet_resets_timeout(self):
         """
         If a client connects with a keepalive, and sends packets in under
@@ -282,7 +276,6 @@ class TwistedProtocolTests(TestCase):
         r.advance(0.1)
         self.assertFalse(t.disconnecting)
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_transport_paused_while_processing(self):
         """
         The transport is paused whilst the MQTT protocol is parsing/handling
@@ -304,7 +297,6 @@ class TwistedProtocolTests(TestCase):
         d.callback((0, False))
         self.assertEqual(t.producerState, "producing")
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_unknown_connect_code_must_lose_connection(self):
         """
         A non-zero, and non-1-to-5 connect code from the handler must result in
@@ -323,7 +315,6 @@ class TwistedProtocolTests(TestCase):
         self.assertTrue(t.disconnecting)
         self.assertEqual(t.value(), b"")
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_lose_conn_on_protocol_violation(self):
         """
         When a protocol violation occurs, the connection to the client will be
@@ -351,7 +342,6 @@ class TwistedProtocolTests(TestCase):
         self.assertEqual(t.value(), b"")
         self.assertTrue(t.disconnecting)
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_lose_conn_on_unimplemented_packet(self):
         """
         If we get a valid, but unimplemented for that role packet (e.g. SubACK,
@@ -422,7 +412,6 @@ class TwistedProtocolTests(TestCase):
             self.assertTrue(session_id < 65536)
 
 
-@unittest.skip("FIXME: MQTT tests are failing")
 class NonZeroConnACKTests(object):
     connect_code = None
 
@@ -469,7 +458,6 @@ for x in [1, 2, 3, 4, 5]:
 
 
 class SubscribeHandlingTests(TestCase):
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_exception_in_subscribe_drops_connection(self):
         """
         Transient failures (like an exception from handler.process_subscribe)
@@ -509,7 +497,6 @@ class SubscribeHandlingTests(TestCase):
         self.flushLoggedErrors()
 
 
-@unittest.skip("FIXME: MQTT tests are failing")
 class ConnectHandlingTests(TestCase):
     def test_got_sent_packet(self):
         """
@@ -570,7 +557,6 @@ class ConnectHandlingTests(TestCase):
         self.flushLoggedErrors()
 
 
-@unittest.skip("FIXME: MQTT tests are failing")
 class UnsubscribeHandlingTests(TestCase):
     def test_exception_in_connect_drops_connection(self):
         """
@@ -646,7 +632,6 @@ class UnsubscribeHandlingTests(TestCase):
         self.assertEqual(got_packets[0].serialise(), unsub)
 
 
-@unittest.skip("FIXME: MQTT tests are failing")
 class PublishHandlingTests(TestCase):
     def test_qos_0_sends_no_ack(self):
         """
@@ -917,7 +902,6 @@ class SendPublishTests(TestCase):
     Tests for the WAMP layer sending messages to MQTT clients.
     """
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_qos_0_queues_message(self):
         """
         The WAMP layer calling send_publish will queue a message up for
@@ -961,7 +945,6 @@ class SendPublishTests(TestCase):
             ),
         )
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_qos_1_queues_message(self):
         """
         The WAMP layer calling send_publish will queue a message up for
@@ -1010,7 +993,6 @@ class SendPublishTests(TestCase):
 
         self.assertFalse(t.disconnecting)
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_qos_2_queues_message(self):
         """
         The WAMP layer calling send_publish will queue a message up for
@@ -1304,7 +1286,6 @@ class SendPublishTests(TestCase):
 
         self.assertFalse(t2.disconnecting)
 
-    @unittest.skip("FIXME: MQTT tests are failing")
     def test_non_allowed_qos_not_queued(self):
         """
         A non-QoS 0, 1, or 2 message will be rejected by the publish layer.
