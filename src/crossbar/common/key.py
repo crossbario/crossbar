@@ -156,11 +156,16 @@ def _read_node_key(cbdir, privkey_path="key.priv", pubkey_path="key.pub", privat
     return node_key
 
 
-def _write_node_key(filepath, tags, msg):
+def _write_node_key(filepath, tags, msg, mode=0o644):
     """
     Internal helper, write the given tags to the given file.
+
+    The file is created with its final ``mode`` (so a private key file is never readable by
+    others, not even briefly), and never written through an existing file or symlink: if
+    anything exists at ``filepath``, this raises ``FileExistsError`` (#2323).
     """
-    with open(filepath, "w") as f:
+    fd = os.open(filepath, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    with os.fdopen(fd, "w") as f:
         f.write(msg)
         for tag, value in tags.items():
             if value is None:
@@ -202,6 +207,13 @@ def _maybe_generate_node_key(cbdir, privfile="key.priv", pubfile="key.pub"):
 
         eth_pubadr = None
         eth_privkey_seed_hex = priv_tags.get("private-key-eth", None)
+
+        # legacy node key file (Crossbar.io <= 21.x) without an Ethereum key, which the
+        # node security module requires: add one, keeping the node identity (#2172)
+        migrate_eth = eth_privkey_seed_hex is None
+        if migrate_eth:
+            eth_privkey_seed_hex = binascii.b2a_hex(os.urandom(32)).decode()
+
         if eth_privkey_seed_hex:
             eth_privkey_seed = binascii.a2b_hex(eth_privkey_seed_hex)
             eth_privkey = KeyAPI(NativeECCBackend).PrivateKey(eth_privkey_seed)
@@ -214,6 +226,24 @@ def _maybe_generate_node_key(cbdir, privfile="key.priv", pubfile="key.pub"):
                             " correspond to private-key-eth"
                         ).format(privkey_path)
                     )
+
+        if migrate_eth:
+            priv_tags["public-adr-eth"] = eth_pubadr
+            priv_tags["private-key-eth"] = eth_privkey_seed_hex
+            # write the new file next to the old one, then atomically replace it
+            migrated_path = privkey_path + ".migrated"
+            msg = "Crossbar.io node private key - KEEP THIS SAFE!\n\n"
+            _write_node_key(migrated_path, priv_tags, msg, mode=0o600)
+            os.replace(migrated_path, privkey_path)
+            # key.pub is re-created below with the matching public-adr-eth
+            if os.path.lexists(pubkey_path):
+                os.remove(pubkey_path)
+            log.warn(
+                "Legacy node private key file {priv_path} had no Ethereum key - added one "
+                "(public-adr-eth={eth_pubadr}); the node identity (Ed25519 key) is unchanged",
+                priv_path=privkey_path,
+                eth_pubadr=hlid(eth_pubadr),
+            )
 
         if os.path.exists(pubkey_path):
             pub_tags = _parse_node_key(pubkey_path, private=False)
@@ -317,7 +347,7 @@ def _maybe_generate_node_key(cbdir, privfile="key.priv", pubfile="key.pub"):
         tags["private-key-ed25519"] = privkey_hex
         tags["private-key-eth"] = eth_privkey_seed_hex
         msg = "Crossbar.io node private key - KEEP THIS SAFE!\n\n"
-        _write_node_key(privkey_path, tags, msg)
+        _write_node_key(privkey_path, tags, msg, mode=0o600)
 
         log.info(
             "New node key pair generated! public-key-ed25519={pubkey}, node-authid={node_authid}, public-adr-eth={eth_pubadr}",
