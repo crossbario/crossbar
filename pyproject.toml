@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "crossbar"
-version = "26.9.1.dev1"
+version = "26.10.1.dev1"
 description = "Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -46,11 +46,11 @@ classifiers = [
 
 dependencies = [
     # WAMP ecosystem packages (using currently available PyPI versions)
-    "autobahn[twisted,encryption,compress,serialization,scram]>=26.7.1",
+    "autobahn[twisted,encryption,compress,serialization,scram]>=26.10.1",
     "txaio>=26.6.1",
-    "zlmdb>=26.7.1",
+    "zlmdb>=26.10.1",
     "cfxdb>=26.6.1",
-    "xbr>=26.6.1",
+    "xbr>=26.10.1",
 
     # Twisted ecosystem
     "twisted[tls,conch,http2]>=22.10.0; sys_platform != 'darwin' and sys_platform != 'win32'",
