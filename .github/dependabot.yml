@@ -46,11 +46,8 @@ updates:
     ignore:
       # Deliberately MAJOR-capped deps in pyproject.toml: never auto-cross a
       # major boundary we set on purpose. These must be bumped by hand after
-      # reviewing the upstream migration guide (e.g. urllib3 1.x -> 2.x changes
-      # TLS/pyOpenSSL behavior, directly relevant to a TLS-terminating router).
+      # reviewing the upstream migration guide.
       # Security advisories still come through regardless of these ignores.
-      - dependency-name: "urllib3"      # pyproject: >=1.26.14,<1.27
-        update-types: ["version-update:semver-major"]
       - dependency-name: "h2"           # pyproject: >=3.2.0,<4.0.0
         update-types: ["version-update:semver-major"]
       - dependency-name: "hyperframe"   # pyproject: >=5.2.0,<6.0.0

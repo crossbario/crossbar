@@ -31,6 +31,28 @@ own systems for different operating systems or environments.
 *  :doc:`Installation on Mac OS X <Installation-on-Mac-OS-X>`
 *  :doc:`Installation on Windows <Installation-on-Windows>`
 
+
+Verifying a release
+-------------------
+
+Every file of a Crossbar.io release on PyPI carries a
+`PEP 740 <https://peps.python.org/pep-0740/>`__ attestation. To check that a file was
+uploaded by this project's release workflow:
+
+.. code-block:: console
+
+    $ pip install pypi-attestations
+    $ pypi-attestations verify pypi --repository https://github.com/crossbario/crossbar \
+          pypi:crossbar-26.7.1-py3-none-any.whl
+    OK: crossbar-26.7.1-py3-none-any.whl
+
+This proves that the file was uploaded to PyPI through Trusted Publishing by a GitHub
+Actions workflow of ``github.com/crossbario/crossbar``. It does not prove how the file was
+built.
+
+From a source checkout, ``just verify-pypi 26.7.1`` checks every file of a release this
+way (the wheel and the source distribution).
+
 Setup in the Cloud
 ------------------
 
