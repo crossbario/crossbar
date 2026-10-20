@@ -27,5 +27,12 @@ Branch: <github-username>:<branch>
 With the project tooling, `just --justfile .ai/justfile generate-audit-file` creates this file for
 the current branch.
 
+**The frozen issue.** `just new-branch` also writes `<github-username>_<branch>.issue.md` next to
+it, in the same first commit: the issue the branch is cut for - its body and the comments present
+at that moment, with the SHA-256 of that content - so the branch carries the specification it was
+started against. It is generated; do not edit it. `just land` compares it with the issue as it is
+then, and notes any change. A branch cut without the project tooling, or where `gh` is not
+installed, has no such file, which is allowed.
+
 This README is deployed from wamp-proto/wamp-cicd (`templates/audit-README.md`) and kept
 byte-identical by a drift check. Change it there, not here.

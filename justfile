@@ -2218,6 +2218,26 @@ download-github-release release_type="nightly":
     echo "Downloaded artifacts:"
     ls -la ./dist/ || echo "No artifacts downloaded"
 
+# Verify the PyPI provenance (PEP 740 attestations) of every file of a release (default: the current version), with pypi-attestations from the venv's dev tools (#2291)
+verify-pypi version="" venv="":
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Using venv: ${VENV_NAME}"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    if [ ! -x "${VENV_PATH}/bin/pypi-attestations" ]; then
+        echo "ERROR: pypi-attestations not found in ${VENV_PATH}, run: just install-tools ${VENV_NAME}" >&2
+        exit 2
+    fi
+    VERSION="{{ version }}"
+    if [ -z "${VERSION}" ]; then
+        VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+    fi
+    PATH="${VENV_PATH}/bin:${PATH}" bash .cicd/scripts/verify-pypi-provenance.sh crossbar "${VERSION}" https://github.com/crossbario/crossbar
+
 # Download release artifacts from GitHub and publish to PyPI
 publish-pypi venv="" tag="": (install-build-tools venv)
     #!/usr/bin/env bash
