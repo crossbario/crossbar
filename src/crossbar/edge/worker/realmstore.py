@@ -26,6 +26,7 @@ from txaio import (
     use_twisted,  # noqa
 )
 
+from crossbar._util import lmdb_engine_version
 from crossbar.interfaces import IRealmStore
 from crossbar.router.observation import UriObservationMap
 from crossbar.router.realmstore import QueuedCall
@@ -97,13 +98,15 @@ class RealmStoreDatabase(object):
 
         self.log.info(
             '{func} realm store initialized (type="{stype}", dbpath="{dbpath}", maxsize={maxsize}, '
-            "readonly={readonly}, sync={sync})",
+            "readonly={readonly}, sync={sync}, lmdb_format={lmdb_format}, lmdb_version={lmdb_version})",
             func=hltype(self.__init__),
             stype=hlval(self._type),
             dbpath=dbpath,
             maxsize=maxsize,
             readonly=readonly,
             sync=sync,
+            lmdb_format=self._db.lib_version,
+            lmdb_version=lmdb_engine_version(self._db.lib_version),
         )
 
     def type(self) -> str:

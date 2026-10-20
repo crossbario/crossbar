@@ -26,6 +26,8 @@ from autobahn.wamp.interfaces import ISession
 from cfxdb import cookiestore
 from txaio import make_logger, time_ns
 
+from crossbar._util import lmdb_engine_version
+
 __all__ = (
     "CookieStore",
     "CookieStoreMemoryBacked",
@@ -502,9 +504,12 @@ class CookieStoreDatabaseBacked(CookieStore):
         dbstats = self._db.stats(include_slots=True)
 
         self.log.info(
-            '{func}: database-backed cookiestore opened from dbpath="{dbpath}" - dbstats=\n{dbstats}',
+            '{func}: database-backed cookiestore opened from dbpath="{dbpath}" (lmdb_format={lmdb_format}, '
+            "lmdb_version={lmdb_version}) - dbstats=\n{dbstats}",
             func=hltype(CookieStoreDatabaseBacked.__init__),
             dbpath=hlval(dbpath),
+            lmdb_format=self._db.lib_version,
+            lmdb_version=lmdb_engine_version(self._db.lib_version),
             dbstats=pformat(dbstats),
         )
 

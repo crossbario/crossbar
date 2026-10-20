@@ -29,7 +29,16 @@ from twisted.python.reflect import qual
 from txaio import failure_format_traceback, make_logger, set_global_log_level, start_logging
 
 from crossbar._logging import LogLevel, make_logfile_observer, make_stderr_observer, make_stdout_observer
-from crossbar._util import _add_cbdir_config, _add_debug_options, _add_log_arguments, hl, hlid, hltype, term_print
+from crossbar._util import (
+    _add_cbdir_config,
+    _add_debug_options,
+    _add_log_arguments,
+    hl,
+    hlid,
+    hltype,
+    lmdb_engine_version,
+    term_print,
+)
 from crossbar.common.checkconfig import InvalidConfigException, color_json
 from crossbar.common.key import _maybe_generate_node_key, _read_node_key, _read_release_key
 from crossbar.node.template import Templates
@@ -409,12 +418,18 @@ def _get_versions(reactor):
     # LMDB: the CFFI binding is vendored inside zlmdb; crossbar has no top-level
     # "lmdb" dependency (and must not add one - it always goes through zlmdb), so
     # read the version from the vendored binding instead of a top-level "lmdb"
-    # (which is absent on a clean install, leaving the line blank) - see #2156
+    # (which is absent on a clean install, leaving the line blank) - see #2156.
+    # zlmdb bundles two LMDB engines: report both, and which one new databases use
+    # (an existing database always opens with the engine of its own format) - see #2320
     try:
         from zlmdb import lmdb as _lmdb  # noqa
+        from zlmdb._database import DEFAULT_LIB_VERSION
 
-        lmdb_lib_ver = ".".join([str(x) for x in _lmdb.version()])
-        v.lmdb_ver = "{}/lmdb-{}".format(_get_version(_lmdb), lmdb_lib_ver)
+        engines = []
+        for fmt in ("1.0", "0.9"):
+            engine = "lmdb-{}".format(lmdb_engine_version(fmt))
+            engines.append(engine + " (new databases)" if fmt == DEFAULT_LIB_VERSION else engine)
+        v.lmdb_ver = "{}/{}".format(_get_version(_lmdb), ", ".join(engines))
     except ImportError:
         pass
 
