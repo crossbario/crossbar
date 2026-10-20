@@ -1,47 +1,37 @@
-#!python
+#!/usr/bin/env python3
+#
+# Stamp the build ID from CROSSBAR_BUILD_ID into the __build__ placeholder of _version.py,
+# right before building the wheel and sdist (see `just dist`, issue #2231). Modifies the file
+# in place: the stamped value is never committed. Leaves the file alone when the variable is
+# not set (local and dev builds keep the placeholder).
+#
+# Usage: CROSSBAR_BUILD_ID=20261020-abc1234 python inject-build-id.py [path/to/_version.py]
 
 import os
+import re
+import sys
 
-if __name__ == '__main__':
-    _EVAR = "CROSSBAR_BUILD_ID"
-    _SEARCH = "__build__ = '00000000-0000000'"
-    _REPLACE = "__build__ = '{}'"
+_EVAR = "CROSSBAR_BUILD_ID"
+_SEARCH = '__build__ = "19000101-0000000"'
+_REPLACE = '__build__ = "{}"'
 
-    if _EVAR in os.environ:
-        files = []
-        try:
-            from crossbar import _version
-        except ImportError:
-            pass
-        else:
-            files.append(os.path.abspath(_version.__file__))
-
-        fn = 'crossbar/_version.py'
-        if os.path.exists(fn):
-            files.append(os.path.abspath(fn))
-
-        done = []
-
-        for fn in files:
-            if fn in done:
-                print('Skipping file "{}": already processed'.format(fn))
-            else:
-                with open(fn) as f:
-                    contents = f.read()
-                build_id_stmt = _REPLACE.format(os.environ[_EVAR])
-                if contents.find(_SEARCH):
-                    contents = contents.replace(_SEARCH, build_id_stmt)
-                    print(contents)
-                    with open(fn, 'w') as f:
-                        f.write(contents)
-                        f.flush()
-                    print('Ok: replaced placeholder for build ID from CROSSBAR_BUILD_ID in file "{}" with "{}"'.format(fn, build_id_stmt))
-                    done.append(fn)
-                else:
-                    if contents.find(build_id_stmt):
-                        print('Skipping file "{}": build ID from CROSSBAR_BUILD_ID already correct')
-                    else:
-                        error_msg = 'Error: could not find search string "{}" to inject build ID in file "{}"'.format(_SEARCH, _version.__file__)
-                        raise Exception(error_msg)
-    else:
-        print('Skipping injection of build ID - CROSSBAR_BUILD_ID not set')
+if __name__ == "__main__":
+    fn = sys.argv[1] if len(sys.argv) > 1 else "src/crossbar/_version.py"
+    build_id = os.environ.get(_EVAR)
+    if not build_id:
+        print("Skipping injection of build ID: {} not set".format(_EVAR))
+        sys.exit(0)
+    if not re.fullmatch(r"[0-9]{8}-[0-9a-f]{7,40}", build_id):
+        print('Error: {}="{}" is not of the form YYYYMMDD-<git sha>'.format(_EVAR, build_id))
+        sys.exit(1)
+    with open(fn) as f:
+        contents = f.read()
+    if _REPLACE.format(build_id) in contents:
+        print('Ok: build ID "{}" already stamped into "{}"'.format(build_id, fn))
+        sys.exit(0)
+    if contents.count(_SEARCH) != 1:
+        print('Error: build ID placeholder {} not found once in "{}"'.format(_SEARCH, fn))
+        sys.exit(1)
+    with open(fn, "w") as f:
+        f.write(contents.replace(_SEARCH, _REPLACE.format(build_id)))
+    print('Ok: stamped build ID "{}" into "{}"'.format(build_id, fn))

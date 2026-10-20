@@ -51,6 +51,13 @@ class TestInjectBuildId(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.path.read_text(), '__version__ = "26.10.1"\n__build__ = "20261020-abc1234"\n')
 
+    def test_same_build_id_again(self):
+        # e.g. `just build` followed by `just build-sourcedist`
+        self._inject("20261020-abc1234")
+        result = self._inject("20261020-abc1234")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.path.read_text(), '__version__ = "26.10.1"\n__build__ = "20261020-abc1234"\n')
+
     def test_unset_keeps_placeholder(self):
         before = self.path.read_text()
         result = self._inject()

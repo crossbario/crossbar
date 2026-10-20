@@ -286,8 +286,18 @@ jobs:
           just create cpy311
           just install-build-tools cpy311
 
+      # Stamped into _version.py by `just dist` (inject-build-id.py), shown by `crossbar version` (#2231)
+      - name: Set build ID
+        run: echo "CROSSBAR_BUILD_ID=$(date -u +%Y%m%d)-$(git rev-parse --short=7 HEAD)" >> "$GITHUB_ENV"
+
       - name: Build distribution packages
         run: just dist cpy311
+
+      - name: Check build ID in packages
+        run: |
+          echo "Build ID: ${CROSSBAR_BUILD_ID}"
+          unzip -p dist/crossbar-*.whl crossbar/_version.py | grep -F "__build__ = \"${CROSSBAR_BUILD_ID}\""
+          tar -xzOf dist/crossbar-*.tar.gz --wildcards '*/src/crossbar/_version.py' | grep -F "__build__ = \"${CROSSBAR_BUILD_ID}\""
 
       - name: Verify packages
         run: just verify-dist cpy311
