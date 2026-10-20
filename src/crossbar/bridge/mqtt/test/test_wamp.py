@@ -172,7 +172,7 @@ class MQTTAdapterTests(TestCase):
         self.logs.__enter__()
         self.addCleanup(lambda: self.logs.__exit__(None, None, None))
 
-    def _test_basic_publish(self):
+    def test_basic_publish(self):
         reactor, router, server_factory, session_factory = build_mqtt_server()
 
         session, pump = connect_application_session(
@@ -208,7 +208,7 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(len(session.events), 1)
         self.assertEqual(session.events, [{"args": tuple(), "kwargs": {"bar": "baz"}}])
 
-    def _test_tls_auth(self):
+    def test_tls_auth(self):
         """
         A MQTT client can connect using mutually authenticated TLS
         authentication.
@@ -324,7 +324,7 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(len(session.events), 1)
         self.assertEqual(session.events, [{"args": tuple(), "kwargs": {}}])
 
-    def _test_tls_auth_denied(self):
+    def test_tls_auth_denied(self):
         """
         A MQTT client offering the wrong certificate won't be authenticated.
         """
@@ -435,7 +435,7 @@ class MQTTAdapterTests(TestCase):
         # FIXME: "session" has no attribute "events"
         # self.assertEqual(len(session.events), 0)
 
-    def _test_basic_subscribe(self):
+    def test_basic_subscribe(self):
         """
         The MQTT client can subscribe to a WAMP topic and get messages.
         """
@@ -486,7 +486,7 @@ class MQTTAdapterTests(TestCase):
             ).serialise(),
         )
 
-    def _test_retained(self):
+    def test_retained(self):
         """
         The MQTT client can set and receive retained messages.
         """
@@ -547,7 +547,7 @@ class MQTTAdapterTests(TestCase):
             ).serialise(),
         )
 
-    def _test_lastwill(self):
+    def test_lastwill(self):
         """
         FIXME: reactivate this test.
 
