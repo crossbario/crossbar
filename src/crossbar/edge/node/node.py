@@ -450,7 +450,7 @@ def compute_mgmt_uplink_config(log, cbdir, config, fn_reboot=None, use_activatio
     fabric_transport_config = None
 
     # [1] pick up auto-activation files dropped by a master node (`${CBDIR}/key.activate`)
-    if not fabric_transport_config and use_activation_file:
+    if use_activation_file:
 
         def do_check_for_activation_file(activation_file, reboot_on_discover):
             if os.path.isfile(activation_file):

@@ -674,7 +674,7 @@ class MrealmController(ApplicationSession):
 
         self.log.debug("{func}: completed!", func=hltype(self._on_node_ready))
 
-    async def _on_worker_heartbeat(self, node_authid, worker_id, heartbeat, details: Optional[CallDetails] = None):
+    async def _on_worker_heartbeat(self, node_authid, worker_id, heartbeat, details: Optional[EventDetails] = None):
         """
         Receive heartbeats from workers run on CF nodes managed by this CFC instances. By default,
          CF node workers will send one hearbeat every 10 seconds.
@@ -755,7 +755,7 @@ class MrealmController(ApplicationSession):
 
         self.log.debug("{func}: completed!", func=hltype(self._on_worker_heartbeat))
 
-    async def _on_node_heartbeat(self, node_authid, heartbeat, details: Optional[CallDetails] = None):
+    async def _on_node_heartbeat(self, node_authid, heartbeat, details: Optional[EventDetails] = None):
         """
         Receive heartbeats from CF nodes managed by this CFC instances. By default,
          CF nodes will send one hearbeat every 10 seconds.
