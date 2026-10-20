@@ -674,7 +674,10 @@ test-pytest venv="": (install-tools venv) (install venv)
 
     echo "==> Running test suite using pytest in ${VENV_NAME}..."
 
-    ${VENV_PYTHON} -m pytest -sv src/crossbar/
+    # without the pytest-twisted plugin: it runs plain test functions in a greenlet that
+    # keeps the reactor running, after which trial tests using real sockets hang. The unit
+    # tests do not use it (the functional tests in test/functests do), see #2324 / #2334
+    ${VENV_PYTHON} -m pytest -p no:twisted -sv src/crossbar/
 
 # Run all tests (trial + pytest + functional)
 test venv="": (test-trial venv) (test-pytest venv) (test-functional venv)

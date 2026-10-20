@@ -53,9 +53,9 @@ dependencies = [
     "xbr>=26.10.1",
 
     # Twisted ecosystem
-    "twisted[tls,conch,http2]>=22.10.0; sys_platform != 'darwin' and sys_platform != 'win32'",
-    "twisted[tls,conch,http2,osx_platform]>=22.10.0; sys_platform == 'darwin'",
-    "twisted[tls,conch,http2,windows_platform]>=22.10.0; sys_platform == 'win32'",
+    "twisted[tls,conch,http2]>=26.4.0; sys_platform != 'darwin' and sys_platform != 'win32'",
+    "twisted[tls,conch,http2,osx_platform]>=26.4.0; sys_platform == 'darwin'",
+    "twisted[tls,conch,http2,windows_platform]>=26.4.0; sys_platform == 'win32'",
     "treq>=22.2.0",
     "txtorcon>=22.0.0",
 

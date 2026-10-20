@@ -13,10 +13,18 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.x509.oid import NameOID
 from OpenSSL import SSL
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.endpoints import SSL4ClientEndpoint, connectProtocol
+from twisted.internet.protocol import Protocol
+from twisted.internet.ssl import CertificateOptions
 from twisted.trial import unittest
+from twisted.web.resource import Resource
+from twisted.web.server import Site
 from txaio import make_logger
 
-from crossbar.common.twisted.endpoint import _create_tls_server_context
+from crossbar._util import get_free_tcp_port
+from crossbar.common.twisted.endpoint import _create_tls_server_context, create_listening_port_from_config
 
 
 def _write_self_signed(cbdir, key):
@@ -129,3 +137,62 @@ class TlsListenerTests(unittest.TestCase):
         _write_self_signed(self.cbdir, rsa.generate_private_key(public_exponent=65537, key_size=2048))
         self.config["dhparam"] = "does-not-exist.pem"
         self.assertEqual(_handshake(self._server_ctx(self.config)), "TLSv1.3")
+
+
+class _HttpClient(Protocol):
+    """
+    Sends an HTTP request, ``response`` fires with the bytes received until the connection closed.
+    """
+
+    def __init__(self):
+        self.response = Deferred()
+        self._data = b""
+
+    def connectionMade(self):
+        self.transport.write(b"GET / HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n")
+
+    def dataReceived(self, data):
+        self._data += data
+
+    def connectionLost(self, reason):
+        self.response.callback(self._data)
+
+
+class TlsWebListenerTests(unittest.TestCase):
+    """
+    A Twisted Web site behind a TLS listening endpoint answers HTTPS requests (#2334).
+
+    ``Site`` offers ALPN, and Twisted < 26.4.0 sets it on a pyOpenSSL context that was already
+    used, which pyOpenSSL >= 26.2.0 refuses: every TLS handshake fails.
+    """
+
+    log = make_logger()
+
+    def setUp(self):
+        self.cbdir = self.mktemp()
+        os.makedirs(self.cbdir)
+        _write_self_signed(self.cbdir, ec.generate_private_key(ec.SECP256R1()))
+
+    @inlineCallbacks
+    def _check(self, max_connections):
+        config = {
+            "type": "tcp",
+            "interface": "127.0.0.1",
+            "port": get_free_tcp_port("127.0.0.1"),
+            "tls": {"key": "server.key", "certificate": "server.crt"},
+        }
+        port = yield create_listening_port_from_config(
+            config, self.cbdir, Site(Resource()), reactor, self.log, max_connections=max_connections
+        )
+        self.addCleanup(port.stopListening)
+        for _ in range(2):
+            endpoint = SSL4ClientEndpoint(reactor, "127.0.0.1", config["port"], CertificateOptions())
+            client = yield connectProtocol(endpoint, _HttpClient())
+            response = yield client.response
+            self.assertTrue(response.startswith(b"HTTP/1.0 404"), response[:40])
+
+    def test_site_over_tls(self):
+        return self._check(None)
+
+    def test_site_over_tls_with_max_connections(self):
+        return self._check(50000)
