@@ -31,6 +31,22 @@ class TestVersions(unittest.TestCase):
         # format is "<binding-version>/lmdb-<C-library-version>"
         self.assertIn("lmdb-", v.lmdb_ver)
 
+    def test_lmdb_engines_reported(self):
+        """
+        zlmdb bundles two LMDB engines, LMDB 1.0 for new databases and LMDB 0.9 for existing
+        databases in LMDB 0.9 format: both must be reported, with the one for new databases
+        marked. See #2320.
+        """
+        from twisted.internet import reactor
+        from zlmdb import lmdb
+
+        v = _get_versions(reactor)
+
+        new = ".".join(str(x) for x in lmdb.version(lib_version=1))
+        old = ".".join(str(x) for x in lmdb.version(lib_version=0))
+        self.assertIn("lmdb-{} (new databases)".format(new), v.lmdb_ver)
+        self.assertIn("lmdb-{}".format(old), v.lmdb_ver)
+
     def test_zlmdb_version_reported(self):
         """
         zlmdb (which vendors the LMDB binding crossbar uses) must also be
