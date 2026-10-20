@@ -848,8 +848,8 @@ class MarketMaker(object):
         )
         assert categories is None or (
             isinstance(categories, dict)
-            and (isinstance(k, str) for k in categories.keys())
-            and (isinstance(v, str) for v in categories.values())
+            and all(isinstance(k, str) for k in categories.keys())
+            and all(isinstance(v, str) for v in categories.values())
         ), "invalid categories type (must be dict) or category key or value type (must both be string)"
         assert expires is None or isinstance(expires, int), 'expires must be int, but was "{}"'.format(expires)
         assert copies is None or isinstance(copies, int), 'copies must be int, but was "{}"'.format(copies)

@@ -313,7 +313,9 @@ class NodeController(NativeProcess):
         :returns: List of worker processes.
         :rtype: list[dict]
         """
-        assert filter_types is None or (isinstance(filter_types, list) and isinstance(ft, str) for ft in filter_types)
+        assert filter_types is None or (
+            isinstance(filter_types, list) and all(isinstance(ft, str) for ft in filter_types)
+        )
 
         if filter_types:
             ft = set(filter_types)
