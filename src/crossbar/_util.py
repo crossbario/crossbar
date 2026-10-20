@@ -467,3 +467,14 @@ def maybe_from_env(value):
             return False, value
     else:
         return False, value
+
+
+def lmdb_engine_version(lmdb_format: str) -> str:
+    """
+    Version of the LMDB engine bundled in zlmdb for an LMDB format, e.g. ``"1.0.2"`` for
+    format ``"1.0"`` (LMDB 1.0, data format v3) or ``"0.9.36"`` for ``"0.9"`` (LMDB 0.9,
+    data format v1). See #2320.
+    """
+    from zlmdb import lmdb
+
+    return ".".join(str(x) for x in lmdb.version(lib_version=1 if lmdb_format == "1.0" else 0))

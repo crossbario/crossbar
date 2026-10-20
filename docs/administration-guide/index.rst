@@ -121,6 +121,7 @@ This guide covers the configuration and administration of **Crossbar.io**.
    ../Command-Line
    ../Logging
    ../Going-to-Production
+   ../LMDB-Databases
    ../Automatic-Startup-and-Restart
    ../Running-on-privileged-ports
    ../Scaling-Crossbar.io
