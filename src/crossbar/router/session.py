@@ -468,10 +468,18 @@ class RouterSession(BaseSession):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onOpen`
         """
-        # this is a WAMP transport instance
+        # this is a WAMP transport instance (the MQTT bridge imports this module, so import it here)
+        from crossbar.bridge.mqtt.wamp import WampTransport
+
         assert isinstance(
             transport,
-            (WampWebSocketServerProtocol, WampRawSocketServerProtocol, NativeWorkerClientProtocol, MagicMock),
+            (
+                WampWebSocketServerProtocol,
+                WampRawSocketServerProtocol,
+                NativeWorkerClientProtocol,
+                WampTransport,
+                MagicMock,
+            ),
         ), "unexpected router transport type {}".format(type(transport))
         self._transport = transport
 

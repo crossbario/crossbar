@@ -12,7 +12,7 @@ txaio.use_twisted()
 from collections import OrderedDict
 
 from autobahn import util
-from autobahn.twisted.util import peer2str
+from autobahn.twisted.util import create_transport_details, peer2str
 from autobahn.wamp import message, role
 from autobahn.wamp.message import _URI_PAT_LOOSE_EMPTY, _URI_PAT_LOOSE_LAST_EMPTY, _URI_PAT_LOOSE_NON_EMPTY
 from autobahn.wamp.serializer import (
@@ -28,7 +28,6 @@ try:
     from autobahn.wamp.serializer import UBJSONObjectSerializer
 except ImportError:
     UBJSONObjectSerializer = None
-from autobahn.wamp.types import TransportDetails
 from autobahn.websocket.utf8validator import Utf8Validator
 from pytrie import StringTrie
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue, succeed
@@ -155,8 +154,8 @@ class WampTransport(object):
         self.factory = factory
         self.on_message = on_message
         self.transport = real_transport
-        self.transport_details = TransportDetails()
-        real_transport._transport_config = {"foo": 32}
+        self.transport_details = create_transport_details(real_transport, is_server=True)
+        self.peer = self.transport_details.peer
 
     def send(self, msg):
         self.on_message(msg)
@@ -344,7 +343,6 @@ class WampMQTTServerProtocol(Protocol):
             # we opt for b) here!
             #
             @inlineCallbacks
-            @self._waiting_for_connect.addCallback
             def process_will(res):
                 self.log.info()
 
@@ -372,6 +370,8 @@ class WampMQTTServerProtocol(Protocol):
                 self._wamp_session.onMessage(msg)
 
                 returnValue(res)
+
+            self._waiting_for_connect.addCallback(process_will)
 
         return self._waiting_for_connect
 

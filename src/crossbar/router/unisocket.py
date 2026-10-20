@@ -175,4 +175,4 @@ class UniSocketServerFactory(Factory):
         """
         if self._web_factory:
             return self._web_factory.acceptableProtocols()
-        return None
+        return []
