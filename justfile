@@ -981,6 +981,7 @@ build venv="": (install-build-tools venv)
     export SODIUM_INSTALL=bundled
     export PYUBJSON_NO_EXTENSION=1
 
+    ${VENV_PYTHON} inject-build-id.py
     ${VENV_PYTHON} -m build --wheel
     ls -la dist/
 
@@ -997,6 +998,7 @@ build-sourcedist venv="": (install-build-tools venv)
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
     echo "==> Building source distribution..."
+    ${VENV_PYTHON} inject-build-id.py
     ${VENV_PYTHON} -m build --sdist
     ls -la dist/
 
@@ -1012,6 +1014,7 @@ dist venv="": (install-build-tools venv)
     fi
     VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
     echo "==> Building distribution packages (wheel + sdist)..."
+    ${VENV_PYTHON} inject-build-id.py
     ${VENV_PYTHON} -m build
     echo ""
     echo "Built packages:"
