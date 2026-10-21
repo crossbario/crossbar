@@ -5,12 +5,21 @@
 #
 #####################################################################################
 
+import datetime
+import os
+
 from autobahn.twisted.wamp import ApplicationSessionFactory, WampRawSocketClientFactory
 
 # from autobahn.twisted.wamp import WampWebSocketClientFactory
 from autobahn.wamp.types import ComponentConfig
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.x509.oid import NameOID
+from twisted.internet.defer import succeed
 from twisted.test.iosim import FakeTransport, connect
 
+from crossbar.personality import Personality
 from crossbar.router.protocol import WampRawSocketServerFactory, WampWebSocketServerFactory
 from crossbar.router.role import RouterRoleStaticAuth
 from crossbar.router.router import RouterFactory
@@ -96,3 +105,56 @@ def connect_application_session(server_factory, MyApplicationSession, component_
     pump = connect(server_protocol, server_transport, client_protocol, client_transport, debug=False)
 
     return client_protocol._session, pump
+
+
+class RouterRealmContainer(object):
+    """
+    The realm container (the router worker in production) authentication queries
+    about the realms and roles of the routers in a router factory.
+    """
+
+    personality = Personality
+
+    def __init__(self, router_factory):
+        self._router_factory = router_factory
+
+    def has_realm(self, realm):
+        return realm in self._router_factory
+
+    def has_role(self, realm, role):
+        return realm in self._router_factory and self._router_factory[realm].has_role(role)
+
+    def get_service_session(self, realm, role):
+        return succeed(self._router_factory[realm]._realm.session)
+
+
+def write_self_signed_cert(certdir, name, cn):
+    """
+    Write a self-signed certificate for cn and its key to certdir, and return the
+    SHA1 fingerprint of the certificate (formatted as in the TLS transport details).
+    """
+    key = ec.generate_private_key(ec.SECP256R1())
+    subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)])
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(subject)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - datetime.timedelta(days=1))
+        .not_valid_after(now + datetime.timedelta(days=1))
+        .add_extension(x509.SubjectAlternativeName([x509.DNSName(cn)]), critical=False)
+        .sign(key, hashes.SHA256())
+    )
+    with open(os.path.join(certdir, name + ".key"), "wb") as f:
+        f.write(
+            key.private_bytes(
+                serialization.Encoding.PEM,
+                serialization.PrivateFormat.TraditionalOpenSSL,
+                serialization.NoEncryption(),
+            )
+        )
+    with open(os.path.join(certdir, name + ".crt"), "wb") as f:
+        f.write(cert.public_bytes(serialization.Encoding.PEM))
+    return ":".join("{:02X}".format(b) for b in cert.fingerprint(hashes.SHA1()))  # nosec B303 - certificate ID
