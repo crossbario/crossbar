@@ -138,6 +138,9 @@ class PendingAuthCryptosign(PendingAuth):
         requested_channel_binding = details.authextra.get("channel_binding", None) if details.authextra else None
         if requested_channel_binding is not None and requested_channel_binding not in ["tls-unique"]:
             return Deny(message='invalid channel binding type "{}" requested'.format(requested_channel_binding))
+        elif requested_channel_binding == "tls-unique" and not self._channel_id:
+            # never authenticate without the channel binding the client requested
+            return Deny(message='channel binding "tls-unique" requested, but the transport has no TLS channel ID')
         else:
             self.log.info(
                 "WAMP-cryptosign CHANNEL BINDING requested: channel_binding={channel_binding}, channel_id={channel_id}",
