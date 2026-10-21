@@ -5,6 +5,27 @@ This page provides links to release artifacts for each version of Crossbar.io.
 
 For detailed changelog entries, see :doc:`changelog`.
 
+26.10.1
+-------
+
+* `GitHub Release <https://github.com/crossbario/crossbar/releases/tag/v26_10_1>`__
+* `PyPI Package <https://pypi.org/project/crossbar/26.10.1/>`__
+* `Documentation <https://crossbario.readthedocs.io/en/v26.10.1/>`__
+
+26.7.1
+------
+
+* `GitHub Release <https://github.com/crossbario/crossbar/releases/tag/v26_7_1>`__
+* `PyPI Package <https://pypi.org/project/crossbar/26.7.1/>`__
+* `Documentation <https://crossbario.readthedocs.io/en/v26.7.1/>`__
+
+26.6.1
+------
+
+* `GitHub Release <https://github.com/crossbario/crossbar/releases/tag/v26_6_1>`__
+* `PyPI Package <https://pypi.org/project/crossbar/26.6.1/>`__
+* `Documentation <https://crossbario.readthedocs.io/en/v26.6.1/>`__
+
 25.12.1
 -------
 

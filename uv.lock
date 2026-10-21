@@ -1419,7 +1419,7 @@ toml = [
 
 [[package]]
 name = "crossbar"
-version = "26.10.1.dev1"
+version = "26.10.1"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },

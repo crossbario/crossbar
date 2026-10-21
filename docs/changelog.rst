@@ -5,9 +5,11 @@
 Changelog
 =========
 
-Unreleased
-----------
+26.10.1
+-------
 
+* new: Crossbar.io 26.10.1 release: version, changelog and release notes (`#2356 <https://github.com/crossbario/crossbar/issues/2356>`_)
+* other: WAMP fleet rollout chores, with no change to the shipped code: generated ``aspects.toml``, license headers and ``.cicd`` bumps (`#2302 <https://github.com/crossbario/crossbar/issues/2302>`_, `#2305 <https://github.com/crossbario/crossbar/issues/2305>`_, `#2307 <https://github.com/crossbario/crossbar/issues/2307>`_, `#2310 <https://github.com/crossbario/crossbar/issues/2310>`_, `#2313 <https://github.com/crossbario/crossbar/issues/2313>`_, `#2316 <https://github.com/crossbario/crossbar/issues/2316>`_)
 * fix: raise the dependency floor to ``autobahn>=26.10.2`` and relock ``uv.lock`` (autobahn 26.10.1 → 26.10.2). Autobahn 26.10.2 fixes WAMP over TLS (crossbario/autobahn-python#2014): on Twisted WebSocket and RawSocket connections the router never had the TLS client certificate (it was read before the TLS handshake, and with pyOpenSSL 26.2.0 and later reading it failed), so **TLS client certificate authentication (authmethod ``tls``) denied every client**, on WAMP and MQTT transports, static and dynamic. New tests run a router on a real TLS endpoint over WebSocket and RawSocket, and the two MQTT TLS tests are enabled again (`#2360 <https://github.com/crossbario/crossbar/issues/2360>`_)
 * **⚠ behaviour change** — the TLS channel ID ``tls-unique`` (autobahn 26.10.2) follows RFC 5929: the first TLS Finished message of the handshake, as Python's ``ssl`` module computes it, so WAMP-cryptosign with channel binding works between Crossbar.io and asyncio clients, and over RawSocket. Crossbar.io 26.10.1 and Twisted clients on autobahn 26.10.1 or older no longer agree on the channel ID over WebSocket, and neither do router-to-router links between Crossbar.io 26.10.1 and older versions. Only connections using WAMP-cryptosign channel binding are affected: upgrade both sides (`#2360 <https://github.com/crossbario/crossbar/issues/2360>`_)
 * **⚠ behaviour change** — WAMP-cryptosign denies a client that requests channel binding (``channel_binding: "tls-unique"``) on a transport without a TLS channel ID, for example a non-TLS transport. The router dropped the binding silently and authenticated the client without it (`#2360 <https://github.com/crossbario/crossbar/issues/2360>`_)
