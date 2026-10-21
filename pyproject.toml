@@ -46,7 +46,7 @@ classifiers = [
 
 dependencies = [
     # WAMP ecosystem packages (using currently available PyPI versions)
-    "autobahn[twisted,encryption,compress,serialization,scram]>=26.10.1",
+    "autobahn[twisted,encryption,compress,serialization,scram]>=26.10.2",
     "txaio>=26.6.1",
     "zlmdb>=26.10.1",
     "cfxdb>=26.6.1",

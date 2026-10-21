@@ -6,6 +6,7 @@
 ##############################################################################
 
 import pprint
+from typing import Optional
 
 import numpy as np
 import txaio
@@ -49,10 +50,17 @@ class NodeManagementSession(ApplicationSession):
         ApplicationSession.__init__(self, config)
         self._runner = runner
 
+        # the TLS channel binding requested when joining (if any)
+        self._channel_binding: Optional[str] = None
+
     def onConnect(self):
         self.log.debug("{klass}.onConnect()", klass=self.__class__.__name__)
 
         # we're connected, now authenticate using wamp-cryptosign ..
+
+        # request TLS channel binding on a transport with a TLS channel ID
+        channel_id_map = self.transport.transport_details.channel_id or {}
+        self._channel_binding = "tls-unique" if "tls-unique" in channel_id_map else None
 
         extra = {
             # forward the client pubkey: this allows us to omit authid as
@@ -68,7 +76,7 @@ class NodeManagementSession(ApplicationSession):
             # encoded 32 bytes random value.
             "challenge": None,
             # https://tools.ietf.org/html/rfc5929
-            "channel_binding": "tls-unique",
+            "channel_binding": self._channel_binding,
         }
 
         # now request to join. the authrole==node is mandatory. the actual realm
@@ -91,8 +99,9 @@ class NodeManagementSession(ApplicationSession):
             # is fine - the router is authentic wrt our trustroot.
 
             # sign the challenge with our private key.
-            channel_id_type = self.config.extra.get("channel_binding", None)
-            channel_id = self.transport.transport_details.channel_id.get(channel_id_type, None)
+            channel_id_type = self._channel_binding
+            channel_id_map = self.transport.transport_details.channel_id or {}
+            channel_id = channel_id_map.get(channel_id_type, None) if channel_id_type else None
             signed_challenge = (
                 self.config.extra["node"]
                 .secmod[1]

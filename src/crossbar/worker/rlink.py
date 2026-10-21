@@ -8,7 +8,7 @@
 import copy
 import pprint
 from collections.abc import Mapping, Sequence
-from typing import Dict
+from typing import Dict, Optional
 
 from autobahn import util
 from autobahn.twisted.wamp import ApplicationRunner, ApplicationSession
@@ -579,6 +579,9 @@ class RLinkRemoteSession(BridgeSession):
         self._rlink_manager: RLinkManager = self.config.extra["rlink_manager"]
         self._router_controller: RouterController = self._rlink_manager.controller
 
+        # the TLS channel binding requested when joining (if any)
+        self._channel_binding: Optional[str] = None
+
     # FIXME: async? see below
     def onConnect(self):
         self.log.info("{func}() ...", func=hltype(self.onConnect))
@@ -593,6 +596,10 @@ class RLinkRemoteSession(BridgeSession):
         # use WorkerController.get_public_key to call node controller
         # FIXME: the following does _not_ work with onConnect (?!)
         # _public_key = await self._router_controller.get_public_key()
+
+        # request TLS channel binding on a transport with a TLS channel ID
+        channel_id_map = self._transport.transport_details.channel_id or {}
+        self._channel_binding = "tls-unique" if "tls-unique" in channel_id_map else None
 
         def actually_join(_public_key):
             authextra.update(
@@ -610,7 +617,7 @@ class RLinkRemoteSession(BridgeSession):
                     # encoded 32 bytes random value.
                     "challenge": None,
                     # https://tools.ietf.org/html/rfc5929
-                    "channel_binding": "tls-unique",
+                    "channel_binding": self._channel_binding,
                 }
             )
 
@@ -640,14 +647,11 @@ class RLinkRemoteSession(BridgeSession):
         if challenge.method == "cryptosign":
             # alright, we've got a challenge from the router.
 
-            # sign the challenge with our private key.
-            channel_id_type = "tls-unique"
-            channel_id_map = self._router_controller._transport.transport_details.channel_id
-            if channel_id_type in channel_id_map:
-                channel_id = channel_id_map[channel_id_type]
-            else:
-                channel_id = None
-                channel_id_type = None
+            # sign the challenge with our private key, and the channel ID of our
+            # connection to the remote router (when channel binding was requested).
+            channel_id_type = self._channel_binding
+            channel_id_map = self._transport.transport_details.channel_id or {}
+            channel_id = channel_id_map.get(channel_id_type, None) if channel_id_type else None
 
             # use WorkerController.get_public_key to call node controller
             # FIXME: await?

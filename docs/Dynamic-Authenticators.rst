@@ -50,9 +50,18 @@ receives
            "peer": "tcp4:127.0.0.1:17185",
            "http_headers_sent": {},
            "type": "websocket",
+           "peer_cert": null,
            "client_cert": null
         }
      }
+
+On a TLS connection where the client presented a TLS client certificate,
+``transport.peer_cert`` holds the certificate (for example its ``sha1`` and
+``sha256`` fingerprints, ``subject``, ``issuer``, ``not_before`` and
+``not_after``), and is ``null`` otherwise. ``transport.client_cert`` is the
+same certificate under the key Crossbar.io used before 2022, kept for
+authenticators that still read it; new authenticators should use
+``peer_cert``.
 
 Running authenticators in configurable realms
 ---------------------------------------------

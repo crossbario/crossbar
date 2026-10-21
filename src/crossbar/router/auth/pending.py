@@ -50,8 +50,14 @@ class PendingAuth:
         :param config: Authentication configuration to apply for the pending auth.
         """
         # Details about the authenticating session
+        transport = transport_details.marshal()
+
+        # the TLS client certificate is "peer_cert", and also "client_cert", the key before
+        # TransportDetails (2022), which dynamic authenticators may still read
+        transport["client_cert"] = transport.get("peer_cert", None)
+
         self._session_details = {
-            "transport": transport_details.marshal(),
+            "transport": transport,
             "session": pending_session_id,
             "authmethod": None,
             "authextra": None,
