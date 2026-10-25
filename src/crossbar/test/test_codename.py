@@ -27,6 +27,9 @@ class TestCodename(unittest.TestCase):
         # 26.9 was never released, its codename moved to 26.10 (#2326)
         self.assertIsNone(get_codename("26.9.1"))
 
+    def test_known_series_26_11(self):
+        self.assertEqual(get_codename("26.11.1"), "Friendly Positive")
+
     def test_dev_suffix(self):
         # a .devN suffix on a known year.month series still resolves
         self.assertEqual(get_codename("26.6.1.dev1"), "Resistance Is Futile")
