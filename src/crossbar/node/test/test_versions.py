@@ -74,3 +74,32 @@ class TestVersions(unittest.TestCase):
 
         self.assertTrue(v.flatbuffers_atrest_ver, "at-rest FlatBuffers version is empty")
         self.assertIn("zlmdb.flatbuffers", v.flatbuffers_atrest_ver)
+
+    def test_websocket_accelerators_follow_uses_nvx(self):
+        """
+        The UTF8 validator and XOR masker lines must report what autobahn actually
+        uses, which autobahn exposes as ``autobahn.websocket.USES_NVX``. wsaccel is
+        no longer used by autobahn, and the XOR masker line used to inspect the
+        pure-Python ``XorMaskerNull`` shared by all implementations. See #2372.
+        """
+        import autobahn.websocket
+        from twisted.internet import reactor
+
+        for uses_nvx, expected in [(True, "autobahn-nvx"), (False, "autobahn-python")]:
+            self.patch(autobahn.websocket, "USES_NVX", uses_nvx)
+            v = _get_versions(reactor)
+            self.assertEqual(v.utf8_ver, expected)
+            self.assertEqual(v.xor_ver, expected)
+
+    def test_websocket_accelerator_locations(self):
+        """
+        The reported locations must be the implementations autobahn selected at
+        import time: from ``autobahn.nvx`` exactly when NVX is in use. See #2372.
+        """
+        from autobahn.websocket import USES_NVX
+        from twisted.internet import reactor
+
+        v = _get_versions(reactor)
+
+        for loc in (v.utf8_loc, v.xor_loc):
+            self.assertEqual(loc.startswith("autobahn.nvx."), USES_NVX, loc)

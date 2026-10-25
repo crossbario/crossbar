@@ -20,9 +20,10 @@ import txaio
 
 txaio.use_twisted()  # noqa
 
+import autobahn.websocket
 from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
-from autobahn.websocket.xormasker import XorMaskerNull
+from autobahn.websocket.xormasker import create_xor_masker
 from twisted.internet.defer import inlineCallbacks
 from twisted.logger import globalLogPublisher
 from twisted.python.reflect import qual
@@ -339,27 +340,15 @@ def _get_versions(reactor):
     v.ab_ver = _get_version("autobahn")
     v.ab_loc = "%s" % qual(WebSocketProtocol)
 
-    # UTF8 Validator
-    s = qual(Utf8Validator)
-    if "wsaccel" in s:
-        v.utf8_ver = "wsaccel-%s" % _get_version("wsaccel")
-    elif s.startswith("autobahn"):
-        v.utf8_ver = "autobahn"
+    # UTF8 Validator and XOR Masker: autobahn uses its NVX (CFFI) implementations, or
+    # pure Python when NVX is not built or disabled via AUTOBAHN_USE_NVX=0
+    if autobahn.websocket.USES_NVX:
+        v.utf8_ver = "autobahn-nvx"
     else:
-        # could not detect UTF8 validator type/version
-        v.utf8_ver = "?"
+        v.utf8_ver = "autobahn-python"
     v.utf8_loc = "%s" % qual(Utf8Validator)
-
-    # XOR Masker
-    s = qual(XorMaskerNull)
-    if "wsaccel" in s:
-        v.xor_ver = "wsaccel-%s" % _get_version("wsaccel")
-    elif s.startswith("autobahn"):
-        v.xor_ver = "autobahn"
-    else:
-        # could not detect XOR masker type/version
-        v.xor_ver = "?"
-    v.xor_loc = "%s" % qual(XorMaskerNull)
+    v.xor_ver = v.utf8_ver
+    v.xor_loc = "%s" % qual(create_xor_masker)
 
     # JSON Serializer
     supported_serializers = ["JSON"]

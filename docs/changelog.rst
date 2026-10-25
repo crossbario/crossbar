@@ -5,6 +5,15 @@
 Changelog
 =========
 
+26.11.1
+-------
+
+* new: Crossbar.io 26.11 release key (``crossbar-26-11.pub``) (`#2372 <https://github.com/crossbario/crossbar/issues/2372>`_)
+* new: release codename for the **26.11 series — "Friendly Positive"** (`#2372 <https://github.com/crossbario/crossbar/issues/2372>`_)
+* fix: drop the unused ``wsaccel`` dependency and relock ``uv.lock`` (removes wsaccel 0.6.7). Autobahn accelerates WebSocket with its own NVX extension (CFFI, also on PyPy) and no longer uses wsaccel, which has no wheel for CPython 3.14, so installing Crossbar.io on CPython 3.14 needed a C compiler (`#2372 <https://github.com/crossbario/crossbar/issues/2372>`_)
+* other: require ``autobahn[all]>=26.10.2`` instead of listing Autobahn's extras one by one; it installs the same packages (`#2372 <https://github.com/crossbario/crossbar/issues/2372>`_)
+* fix: ``crossbar version`` reports whether Autobahn's WebSocket UTF-8 validator and XOR masker use NVX (``autobahn-nvx``) or pure Python (``autobahn-python``, also with ``AUTOBAHN_USE_NVX=0``). The XOR masker line inspected a class shared by all implementations and never showed NVX (`#2372 <https://github.com/crossbario/crossbar/issues/2372>`_)
+
 26.10.1
 -------
 

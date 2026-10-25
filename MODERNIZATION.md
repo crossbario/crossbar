@@ -2324,7 +2324,6 @@ These packages use CFFI (Foreign Function Interface) and work well on PyPy.
 | psutil | 7.1.3 | ✅ x86_64, ARM64 | CPyExt |
 | regex | 2025.11.3 | ✅ x86_64, ARM64 | CPyExt |
 | setproctitle | 1.3.7 | ✅ x86_64, ARM64 | CPyExt |
-| wsaccel | 0.6.7 | ✅ x86_64 | CPyExt, accelerates WebSocket |
 | greenlet | 3.2.4 | ✅ x86_64, ARM64 | CPyExt |
 | MarkupSafe | 3.0.3 | ✅ x86_64, ARM64 | CPyExt |
 | rpds-py | 0.29.0 | ✅ x86_64, ARM64 | Rust-based |
@@ -2385,7 +2384,6 @@ These packages use CPython Extension API and may be slower on PyPy:
 ⚠️ cytoolz          - Functional utilities
 ⚠️ zope.interface   - Interface definitions
 ⚠️ setproctitle     - Process title
-⚠️ wsaccel          - WebSocket acceleration
 ⚠️ MarkupSafe       - String escaping
 ⚠️ rpds-py          - Rust data structures
 ⚠️ ckzg             - KZG commitments
@@ -2543,7 +2541,6 @@ watchdog==6.0.0
 wcwidth==0.2.14
 web3==7.14.0
 Werkzeug==3.1.3
-wsaccel==0.6.7  [NATIVE:CPyExt]
 xbr==25.11.1  [WAMP, Pure Python]
 yarl==1.22.0  [NATIVE:CPyExt]
 zlmdb==25.10.2  [WAMP, NATIVE:CFFI]
