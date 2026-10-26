@@ -13,6 +13,7 @@ Changelog
 * fix: drop the unused ``wsaccel`` dependency and relock ``uv.lock`` (removes wsaccel 0.6.7). Autobahn accelerates WebSocket with its own NVX extension (CFFI, also on PyPy) and no longer uses wsaccel, which has no wheel for CPython 3.14, so installing Crossbar.io on CPython 3.14 needed a C compiler (`#2372 <https://github.com/crossbario/crossbar/issues/2372>`_)
 * other: require ``autobahn[all]>=26.10.2`` instead of listing Autobahn's extras one by one; it installs the same packages (`#2372 <https://github.com/crossbario/crossbar/issues/2372>`_)
 * fix: ``crossbar version`` reports whether Autobahn's WebSocket UTF-8 validator and XOR masker use NVX (``autobahn-nvx``) or pure Python (``autobahn-python``, also with ``AUTOBAHN_USE_NVX=0``). The XOR masker line inspected a class shared by all implementations and never showed NVX (`#2372 <https://github.com/crossbario/crossbar/issues/2372>`_)
+* fix: relock ``uv.lock`` to brotli 1.2.1 and brotlicffi 1.2.1.0 (from 1.2.0 / 1.2.0.0), the first versions with the fix for **CVE-2026-111497**, an out-of-bounds write in the brotli decoder (crossbario/autobahn-python#2024). The router's WebSocket transports do not use brotli (they accept only permessage-deflate), but ``requests`` / urllib3 and aiohttp decode brotli-compressed HTTP responses when brotli is installed, and native WAMP components can use Autobahn's permessage-brotli. Installs resolved with pip already got the fixed versions; existing environments need an upgrade (`#2379 <https://github.com/crossbario/crossbar/issues/2379>`_)
 
 26.10.1
 -------
