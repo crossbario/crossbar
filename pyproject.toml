@@ -156,7 +156,15 @@ dev = [
     "humanize>=4.0.0",
 
     # Testing
-    "pytest>=7.2.1",
+    # Cap below 9.2: pytest 9.2.0 (2026-10-27) rejects a second option with the
+    # same dest, and pytest-tap 3.5 (latest release, 2025-01-30) registers
+    # `--tap-stream` with dest `tap_stream`, already used by `--tap`: pytest then
+    # aborts at startup ("Error while loading plugin pytest11", ValueError
+    # "option dest 'tap_stream' already used"), so `just test-pytest` fails before
+    # any test runs. Upstream as of 2026-11-07: python-tap/pytest-tap#139 is closed
+    # as fixed, but no pytest-tap release with the fix exists yet. Remove this cap
+    # once a fixed pytest-tap is released.
+    "pytest>=7.2.1,<9.2",
     "tap.py",
     "pytest-tap",
     "pytest-cov",
