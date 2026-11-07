@@ -411,6 +411,39 @@ install-dev venv="": (create venv)
     echo "==> Installing package - in editable mode - with package runtime dependencies in ${VENV_NAME}..."
     ${VENV_PYTHON} -m pip install -e .[dev]
 
+# This is what a `uv sync --frozen` deployment gets; CI tests it in the test-locked job (#2388).
+# `install-dev` instead resolves fresh from pyproject.toml (latest releases within the bounds).
+# Install this package (editable) and the dev dependencies EXACTLY as pinned in uv.lock (usage: `just install-dev-locked cpy311`)
+install-dev-locked venv="": (create venv)
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        echo "==> No venv name specified. Auto-detecting from system Python..."
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+        echo "==> Defaulting to venv: '${VENV_NAME}'"
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Installing package - in editable mode - with dev dependencies from uv.lock (frozen) in ${VENV_NAME}..."
+    UV_PROJECT_ENVIRONMENT="${VENV_PATH}" uv sync --frozen --extra dev --python "${VENV_PYTHON}"
+
+# The project itself is left out (the test recipes reinstall crossbar non-editable), extra packages are allowed.
+# Check that the third-party packages in a venv are exactly the ones pinned in uv.lock (usage: `just check-locked cpy311`)
+check-locked venv="":
+    #!/usr/bin/env bash
+    set -e
+    VENV_NAME="{{ venv }}"
+    if [ -z "${VENV_NAME}" ]; then
+        VENV_NAME=$(just --quiet _get-system-venv-name)
+    fi
+    VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
+    VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
+    echo "==> Checking that ${VENV_NAME} matches uv.lock (frozen, dev extra)..."
+    UV_PROJECT_ENVIRONMENT="${VENV_PATH}" uv sync --frozen --extra dev --python "${VENV_PYTHON}" \
+        --check --no-install-project --inexact
+    echo "==> ${VENV_NAME} matches uv.lock."
+
 # Meta-recipe to run `install` on all environments
 install-all:
     #!/usr/bin/env bash
@@ -886,12 +919,15 @@ clean-build:
     find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
     echo "==> Build artifacts cleaned."
 
-# Update uv.lock with latest resolved dependencies (Python 3.11 for widest compatibility)
+# crossbar follows the latest stable releases of its dependencies: every package is re-resolved
+# to the newest version within the lower and upper bounds declared in pyproject.toml (#2388).
+# Without --upgrade, `uv lock` keeps every existing pin that still fits, and the lock goes stale.
+# Upgrade uv.lock to the latest stable releases allowed by the bounds in pyproject.toml (Python 3.11 for widest compatibility)
 update-uvlock:
     #!/usr/bin/env bash
     set -e
-    echo "==> Updating uv.lock for Python 3.11+ (lowest supported version)..."
-    uv lock --python 3.11
+    echo "==> Upgrading uv.lock to the latest releases allowed by pyproject.toml, for Python 3.11+ (lowest supported version)..."
+    uv lock --upgrade --python 3.11
     echo ""
     echo "==> uv.lock updated successfully!"
     echo ""

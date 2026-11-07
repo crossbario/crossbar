@@ -42,24 +42,27 @@ updates:
         update-types:
           - "minor"
           - "patch"
+        # The XBR / Ethereum stack is 0.x or moves in lockstep across majors
+        # (eth-account 0.14 needs hexbytes 2): keep it out of the low-risk group,
+        # so these bumps come as their own PRs and get reviewed (#2388).
+        exclude-patterns:
+          - "eth-*"
+          - "hexbytes"
+          - "web3"
 
     ignore:
-      # Deliberately MAJOR-capped deps in pyproject.toml: never auto-cross a
-      # major boundary we set on purpose. These must be bumped by hand after
-      # reviewing the upstream migration guide.
-      # Security advisories still come through regardless of these ignores.
-      - dependency-name: "h2"           # pyproject: >=3.2.0,<4.0.0
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "hyperframe"   # pyproject: >=5.2.0,<6.0.0
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "priority"     # pyproject: >=1.3.0,<2.0
-        update-types: ["version-update:semver-major"]
+      # pyproject.toml caps pytest <9.2: pytest-tap 3.5 (latest release) makes
+      # pytest 9.2.0 abort at startup. Remove this entry together with the cap
+      # once a fixed pytest-tap is released (#2383).
+      - dependency-name: "pytest"
+        versions: [">=9.2"]
       # The following are MINOR-capped on purpose. We do NOT hard-ignore them
       # here (a bump still surfaces as a PR), but because any such bump must
       # rewrite the pyproject.toml cap, it lands in the manual review lane:
-      #   idna          >=2.5,<2.6
       #   eth-abi       >=5.1.0,<5.2.0
       #   parsimonious  >=0.9.0,<0.11.0
+      # (The former h2 / hyperframe / priority / idna caps were 2017 frozen
+      # versions, not real limits, and were lifted in #2388.)
 
   # ---------------------------------------------------------------------------
   # GitHub Actions workflows (.github/workflows/*.yml)
