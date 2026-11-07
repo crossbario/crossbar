@@ -164,7 +164,7 @@ dev = [
     # any test runs. Upstream as of 2026-11-07: python-tap/pytest-tap#139 is closed
     # as fixed, but no pytest-tap release with the fix exists yet. Remove this cap
     # once a fixed pytest-tap is released.
-    "pytest>=7.2.1,<9.2",
+    "pytest>=7.2.1,<9.3",
     "tap.py",
     "pytest-tap",
     "pytest-cov",
