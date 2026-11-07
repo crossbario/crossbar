@@ -1433,7 +1433,7 @@ toml = [
 
 [[package]]
 name = "crossbar"
-version = "26.11.1.dev1"
+version = "26.11.1.dev2"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
@@ -1626,7 +1626,7 @@ requires-dist = [
     { name = "pyopenssl", specifier = ">=23.0.0" },
     { name = "pypi-attestations", marker = "extra == 'dev'", specifier = ">=0.0.30" },
     { name = "pyqrcode", specifier = ">=1.2.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.2.1" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.2.1,<9.2" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "pytest-tap", marker = "extra == 'dev'" },
     { name = "pytest-twisted", marker = "extra == 'dev'" },
