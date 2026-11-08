@@ -840,10 +840,14 @@ Different strategies for libraries vs applications:
 |--------|--------|
 | `pyproject.toml` | Define direct dependencies with sensible guards (`>=`), upper bounds only if required |
 | `uv.lock` | **MUST be committed to Git** - ensures exact reproducibility |
-| CI/CD | Uses `uv sync --frozen` to install exact pinned deps (direct + transitive) |
+| CI/CD | Tests both: fresh resolution from `pyproject.toml` (`just install-dev`), and the exact pins from `uv.lock` (`just install-dev-locked`, the "Unit Tests from uv.lock" jobs) |
+
+> The authoritative, current description of the crossbar dependency policy (follow latest
+> stable, security floors, caps with reasons, lock upgrades) is `docs/uvlock.rst`, section
+> "Dependency Policy" (#2388). The text here is the original modernization plan.
 
 **Release workflow**:
-1. Before release: `uv sync --upgrade` to update all deps to latest stable
+1. Before release: `just update-uvlock` (`uv lock --upgrade`) to update all deps to the latest stable releases allowed by `pyproject.toml`
 2. Run full test suite (unit, functional, integration)
 3. Commit updated `uv.lock` with the release
 4. Tag release in Git
