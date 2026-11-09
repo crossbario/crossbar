@@ -597,20 +597,30 @@ check-format venv="": (install-tools venv)
     echo "==> Linting code with ${VENV_NAME}..."
     "${VENV_PATH}/bin/ruff" check src/crossbar/
 
-# Run static type checking with ty (Astral's Rust-based type checker)
 # FIXME: Many type errors need to be fixed. For now, we ignore most rules
 # to get CI passing. Create follow-up issue to address type errors.
+#
+# CI installs the newest ty, on purpose: we follow it as it moves (#2392). ty
+# renames rules now and then, and an --ignore or `ty: ignore[...]` naming an old
+# name then silences nothing, so the rule comes back with hundreds of errors and
+# the one warning that explains them is lost among them. This recipe repeats
+# those warnings at the end, after the errors.
+# Run static type checking with ty (Astral's Rust-based type checker)
 check-typing venv="":
     #!/usr/bin/env bash
     set -e
     VENV_PYTHON=$(just --quiet _get-venv-python {{ venv }})
     echo "==> Running static type checks with ty..."
     echo "    Using Python: ${VENV_PYTHON}"
+    echo "    ty: $(ty --version)"
+    TY_OUT=$(mktemp)
+    trap 'rm -f "${TY_OUT}"' EXIT
 
+    set +e
     ty check \
         --python "${VENV_PYTHON}" \
         --ignore import-not-found \
-        --ignore unresolved-attribute \
+        --ignore missing-attribute \
         --ignore unresolved-reference \
         --ignore unresolved-global \
         --ignore possibly-missing-attribute \
@@ -619,7 +629,7 @@ check-typing venv="":
         --ignore invalid-assignment \
         --ignore invalid-argument-type \
         --ignore invalid-return-type \
-        --ignore invalid-method-override \
+        --ignore incompatible-method-override \
         --ignore invalid-type-form \
         --ignore unsupported-operator \
         --ignore too-many-positional-arguments \
@@ -636,8 +646,23 @@ check-typing venv="":
         --ignore invalid-exception-caught \
         --ignore possibly-missing-submodule \
         --ignore unused-type-ignore-comment \
+        --ignore missing-union-attribute \
+        --ignore lost-keyword-for-regular-parameter \
         --exclude 'src/crossbar/worker/test/examples/syntaxerror.py' \
-        src/crossbar/
+        src/crossbar/ 2>&1 | tee "${TY_OUT}"
+    rc=${PIPESTATUS[0]}
+    set -e
+
+    if grep -E '^warning\[(unknown-rule|renamed-rule|renamed-rule-in-ignore-comment)\]' "${TY_OUT}" > "${TY_OUT}.names"; then
+        echo ""
+        echo "==> ty does not know a rule name this recipe or a ty: ignore comment uses:"
+        sed 's/^/    /' "${TY_OUT}.names"
+        echo "    Rename it to ty's current name (the errors above may be that rule, back on)."
+        rm -f "${TY_OUT}.names"
+        exit 1
+    fi
+    rm -f "${TY_OUT}.names"
+    exit ${rc}
 
 # Run security checks with bandit
 check-bandit venv="": (install-tools venv)
