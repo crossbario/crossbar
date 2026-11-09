@@ -723,7 +723,16 @@ test-pytest venv="": (install-tools venv) (install venv)
     # without the pytest-twisted plugin: it runs plain test functions in a greenlet that
     # keeps the reactor running, after which trial tests using real sockets hang. The unit
     # tests do not use it (the functional tests in test/functests do), see #2324 / #2334
-    ${VENV_PYTHON} -m pytest -p no:twisted -sv src/crossbar/
+    #
+    # From _trial_temp/ (ignored), as trial runs: the trial test cases' mktemp() paths
+    # are relative to the working directory, and from the repository root they were
+    # left there as untracked directories (#2393). pytest still finds pytest.ini, and
+    # puts its cache, at the root.
+    ROOT="$(pwd)"
+    VENV_PYTHON="$(cd "$(dirname "${VENV_PYTHON}")" && pwd)/$(basename "${VENV_PYTHON}")"
+    mkdir -p _trial_temp
+    cd _trial_temp
+    "${VENV_PYTHON}" -m pytest -p no:twisted -sv --rootdir "${ROOT}" "${ROOT}/src/crossbar/"
 
 # Run all tests (trial + pytest + functional)
 test venv="": (test-trial venv) (test-pytest venv) (test-functional venv)
@@ -811,6 +820,9 @@ install-docs venv="": (create venv)
     echo "==> Installing documentation tools in ${VENV_NAME}..."
     ${VENV_PYTHON} -m pip install -e .[docs]
 
+# Run by hand when docs/_graphics/ changes, and commit what it writes: the outputs
+# are tracked, and `docs` no longer runs this, because ImageMagick versions write
+# different bytes for the same favicon and left every docs build dirty (#2393).
 # Build optimized SVGs from docs/_graphics/*.svg using scour and generate favicon
 optimize-images venv="": (install-docs venv)
     #!/usr/bin/env bash
@@ -863,7 +875,7 @@ optimize-images venv="": (install-docs venv)
     echo "==> Done building images."
 
 # Build the HTML documentation using Sphinx
-docs venv="": (optimize-images venv)
+docs venv="": (install-docs venv)
     #!/usr/bin/env bash
     set -e
     VENV_NAME="{{ venv }}"
