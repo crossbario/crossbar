@@ -447,7 +447,7 @@ class RouterSession(BaseSession):
         # narrower than the inherited ``ITransport | None``: autobahn makes these protocols
         # ITransport only via ``ITransport.register()`` / ``@implementer``, which ty does not
         # follow, and this class uses attributes only the concrete protocols have (#2326)
-        self._transport: Optional[  # ty: ignore[invalid-attribute-override]
+        self._transport: Optional[  # ty: ignore[incompatible-attribute-override]
             Union[WampWebSocketServerProtocol, WampRawSocketServerProtocol, NativeWorkerClientProtocol]
         ] = None
         self._router_factory = router_factory
