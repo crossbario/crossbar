@@ -114,7 +114,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -147,7 +147,7 @@ jobs:
           cat discussion-post.md
 
       - name: Post to GitHub Discussions
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           DISCUSSION_CATEGORY: ${{ github.event.inputs.discussion_category || 'ci-cd' }}
         with:
