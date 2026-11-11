@@ -1046,6 +1046,13 @@ build venv="": (install-build-tools venv)
     export SODIUM_INSTALL=bundled
     export PYUBJSON_NO_EXTENSION=1
 
+    # inject-build-id.py stamps the build ID into the tracked _version.py. Put the file back
+    # when the recipe ends, whether the build passed or failed (#2400): the ID belongs in the
+    # packages, never in the tree. A copy, not `git checkout`, so local edits survive too.
+    VERSION_PY="src/crossbar/_version.py"
+    VERSION_BAK=$(mktemp)
+    cp "${VERSION_PY}" "${VERSION_BAK}"
+    trap 'cp "${VERSION_BAK}" "${VERSION_PY}"; rm -f "${VERSION_BAK}"' EXIT
     ${VENV_PYTHON} inject-build-id.py
     ${VENV_PYTHON} -m build --wheel
     ls -la dist/
@@ -1063,6 +1070,13 @@ build-sourcedist venv="": (install-build-tools venv)
     VENV_PATH="{{ VENV_DIR }}/${VENV_NAME}"
     VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
     echo "==> Building source distribution..."
+    # inject-build-id.py stamps the build ID into the tracked _version.py. Put the file back
+    # when the recipe ends, whether the build passed or failed (#2400): the ID belongs in the
+    # packages, never in the tree. A copy, not `git checkout`, so local edits survive too.
+    VERSION_PY="src/crossbar/_version.py"
+    VERSION_BAK=$(mktemp)
+    cp "${VERSION_PY}" "${VERSION_BAK}"
+    trap 'cp "${VERSION_BAK}" "${VERSION_PY}"; rm -f "${VERSION_BAK}"' EXIT
     ${VENV_PYTHON} inject-build-id.py
     ${VENV_PYTHON} -m build --sdist
     ls -la dist/
@@ -1079,6 +1093,13 @@ dist venv="": (install-build-tools venv)
     fi
     VENV_PYTHON=$(just --quiet _get-venv-python "${VENV_NAME}")
     echo "==> Building distribution packages (wheel + sdist)..."
+    # inject-build-id.py stamps the build ID into the tracked _version.py. Put the file back
+    # when the recipe ends, whether the build passed or failed (#2400): the ID belongs in the
+    # packages, never in the tree. A copy, not `git checkout`, so local edits survive too.
+    VERSION_PY="src/crossbar/_version.py"
+    VERSION_BAK=$(mktemp)
+    cp "${VERSION_PY}" "${VERSION_BAK}"
+    trap 'cp "${VERSION_BAK}" "${VERSION_PY}"; rm -f "${VERSION_BAK}"' EXIT
     ${VENV_PYTHON} inject-build-id.py
     ${VENV_PYTHON} -m build
     echo ""
