@@ -2,8 +2,9 @@
 #
 # Stamp the build ID from CROSSBAR_BUILD_ID into the __build__ placeholder of _version.py,
 # right before building the wheel and sdist (see `just dist`, issue #2231). Modifies the file
-# in place: the stamped value is never committed. Leaves the file alone when the variable is
-# not set (local and dev builds keep the placeholder).
+# in place; the recipes that call it (`dist`, `build`, `build-sourcedist`) put the file back
+# when they end, so the stamped value never stays in the tree (#2400). Leaves the file alone
+# when the variable is not set (local and dev builds keep the placeholder).
 #
 # Usage: CROSSBAR_BUILD_ID=20261020-abc1234 python inject-build-id.py [path/to/_version.py]
 
