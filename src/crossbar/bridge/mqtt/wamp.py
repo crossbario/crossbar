@@ -191,12 +191,15 @@ class WampMQTTServerProtocol(Protocol):
             msg = message.Authenticate(signature=self._pw_challenge)
             del self._pw_challenge
 
+            assert self._wamp_session is not None
             self._wamp_session.onMessage(msg)
 
         elif isinstance(inc_msg, message.Welcome):
+            assert self._waiting_for_connect is not None
             self._waiting_for_connect.callback((0, False))
 
         elif isinstance(inc_msg, message.Abort):
+            assert self._waiting_for_connect is not None
             self._waiting_for_connect.callback((1, False))
 
         elif isinstance(inc_msg, message.Subscribed):
@@ -286,6 +289,7 @@ class WampMQTTServerProtocol(Protocol):
 
         # we don't support session resumption: https://github.com/crossbario/crossbar/issues/892
         if not packet.flags.clean_session:
+            assert self.transport is not None
             self.log.warn(
                 "denying MQTT connect from {peer}, as the clients wants to resume a session (which we do not support)",
                 peer=peer2str(self.transport.getPeer()),
@@ -294,6 +298,7 @@ class WampMQTTServerProtocol(Protocol):
 
         # we won't support QoS 2: https://github.com/crossbario/crossbar/issues/1046
         if packet.flags.will and packet.flags.will_qos not in [0, 1]:
+            assert self.transport is not None
             self.log.warn(
                 'denying MQTT connect from {peer}, as the clients wants to provide a "last will" event with QoS {will_qos} (and we only support QoS 0/1 here)',
                 peer=peer2str(self.transport.getPeer()),
@@ -332,6 +337,7 @@ class WampMQTTServerProtocol(Protocol):
                 realm=realm, roles=roles, authmethods=authmethods, authid=packet.client_id, authextra=authextra
             )
 
+        assert self._wamp_session is not None
         self._wamp_session.onMessage(msg)
 
         if packet.flags.will:
@@ -367,6 +373,7 @@ class WampMQTTServerProtocol(Protocol):
                     ],
                 )
 
+                assert self._wamp_session is not None
                 self._wamp_session.onMessage(msg)
 
                 returnValue(res)
@@ -398,6 +405,7 @@ class WampMQTTServerProtocol(Protocol):
             **options,
         )
 
+        assert self._wamp_session is not None
         self._wamp_session.onMessage(msg)
 
         if event.qos_level > 0:
@@ -459,6 +467,7 @@ class WampMQTTServerProtocol(Protocol):
             try:
                 packet_watch[request_id] = {"response": -1, "topic": x.topic_filter}
                 self._subrequest_to_mqtt_subrequest[request_id] = packet.packet_identifier
+                assert self._wamp_session is not None
                 self._wamp_session.onMessage(msg)
             except:
                 self.log.failure()

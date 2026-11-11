@@ -586,6 +586,7 @@ class RLinkRemoteSession(BridgeSession):
     def onConnect(self):
         self.log.info("{func}() ...", func=hltype(self.onConnect))
 
+        assert self.config.extra is not None
         authid = self.config.extra.get("authid", None)
         authrole = self.config.extra.get("authrole", None)
         authextra = self.config.extra.get("authextra", {})
@@ -597,6 +598,7 @@ class RLinkRemoteSession(BridgeSession):
         # FIXME: the following does _not_ work with onConnect (?!)
         # _public_key = await self._router_controller.get_public_key()
 
+        assert self._transport is not None
         # request TLS channel binding on a transport with a TLS channel ID
         channel_id_map = self._transport.transport_details.channel_id or {}
         self._channel_binding = "tls-unique" if "tls-unique" in channel_id_map else None
@@ -650,6 +652,7 @@ class RLinkRemoteSession(BridgeSession):
             # sign the challenge with our private key, and the channel ID of our
             # connection to the remote router (when channel binding was requested).
             channel_id_type = self._channel_binding
+            assert self._transport is not None
             channel_id_map = self._transport.transport_details.channel_id or {}
             channel_id = channel_id_map.get(channel_id_type, None) if channel_id_type else None
 

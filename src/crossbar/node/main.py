@@ -724,7 +724,8 @@ def _start_logging(options, reactor):
         # We want to log to stdout/stderr.
 
         if color == "auto":
-            if sys.__stdout__.isatty():
+            # no stdout at all (e.g. a daemon started without one): no color
+            if sys.__stdout__ is not None and sys.__stdout__.isatty():
                 color = True
             else:
                 color = False

@@ -717,7 +717,8 @@ class Dealer(object):
             # from receiving the meta event we'll publish below by authid (of the r2r link
             # from the forwarding node connected to this router node)
             exclude_authid = None
-            if unregister.forward_for:
+            # no UNREGISTER message when the router removes the callee (removeCallee)
+            if unregister and unregister.forward_for:
                 exclude_authid = [ff["authid"] for ff in unregister.forward_for]
                 self.log.info(
                     "WAMP meta event will be published excluding these authids (from forward_for): {exclude_authid}",

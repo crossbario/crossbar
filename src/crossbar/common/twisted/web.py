@@ -35,6 +35,7 @@ class _LessNoisyHTTPChannel(HTTPChannel):
     log = make_logger()
 
     def timeoutConnection(self):
+        assert self.transport is not None
         self.log.debug(
             "Timing out client: {peer}",
             peer=self.transport.getPeer(),

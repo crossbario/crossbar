@@ -510,6 +510,7 @@ class NodeController(NativeProcess):
         return self._node.secmod[1].public_key(binary=False)
 
     def _start_native_worker(self, worker_type, worker_id, worker_options=None, details=None):
+        assert details is not None
         # prohibit starting a worker twice
         #
         if worker_id in self._workers:
@@ -960,6 +961,7 @@ class NodeController(NativeProcess):
 
         :returns: The PID of the new process.
         """
+        assert details is not None
         # prohibit starting a worker twice
         #
         if worker_id in self._workers:

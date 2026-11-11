@@ -78,6 +78,7 @@ class PendingAuthAnonymous(PendingAuth):
                 if result:
                     return result
 
+                assert self._authenticator_session is not None
                 d = self._authenticator_session.call(
                     self._authenticator, self._realm, self._authid, self._session_details
                 )

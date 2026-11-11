@@ -368,6 +368,7 @@ class WampLongPollResourceSession(Resource):
                 "WampLongPoll: RX {octets}",
                 octets=_LazyHexFormatter(msg),
             )
+            assert self._session is not None
             self._session.onMessage(msg)
 
     def send(self, msg):
@@ -639,7 +640,7 @@ class WampLongPollResource(Resource):
         peer = b"{0}:{1}".format(request.client.host, request.client.port)
         return self._get_notice(peer=peer)
 
-    def getChild(self, name, request):
+    def getChild(self, path, request):
         """
         Returns send/receive/close resource for transport.
 
@@ -649,7 +650,7 @@ class WampLongPollResource(Resource):
            * :class:`zipfile.ZipFile`
         """
 
-        name = name.decode("utf8")
+        name = path.decode("utf8")
 
         if name not in self._transports:
             if not name:

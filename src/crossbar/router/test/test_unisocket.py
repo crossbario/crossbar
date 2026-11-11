@@ -52,6 +52,7 @@ class UniSocketTests(TestCase):
             """
 
             def dataReceived(self, data):
+                assert self.transport is not None
                 self.transport.write(data)
 
         fake_rawsocket = Factory.forProtocol(MyFakeRawSocket)
@@ -141,6 +142,7 @@ class UniSocketTests(TestCase):
             """
 
             def dataReceived(self, data):
+                assert self.transport is not None
                 self.transport.write(data)
 
         fake_websocket = Factory.forProtocol(MyFakeWebSocket)
@@ -213,6 +215,7 @@ class UniSocketTests(TestCase):
                 pass
 
             def dataReceived(self, data):
+                assert self.transport is not None
                 self.transport.write(data)
 
         fake_mqtt = Factory.forProtocol(MyFakeMQTT)

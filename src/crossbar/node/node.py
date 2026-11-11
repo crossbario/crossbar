@@ -221,6 +221,7 @@ class Node(object):
                 }
             ],
         }
+        assert self._router_factory is not None
         self._router_factory.add_role(self._realm, controller_role_config)
         self.log.info(
             '{func} node-wide role "{authrole}" added on node management router realm "{realm}"',
@@ -268,6 +269,7 @@ class Node(object):
             }
             worker_role_config["permissions"].append(vendor_permissions)
 
+        assert self._router_factory is not None
         self._router_factory.add_role(self._realm, worker_role_config)
 
         self.log.info(
@@ -278,6 +280,7 @@ class Node(object):
         )
 
     def _drop_worker_role(self, worker_auth_role):
+        assert self._router_factory is not None
         self._router_factory.drop_role(self._realm, worker_auth_role)
 
     def _extend_worker_args(self, args, options):
@@ -325,6 +328,7 @@ class Node(object):
         return succeed(None)
 
     def stop(self, restart=False):
+        assert self._controller is not None
         self._controller._shutdown_was_clean = True
         return self._controller.shutdown(restart=restart)
 
@@ -343,6 +347,7 @@ class Node(object):
             "{note} [{method}]", note=hl("Starting node ..", color="green", bold=True), method=hltype(Node.start)
         )
 
+        assert self._node_secmod is not None
         # open and unlock node security module
         if not self._node_secmod.is_open:
             yield self._node_secmod.open()
@@ -360,6 +365,8 @@ class Node(object):
 
         # get controller config/options
         controller_config = self._config.get("controller", {})
+        # the node configuration is checked (personality.check_config) when loaded
+        assert isinstance(controller_config, dict)
         controller_options = controller_config.get("options", {})
 
         # the node ID: CLI takes precedence over config over hostname
@@ -484,6 +491,7 @@ class Node(object):
 
         # start Manhole in node controller
         if "manhole" in controller:
+            assert self._controller is not None
             yield self._controller.call("crossbar.start_manhole", controller["manhole"], options=CallOptions())
             self.log.debug("controller: manhole started")
 
@@ -535,6 +543,7 @@ class Node(object):
                         worker_logname=hlid(worker_logname),
                     )
 
+                    assert self._controller is not None
                     d = self._controller.call(
                         "crossbar.start_worker", worker_id, worker_type, worker_options, options=CallOptions()
                     )
@@ -579,6 +588,7 @@ class Node(object):
             elif worker_type == "guest":
                 # now actually start the (guest) worker ..
 
+                assert self._controller is not None
                 # FIXME: start_worker() takes the whole configuration item for guest workers, whereas native workers
                 # only take the options (which is part of the whole config item for the worker)
                 d = self._controller.call(
@@ -615,6 +625,7 @@ class Node(object):
         # should be done directly in NodeController._start_native_worker
         if True:
             if "cpu_affinity" in worker_options:
+                assert self._controller is not None
                 new_affinity = yield self._controller.call(
                     "crossbar.worker.{}.set_cpu_affinity".format(worker_id),
                     worker_options["cpu_affinity"],
@@ -627,6 +638,7 @@ class Node(object):
         # this is fine to start after the worker has been started, as manhole is
         # CB developer/support feature anyways (like a vendor diagnostics port)
         if "manhole" in worker:
+            assert self._controller is not None
             yield self._controller.call(
                 "crossbar.worker.{}.start_manhole".format(worker_id), worker["manhole"], options=CallOptions()
             )
@@ -652,6 +664,7 @@ class Node(object):
                 realm_id=hlid(realm_id),
             )
 
+            assert self._controller is not None
             yield self._controller.call(
                 "crossbar.worker.{}.start_router_realm".format(worker_id), realm_id, realm, options=CallOptions()
             )
@@ -700,6 +713,7 @@ class Node(object):
                 component["id"] = component_id
                 self._component_no += 1
 
+            assert self._controller is not None
             yield self._controller.call(
                 "crossbar.worker.{}.start_router_component".format(worker_id),
                 component_id,
@@ -729,6 +743,7 @@ class Node(object):
                 transport_id=hlid(transport_id),
             )
 
+            assert self._controller is not None
             yield self._controller.call(
                 "crossbar.worker.{}.start_router_transport".format(worker_id),
                 transport_id,
@@ -801,6 +816,7 @@ class Node(object):
                     rlink_id=hlid(rlink_id),
                 )
 
+                assert self._controller is not None
                 d = self._controller.call(
                     "crossbar.worker.{}.start_router_realm_link".format(worker_id),
                     realm_id,
@@ -837,6 +853,7 @@ class Node(object):
                 component["id"] = component_id
                 self._component_no += 1
 
+            assert self._controller is not None
             yield self._controller.call(
                 "crossbar.worker.{}.start_component".format(worker_id), component_id, component, options=CallOptions()
             )
@@ -855,6 +872,7 @@ class Node(object):
         transport["id"] = transport_id
         self._transport_no = 1
 
+        assert self._controller is not None
         yield self._controller.call(
             "crossbar.worker.{}.start_websocket_testee_transport".format(worker_id),
             transport_id,
@@ -879,6 +897,7 @@ class Node(object):
                 index=i,
                 name=connection_name,
             )
+            assert self._controller is not None
             yield self._controller.call(
                 "crossbar.worker.{}.start_proxy_connection".format(worker_id),
                 connection_name,
@@ -899,6 +918,7 @@ class Node(object):
                         role=role_id,
                         connection=connection_id,
                     )
+                    assert self._controller is not None
                     yield self._controller.call(
                         "crossbar.worker.{}.start_proxy_realm_route".format(worker_id),
                         realm_name,
@@ -920,6 +940,7 @@ class Node(object):
                 transport_id=hlid(transport_id),
             )
 
+            assert self._controller is not None
             # XXX we're doing startup, and beginning proxy workers --
             # want to share the web-transport etc etc stuff between
             # these and other kinds of routers / transports

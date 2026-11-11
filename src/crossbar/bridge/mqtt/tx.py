@@ -105,6 +105,7 @@ class MQTTServerTwistedProtocol(Protocol):
             self._timeout.reset(self._timeout_time)
 
     def dataReceived(self, data):
+        assert self.transport is not None
         # Pause the producer as we need to process some of these things
         # serially -- for example, subscribes in Autobahn are a Deferred op,
         # so we don't want any more data yet
@@ -115,6 +116,7 @@ class MQTTServerTwistedProtocol(Protocol):
 
     def _resume_producing(self):
         if self._connected:
+            assert self.transport is not None
             self.transport.resumeProducing()
 
     def connectionLost(self, reason):
@@ -189,6 +191,7 @@ class MQTTServerTwistedProtocol(Protocol):
         self.log.trace(
             log_category="MQ101", client_id=self.session.client_id, packet=packet, conn_id=self._connection_id
         )
+        assert self.transport is not None
         self.transport.write(packet.serialise())
 
     def _flush_saved_messages(self):
@@ -237,6 +240,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     # connecting raising an exception), we must close the
                     # connection.
                     self.log.failure(log_category="MQ500")
+                    assert self.transport is not None
                     self.transport.loseConnection()
                     returnValue(None)
 
@@ -256,6 +260,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     session_present = False
 
                 else:
+                    assert self.transport is not None
                     # No valid return codes, so drop the connection, as per
                     # MQTT-3.2.2-6
                     self.transport.loseConnection()
@@ -265,6 +270,7 @@ class MQTTServerTwistedProtocol(Protocol):
                 self._send_packet(connack)
 
                 if accept_conn != 0:
+                    assert self.transport is not None
                     # If we send a CONNACK with a non-0 response code, drop the
                     # connection after sending the CONNACK, as in MQTT-3.2.2-5
                     self.transport.loseConnection()
@@ -282,6 +288,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     # connection.
                     self.log.failure()
                     self.log.failure(log_category="MQ501", client_id=self.session.client_id)
+                    assert self.transport is not None
                     self.transport.loseConnection()
                     returnValue(None)
 
@@ -295,6 +302,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     # unsubscribing raising an exception), we must close the
                     # connection.
                     self.log.failure(log_category="MQ502", client_id=self.session.client_id)
+                    assert self.transport is not None
                     self.transport.loseConnection()
                     returnValue(None)
                 unsuback = UnsubACK(packet_identifier=event.packet_identifier)
@@ -311,6 +319,7 @@ class MQTTServerTwistedProtocol(Protocol):
                         # publishing raising an exception), we must close the
                         # connection.
                         self.log.failure(log_category="MQ503", client_id=self.session.client_id)
+                        assert self.transport is not None
                         self.transport.loseConnection()
                         returnValue(None)
 
@@ -327,6 +336,7 @@ class MQTTServerTwistedProtocol(Protocol):
                         # connection.
                         self.log.failure()
                         self.log.failure(log_category="MQ504", client_id=self.session.client_id)
+                        assert self.transport is not None
                         self.transport.loseConnection()
                         returnValue(None)
 
@@ -349,6 +359,7 @@ class MQTTServerTwistedProtocol(Protocol):
                         # publishing raising an exception), we must close the
                         # connection.
                         self.log.failure(log_category="MQ505", client_id=self.session.client_id)
+                        assert self.transport is not None
                         self.transport.loseConnection()
                         returnValue(None)
 
@@ -365,6 +376,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     # here), but the tests do some trickery to cover this
                     # case :)
                     self.log.error(log_category="MQ403", client_id=self.session.client_id)
+                    assert self.transport is not None
                     self.transport.loseConnection()
                     return
 
@@ -377,6 +389,7 @@ class MQTTServerTwistedProtocol(Protocol):
                 try:
                     self._handler.process_puback(event)
                 except:
+                    assert self.transport is not None
                     # MQTT-4.8.0-2 - If we get a transient errorm we must close
                     # the connection.
                     self.transport.loseConnection()
@@ -386,6 +399,7 @@ class MQTTServerTwistedProtocol(Protocol):
                 try:
                     self._handler.process_pubrec(event)
                 except:
+                    assert self.transport is not None
                     # MQTT-4.8.0-2 - If we get a transient errorm we must close
                     # the connection.
                     self.transport.loseConnection()
@@ -401,6 +415,7 @@ class MQTTServerTwistedProtocol(Protocol):
                 try:
                     self._handler.process_pubrel(event)
                 except:
+                    assert self.transport is not None
                     # MQTT-4.8.0-2 - If we get a transient error we must close
                     # the connection.
                     self.transport.loseConnection()
@@ -414,6 +429,7 @@ class MQTTServerTwistedProtocol(Protocol):
                 try:
                     self._handler.process_pubcomp(event)
                 except:
+                    assert self.transport is not None
                     # MQTT-4.8.0-2 - If we get a transient error we must close
                     # the connection.
                     self.transport.loseConnection()
@@ -422,6 +438,7 @@ class MQTTServerTwistedProtocol(Protocol):
             elif isinstance(event, Disconnect):
                 # TODO: get rid of some will messages
 
+                assert self.transport is not None
                 # 3.14.4 -- we can close it if we want to
                 self.transport.loseConnection()
                 self.transport = None
@@ -435,6 +452,7 @@ class MQTTServerTwistedProtocol(Protocol):
                         log_category="MQ402", client_id=self.session.client_id, packet_id=event.__class__.__name__
                     )
 
+                assert self.transport is not None
                 # Conformance statement MQTT-4.8.0-1: Must close the connection
                 # on a protocol violation.
                 self.transport.loseConnection()

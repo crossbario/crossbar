@@ -32,6 +32,7 @@ class ShellClient(ApplicationSession):
         self.log.info("{klass}.onConnect()", klass=self.__class__.__name__)
 
         self._key = self.config.extra["key"]
+        assert self.config.extra is not None
         self._command = self.config.extra.get("command", None)
         self._main = self.config.extra.get("main", None)
 
@@ -73,7 +74,9 @@ class ShellClient(ApplicationSession):
 
         # sign and send back the challenge with our private key.
         try:
+            assert self.config.extra is not None
             channel_id_type = self.config.extra.get("channel_binding", None)
+            assert self.transport is not None
             channel_id = self.transport.transport_details.channel_id.get(channel_id_type, None)
             sig = self._key.sign_challenge(challenge, channel_id=channel_id, channel_id_type=channel_id_type)
         except Exception as e:
@@ -85,6 +88,7 @@ class ShellClient(ApplicationSession):
     async def onJoin(self, details):  # noqa: N802
         self.log.info("{klass}.onJoin(details={details})", klass=self.__class__.__name__, details=details)
 
+        assert self.config.extra is not None
         done = self.config.extra.get("done", None)
 
         result = None
@@ -130,6 +134,7 @@ class ShellClient(ApplicationSession):
 
         # reason=<wamp.error.authentication_failed>
         if details.reason != "wamp.close.normal":
+            assert self.config.extra is not None
             done = self.config.extra.get("done", None)
             error = ApplicationError(details.reason, details.message)
             if done and not txaio.is_called(done):
@@ -144,6 +149,7 @@ class ShellClient(ApplicationSession):
         self.log.info("{klass}.onDisconnect()", klass=self.__class__.__name__)
         if self._main:
             try:
+                assert self.config.runner is not None
                 self.config.runner.stop()
                 self.disconnect()
             except:
@@ -157,6 +163,7 @@ class ShellClient(ApplicationSession):
 class ManagementClientSession(ApplicationSession):
     def onConnect(self):
         self._key = self.config.extra["key"]
+        assert self.config.extra is not None
         extra = {
             "pubkey": self._key.public_key(),
             "trustroot": self.config.extra.get("trustroot", None),
@@ -176,7 +183,9 @@ class ManagementClientSession(ApplicationSession):
         )
 
     def onChallenge(self, challenge):
+        assert self.config.extra is not None
         channel_id_type = self.config.extra.get("channel_binding", None)
+        assert self.transport is not None
         channel_id = self.transport.transport_details.channel_id.get(channel_id_type, None)
         sig = self._key.sign_challenge(challenge, channel_id=channel_id, channel_id_type=channel_id_type)
         return sig

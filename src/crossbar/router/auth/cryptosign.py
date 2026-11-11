@@ -21,7 +21,7 @@ from autobahn.wamp.types import Accept, Challenge, Deny, HelloDetails, Transport
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
 from twisted.internet.defer import Deferred
-from xbr import EIP712AuthorityCertificate, parse_certificate_chain
+from xbr import EIP712AuthorityCertificate, EIP712DelegateCertificate, parse_certificate_chain
 
 from crossbar.interfaces import IPendingAuth, IRealmContainer
 from crossbar.router.auth.pending import PendingAuth
@@ -88,6 +88,7 @@ class PendingAuthCryptosign(PendingAuth):
                 for _realm, _trustroot in self._config["trustroots"].items():
                     _realm_category = identify_realm_name_category(_realm)
                     if _realm_category == "standalone":
+                        assert self._realm_container.config.extra is not None
                         _trustroot_fn = os.path.join(
                             self._realm_container.config.extra.cbdir, _trustroot["certificate"]
                         )  # noqa
@@ -197,6 +198,17 @@ class PendingAuthCryptosign(PendingAuth):
             # use trustroots configured (if trustroots are indeed configured and the client provided
             # a certificate chain to verify)
             if client_certificates and realm in self._realms_to_trustroots:
+                # the chain is the delegate certificate, then authority certificates up to the root CA
+                delegate_cert = client_certificates[0]
+                root_cert = client_certificates[-1]
+                if not isinstance(delegate_cert, EIP712DelegateCertificate) or not isinstance(
+                    root_cert, EIP712AuthorityCertificate
+                ):
+                    return Deny(
+                        message="certificate chain provided by client must start with a delegate certificate "
+                        "and end with an authority certificate"
+                    )
+
                 # root CA configured as trustroot for realm
                 root_ca_cert = self._realms_to_trustroots[realm]
 
@@ -210,7 +222,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 # trustroot to consider is the issuer of the last certificate (the root CA cert) in
                 # the certificate chain provided by the client
-                trustroot = client_certificates[-1].issuer
+                trustroot = root_cert.issuer
                 if trustroot != root_ca_cert.issuer:
                     return Deny(
                         message="trustroot {} provided by client in last certificate of certificate chain does not match "
@@ -223,7 +235,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 principal = {
                     # use delegate address as synthetic authid
-                    "authid": web3.Web3.toChecksumAddress(client_certificates[0].delegate),
+                    "authid": web3.Web3.toChecksumAddress(delegate_cert.delegate),
                     # FIXME: the authrole somehow needs to be configurable
                     "role": "user",
                 }
@@ -360,6 +372,7 @@ class PendingAuthCryptosign(PendingAuth):
                     authrole=self._authenticator_session._authrole,
                 )
 
+                assert self._authenticator_session is not None
                 d2 = self._authenticator_session.call(
                     self._authenticator, realm, details.authid, self._session_details
                 )

@@ -119,7 +119,10 @@ class WorkerProcess(object):
         assert self.proto is not None or proto is not None
 
         if not self.pid:
-            self.pid = proto.transport.pid
+            # native workers got their pid when connected; guest workers pass proto
+            _proto = proto or self.proto
+            assert _proto is not None
+            self.pid = _proto.transport.pid
         if not self.pinfo:
             self.pinfo = ProcessInfo(self.pid)
 

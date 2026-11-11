@@ -174,10 +174,12 @@ if _HAS_VMPROF:
 
                 def on_profile_converted(res):
                     self.log.info("Profile data with {count} log entries generated", count=len(res))
+                    assert self._finished is not None
                     self._finished.callback(res)
 
                 def on_profile_conversaion_failed(err):
                     self.log.failure("profile conversion failed", failure=err)
+                    assert self._finished is not None
                     self._finished.errback(err)
 
                 d.addCallbacks(on_profile_converted, on_profile_conversaion_failed)

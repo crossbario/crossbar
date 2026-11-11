@@ -149,6 +149,7 @@ class _HttpClient(Protocol):
         self._data = b""
 
     def connectionMade(self):
+        assert self.transport is not None
         self.transport.write(b"GET / HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n")
 
     def dataReceived(self, data):

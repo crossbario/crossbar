@@ -470,6 +470,7 @@ class Broker(object):
                     # the event matches on)
                     #
                     if store_event:
+                        assert self._event_store is not None
                         self._event_store.store_event(session, publication, publish)
 
                     # retain event on the topic
@@ -679,6 +680,7 @@ class Broker(object):
                                                 err=str(e),
                                             )
                                         if self._event_store or storing_event:
+                                            assert self._event_store is not None
                                             self._event_store.store_event_history(
                                                 publication, subscription.id, receiver
                                             )
@@ -696,6 +698,7 @@ class Broker(object):
                                                 err=str(e),
                                             )
                                         if self._event_store or storing_event:
+                                            assert self._event_store is not None
                                             self._event_store.store_event_history(
                                                 publication, subscription.id, receiver
                                             )
@@ -714,6 +717,7 @@ class Broker(object):
                                                 err=str(e),
                                             )
                                         if self._event_store or storing_event:
+                                            assert self._event_store is not None
                                             self._event_store.store_event_history(
                                                 publication, subscription.id, receiver
                                             )

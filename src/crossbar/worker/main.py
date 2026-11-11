@@ -148,6 +148,8 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
 
     # Print a magic phrase that tells the capturing logger that it supports
     # Crossbar's rich logging
+    # the node starts workers with stderr piped to it
+    assert sys.__stderr__ is not None
     print(cb_logging_aware, file=sys.__stderr__)
     sys.__stderr__.flush()
 

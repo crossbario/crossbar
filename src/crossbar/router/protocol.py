@@ -594,6 +594,7 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         self._cbtid = None
 
     def _on_handshake_complete(self):
+        assert self._serializer is not None, "set by the opening handshake"
         self._transport_details.channel_serializer = TransportDetails.CHANNEL_SERIALIZER_FROM_STR[
             self._serializer.SERIALIZER_ID
         ]

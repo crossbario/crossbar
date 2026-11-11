@@ -759,6 +759,7 @@ class TestRouterSession(unittest.TestCase):
         # do the test; we should publish wamp.session.on_leave via the
         # service-session
         session.onMessage(goodbye)
+        assert session._service_session is not None
         publishes = [call for call in session._service_session.mock_calls if call[0] == "publish"]
         self.assertEqual(1, len(publishes))
         call = publishes[0]
@@ -786,7 +787,7 @@ class TestRouterSession(unittest.TestCase):
                 self._router = router  # normally done in Hello processing
                 self.on_leave_called = False  # so the test ensures onLeave called
 
-            def onLeave(self, reason):
+            def onLeave(self, details):
                 utest.assertFalse(self.on_leave_called)
                 # we check that when this method is called, we look
                 # like we're un-joined
