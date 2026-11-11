@@ -98,6 +98,7 @@ class PendingAuthTLS(PendingAuth):
                 self._session_details["authmethod"] = self._authmethod  # from AUTHMETHOD, via base
                 self._session_details["authextra"] = details.authextra
 
+                assert self._authenticator_session is not None
                 d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
                 def on_authenticate_ok(_principal):

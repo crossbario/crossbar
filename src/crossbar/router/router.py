@@ -237,28 +237,35 @@ class Router(object):
 
         detached_session_ids = []
         if session is None:
-            # detach all sessions from router
-            for session in list(self._session_id_to_session.values()):
-                self._detach(session)
-                detached_session_ids.append(session._session_id)
+            # detach all sessions from router (the realm may have none)
+            for _session in list(self._session_id_to_session.values()):
+                self._detach(_session)
+                detached_session_ids.append(_session._session_id)
+
+            self.log.info(
+                '{func} all router sessions detached from realm "{realm}" (detached_session_ids={detached_session_ids})',
+                func=hltype(self.detach),
+                detached_session_ids=hlval(len(detached_session_ids)),
+                realm=hlid(self.realm),
+            )
         else:
             # detach single session from router
             self._detach(session)
             detached_session_ids.append(session._session_id)
 
-        self.log.info(
-            '{func} router session detached from realm "{realm}" (session={session}, '
-            'detached_session_ids={detached_session_ids}, authid="{authid}", authrole="{authrole}", '
-            'authmethod="{authmethod}", authprovider="{authprovider}")',
-            func=hltype(self.detach),
-            session=hlid(session._session_id) if session else "",
-            authid=hlid(session._authid),
-            authrole=hlid(session._authrole),
-            authmethod=hlval(session._authmethod),
-            authprovider=hlval(session._authprovider),
-            detached_session_ids=hlval(len(detached_session_ids)),
-            realm=hlid(session._realm),
-        )
+            self.log.info(
+                '{func} router session detached from realm "{realm}" (session={session}, '
+                'detached_session_ids={detached_session_ids}, authid="{authid}", authrole="{authrole}", '
+                'authmethod="{authmethod}", authprovider="{authprovider}")',
+                func=hltype(self.detach),
+                session=hlid(session._session_id),
+                authid=hlid(session._authid),
+                authrole=hlid(session._authrole),
+                authmethod=hlval(session._authmethod),
+                authprovider=hlval(session._authprovider),
+                detached_session_ids=hlval(len(detached_session_ids)),
+                realm=hlid(session._realm),
+            )
 
         return detached_session_ids
 

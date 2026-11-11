@@ -84,6 +84,7 @@ class _CountedConnection(ProtocolWrapper):
     def makeConnection(self, transport):
         Protocol.makeConnection(self, transport)
         self.factory.registerProtocol(self)
+        assert self.wrappedProtocol is not None
         self.wrappedProtocol.makeConnection(transport)
 
     def logPrefix(self):
@@ -96,6 +97,7 @@ class _RefusedConnection(Protocol):
     """
 
     def connectionMade(self):
+        assert self.transport is not None
         self.transport.abortConnection()
 
 

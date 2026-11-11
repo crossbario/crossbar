@@ -25,6 +25,7 @@ __all__ = (
 
 class StreamTesteeServerProtocol(protocol.Protocol):
     def dataReceived(self, data):
+        assert self.transport is not None
         self.transport.write(data)
 
 
@@ -66,8 +67,8 @@ class StreamingWebSocketTesteeServerProtocol(WebSocketServerProtocol):
         WebSocketServerProtocol.onMessageFrameBegin(self, length)
         self.beginMessageFrame(length)
 
-    def onMessageFrameData(self, data):
-        self.sendMessageFrameData(data)
+    def onMessageFrameData(self, payload):
+        self.sendMessageFrameData(payload)
 
     def onMessageFrameEnd(self):
         pass
@@ -167,6 +168,7 @@ class WebSocketTesteeController(WorkerController):
             # should not arrive here, since we did check_transport() in the beginning
             raise Exception("logic error")
 
+        assert self.config.extra is not None
         # create transport endpoint / listening port from transport factory
         #
         d = create_listening_port_from_config(

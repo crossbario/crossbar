@@ -150,9 +150,11 @@ class NativeProcess(ApplicationSession):
 
     def onConnect(self, do_join=True):
         if not hasattr(self, "cbdir"):
+            assert self.config.extra is not None
             self.cbdir = self.config.extra.cbdir
 
         if not hasattr(self, "_uri_prefix"):
+            assert self.config.extra is not None
             self._uri_prefix = "crossbar.node.{}".format(self.config.extra.node)
 
         self._started = datetime.utcnow()
@@ -252,6 +254,7 @@ class NativeProcess(ApplicationSession):
             self.log.warn(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
+        assert self._pinfo is not None
         return self._pinfo.cpus
 
     @wamp.register(None)
@@ -290,6 +293,7 @@ class NativeProcess(ApplicationSession):
         :returns: List of CPU IDs the process affinity is set to.
         :rtype: list[int]
         """
+        assert details is not None
         if not _HAS_PSUTIL:
             emsg = "Unable to set CPU affinity: required package 'psutil' is not installed"
             self.log.warn(emsg)
@@ -302,6 +306,8 @@ class NativeProcess(ApplicationSession):
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if relative:
+            # set when psutil is available (checked above)
+            assert self._pinfo is not None
             _cpu_ids = self._pinfo.cpus
             _cpus = [_cpu_ids[i] for i in cpus]
         else:
@@ -385,6 +391,7 @@ class NativeProcess(ApplicationSession):
         :param interval: The monitoring interval in seconds. Set to 0 to disable monitoring.
         :type interval: float
         """
+        assert details is not None
         self.log.debug(
             "{cls}.set_process_stats_monitoring(interval = {interval})", cls=self.__class__.__name__, interval=interval
         )
@@ -404,6 +411,7 @@ class NativeProcess(ApplicationSession):
                 stats_topic = "{}.on_process_stats".format(self._uri_prefix)
 
                 def publish_stats():
+                    assert self._pinfo is not None
                     stats = self._pinfo.get_stats()
                     self._pinfo_monitor_seq += 1
                     stats["seq"] = self._pinfo_monitor_seq
@@ -450,6 +458,7 @@ class NativeProcess(ApplicationSession):
         :returns: Time (wall clock) consumed for garbage collection in ms.
         :rtype: int
         """
+        assert details is not None
         self.log.debug("{cls}.trigger_gc", cls=self.__class__.__name__)
 
         started = rtime()
@@ -531,6 +540,7 @@ class NativeProcess(ApplicationSession):
         :param config: Manhole service configuration.
         :type config: dict
         """
+        assert details is not None
         self.log.debug("{cls}.start_manhole(config = {config})", cls=self.__class__.__name__, config=config)
 
         if not _HAS_MANHOLE:
@@ -582,7 +592,7 @@ class NativeProcess(ApplicationSession):
             # get rid of
             # exceptions.AttributeError: TerminalSession instance has no attribute 'windowChanged'
 
-            def windowChanged(self, winSize):
+            def windowChanged(self, newWindowSize):
                 pass
 
         rlm = TerminalRealm()
@@ -660,6 +670,7 @@ class NativeProcess(ApplicationSession):
         * ``crossbar.node.<node_id>.worker.<worker_id>.on_manhole_stopped`` for native workers and
         * ``crossbar.node.<node_id>.controller.on_manhole_stopped`` for node controllers
         """
+        assert details is not None
         self.log.debug("{cls}.stop_manhole", cls=self.__class__.__name__)
 
         if not self._manhole_service or self._manhole_service.status != "started":
@@ -679,6 +690,8 @@ class NativeProcess(ApplicationSession):
         self.publish(stopping_topic, stopping_info, options=PublishOptions(exclude=details.caller))
 
         try:
+            # a started manhole is listening
+            assert self._manhole_service.port is not None
             yield self._manhole_service.port.stopListening()
         except Exception as e:
             self.log.warn("error while stop listening on endpoint: {error}", error=e)

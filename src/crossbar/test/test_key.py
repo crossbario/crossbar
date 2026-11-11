@@ -12,6 +12,7 @@ from unittest import mock
 
 from nacl import encoding, signing
 from twisted.trial import unittest
+from xbr import EthereumKey
 from xbr._secmod import SecurityModuleMemory
 
 from crossbar.common.key import _maybe_generate_node_key, _parse_node_key, _write_node_key
@@ -131,7 +132,9 @@ class LegacyNodeKeyTests(unittest.TestCase):
         # in-memory security module: open() returns an already completed future
         secmod.open()
         self.assertTrue(secmod.is_open)
-        self.assertEqual(secmod[0].address(binary=False), priv_tags["public-adr-eth"])
+        key = secmod[0]
+        assert isinstance(key, EthereumKey)
+        self.assertEqual(key.address(binary=False), priv_tags["public-adr-eth"])
         return priv_tags
 
     def test_legacy_key_migrated(self):

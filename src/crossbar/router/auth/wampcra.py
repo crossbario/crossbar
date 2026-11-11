@@ -138,6 +138,7 @@ class PendingAuthWampCra(PendingAuth):
                 self._session_details["authrole"] = details.authrole
                 self._session_details["authextra"] = details.authextra
 
+                assert self._authenticator_session is not None
                 d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
                 d.addCallbacks(on_authenticate_ok, on_authenticate_error)
 

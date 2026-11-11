@@ -87,7 +87,9 @@ class Templates:
             loader=jinja2.FileSystemLoader(basedir), keep_trailing_newline=True, autoescape=True, **kwargs
         )
 
-        _params = template["params"].copy()
+        _params = template["params"]
+        assert isinstance(_params, dict)
+        _params = _params.copy()
         if params:
             _params.update(params)
 

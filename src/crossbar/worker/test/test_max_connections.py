@@ -42,6 +42,7 @@ class _RawSocketClient(Protocol):
         self._data = b""
 
     def connectionMade(self):
+        assert self.transport is not None
         self.transport.write(_HANDSHAKE)
 
     def dataReceived(self, data):
@@ -62,6 +63,7 @@ class _WebSocketClient(_RawSocketClient):
     """
 
     def connectionMade(self):
+        assert self.transport is not None
         self.transport.write(
             b"GET / HTTP/1.1\r\n"
             b"Host: 127.0.0.1\r\n"

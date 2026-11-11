@@ -545,6 +545,8 @@ class RouterSession(BaseSession):
                 self._authprovider = authprovider
                 self._authextra = authextra or {}
 
+                # both callers pass the custom (x_cb_*) dict
+                assert custom is not None
                 self._authextra["x_cb_node"] = custom.get("x_cb_node", None)
                 self._authextra["x_cb_worker"] = custom.get("x_cb_worker", None)
                 self._authextra["x_cb_peer"] = custom.get("x_cb_peer", None)
@@ -565,6 +567,7 @@ class RouterSession(BaseSession):
                     authextra=self._authextra,
                     custom=custom,
                 )
+                assert self._transport is not None
                 self._transport.send(msg)
 
                 # expose incoming frontend transport of proxy
@@ -573,6 +576,7 @@ class RouterSession(BaseSession):
                     td = TransportDetails.parse(self._authextra.pop("transport"))
                 else:
                     td = self._transport.transport_details
+                    assert td is not None
 
                 session_details = SessionDetails(
                     realm=self._realm,
@@ -651,7 +655,8 @@ class RouterSession(BaseSession):
                     self.log.warn(
                         '{func}.onMessage(..)::onHello(realm="{realm}", details={details}) failed with {err}',
                         func=hltype(self.onMessage),
-                        realm=msg.realm,
+                        # msg is rebound below (an error string); details holds the HELLO realm
+                        realm=details.realm,
                         details=details,
                         err=err,
                     )
@@ -735,6 +740,7 @@ class RouterSession(BaseSession):
                     # The peer wants to close: answer with GOODBYE reply.
                     # Note: We MUST NOT send any WAMP message _after_ GOODBYE
                     reply = message.Goodbye()
+                    assert self._transport is not None
                     self._transport.send(reply)
                     self._goodbye_sent = True
                 else:
@@ -744,6 +750,7 @@ class RouterSession(BaseSession):
                 # We need to first detach the session from the router before
                 # erasing the session ID below ..
                 try:
+                    assert self._router is not None
                     self._router.detach(self)
                 except Exception:
                     self.log.failure("Internal error")
@@ -780,6 +787,7 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
+                assert self._router is not None
                 # let the actual wamp router handle all other wamp messages ..
                 self._router.process(self, msg)
 
@@ -799,6 +807,8 @@ class RouterSession(BaseSession):
                 "authrole": self._authrole,
             }
 
+            assert self._transport is not None
+            assert self._transport._serializer is not None
             session_stats = self._transport._serializer.stats()
             session_stats["first"] = False
             session_stats["last"] = True
@@ -817,6 +827,7 @@ class RouterSession(BaseSession):
                 self.log.warn("{tb}".format(tb=Failure().getTraceback()))
 
             try:
+                assert self._router is not None
                 self._router.detach(self)
             except Exception as e:
                 self.log.error("Failed to detach session '{}': {}".format(self._session_id, e))
@@ -842,6 +853,7 @@ class RouterSession(BaseSession):
             else:
                 msg = wamp.message.Goodbye(message=message)
 
+            assert self._transport is not None
             self._transport.send(msg)
             self._goodbye_sent = True
         else:
@@ -859,6 +871,7 @@ class RouterSession(BaseSession):
 
         # tell other side we're done
         reply = message.Abort("wamp.error.authorization_failed", "Internal server error")
+        assert self._transport is not None
         self._transport.send(reply)
 
         # cleanup
@@ -897,7 +910,8 @@ class RouterSession(BaseSession):
             if hasattr(self._transport, "_authrealm") and self._transport._authrealm:
                 if "cookie" in authmethods:
                     realm = self._transport._authrealm
-                    authextra = self._transport._authextra
+                    # set together with _authrealm
+                    authextra = getattr(self._transport, "_authextra", None)
                 elif self._transport._authprovider == "cookie":
                     # revoke authentication and invalidate cookie (will be revalidated if following auth is successful)
                     self._transport._authmethod = None
@@ -1053,6 +1067,7 @@ class RouterSession(BaseSession):
                         # WAMP-Cookie authentication
                         elif authmethod == "cookie":
                             cbtid = None
+                            assert self._transport.transport_details is not None
                             _ti = self._transport.transport_details.http_headers_received
                             if "set-cookie" in _ti:
                                 cookie_name = "cbtid"
@@ -1218,6 +1233,8 @@ class RouterSession(BaseSession):
 
                 # if enabled, publish first stats event immediately when session is joined.
                 if trigger_on_join:
+                    assert self._transport is not None
+                    assert self._transport._serializer is not None
                     session_stats = self._transport._serializer.stats()
                     session_stats["first"] = True
                     session_stats["last"] = False
@@ -1234,8 +1251,12 @@ class RouterSession(BaseSession):
                         stats["first"] = True
                         self._stats_has_triggered_first = True
                     stats["last"] = False
-                    self._service_session.publish("wamp.session.on_stats", session_info_short, stats)
+                    # the session may have left since (no service session any more)
+                    if self._service_session is not None:
+                        self._service_session.publish("wamp.session.on_stats", session_info_short, stats)
 
+                assert self._transport is not None
+                assert self._transport._serializer is not None
                 self._transport._serializer.RATED_MESSAGE_SIZE = rated_message_size
                 self._transport._serializer.set_stats_autoreset(
                     trigger_after_rated_messages, trigger_after_duration, on_stats
@@ -1297,6 +1318,7 @@ class RouterSession(BaseSession):
                         "authid": self._authid,
                         "authrole": self._authrole,
                     }
+                    assert self._transport._serializer is not None
                     session_stats = self._transport._serializer.stats()
 
                     # the stats might both be the first _and_ the last we'll publish for this session

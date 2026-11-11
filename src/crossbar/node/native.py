@@ -19,6 +19,7 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
 
     def connectionMade(self):
         WampWebSocketClientProtocol.connectionMade(self)
+        assert self.transport is not None
         self._pid = self.transport.pid
         self.factory.proto = self
 

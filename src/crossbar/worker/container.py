@@ -103,6 +103,7 @@ class ContainerController(WorkerController):
         self.components = {}
 
         # when shall we exit?
+        assert config is not None and config.extra is not None
         self._exit_mode = config.extra.shutdown or self.SHUTDOWN_MANUAL
 
         # should we restart components?
@@ -205,6 +206,7 @@ class ContainerController(WorkerController):
         extra = config.get("extra", {})
         assert isinstance(extra, dict)
 
+        assert self.config.extra is not None
         # forward crossbar node base directory
         extra["cbdir"] = self.config.extra.cbdir
 
@@ -471,6 +473,7 @@ class ContainerController(WorkerController):
 
             component_started = {"id": component_id, "config": config}
 
+            assert details is not None
             self.publish(uri, component_started, options=PublishOptions(exclude=details.caller))
 
             return component_started
@@ -533,6 +536,7 @@ class ContainerController(WorkerController):
 
         :returns dict -- A dict with combined info from component stopping/starting.
         """
+        assert details is not None
         if component_id not in self.components:
             raise ApplicationError(
                 "crossbar.error.no_such_object",

@@ -49,6 +49,7 @@ class RouterController(TransportController):
             personality=personality,
         )
 
+        assert self.config.extra is not None
         # factory for producing (per-realm) routers
         self._router_factory = self.router_factory_class(self.config.extra.node, self.config.extra.worker, self)
 
@@ -440,6 +441,7 @@ class RouterController(TransportController):
         realm_name = rlm.config["name"]
 
         # stop the RouterServiceAgent living on the realm
+        assert rlm.session is not None
         yield rlm.session.leave()
         self._router_session_factory.remove(rlm.session)
         self.log.info('RouterServiceAgent stopped on realm "{realm_name}"', realm_name=realm_name)
@@ -796,6 +798,7 @@ class RouterController(TransportController):
         extra = config.get("extra", {})
         assert isinstance(extra, dict)
 
+        assert self.config.extra is not None
         # forward crossbar node base directory
         extra["cbdir"] = self.config.extra.cbdir
 
@@ -935,6 +938,7 @@ class RouterController(TransportController):
         )
 
         if component_id in self.components:
+            assert self.config.extra is not None
             self.log.debug(
                 "Worker {worker}: stopping component {component_id}",
                 worker=self.config.extra.worker,
@@ -1136,7 +1140,9 @@ class RouterController(TransportController):
             raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
         # forward call directly to service agent
-        return self.realms[realm_id].session.session_kill_by_authid(authid, reason, message=message, details=details)
+        session = self.realms[realm_id].session
+        assert session is not None
+        return session.session_kill_by_authid(authid, reason, message=message, details=details)
 
     @wamp.register(None)
     def get_router_realm_links(self, realm_id, details=None):

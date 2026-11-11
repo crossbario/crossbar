@@ -46,6 +46,7 @@ class FlashPolicyProtocol(Protocol):
         # DoS protection
         ##
         def dropConnection():
+            assert self.transport is not None
             self.transport.abortConnection()
             self.dropConnection = None
 
@@ -59,11 +60,13 @@ class FlashPolicyProtocol(Protocol):
     def dataReceived(self, data):
         self.received += data
         if FlashPolicyProtocol.REQUESTPAT.match(self.received):
+            assert self.transport is not None
             # got valid request: send policy file
             ##
             self.transport.write(FlashPolicyProtocol.POLICYFILE % (self._allowedDomain, self._allowedPorts))
             self.transport.loseConnection()
         elif len(self.received) > FlashPolicyProtocol.REQUESTMAXLEN:
+            assert self.transport is not None
             # possible DoS attack
             ##
             self.transport.abortConnection()

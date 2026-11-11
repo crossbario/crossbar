@@ -324,6 +324,7 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 ctx.use_certificate_chain_file(f.name)
 
             store = ctx.get_cert_store()
+            assert store is not None
             for cert in self._ca_certs:
                 store.add_cert(cert.original)
             ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self._verify_peer)

@@ -389,6 +389,7 @@ class RouterServiceAgent(ApplicationSession):
         :returns: The publication ID.
         :rtype: int
         """
+        assert details is not None
         session = self._router._session_id_to_session[details.caller]
 
         if scope not in ["destroyed", "detached"]:
@@ -418,6 +419,7 @@ class RouterServiceAgent(ApplicationSession):
         :returns: Number of flushed testament events.
         :rtype: int
         """
+        assert details is not None
         session = self._router._session_id_to_session[details.caller]
 
         if scope not in ["destroyed", "detached"]:

@@ -22,6 +22,7 @@ from twisted.internet.base import ReactorBase
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 from twisted.internet.error import DNSLookupError
 from txaio import as_future, make_logger, time_ns
+from txaio.interfaces import ILogger
 
 from crossbar._util import hlid, hltype, hlval
 from crossbar.common.key import _read_node_key
@@ -215,6 +216,7 @@ class ProxyFrontendSession(object):
 
             # https://wamp-proto.org/_static/gen/wamp_latest.html#session-closing
             elif isinstance(msg, message.Abort):
+                assert self.transport is not None
                 self.transport.send(
                     message.Abort(ApplicationError.AUTHENTICATION_FAILED, message="Proxy authentication failed")
                 )
@@ -294,6 +296,7 @@ class ProxyFrontendSession(object):
                         func=hltype(self.onMessage),
                     )
 
+                assert self.transport is not None
                 # 3) complete the closing handshake (initiated by the client in this case) by replying with GOODBYE
                 self.transport.send(message.Goodbye(message="Proxy session closing"))
             else:
@@ -351,6 +354,8 @@ class ProxyFrontendSession(object):
                 backend_authid = self._controller.node_id
 
                 # authmethods we announce to the backend router we connect to
+                # (make_backend_connection() adds them)
+                assert backend._authenticators is not None
                 authmethods = list(backend._authenticators.keys())
 
                 # authentication extra we transmit from the proxy to backend router worker
@@ -504,6 +509,7 @@ class ProxyFrontendSession(object):
             else:
                 pass  # TLS authentication is not revoked here
 
+        assert self.transport is not None
         # already authenticated, e.g. via HTTP-cookie or TLS-client-certificate authentication
         if self.transport._authid is not None and (
             self.transport._authmethod == "trusted" or self.transport._authprovider in authmethods
@@ -923,6 +929,9 @@ class ProxyBackendSession(Session):
     there's a backend connection per frontend client).
     """
 
+    # set by ApplicationSession.__init__
+    log: ILogger
+
     def onOpen(self, transport):
         self.log.debug("{func}(transport={transport})", func=hltype(self.onOpen), transport=transport)
         # instance of Frontend (frontend_session)
@@ -947,14 +956,14 @@ class ProxyBackendSession(Session):
 
         return super(ProxyBackendSession, self).onChallenge(challenge)
 
-    def onWelcome(self, _msg):
-        self.log.debug("{func}(message={msg})", func=hltype(self.onWelcome), msg=_msg)
+    def onWelcome(self, msg):
+        self.log.debug("{func}(message={msg})", func=hltype(self.onWelcome), msg=msg)
         # This is WRONG:
         # if msg.authmethod == "cryptosign-proxy":
         #     msg.authmethod = "cryptosign"
         # elif msg.authmethod == "anonymous-proxy":
         #     msg.authmethod = "anonymous"
-        return super(ProxyBackendSession, self).onWelcome(_msg)
+        return super(ProxyBackendSession, self).onWelcome(msg)
 
     def onJoin(self, details):
         self.log.info(
@@ -995,6 +1004,7 @@ class ProxyBackendSession(Session):
         else:
             # msg is a real WAMP message that our backend WAMP protocol has deserialized. so now we re-serialize it
             # for whatever the frontend is speaking and forward
+            assert self._frontend is not None
             self._frontend._forward(msg)
 
 
@@ -1148,6 +1158,7 @@ class AuthenticatorSession(ApplicationSession):
 
         # load the client private key (raw format)
         try:
+            assert config is not None and config.extra is not None
             self._key = cryptosign.CryptosignKey.from_bytes(config.extra["key"])
         except:
             self.log.failure()
@@ -1164,6 +1175,7 @@ class AuthenticatorSession(ApplicationSession):
         extra = {
             "pubkey": self._key.public_key(),
         }
+        assert self.config.extra is not None
         self.join(
             self.config.realm,
             authmethods=["cryptosign"],
@@ -1174,6 +1186,7 @@ class AuthenticatorSession(ApplicationSession):
     async def onChallenge(self, challenge):
         try:
             channel_id_type = self.CHANNEL_BINDING
+            assert self.transport is not None
             channel_id = self.transport.transport_details.channel_id.get(self.CHANNEL_BINDING, None)
             signed_challenge = await self._key.sign_challenge(
                 challenge, channel_id=channel_id, channel_id_type=channel_id_type
@@ -1659,6 +1672,7 @@ class ProxyController(TransportController):
         self._reactor = reactor
 
         # the node's home directory of this worker
+        assert config is not None and config.extra is not None
         self._cbdir = config.extra.cbdir
 
         # map: connection_id -> ProxyConnection
@@ -1680,6 +1694,7 @@ class ProxyController(TransportController):
         # map: (realm, authrole) -> int
         self._roundrobin_idx = {}
 
+        assert self.config.extra is not None
         # since we share some functionality with RouterController we
         # need to have a router_session_factory
         self._router_factory = RouterFactory(
@@ -2005,6 +2020,7 @@ class ProxyController(TransportController):
         :returns: List of transport IDs of transports currently running.
         :rtype: list
         """
+        assert details is not None
         self.log.debug(
             '{func}(caller_authid="{caller_authid}")',
             func=hltype(self.get_proxy_transports),
@@ -2023,6 +2039,7 @@ class ProxyController(TransportController):
         :returns: List of transports currently running.
         :rtype: dict
         """
+        assert details is not None
         self.log.debug(
             "{func}(transport_id={transport_id})",
             func=hltype(self.get_proxy_transport),
@@ -2048,6 +2065,7 @@ class ProxyController(TransportController):
 
         :return: Proxy transport run-time metadata.
         """
+        assert details is not None
         self.log.info(
             '{func}(transport_id="{transport_id}", config={config})',
             func=hltype(self.start_proxy_transport),
@@ -2155,6 +2173,7 @@ class ProxyController(TransportController):
         :returns: List of (target) realm names in proxy routes currently running.
         :rtype: list
         """
+        assert details is not None
         self.log.debug(
             '{func}(caller_authid="{caller_authid}")',
             func=hltype(self.get_proxy_routes),
@@ -2185,6 +2204,7 @@ class ProxyController(TransportController):
         :returns: Proxy route object.
         :rtype: dict
         """
+        assert details is not None
         self.log.debug(
             "{func}(realm_name={realm_name})",
             func=hltype(self.get_proxy_realm_route),
@@ -2285,6 +2305,7 @@ class ProxyController(TransportController):
         :param details: WAMP call details.
         :return: Run-time information about the stopped route.
         """
+        assert details is not None
         self.log.info(
             '{func}(realm_name={realm_name}, caller_authid="{caller_authid}")',
             func=hltype(self.stop_proxy_realm_route),
@@ -2320,6 +2341,7 @@ class ProxyController(TransportController):
         :param details: WAMP call details.
         :return: List of run-time IDs of currently running connection.s
         """
+        assert details is not None
         self.log.debug(
             '{func}(caller_authid="{caller_authid}")',
             func=hltype(self.get_proxy_connections),
@@ -2337,6 +2359,7 @@ class ProxyController(TransportController):
         :param details: WAMP call details.
         :return: Proxy connection configuration.
         """
+        assert details is not None
         self.log.debug(
             '{func}(connection_id={connection_id}, caller_authid="{caller_authid}")',
             func=hltype(self.get_proxy_connection),
@@ -2367,6 +2390,7 @@ class ProxyController(TransportController):
         :param details:
         :return:
         """
+        assert details is not None
         self.log.info(
             "{func}(connection_id={connection_id}, config=.., caller_authid={caller_authid}):\n{config}",
             func=hltype(self.start_proxy_connection),
@@ -2394,6 +2418,7 @@ class ProxyController(TransportController):
         :param details:
         :return:
         """
+        assert details is not None
         self.log.info(
             '{func}(connection_id={connection_id}, caller_authid="{caller_authid}")',
             func=hltype(self.stop_proxy_connection),

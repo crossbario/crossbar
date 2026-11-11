@@ -135,6 +135,7 @@ class WapResource(resource.Resource):
         templates_config = self._config.get("templates")
         if isinstance(templates_config, str):
             # resolve specified template directory path relative to node directory
+            assert self._worker.config.extra is not None
             templates_dir = os.path.abspath(os.path.join(self._worker.config.extra.cbdir, templates_config))
             templates_source = "directory"
         elif isinstance(templates_config, dict):
@@ -365,6 +366,8 @@ class WapResource(resource.Resource):
         cookie = request.received_cookies.get(b"session_cookie")
         self.log.debug("Session Cookie is ({})".format(cookie))
         if cookie:
+            # set (with the map adapter) once the resource is ready
+            assert self._session_cache is not None
             session = self._session_cache.get(cookie)
             if not session:
                 # FIXME: lookup role for current session
@@ -382,6 +385,7 @@ class WapResource(resource.Resource):
         try:
             # werkzeug.routing.MapAdapter
             # https://werkzeug.palletsprojects.com/en/2.1.x/routing/#werkzeug.routing.MapAdapter.match
+            assert self._map_adapter is not None
             (procedure, request.template), kwargs = self._map_adapter.match(
                 full_path, method=http_method, query_args=query_args
             )

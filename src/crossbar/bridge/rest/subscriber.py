@@ -33,6 +33,7 @@ class MessageForwarder(ApplicationSession):
     def onJoin(self, details):
         subscriptions = self.config.extra["subscriptions"]
 
+        assert self.config.extra is not None
         debug = self.config.extra.get("debug", False)
         method = self.config.extra.get("method", "POST")
         expectedCode = self.config.extra.get("expectedcode")

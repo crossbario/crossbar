@@ -56,7 +56,8 @@ class PendingAuthScram(PendingAuth):
     def hello(self, realm: str, details: HelloDetails) -> Union[Accept, Deny, Challenge]:
         # the channel binding requested by the client authenticating
         # client must send "nonce" in details, and MAY send "gs2_cbind_flag"
-        self._client_nonce = details.authextra.get("nonce", None)
+        # a HELLO without authextra has no nonce either
+        self._client_nonce = (details.authextra or {}).get("nonce", None)
         if self._client_nonce is None:
             return Deny(message="client must send a nonce")
         try:
@@ -118,6 +119,7 @@ class PendingAuthScram(PendingAuth):
                 if error:
                     return error
 
+                assert self._authenticator_session is not None
                 # now call (via WAMP) the user provided authenticator (WAMP RPC endpoint)
                 d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
                 d.addCallbacks(on_authenticate_ok, on_authenticate_error)

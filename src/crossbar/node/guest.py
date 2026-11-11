@@ -29,19 +29,23 @@ class GuestWorkerClientProtocol(protocol.Protocol):
         self.log.debug("GuestWorkerClientProtocol.connectionMade")
 
         if "stdout" in options and options["stdout"] == "close":
+            assert self.transport is not None
             self.transport.closeStdout()
             self.log.debug("GuestWorkerClientProtocol: stdout to guest closed")
 
         if "stderr" in options and options["stderr"] == "close":
+            assert self.transport is not None
             self.transport.closeStderr()
             self.log.debug("GuestWorkerClientProtocol: stderr to guest closed")
 
         if "stdin" in options:
             if options["stdin"] == "close":
+                assert self.transport is not None
                 self.transport.closeStdin()
                 self.log.debug("GuestWorkerClientProtocol: stdin to guest closed")
             else:
                 if options["stdin"]["type"] == "json":
+                    assert self.transport is not None
                     self.transport.write(json.dumps(options["stdin"]["value"], ensure_ascii=False).encode("utf8"))
                     self.log.debug("GuestWorkerClientProtocol: JSON value written to stdin on guest")
 
@@ -49,6 +53,7 @@ class GuestWorkerClientProtocol(protocol.Protocol):
                     raise Exception("logic error")
 
                 if options["stdin"].get("close", True):
+                    assert self.transport is not None
                     self.transport.closeStdin()
                     self.log.debug("GuestWorkerClientProtocol: stdin to guest closed")
 
@@ -79,6 +84,7 @@ class GuestWorkerClientProtocol(protocol.Protocol):
     def signal(self, sig="TERM"):
         assert sig in ["KILL", "TERM", "INT"]
         try:
+            assert self.transport is not None
             self.transport.signalProcess(sig)
         except ProcessExitedAlready:
             pass

@@ -88,8 +88,10 @@ class ReplayProtocol(Protocol):
         if self._record[0].send:
             to_send = self._record.popleft()
             if isinstance(to_send.data, bytes):
+                assert self.transport is not None
                 self.transport.write(to_send.data)
             else:
+                assert self.transport is not None
                 self.transport.write(to_send.data.serialise())
 
     def dataReceived(self, data):
@@ -126,8 +128,10 @@ class ReplayProtocol(Protocol):
                     while len(self._record) > 0 and self._record[0].send:
                         to_send = self._record.popleft()
                         if isinstance(to_send.data, bytes):
+                            assert self.transport is not None
                             self.transport.write(to_send.data)
                         else:
+                            assert self.transport is not None
                             self.transport.write(to_send.data.serialise())
 
                 if isinstance(reading.data, list):
@@ -171,6 +175,7 @@ class ReplayClientFactory(ClientFactory):
         self.client_transcript = []
 
         p = self.protocol(self)
+        assert isinstance(p, ReplayProtocol)
 
         def disconnect():
             self.reason = "Timeout (remaining assertions were " + repr(p._record) + ")"

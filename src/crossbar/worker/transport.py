@@ -351,6 +351,8 @@ class RouterTransport(object):
 
         self._state = RouterTransport.STATE_STOPPING
 
+        # a started transport is listening
+        assert self._port is not None
         d = self._port.stopListening()
 
         def ok(_):

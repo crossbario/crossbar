@@ -41,6 +41,7 @@ class UniSocketServerProtocol(Protocol):
                 # switch to RawSocket ..
                 if not self._factory._rawsocket_factory:
                     self.log.warn("client wants to talk RawSocket, but we have no factory configured for that")
+                    assert self.transport is not None
                     self.transport.loseConnection()
                 else:
                     self.log.debug("switching to RawSocket")
@@ -52,6 +53,7 @@ class UniSocketServerProtocol(Protocol):
                 # switch to MQTT
                 if not self._factory._mqtt_factory:
                     self.log.warn("client wants to talk MQTT, but we have no factory configured for that")
+                    assert self.transport is not None
                     self.transport.loseConnection()
                 else:
                     self.log.debug("switching to MQTT")
@@ -79,6 +81,7 @@ class UniSocketServerProtocol(Protocol):
                         'received invalid HTTP request line for HTTP protocol subswitch: "{request_line}"',
                         request_line=request_line,
                     )
+                    assert self.transport is not None
                     self.transport.loseConnection()
                     return
 
@@ -130,6 +133,7 @@ class UniSocketServerProtocol(Protocol):
                         self._proto._channel.transport = self.transport
                     else:
                         self.log.warn("client wants to talk HTTP/Web, but we have no factory configured for that")
+                        assert self.transport is not None
                         self.transport.loseConnection()
                         return
                 else:

@@ -144,6 +144,7 @@ class WorkerController(NativeProcess):
 
     @inlineCallbacks
     def publish_ready(self):
+        assert self.config.extra is not None
         # signal that this worker is ready for setup. the actual setup procedure
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
@@ -237,6 +238,7 @@ class WorkerController(NativeProcess):
             a profile ID is returned which later can be used to retrieve the profile.
         :rtype: dict or int
         """
+        assert details is not None
         if profiler not in PROFILERS:
             raise Exception("no such profiler")
 
@@ -349,12 +351,14 @@ class WorkerController(NativeProcess):
                         Otherwise append.
         :type prepend: bool
         """
+        assert details is not None
         self.log.debug("{klass}.add_pythonpath", klass=self.__class__.__name__)
 
         paths_added = []
         for p in paths:
             # transform all paths (relative to cbdir) into absolute paths
             #
+            assert self.config.extra is not None
             path_to_add = os.path.abspath(os.path.join(self.config.extra.cbdir, p))
             if os.path.isdir(path_to_add):
                 paths_added.append({"requested": p, "resolved": path_to_add})
