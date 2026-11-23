@@ -27,7 +27,7 @@ jobs:
     steps:
       - name: Check main workflow completion
         id: check
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const commitSha = context.payload.workflow_run?.head_sha || context.sha;
@@ -151,7 +151,7 @@ jobs:
             source
 
       - name: Create development GitHub release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: ${{ needs.identifiers.outputs.release_name }}
           name: Development Build ${{ needs.identifiers.outputs.release_name }}
@@ -257,7 +257,7 @@ jobs:
       # the identifiers workflow, which correctly detected the tag via
       # `git describe --tags --exact-match` on the head_sha.
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
           name: v${{ steps.get_version.outputs.version }}
