@@ -54,12 +54,16 @@ class PendingAuthCryptosign(PendingAuth):
             realm_container,
             config,
         )
+        # TLS channel binding (RFC 5056). The transport carries a channel ID map populated by the
+        # negotiated TLS version: "tls-exporter" (RFC 9266) on TLS 1.3, "tls-unique" (RFC 5929) on
+        # TLS <= 1.2. The actual binding type is the one the client advertises in its HELLO, and the
+        # channel ID is selected for that type in hello() (#2037).
         # https://tools.ietf.org/html/rfc5056
         # https://tools.ietf.org/html/rfc5929
+        # https://www.rfc-editor.org/rfc/rfc9266.html
         # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
-        self._channel_id = (
-            transport_details.channel_id.get("tls-unique", None) if transport_details.channel_id else None
-        )
+        self._channel_id_map = transport_details.channel_id or {}
+        self._channel_id: Optional[bytes] = None
 
         self._verify_key: Optional[VerifyKey] = None
         self._challenge: Optional[bytes] = None
@@ -104,7 +108,7 @@ class PendingAuthCryptosign(PendingAuth):
 
     def _compute_challenge(self, requested_channel_binding: Optional[str]) -> Dict[str, Any]:
         self._challenge = os.urandom(32)
-        if self._channel_id and requested_channel_binding == "tls-unique":
+        if self._channel_id and requested_channel_binding in ("tls-unique", "tls-exporter"):
             self._expected_signed_message = util.xor(self._challenge, self._channel_id)
         else:
             self._expected_signed_message = self._challenge
@@ -137,11 +141,21 @@ class PendingAuthCryptosign(PendingAuth):
 
         # the channel binding requested by the client authenticating
         requested_channel_binding = details.authextra.get("channel_binding", None) if details.authextra else None
-        if requested_channel_binding is not None and requested_channel_binding not in ["tls-unique"]:
+        # select the channel ID for the binding type the client advertised. The map is populated by
+        # the negotiated TLS version, so an advertised type absent from it (e.g. "tls-unique" on a
+        # TLS 1.3 transport, where only "tls-exporter" is defined) yields no channel ID and is denied
+        # just below: fail closed, never silently authenticate without the requested binding (#2037).
+        if requested_channel_binding is not None:
+            self._channel_id = self._channel_id_map.get(requested_channel_binding, None)
+        if requested_channel_binding is not None and requested_channel_binding not in ["tls-unique", "tls-exporter"]:
             return Deny(message='invalid channel binding type "{}" requested'.format(requested_channel_binding))
-        elif requested_channel_binding == "tls-unique" and not self._channel_id:
+        elif requested_channel_binding in ["tls-unique", "tls-exporter"] and not self._channel_id:
             # never authenticate without the channel binding the client requested
-            return Deny(message='channel binding "tls-unique" requested, but the transport has no TLS channel ID')
+            return Deny(
+                message='channel binding "{}" requested, but the transport has no TLS channel ID'.format(
+                    requested_channel_binding
+                )
+            )
         else:
             self.log.info(
                 "WAMP-cryptosign CHANNEL BINDING requested: channel_binding={channel_binding}, channel_id={channel_id}",
@@ -309,7 +323,7 @@ class PendingAuthCryptosign(PendingAuth):
 
             if "challenge" in details.authextra and details.authextra["challenge"]:
                 challenge_raw = binascii.a2b_hex(details.authextra["challenge"])
-                if requested_channel_binding == "tls-unique":
+                if requested_channel_binding in ("tls-unique", "tls-exporter"):
                     data = util.xor(challenge_raw, self._channel_id)
                 else:
                     data = challenge_raw

@@ -6,11 +6,11 @@
 #####################################################################################
 """
 WAMP over TLS on the router (#2360): TLS client certificate authentication (authmethod
-"tls", static and dynamic) and WAMP-cryptosign with TLS channel binding ("tls-unique"),
-over WebSocket and RawSocket, on real TLS connections on the loopback interface.
+"tls", static and dynamic) and WAMP-cryptosign with TLS channel binding ("tls-exporter" on
+TLS 1.3, RFC 9266; the router listener is TLS 1.3 only), over WebSocket and RawSocket, on
+real TLS connections on the loopback interface (#2037).
 """
 
-import hashlib
 import os
 
 from autobahn.twisted.rawsocket import WampRawSocketClientFactory
@@ -78,20 +78,22 @@ class _Client(ApplicationSession):
 
 def _sign_cryptosign(channel_id=None):
     """
-    Return a challenge handler signing with _PRIVKEY: with the client's own TLS channel ID
-    (if it has one), or with ``channel_id`` when given.
+    Return a challenge handler signing with _PRIVKEY: with the client's own TLS channel ID for
+    the binding type the router advertised in the challenge (if the transport has one), or with
+    ``channel_id`` when given.
     """
     key = cryptosign.CryptosignKey.from_bytes(_PRIVKEY)
 
     def sign(session, challenge):
-        if challenge.extra.get("channel_binding") != "tls-unique":
+        binding = challenge.extra.get("channel_binding")
+        if binding not in ("tls-unique", "tls-exporter"):
             return key.sign_challenge(challenge)
         cid = channel_id
         if cid is None:
-            cid = (session._transport.transport_details.channel_id or {}).get("tls-unique", None)
+            cid = (session._transport.transport_details.channel_id or {}).get(binding, None)
         if cid is None:
             return key.sign_challenge(challenge)
-        return key.sign_challenge(challenge, channel_id=cid, channel_id_type="tls-unique")
+        return key.sign_challenge(challenge, channel_id=cid, channel_id_type=binding)
 
     return sign
 
@@ -241,14 +243,10 @@ class _TlsAuthTests(object):
         client_protocol = yield client_endpoint.connect(client_factory)
 
         outcome, details = yield done
-        # the client just joined (or failed to), and the connection is still open: remember
-        # the router side TLS Finished message from the client and the channel ID
+        # the client just joined (or failed to), and the connection is still open: remember the
+        # router side TLS channel ID (tls-exporter on TLS 1.3, RFC 9266; the listener is 1.3 only)
         for p in server_protocols:
-            handle = p.transport.getHandle() if tls else None
-            p.observed_tls = (
-                handle.get_peer_finished() if handle else None,
-                (p.transport_details.channel_id or {}).get("tls-unique", None),
-            )
+            p.observed_tls = (p.transport_details.channel_id or {}).get("tls-exporter", None) if tls else None
         # wait until both sides closed the connection
         yield client_protocol.is_closed
         for p in server_protocols:
@@ -310,18 +308,22 @@ class _TlsAuthTests(object):
 
     def _check_channel_id(self, server_protocol):
         """
-        The router's tls-unique channel ID is the SHA256 of the first TLS Finished message
-        of the handshake, the client's (RFC 5929, as Python's ssl module computes it).
+        The router's TLS 1.3 channel ID is the "tls-exporter" exported keying material (RFC 9266):
+        32 bytes, symmetric for client and server. The listener is TLS 1.3 only, so "tls-unique"
+        (RFC 5929) is not used. The join succeeding already proves both sides derived the same value
+        (the signature is over the challenge XOR the channel ID).
         """
-        client_finished, channel_id = server_protocol.observed_tls
-        self.assertEqual(channel_id, hashlib.sha256(client_finished).digest())
+        channel_id = server_protocol.observed_tls
+        self.assertIsNotNone(channel_id)
+        self.assertEqual(len(channel_id), 32)
+        self.assertNotEqual(channel_id, b"\x00" * 32)
 
     @inlineCallbacks
     def test_cryptosign_channel_binding(self):
         outcome, details, server_protocol = yield self._join(
             None,
             "cryptosign",
-            {"pubkey": self.pubkey, "channel_binding": "tls-unique"},
+            {"pubkey": self.pubkey, "channel_binding": "tls-exporter"},
             _sign_cryptosign(),
             request_client_cert=False,
         )
@@ -332,7 +334,7 @@ class _TlsAuthTests(object):
     @inlineCallbacks
     def test_cryptosign_channel_binding_with_client_certificate(self):
         outcome, details, server_protocol = yield self._join(
-            "client_0", "cryptosign", {"pubkey": self.pubkey, "channel_binding": "tls-unique"}, _sign_cryptosign()
+            "client_0", "cryptosign", {"pubkey": self.pubkey, "channel_binding": "tls-exporter"}, _sign_cryptosign()
         )
         self.assertEqual(outcome, "joined", details)
         self._check_channel_id(server_protocol)
@@ -342,7 +344,7 @@ class _TlsAuthTests(object):
         outcome, details, _ = yield self._join(
             None,
             "cryptosign",
-            {"pubkey": self.pubkey, "channel_binding": "tls-unique"},
+            {"pubkey": self.pubkey, "channel_binding": "tls-exporter"},
             _sign_cryptosign(channel_id=os.urandom(32)),
             request_client_cert=False,
         )
@@ -365,13 +367,13 @@ class _TlsAuthTests(object):
         outcome, details, _ = yield self._join(
             None,
             "cryptosign",
-            {"pubkey": self.pubkey, "channel_binding": "tls-unique"},
+            {"pubkey": self.pubkey, "channel_binding": "tls-exporter"},
             _sign_cryptosign(),
             tls=False,
         )
         self.assertEqual(outcome, "left")
         self.assertEqual(
-            details.message, 'channel binding "tls-unique" requested, but the transport has no TLS channel ID'
+            details.message, 'channel binding "tls-exporter" requested, but the transport has no TLS channel ID'
         )
 
 

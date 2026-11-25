@@ -265,7 +265,8 @@ class MaxConnectionsLayeringTests(_TransportTestCase):
         self.assertIsInstance(tls, TLSMemoryBIOProtocol)
         wamp_transport = tls.wrappedProtocol.transport
         self.assertIsInstance(wamp_transport, TLSMemoryBIOProtocol)
-        channel_id = transport_channel_id(wamp_transport, True, "tls-unique")
+        # the listener is TLS 1.3 only, so the channel binding is "tls-exporter" (RFC 9266), #2037
+        channel_id = transport_channel_id(wamp_transport, True, "tls-exporter")
         self.assertEqual(len(channel_id), 32)
         self.assertNotEqual(channel_id, b"\x00" * 32)
 
