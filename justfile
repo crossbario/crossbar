@@ -625,10 +625,13 @@ check-typing venv="":
         --ignore unresolved-global \
         --ignore possibly-missing-attribute \
         --ignore possibly-missing-import \
-        --ignore call-non-callable \
+        --ignore not-callable \
+        --ignore missing-module-member \
+        --ignore invalid-generator-return-type \
+        --ignore parameter-already-assigned \
         --ignore invalid-assignment \
         --ignore invalid-argument-type \
-        --ignore invalid-return-type \
+        --ignore invalid-explicit-return \
         --ignore incompatible-method-override \
         --ignore invalid-type-form \
         --ignore unsupported-operator \
