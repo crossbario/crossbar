@@ -48,3 +48,16 @@ class NodeManagementChannelBindingTests(TestCase):
         challenge = Challenge("cryptosign", {"challenge": "00" * 32, "channel_binding": None})
         session.onChallenge(challenge)
         key.sign_challenge.assert_called_once_with(challenge, channel_id=None, channel_id_type=None)
+
+    def test_tls13_channel_binding(self):
+        # on a TLS 1.3 transport the channel ID map carries "tls-exporter" (RFC 9266), not
+        # "tls-unique"; the uplink must request and sign with it, else it loses channel
+        # binding on 1.3 (#2037)
+        channel_id = os.urandom(32)
+        session, key = self._session({"tls-exporter": channel_id})
+        session.onConnect()
+        self.assertEqual(session.join.call_args.kwargs["authextra"]["channel_binding"], "tls-exporter")
+
+        challenge = Challenge("cryptosign", {"challenge": "00" * 32, "channel_binding": "tls-exporter"})
+        self.assertEqual(session.onChallenge(challenge), "signature")
+        key.sign_challenge.assert_called_once_with(challenge, channel_id=channel_id, channel_id_type="tls-exporter")

@@ -20,6 +20,7 @@ from twisted.trial.unittest import TestCase
 from crossbar.worker.rlink import RLinkRemoteSession
 
 _CHALLENGE = Challenge("cryptosign", {"challenge": "00" * 32, "channel_binding": "tls-unique"})
+_CHALLENGE_EXPORTER = Challenge("cryptosign", {"challenge": "00" * 32, "channel_binding": "tls-exporter"})
 
 
 class RLinkChannelBindingTests(TestCase):
@@ -59,3 +60,18 @@ class RLinkChannelBindingTests(TestCase):
         challenge = Challenge("cryptosign", {"challenge": "00" * 32, "channel_binding": None})
         session.onChallenge(challenge)
         controller.sign_challenge.assert_called_once_with(challenge, None, None)
+
+    def test_tls13_requests_tls_exporter(self):
+        # on a TLS 1.3 transport the channel ID map carries "tls-exporter" (RFC 9266), not
+        # "tls-unique"; the rlink must request it, else it loses channel binding on 1.3 (#2037)
+        session, _ = self._session({"tls-exporter": os.urandom(32)})
+        session.onConnect()
+        authextra = session.join.call_args.kwargs["authextra"]
+        self.assertEqual(authextra.get("channel_binding"), "tls-exporter")
+
+    def test_tls13_signs_with_tls_exporter(self):
+        channel_id = os.urandom(32)
+        session, controller = self._session({"tls-exporter": channel_id})
+        session.onConnect()
+        self.assertEqual(session.onChallenge(_CHALLENGE_EXPORTER), "signature")
+        controller.sign_challenge.assert_called_once_with(_CHALLENGE_EXPORTER, channel_id, "tls-exporter")
