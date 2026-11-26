@@ -66,6 +66,24 @@ class CheckDictArgsTests(TestCase):
         )
 
 
+class CheckListeningEndpointTlsTests(TestCase):
+    """
+    Tests for L{crossbar.common.checkconfig.check_listening_endpoint_tls} 'min_version' (#2037).
+    """
+
+    _BASE = {"key": "server.key", "certificate": "server.crt"}
+
+    def test_min_version_13_accepted(self):
+        checkconfig.check_listening_endpoint_tls({**self._BASE, "min_version": "1.3"})
+
+    def test_min_version_12_accepted(self):
+        checkconfig.check_listening_endpoint_tls({**self._BASE, "min_version": "1.2"})
+
+    def test_min_version_invalid_rejected(self):
+        with self.assertRaises(checkconfig.InvalidConfigException):
+            checkconfig.check_listening_endpoint_tls({**self._BASE, "min_version": "1.1"})
+
+
 class CheckContainerTests(TestCase):
     """
     Tests for L{crossbar.common.checkconfig.check_container}.
