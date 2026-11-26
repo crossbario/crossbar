@@ -163,6 +163,15 @@ class PendingAuthCryptosign(PendingAuth):
                 channel_id=self._channel_id,
             )
 
+        # the server may require channel binding (#2037): deny unless the session ends up bound,
+        # so a cryptosign signature cannot be replayed on a different TLS connection - this
+        # neutralizes the pre-authentication signing oracle (wamp-proto#585) without a protocol change
+        if self._config.get("channel_binding", "optional") == "required" and not self._channel_id:
+            return Deny(
+                message='channel binding is "required" in the WAMP-Cryptosign configuration, '
+                "but the session is not channel bound"
+            )
+
         # remember the realm the client requested to join (if any)
         self._realm = realm
 

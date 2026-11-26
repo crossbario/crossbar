@@ -557,6 +557,13 @@ def check_transport_auth_cryptosign(config):
             )
         )
 
+    if "channel_binding" in config and config["channel_binding"] not in ["required", "optional"]:
+        raise InvalidConfigException(
+            "invalid 'channel_binding' '{}' in WAMP-Cryptosign configuration - must be 'required' or 'optional'".format(
+                config["channel_binding"]
+            )
+        )
+
     if config["type"] == "static":
         if "principals" in config and "trustroots" in config:
             raise InvalidConfigException(
