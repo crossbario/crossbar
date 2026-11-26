@@ -359,6 +359,43 @@ class _TlsAuthTests(object):
         self.assertEqual(outcome, "joined", details)
 
     @inlineCallbacks
+    def test_cryptosign_required_denies_unbound(self):
+        """
+        With the server's cryptosign config ``channel_binding="required"``, a client that does not
+        request channel binding is denied, not authenticated unbound (#2037).
+        """
+        auth_config = self._auth_config()
+        auth_config["cryptosign"]["channel_binding"] = "required"
+        outcome, details, _ = yield self._join(
+            None,
+            "cryptosign",
+            {"pubkey": self.pubkey},
+            _sign_cryptosign(),
+            request_client_cert=False,
+            auth_config=auth_config,
+        )
+        self.assertEqual(outcome, "left")
+        self.assertIn("channel binding", details.message)
+
+    @inlineCallbacks
+    def test_cryptosign_required_allows_bound(self):
+        """
+        With ``channel_binding="required"``, a client that does bind (tls-exporter on TLS 1.3) joins.
+        """
+        auth_config = self._auth_config()
+        auth_config["cryptosign"]["channel_binding"] = "required"
+        outcome, details, server_protocol = yield self._join(
+            None,
+            "cryptosign",
+            {"pubkey": self.pubkey, "channel_binding": "tls-exporter"},
+            _sign_cryptosign(),
+            request_client_cert=False,
+            auth_config=auth_config,
+        )
+        self.assertEqual(outcome, "joined", details)
+        self._check_channel_id(server_protocol)
+
+    @inlineCallbacks
     def test_cryptosign_channel_binding_without_tls(self):
         """
         A client requesting channel binding on a transport without a TLS channel ID is denied,
