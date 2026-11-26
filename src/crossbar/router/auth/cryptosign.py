@@ -163,14 +163,31 @@ class PendingAuthCryptosign(PendingAuth):
                 channel_id=self._channel_id,
             )
 
-        # the server may require channel binding (#2037): deny unless the session ends up bound,
-        # so a cryptosign signature cannot be replayed on a different TLS connection - this
-        # neutralizes the pre-authentication signing oracle (wamp-proto#585) without a protocol change
+        # the server may require channel binding (#2037): deny unless the session ends up bound.
+        # Binding the credential to the TLS channel is defense in depth against the pre-authentication
+        # signing oracle (wamp-proto#585): it raises the bar, but does not by itself close the oracle,
+        # since the node signs a client-influenced value; the full fix is the #585 protocol change.
         if self._config.get("channel_binding", "optional") == "required" and not self._channel_id:
             return Deny(
                 message='channel binding is "required" in the WAMP-Cryptosign configuration, '
                 "but the session is not channel bound"
             )
+
+        # the client-supplied "challenge" the router signs for mutual authentication must be exactly
+        # 32 bytes, hex encoded (a random nonce): reject anything else so the node key is not used as
+        # a signing oracle over oversized or malformed data (#2037; defense in depth, wamp-proto#585)
+        client_challenge = details.authextra.get("challenge", None) if details.authextra else None
+        if client_challenge:
+            try:
+                client_challenge_raw = binascii.a2b_hex(client_challenge)
+            except (binascii.Error, ValueError, TypeError):
+                return Deny(message="invalid 'challenge' in HELLO.authextra - must be hex encoded")
+            if len(client_challenge_raw) != 32:
+                return Deny(
+                    message="invalid 'challenge' in HELLO.authextra - must be 32 bytes, got {}".format(
+                        len(client_challenge_raw)
+                    )
+                )
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
