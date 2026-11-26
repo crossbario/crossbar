@@ -1134,10 +1134,18 @@ def check_listening_endpoint_tls(tls):
             "dhparam": (False, [str]),
             "ciphers": (False, [str]),
             "ca_certificates": (False, [Sequence]),
+            "min_version": (False, [str]),
         },
         tls,
         "TLS listening endpoint",
     )
+
+    if "min_version" in tls and tls["min_version"] not in ["1.2", "1.3"]:
+        raise InvalidConfigException(
+            'invalid \'min_version\' "{}" in TLS listening endpoint configuration - must be "1.2" or "1.3"'.format(
+                tls["min_version"]
+            )
+        )
 
     return
 
