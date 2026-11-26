@@ -46,8 +46,9 @@ classifiers = [
 
 dependencies = [
     # WAMP ecosystem packages (using currently available PyPI versions)
-    # autobahn >=26.11.1: fix for GHSA-2gqc (handshake header smuggling), #2379
-    "autobahn[all]>=26.11.1",
+    # autobahn >=26.11.2: TLS 1.3 channel binding tls-exporter (RFC 9266), needed to
+    # consume the channel ID in WAMP auth, #2037 (>= the GHSA-2gqc security floor of 26.11.1)
+    "autobahn[all]>=26.11.2",
     "txaio>=26.6.1",
     "zlmdb>=26.10.1",
     "cfxdb>=26.6.1",

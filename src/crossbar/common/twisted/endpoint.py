@@ -185,12 +185,16 @@ def _create_tls_server_context(config, cbdir, log):
                 ca_certs.append(Certificate.loadPEM(f.read()).original)
             log.info("Loading server TLS CA certificate from {ca_cert_filepath}", ca_cert_filepath=ca_cert_filepath)
 
-    # TLS 1.3 only (#2325): TLS 1.3 has only AEAD cipher suites with forward secrecy and no
-    # DH parameters, so the TLS 1.2 settings "ciphers" and "dhparam" have no effect. They are
-    # still accepted in the configuration, so existing node configurations keep working.
+    # Minimum negotiated TLS version (#2037): "1.3" (the default, #2325) or "1.2". A listener is
+    # TLS 1.3 only by default; "1.2" is an explicit opt-in (e.g. for stdlib/asyncio clients that
+    # can channel-bind only via tls-unique on TLS <= 1.2). crossbar uses secure built-in cipher
+    # defaults on both versions, so the TLS 1.2 settings "ciphers" and "dhparam" are accepted but
+    # not applied (they keep existing node configurations working); TLS 1.3 does not use them.
+    min_version = config.get("min_version", "1.3")
+    raise_minimum_to = TLSVersion.TLSv1_2 if min_version == "1.2" else TLSVersion.TLSv1_3
     for unused in ("ciphers", "dhparam"):
         if unused in config:
-            log.info("TLS 1.3 only listener: ignoring TLS 1.2 setting '{unused}'", unused=unused)
+            log.info("ignoring TLS 1.2 setting '{unused}' (crossbar uses secure built-in defaults)", unused=unused)
 
     ctx = CertificateOptions(
         privateKey=key,
@@ -198,7 +202,7 @@ def _create_tls_server_context(config, cbdir, log):
         extraCertChain=extra_certs,
         verify=(ca_certs is not None),
         caCerts=ca_certs,
-        # Only allow TLS 1.3 (#2325)
+        # Raise the minimum negotiated TLS version to the configured floor (#2037; default 1.3, #2325)
         #
         # We are using Twisted private stuff (from twisted.internet._sslverify import TLSVersion),
         # as the OpenSSL.SSL method constants wont work:
@@ -207,7 +211,7 @@ def _create_tls_server_context(config, cbdir, log):
         #    if raiseMinimumTo > self._defaultMinimumTLSVersion:
         #       builtins.TypeError: '>' not supported between instances of 'int' and 'NamedConstant'
         #
-        raiseMinimumTo=TLSVersion.TLSv1_3,
+        raiseMinimumTo=raise_minimum_to,
         # TLS hardening
         enableSingleUseKeys=True,
         enableSessions=False,

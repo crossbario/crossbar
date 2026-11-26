@@ -66,6 +66,42 @@ class CheckDictArgsTests(TestCase):
         )
 
 
+class CheckListeningEndpointTlsTests(TestCase):
+    """
+    Tests for L{crossbar.common.checkconfig.check_listening_endpoint_tls} 'min_version' (#2037).
+    """
+
+    _BASE = {"key": "server.key", "certificate": "server.crt"}
+
+    def test_min_version_13_accepted(self):
+        checkconfig.check_listening_endpoint_tls({**self._BASE, "min_version": "1.3"})
+
+    def test_min_version_12_accepted(self):
+        checkconfig.check_listening_endpoint_tls({**self._BASE, "min_version": "1.2"})
+
+    def test_min_version_invalid_rejected(self):
+        with self.assertRaises(checkconfig.InvalidConfigException):
+            checkconfig.check_listening_endpoint_tls({**self._BASE, "min_version": "1.1"})
+
+
+class CheckCryptosignChannelBindingTests(TestCase):
+    """
+    Tests for 'channel_binding' in L{crossbar.common.checkconfig.check_transport_auth_cryptosign} (#2037).
+    """
+
+    _BASE = {"type": "static", "principals": {"alice": {"authorized_keys": ["ab" * 32]}}}
+
+    def test_channel_binding_required_accepted(self):
+        checkconfig.check_transport_auth_cryptosign({**self._BASE, "channel_binding": "required"})
+
+    def test_channel_binding_optional_accepted(self):
+        checkconfig.check_transport_auth_cryptosign({**self._BASE, "channel_binding": "optional"})
+
+    def test_channel_binding_invalid_rejected(self):
+        with self.assertRaises(checkconfig.InvalidConfigException):
+            checkconfig.check_transport_auth_cryptosign({**self._BASE, "channel_binding": "sometimes"})
+
+
 class CheckContainerTests(TestCase):
     """
     Tests for L{crossbar.common.checkconfig.check_container}.

@@ -60,7 +60,15 @@ class NodeManagementSession(ApplicationSession):
 
         # request TLS channel binding on a transport with a TLS channel ID
         channel_id_map = self.transport.transport_details.channel_id or {}
-        self._channel_binding = "tls-unique" if "tls-unique" in channel_id_map else None
+        # select the binding by negotiated TLS version: "tls-exporter" (RFC 9266) on TLS 1.3,
+        # "tls-unique" (RFC 5929) on TLS <= 1.2, none without a TLS channel ID (#2037)
+        self._channel_binding = (
+            "tls-exporter"
+            if "tls-exporter" in channel_id_map
+            else "tls-unique"
+            if "tls-unique" in channel_id_map
+            else None
+        )
 
         extra = {
             # forward the client pubkey: this allows us to omit authid as

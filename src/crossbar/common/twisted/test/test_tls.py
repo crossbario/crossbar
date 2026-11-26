@@ -138,6 +138,30 @@ class TlsListenerTests(unittest.TestCase):
         self.config["dhparam"] = "does-not-exist.pem"
         self.assertEqual(_handshake(self._server_ctx(self.config)), "TLSv1.3")
 
+    def test_min_version_12_accepts_tls12(self):
+        """
+        With "min_version": "1.2" the listener accepts a TLS 1.2 client (#2037).
+        """
+        _write_self_signed(self.cbdir, rsa.generate_private_key(public_exponent=65537, key_size=2048))
+        self.config["min_version"] = "1.2"
+        self.assertEqual(_handshake(self._server_ctx(self.config), SSL.TLS1_2_VERSION), "TLSv1.2")
+
+    def test_min_version_12_still_accepts_tls13(self):
+        """
+        With "min_version": "1.2" a TLS 1.3 client still negotiates TLS 1.3 (#2037).
+        """
+        _write_self_signed(self.cbdir, rsa.generate_private_key(public_exponent=65537, key_size=2048))
+        self.config["min_version"] = "1.2"
+        self.assertEqual(_handshake(self._server_ctx(self.config)), "TLSv1.3")
+
+    def test_min_version_13_refuses_tls12(self):
+        """
+        With "min_version": "1.3" (the default) a TLS 1.2 client is refused (#2037).
+        """
+        _write_self_signed(self.cbdir, rsa.generate_private_key(public_exponent=65537, key_size=2048))
+        self.config["min_version"] = "1.3"
+        self.assertRaises(SSL.Error, _handshake, self._server_ctx(self.config), SSL.TLS1_2_VERSION)
+
 
 class _HttpClient(Protocol):
     """
