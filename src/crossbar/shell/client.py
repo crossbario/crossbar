@@ -36,6 +36,17 @@ class ShellClient(ApplicationSession):
         self._command = self.config.extra.get("command", None)
         self._main = self.config.extra.get("main", None)
 
+        # select the TLS channel binding by negotiated TLS version: "tls-exporter" (RFC 9266) on
+        # TLS 1.3, "tls-unique" (RFC 5929) on TLS <= 1.2, none without a TLS channel ID (#2037)
+        channel_id_map = self.transport.transport_details.channel_id or {}
+        self._channel_binding = (
+            "tls-exporter"
+            if "tls-exporter" in channel_id_map
+            else "tls-unique"
+            if "tls-unique" in channel_id_map
+            else None
+        )
+
         # authentication extra information for wamp-cryptosign
         #
         extra = {
@@ -52,7 +63,7 @@ class ShellClient(ApplicationSession):
             # encoded 32 bytes random value.
             "challenge": self.config.extra.get("challenge", None),
             # use TLS channel binding
-            "channel_binding": self.config.extra.get("channel_binding", None),
+            "channel_binding": self._channel_binding,
         }
 
         # used for user login/registration activation code
@@ -75,7 +86,7 @@ class ShellClient(ApplicationSession):
         # sign and send back the challenge with our private key.
         try:
             assert self.config.extra is not None
-            channel_id_type = self.config.extra.get("channel_binding", None)
+            channel_id_type = self._channel_binding
             assert self.transport is not None
             channel_id = self.transport.transport_details.channel_id.get(channel_id_type, None)
             sig = self._key.sign_challenge(challenge, channel_id=channel_id, channel_id_type=channel_id_type)
@@ -164,11 +175,23 @@ class ManagementClientSession(ApplicationSession):
     def onConnect(self):
         self._key = self.config.extra["key"]
         assert self.config.extra is not None
+
+        # select the TLS channel binding by negotiated TLS version: "tls-exporter" (RFC 9266) on
+        # TLS 1.3, "tls-unique" (RFC 5929) on TLS <= 1.2, none without a TLS channel ID (#2037)
+        channel_id_map = self.transport.transport_details.channel_id or {}
+        self._channel_binding = (
+            "tls-exporter"
+            if "tls-exporter" in channel_id_map
+            else "tls-unique"
+            if "tls-unique" in channel_id_map
+            else None
+        )
+
         extra = {
             "pubkey": self._key.public_key(),
             "trustroot": self.config.extra.get("trustroot", None),
             "challenge": self.config.extra.get("challenge", None),
-            "channel_binding": self.config.extra.get("channel_binding", None),
+            "channel_binding": self._channel_binding,
         }
         for k in ["activation_code", "request_new_activation_code"]:
             if k in self.config.extra and self.config.extra[k]:
@@ -184,7 +207,7 @@ class ManagementClientSession(ApplicationSession):
 
     def onChallenge(self, challenge):
         assert self.config.extra is not None
-        channel_id_type = self.config.extra.get("channel_binding", None)
+        channel_id_type = self._channel_binding
         assert self.transport is not None
         channel_id = self.transport.transport_details.channel_id.get(channel_id_type, None)
         sig = self._key.sign_challenge(challenge, channel_id=channel_id, channel_id_type=channel_id_type)
